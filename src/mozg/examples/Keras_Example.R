@@ -1,3 +1,5 @@
+rm(list=ls())
+
 library(keras)
 
 mnist <- dataset_mnist()
