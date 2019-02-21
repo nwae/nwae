@@ -54,6 +54,7 @@ test_images <- test_images / 255
 train_labels <- to_categorical(train_labels)
 test_labels <- to_categorical(test_labels)
 
+# Train
 network %>% fit(
   train_images,
   train_labels,
@@ -61,4 +62,16 @@ network %>% fit(
   batch_size = 128
 )
 
+# Test trained model against test images
+metrics <- network %>%
+  evaluate(
+    test_images,
+    test_labels
+  )
+
+# Classify the first 10 samples in the control images
+network %>%
+  predict_classes(
+    test_images[1:10,]
+  )
 
