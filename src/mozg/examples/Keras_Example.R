@@ -50,4 +50,15 @@ test_images <- array_reshape(
 )
 test_images <- test_images / 255
 
+# Preparing labels from labels 0-9 to output 0/1 in a positional vector instead
+train_labels <- to_categorical(train_labels)
+test_labels <- to_categorical(test_labels)
+
+network %>% fit(
+  train_images,
+  train_labels,
+  epochs = 5,
+  batch_size = 128
+)
+
 
