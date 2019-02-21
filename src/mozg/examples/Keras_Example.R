@@ -9,14 +9,14 @@ setwd(WORKING.DIR)
 mnist <- dataset_mnist()
 
 # Training data/images
-train_images <- mnist$train$x
+train_images.2d <- mnist$train$x
 train_labels <- mnist$train$y
 # Control images
-test_images <- mnist$test$x
+test_images.2d <- mnist$test$x
 test_labels <- mnist$test$y
 
 # 60K images, 28x28 pixel image
-str(train_images)
+str(train_images.2d)
 # 60K labels/classifications
 str(train_labels)
 
@@ -39,13 +39,13 @@ network %>% compile(
 
 # Instead of 2D data for each image 28x28, we pull it into 1D of length 28*28
 train_images <- array_reshape(
-  train_images,
+  train_images.2d,
   c(60000, 28*28)
 )
 train_images <- train_images / 255
 
 test_images <- array_reshape(
-  test_images,
+  test_images.2d,
   c(10000, 28*28)
 )
 test_images <- test_images / 255
@@ -74,4 +74,8 @@ network %>%
   predict_classes(
     test_images[1:10,]
   )
+
+# Print actual image
+digit <- train_images.2d[5,,]
+plot(as.raster(digit, max = 255))
 
