@@ -1,0 +1,161 @@
+py.ie.lib NLP/AI Library Manual
+
+----------------------------------------------------------------------------
+Purpose
+----------------------------------------------------------------------------
+This code was written with the following purpose:
+1. NLP Analysis Tool for Clustering/Classification
+2. Intent API Server
+3. Bot Server via WebSocket Protocol
+4. Complete Comm100/LiveChat functionalities, agents/clients, transfers, etc.
+
+----------------------------------------------------------------------------
+!!!!!URGENT!!!!!
+----------------------------------------------------------------------------
+- Speed up word segmentation. Current speed levels are unacceptable!
+- Speed up intent determination. As intent/training-data grows, we need an algorithm
+  that is not affected by it. Although the current algorithm should not be affected
+  by it too much, it is still slightly affected by growing data size.
+
+----------------------------------------------------------------------------
+Structure
+----------------------------------------------------------------------------
+- ie/api supposedly Rest API
+- ie/app folder contains all command line programs that wrap our library code already
+- ie/lib are all library folders, and should not contain applications
+
+----------------------------------------------------------------------------
+If You Want To Use This Code As Library, or Stateful Server
+----------------------------------------------------------------------------
+Stateful Server
+- If you want to maintain state in a conversation and let GBot handle everything,
+  just connect to the server and pass messages to and fro.
+
+Just Determine Intent/Answer
+- See ie.lib.chat.bot.LeBotWrapper.py & ie.app.chatbot.CRMBot.py
+- In LeBotWrapper, you can see how the main interfaces get_text_class() and get_text_answer() is used.
+- get_text_class() just returns the top intent, and up to you to answer.
+- get_text_answer() gets the answer for you.
+- In CRMBot.py, you will see you how 2 main things are initialized
+  1. Logs
+  2. Config Files
+          crmbot = gb.LeBotWrapper(lang      = lang,
+                         brand     = brand,
+                         dir_rfv_commands = cf.ConfigFile.DIR_RFV_INTENTS,
+                         dir_synonymlist  = cf.ConfigFile.DIR_SYNONYMLIST,
+                         dir_wordlist     = cf.ConfigFile.DIR_WORDLIST,
+                         postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST,
+                         dir_wordlist_app = cf.ConfigFile.DIR_APP_WORDLIST,
+                         postfix_wordlist_app = '.' + brand + cf.ConfigFile.POSTFIX_APP_WORDLIST)
+        crmbot.init(verbose=verbose)
+
+      As you can see, the directory paths/etc. are all nicely in the ie.app.ConfigFile class already.
+      However if your top directory is different from /Users/mark.tan/dev/ie, you need to do this
+
+        import ie.app.ConfigFile as cf
+        cf.ConfigFile.TOP_DIR = '/path/to/your/top/directory'
+        cf.ConfigFile.top_dir_changed()
+
+
+
+----------------------------------------------------------------------------
+Applications, Command-Line Programs
+----------------------------------------------------------------------------
++ app/chatbot/BotTrain
+  - Command Line Program to train our Bot
++ app/chatbot/BotTest
+  - Command Line Program to test ChatBot functions
+
+----------------------------------------------------------------------------
+TODO
+----------------------------------------------------------------------------
+1. ВСЭ (Вектор Свойства Эталонный)
+   - Включите в ВСЭ слово "Другое". Эсли исчизлим ВСЭ этого предложения "你好 吃饭" и слово "吃饭"
+     не включенно в свойства ВСЭ, то ВСЭ "你好 吃饭" будет равен "你好".
+
+2. Разбиение Слов
+   - Пожалуйста, побыстрее!! Некоторые идея:
+     + ???
+   - Используйте метод максимального правоподобия на все вероятные комбинации разбиения.
+   - Исправляйте написание (особенно Тайский язык)
+
+
+----------------------------------------------------------------------------
+1. NLP Library
+----------------------------------------------------------------------------
+Nothing can function without NLP, so we need to discuss this first.
+
+You may skip this section directly to the next if your interest is purely the
+Bot functionality.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+1.1 Word Segmentation [lang.nlp.WordSegmentation.py]
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+For this, first we need word lists in the supported languages.
+
+[lang.nlp.WordList.py]
+- Chinese: i)  https://raw.githubusercontent.com/fxsjy/jieba/master/extra_dict/dict.txt.big
+           ii) https://raw.githubusercontent.com/fxsjy/jieba/master/extra_dict/dict.txt.small
+           Both above taken from the project jieba - https://github.com/fxsjy/jieba
+- Thai:    https://github.com/pureexe/thai-wordlist
+           (write a simple Linux bash script to extract the HTML format via commands sed/etc)
+
+From those files we store it in simple text files
+- ~/dev/ie/nlp.data/wordlist/cn-wordlist.txt
+- ~/dev/ie/nlp.data/wordlist/th-wordlist.txt
+- ~/dev/ie/nlp.data/wordlist/vn-wordlist.txt
+...
+
+
+
+
+----------------------------------------------------------------------------
+2. Chat Training Data
+----------------------------------------------------------------------------
+
+Get chat data with the following format & columns:
+
+"CalllogID","Brand","Currency","DateTime","Pause","Line","Category","Speaker","Content"
+"340287","Betway","CNY",2018-04-01 05:33:48,NA,2,"Member","bw1919","你好，提款怎么一直显示处理中？"
+"340287","Betway","CNY",2018-04-01 05:34:01,13,3,"Customer Service","必威楷杰","请您稍等，客服这里为您提交财务查询"
+
+You may also use the chat/ChatData.R script to get the above data from our KL Server.
+
+This is the first step in configuring our bot.
+Once the training data in CSV format is done, run the function preprocess_training_data().
+This will add additional columns, do preprocessing, split text, etc.
+A new file will be created, e.g. cn.training.data.split.csv
+This step is extremely important for the following tasks, as word splitting is slow, thus
+with pre-written file, it speeds up things for everything else.
+
+
+----------------------------------------------------------------------------
+2. Chat Training
+----------------------------------------------------------------------------
+
+With the availability of training data, we can now train our bot.
+
+The file shall be in the following format:
+
+No,Cnt,Brand,Lang,Intent ID,Answer Key,Intent,Source,SourceName,Chat ID,Text
+1,1,Betway,cn,common.greeting,Betway.cn.common.greeting,必威常见问题,member,-,-,你好
+393,1,Betway,cn,payment.meidao,Betway.cn.payment.meidao,没有到账,-,-,-,怎么还没到账
+
+The first step shall be to run ChatTrainingData.preprocess_training_data().
+This will split the text into properly segmented sentences.
+We do this preprocessing to speed up future processes.
+If we can find/design a superfast text segmentation algorithm in the future,
+then we will not need to do preprocessing.
+
+Only columns "Brand", "Lang", ""
+
+
+----------------------------------------------------------------------------
+3. Intent Detection - LeBot
+----------------------------------------------------------------------------
+
+
+----------------------------------------------------------------------------
+4. Chat Clustering
+----------------------------------------------------------------------------
+
