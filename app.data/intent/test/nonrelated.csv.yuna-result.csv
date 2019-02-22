@@ -1,0 +1,9 @@
+,Text,Intent.1,Intent.1.Score,Intent.1.ConfLevel,Intent.2
+0,新书中揭露的内幕是恶劣到了极致,payment.deposit.meidao,6.8,0,payment.meidao
+1,行政权力陷于精神崩溃,abusive.report,17.03,0,-
+2,特朗普的支持者,-,0.0,0,-
+3,开学日看钢管舞,payment.deposit.betwaylimits,21.74,1,payment.deposit.localbank.unable
+4,一场吓坏幼儿园家长的表演,-,0.0,0,-
+5,韩联社报道,-,0.0,0,-
+6,韩国特使团首席特使郑义溶向金正恩转交文在寅的书信,common.greeting,35.73,1,payment.center
+7,善用社交媒体推广广播节目的五大要诀,affiliate.general,12.69,0,-
