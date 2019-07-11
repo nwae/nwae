@@ -5,12 +5,21 @@
 #
 class ConfigFile:
 
+    # This is the only variable that we should change, the top directory
+    TOP_DIR = '/Users/mark.tan/git/mozg.nlp'
+
+    #######################################################################
+    # DB Stuff (not dependent on topdir)
+    #######################################################################
+
+    # DB
+    USE_DB = True
+    # This is the database to connect to, that might contain all account info
+    DB_PROFILE = 'mario2'
+
     #######################################################################
     # NLP Stuff
     #######################################################################
-
-    # This is the only variable that we should change, the top directory
-    TOP_DIR = '/Users/mark.tan/svn/cai.nlp'
 
     # Word lists
     DIR_WORDLIST     = TOP_DIR + '/nlp.data/wordlist'
@@ -61,13 +70,22 @@ class ConfigFile:
     # Intent Server
     #######################################################################
     DIR_INTENTSERVER = TOP_DIR + '/app.data/server'
-    FILEPATH_INTENTSERVER_LOG = DIR_INTENTSERVER + '/intentserver.log.csv'
+    FILEPATH_INTENTSERVER_LOG = DIR_INTENTSERVER + '/intentserver.log'
+
+    #######################################################################
+    # General
+    #######################################################################
+    DIR_GENERAL_APP = TOP_DIR + '/app.data/general'
+    FILEPATH_GENERAL_LOG = DIR_GENERAL_APP + '/intentserver.log'
 
     def __init__(self):
         return
 
     @staticmethod
     def top_dir_changed():
+        #######################################################################
+        # NLP Stuff
+        #######################################################################
         # Word lists
         ConfigFile.DIR_WORDLIST = ConfigFile.TOP_DIR + '/nlp.data/wordlist'
         ConfigFile.DIR_APP_WORDLIST = ConfigFile.TOP_DIR + '/nlp.data/app/chats'
@@ -95,7 +113,7 @@ class ConfigFile:
         ConfigFile.DIR_CHATCLUSTERING_OUTPUT = ConfigFile.TOP_DIR + '/app.data/chat.clustering'
 
         #######################################################################
-        # ChatBot Stuff
+        # Intent Server Config Stuff
         #######################################################################
 
         # Intent Training (Contains also, all intents, answers, training data)
@@ -109,7 +127,13 @@ class ConfigFile:
         ConfigFile.DIR_RFV_INTENTS = ConfigFile.TOP_DIR + '/app.data/intent/rfv'
 
         #######################################################################
-        # Chat & Bot API Server Stuff
+        # Intent Server
         #######################################################################
         ConfigFile.DIR_INTENTSERVER = ConfigFile.TOP_DIR + '/app.data/server'
-        ConfigFile.FILEPATH_INTENTSERVER_LOG = ConfigFile.DIR_INTENTSERVER + '/intentserver.chatlog.csv'
+        ConfigFile.FILEPATH_INTENTSERVER_LOG = ConfigFile.DIR_INTENTSERVER + '/intentserver.log'
+
+        #######################################################################
+        # General
+        #######################################################################
+        ConfigFile.DIR_GENERAL_APP = ConfigFile.TOP_DIR + '/app.data/general'
+        ConfigFile.FILEPATH_GENERAL_LOG = ConfigFile.DIR_GENERAL_APP + '/intent.general.log'

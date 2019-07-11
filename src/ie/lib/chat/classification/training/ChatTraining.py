@@ -4,10 +4,13 @@
 
 import numpy as np
 import pandas as pd
+import os
+import re
 import ie.lib.lang.classification.TextClusterBasic as tcb
 import ie.lib.chat.classification.training.RefFeatureVec as reffv
 import ie.lib.chat.classification.training.ChatTrainingData as ctd
-import ie.lib.util.Log as log
+import mozg.common.util.Log as log
+from inspect import currentframe, getframeinfo
 
 
 #
@@ -22,15 +25,16 @@ class ChatTraining:
 
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
 
-    def __init__(self,
-                 lang,
-                 brand,
-                 dirpath_rfv,
-                 chat_training_data,
-                 verbose=0):
+    def __init__(
+            self,
+            botkey,
+            dirpath_rfv,
+            chat_training_data,
+            # TODO Not needed anymore?
+            lang = None
+    ):
 
-        self.lang = lang
-        self.brand = brand
+        self.botkey = botkey
         self.dirpath_rfv = dirpath_rfv
         self.chat_training_data = chat_training_data
 
@@ -56,43 +60,86 @@ class ChatTraining:
         return
 
     #
+    # When we index FV of all training data, we keep in the format 'intentId-1', 'intentId-2,...
+    # So we just filter off the '-\d+'
+    #
+    @staticmethod
+    def retrieve_intent_from_training_data_index(
+            index_list,
+            convert_to_type = 'str'
+    ):
+        for i in range(0,len(index_list),1):
+            v = str(index_list[i])
+            v = re.sub(
+                pattern = '[-]\d+.*',
+                repl    = '',
+                string  = v
+            )
+            if convert_to_type == 'int':
+                index_list[i] = int(v)
+            else:
+                index_list[i] = v
+        return index_list
+
+    #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
     #
-    def train(self, keywords_remove_quartile=50, stopwords=[], weigh_idf=False, verbose=0):
+    def train(
+            self,
+            keywords_remove_quartile = 50,
+            stopwords = (),
+            weigh_idf = False
+    ):
+        td = None
 
-        if self.chat_training_data.df_training_data is None:
-            log.Log.log('No training data!!')
-            return
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Training for botkey=' + self.botkey
+                         + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
+                         + ', stopwords = [' + str(stopwords) + ']'
+                         + ', weigh by IDF = ' + str(weigh_idf))
 
-        log.Log.log('Training ' + self.lang + '.' + self.brand +
-                    '. Using keywords remove quartile = ' + str(keywords_remove_quartile) +
-                    ', stopwords = [' + str(stopwords) + ']' +
-                    ', weigh by IDF = ' + str(weigh_idf))
-        td = self.chat_training_data.df_training_data
+        if self.chat_training_data.use_db:
+            td = self.chat_training_data.get_training_data_from_db()
+            # Segment sentence and write back to DB if necessary
+            self.chat_training_data.segment_db_training_data()
+        else:
+            if self.chat_training_data.df_training_data is None:
+                raise Exception(str(self.__class__) + ' No training data from file!!')
+
+            td = self.chat_training_data.df_training_data
+
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                      + ': Training data: ' + str(td))
 
         #
         # Extract all keywords
         # Our training now doesn't remove any word, uses no stopwords, but uses an IDF weightage to measure
         # keyword value.
         #
-        log.Log.log('Starting text cluster, calculate top keywords...')
-        self.textcluster = tcb.TextClusterBasic(text=list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]),
-                                                stopwords=stopwords)
-        self.textcluster.calculate_top_keywords(remove_quartile=keywords_remove_quartile, verbose=verbose)
-        log.Log.log('Keywords extracted as follows:')
-        log.Log.log(self.textcluster.keywords_for_fv)
-        #raise Exception('Done Debug')
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Starting text cluster, calculate top keywords...')
+        self.textcluster = tcb.TextClusterBasic(
+            text      = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]),
+            stopwords = stopwords
+        )
+        self.textcluster.calculate_top_keywords(
+            remove_quartile = keywords_remove_quartile
+        )
+        log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Keywords extracted as follows:' + str(self.textcluster.keywords_for_fv))
 
         # Extract unique Commands/Intents
-        log.Log.log('Extracting unique commands/intents..')
+        log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Extracting unique commands/intents..')
         self.commands = set( list( td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID] ) )
         # Change back to list, this list may change due to deletion of invalid commands.
         self.commands = list(self.commands)
-        log.Log.log(self.commands)
+        log.Log.critical(self.commands)
 
         # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
-        log.Log.log('Preparing RFV data frames...')
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Preparing RFV data frames...')
         m = np.zeros((len(self.commands), len(self.textcluster.keywords_for_fv)))
         self.df_rfv = pd.DataFrame(m, columns=self.textcluster.keywords_for_fv, index=self.commands)
         self.df_rfv_distance_furthest = pd.DataFrame({
@@ -106,7 +153,8 @@ class ChatTraining:
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        log.Log.log('Joining all training data in the same command/intent to get IDF...')
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Joining all training data in the same command/intent to get IDF...')
         i = 0
         text_bycategory = [''] * len(self.commands)
         for com in self.commands:
@@ -116,36 +164,43 @@ class ChatTraining:
             text_com = ' '.join(text_samples)
             text_bycategory[i] = text_com
             i = i + 1
+        log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ': Joined intents: ' + str(text_bycategory))
         # Create a new TextCluster object
         self.textcluster_bycategory = tcb.TextClusterBasic(text=text_bycategory, stopwords=stopwords)
         # Always use the same keywords FV!!
         self.textcluster_bycategory.set_keywords(df_keywords=self.textcluster.df_keywords_for_fv.copy())
+
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Calculating sentence matrix of combined Intents to get IDF...')
         self.textcluster_bycategory.calculate_sentence_matrix(
             freq_measure='normalized',
             feature_presence_only=False,
-            idf_matrix=None,
-            verbose=0
+            idf_matrix=None
         )
 
-        log.Log.log('Calculating IDF...')
-        self.textcluster_bycategory.calculate_idf(verbose=0)
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Calculating IDF...')
+        self.textcluster_bycategory.calculate_idf()
         # Create a column matrix for IDF
         idf_matrix = self.textcluster_bycategory.idf_matrix.copy()
-        log.Log.log(idf_matrix)
+        log.Log.info(idf_matrix)
         if not weigh_idf:
-            log.Log.log('Not using IDF')
+            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Not using IDF')
             idf_matrix = None
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
         #
         # Get sentence matrix for all sentences first
-        log.Log.log('Calculating sentence matrix for all training data...')
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Calculating sentence matrix for all training data...')
         self.textcluster.calculate_sentence_matrix(
-            freq_measure='normalized',
-            feature_presence_only=False,
-            idf_matrix=idf_matrix,
-            verbose=0)
+            freq_measure          = 'normalized',
+            feature_presence_only = False,
+            idf_matrix            = idf_matrix
+        )
 
         #
         # Data frame for all training data
@@ -155,25 +210,38 @@ class ChatTraining:
         for i in range(0, td.shape[0], 1):
             intent = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
             intent_index = td[ctd.ChatTrainingData.COL_TDATA_INTENT_INDEX].loc[i]
-            td_indexes[i] = str(intent) + '.' + str(intent_index)
+            #
+            # IMPORTANT!!
+            # Don't use '.' here, as the index will become a number such that 1234.1 becomes
+            # equal to 1234.10 when read back from CSV !!!
+            #
+            td_indexes[i] = str(intent) + '-' + str(intent_index)
 
-        self.df_fv_all = pd.DataFrame(self.textcluster.sentence_matrix.copy(),
-                                      columns=self.textcluster.keywords_for_fv,
-                                      index=td_indexes)
+        self.df_fv_all = pd.DataFrame(
+            data    = self.textcluster.sentence_matrix.copy(),
+            columns = self.textcluster.keywords_for_fv,
+            index   = td_indexes
+        )
 
         # Sanity check for training data with incorrect FV, e.g. no common features at all
         for idx in list(self.df_fv_all.index):
-            fv = self.df_fv_all.loc[idx].as_matrix()
-            check_dist = np.sum(fv*fv)**0.5
+            # Convert to array
+            fv = np.array(self.df_fv_all.loc[idx].values)
+            check_dist = np.sum(np.multiply(fv,fv))**0.5
             if abs(check_dist-1) > 0.000001:
-                errmsg = 'Warning! FV for intent [' + str(idx) + '] not 1, but [' + str(check_dist) + '].'
-                log.Log.log(errmsg)
-                log.Log.log('Dropping this training data [' + str(idx) + ']...')
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Warning! FV for intent [' + str(idx) + '] not 1, but [' + str(check_dist) + '].'
+                log.Log.critical(errmsg)
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': Dropping this training data [' + str(idx) + ']...')
                 len_before = self.df_fv_all.shape[0]
                 self.df_fv_all = self.df_fv_all.drop(labels=idx, axis=0)
                 len_after = self.df_fv_all.shape[0]
-                log.Log.log('Length before = ' + str(len_before) + ', length now = ' + str(len_after))
-                #raise Exception(errmsg)
+                log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Length before = ' + str(len_before) + ', length now = ' + str(len_after))
+            else:
+                log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Normalization check for training data array ' + str(idx) + ' ok')
 
 
         #
@@ -188,23 +256,30 @@ class ChatTraining:
                                     columns=self.textcluster.keywords_for_fv,
                                     index=self.df_rfv.index.tolist())
         tmp_fv_td_matrix = self.textcluster.sentence_matrix.copy()
+        row_indexes = None
         for com in self.commands:
             try:
-                # Use training data FVs (if text contains '?', '+',... need to replace with '[?]',... otherwise regex will fail
-                for specchar in ['?', '+', '*', '(', ')']:
-                    com = com.replace(specchar, '[' + specchar + ']')
+                if type(com) is str:
+                    # Use training data FVs (if text contains '?', '+',... need to replace with '[?]',... otherwise regex will fail
+                    for specchar in ['?', '+', '*', '(', ')']:
+                        com = com.replace(specchar, '[' + specchar + ']')
 
                 # Extract only rows of this intent
-                row_indexes = self.df_fv_all.index.str.match(com+'.[0-9]+')
+                row_indexes = self.df_fv_all.index.str.match(str(com)+'.[0-9]+')
                 tmp_intent_matrix = self.df_fv_all[row_indexes]
                 if tmp_intent_matrix.shape[0] == 0:
-                    errmsg = 'In intent [' + com + '], no rows matched! ' + 'Possibly data has no common features in FV...'
-                    log.Log.log(errmsg)
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': For intent ID [' + str(com) + '], no rows matched! ' + 'Possibly data has no common features in FV...'
+                    log.Log.critical(errmsg)
                     continue
                     #raise Exception(errmsg)
 
+                #
+                # TODO FutureWarning: Method .as_matrix will be removed in a future version. Use .values instead.
+                #
                 #log.Log.log(tmp_fv_td_intent_matrix)
-                tmp_intent_matrix = tmp_intent_matrix.as_matrix()
+                # tmp_intent_matrix = tmp_intent_matrix.as_matrix()
+                tmp_intent_array = tmp_intent_matrix.values
 
                 #
                 # TODO: Cluster intent
@@ -213,15 +288,16 @@ class ChatTraining:
                 #
                 # Get some measure equivalent to "TF"
                 #
-                word_presence_matrix = (tmp_intent_matrix>0)*1
+                word_presence_array = (tmp_intent_array>0)*1
                 # Sum columns
-                keyword_presence_tf = np.sum(word_presence_matrix, axis=0) / word_presence_matrix.shape[0]
+                keyword_presence_tf = np.sum(word_presence_array, axis=0) / word_presence_array.shape[0]
                 #log.Log.log(keyword_presence_tf)
                 self.df_intent_tf.loc[com] = keyword_presence_tf
                 #log.Log.log(df_intent_tf)
                 #raise Exception('Debug End')
             except Exception as ex:
-                log.Log.log('Error for intent ID [' + com + '], at row indexes ' + str(row_indexes))
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': Error for intent ID [' + com + '], at row indexes ' + str(row_indexes))
                 raise(ex)
 
         #
@@ -230,7 +306,8 @@ class ChatTraining:
         # Because self.commands may change, due to deletion of invalid commands
         all_commands = self.commands.copy()
         for com in all_commands:
-            log.Log.log('Doing command [' + com + ']')
+            log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Doing intent ID [' + str(com) + ']')
             is_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]==com
             text_samples = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command])
             text_samples_indexes = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command].index)
@@ -254,10 +331,11 @@ class ChatTraining:
                         del text_samples[mrow]
                         del text_samples_indexes[mrow]
 
-                        errmsg = 'Removing row [' + str(mrow) + '] of training data.' +\
+                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                                 + ': Removing row [' + str(mrow) + '] of training data.' +\
                                  'Error in training data ['  + textsam + ']! FV for sample command [' + str(com) +\
                                  '] not 1, but [' + str(check_magnitude) + '].'
-                        log.Log.log(errmsg)
+                        log.Log.critical(errmsg)
                         # We need to break because the matrix dimensions changed in the loop
                         ok = False
                         break
@@ -266,28 +344,36 @@ class ChatTraining:
             # This case of empty sample matrix means all training data have been deleted due to bad data
             #
             if sample_matrix.shape[0] == 0:
-                errmsg = 'Empty matrix for command [' + str(com) + '] Removing this command from list..'
-                log.Log.log(errmsg)
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Empty matrix for command [' + str(com) + '] Removing this command from list..'
+                log.Log.critical(errmsg)
                 len_before = len(self.commands)
                 self.commands.remove(com)
                 len_after = len(self.commands)
-                log.Log.log(str(len_after) + ' commands left from previous ' + str(len_before) +
-                      ' commands. Not calculating RFV for [' + str(com) + ']')
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': ' + str(len_after) + ' commands left from previous ' + str(len_before)
+                                 + ' commands. Not calculating RFV for [' + str(com) + ']')
 
-                log.Log.log('Now dropping command [' + com + '] from df_rfv..')
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': Now dropping command [' + str(com) + '] from df_rfv..')
                 len_before = self.df_rfv.shape[0]
                 self.df_rfv = self.df_rfv.drop(labels=com, axis=0)
                 len_after = self.df_rfv.shape[0]
-                log.Log.log(str(len_after) + ' df_rfv left from previous ' + str(len_before) + ' commands.')
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': ' + str(len_after) + ' df_rfv left from previous ' + str(len_before)
+                                 + ' commands.')
 
-                log.Log.log('Now dropping command [' + com + '] from df_rfv_distance_furthest..')
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ': Now dropping command [' + str(com) + '] from df_rfv_distance_furthest..')
                 len_before = self.df_rfv_distance_furthest.shape[0]
                 com_index = \
                     self.df_rfv_distance_furthest.loc[
                         self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
                 self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.drop(labels=com_index, axis=0)
                 len_after = self.df_rfv_distance_furthest.shape[0]
-                log.Log.log(str(len_after) + ' df_rfv_distance_furthest left from previous ' + str(len_before) + ' commands.')
+                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + ':' + str(len_after) + ' df_rfv_distance_furthest left from previous '
+                                 + str(len_before) + ' commands.')
                 continue
 
             #
@@ -303,10 +389,12 @@ class ChatTraining:
 
             check_dist = np.sum(np.multiply(rfv,rfv))**0.5
             if abs(check_dist-1) > 0.000001:
-                errmsg = 'Warning! RFV for command [' + str(com) + '] not 1, but [' + str(check_dist) + '].'
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(check_dist) + '].'
                 raise(errmsg)
             else:
-                log.Log.log('Check RFV normalized ok [' + str(check_dist) + '].')
+                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Check RFV normalized ok [' + str(check_dist) + '].')
 
             #
             # Get furthest point of classification to rfv
@@ -318,7 +406,8 @@ class ChatTraining:
             com_index =\
                 self.df_rfv_distance_furthest.loc[self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
             for i in range(0, sample_matrix.shape[0], 1):
-                log.Log.log('   Checking ' + str(i) + ': [' + text_samples[i] + ']')
+                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                 + '   Checking ' + str(i) + ': [' + text_samples[i] + ']')
                 fv_text = sample_matrix[i]
                 dist_vec = rfv - fv_text
                 dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
@@ -327,12 +416,11 @@ class ChatTraining:
                     self.df_rfv_distance_furthest.at[com_index, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
                     self.df_rfv_distance_furthest.at[com_index, reffv.RefFeatureVector.COL_TEXT] = text_samples[i]
 
-            if verbose >= 1:
-                log.Log.log('Command [' + str(com) + ']..')
-                log.Log.log('Furthest distance = ' +
-                      str(float(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST][com_index])))
-                s_tmp = self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_TEXT].loc[com_index].values
-                log.Log.log('  [' + s_tmp + ']')
+            log.Log.info('Command [' + str(com) + ']..')
+            log.Log.info('Furthest distance = ' +
+                  str(float(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST][com_index])))
+            s_tmp = self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_TEXT].loc[com_index].values
+            log.Log.info('  [' + s_tmp + ']')
 
             #if re.match('choice.[0-9]+', com):
             #    log.Log.log(com)
@@ -370,41 +458,56 @@ class ChatTraining:
         #
         count = 1
         for com in list(self.df_rfv.index):
-            rfv = self.df_rfv.loc[com].as_matrix()
+            rfv = np.array(self.df_rfv.loc[com].values)
             dist = np.sum(np.multiply(rfv,rfv))**0.5
             if abs(dist-1) > 0.000001:
-                errmsg = 'Warning! RFV for command [' + str(com) + '] not 1, but [' + str(dist) + '].'
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(dist) + '].'
                 raise(Exception(errmsg))
             else:
-                log.Log.log(str(count) + '. Check RFV for [' + com + '] normalized ok [' + str(dist) + '].')
+                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': ' + str(count) + '. Check RFV for [' + str(com)
+                             + '] normalized ok [' + str(dist) + '].')
                 count = count + 1
 
         #
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        fpath_idf = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.words.idf.csv'
-        self.textcluster_bycategory.df_idf.to_csv(path_or_buf=fpath_idf)
+        fpath_idf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.words.idf.csv'
+        self.textcluster_bycategory.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
 
-        fpath_rfv = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.commands.rfv.csv'
-        self.df_rfv.to_csv(path_or_buf=fpath_rfv)
-        log.Log.log('Saved RFV dimensions [' + str(self.df_rfv.shape) + '] filepath [' + fpath_rfv + ']')
+        fpath_rfv = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.csv'
+        self.df_rfv.to_csv(path_or_buf=fpath_rfv, index=True, index_label='INDEX')
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Saved RFV dimensions [' + str(self.df_rfv.shape) + '] filepath [' + fpath_rfv + ']')
 
-        fpath_dist_furthest = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.commands.rfv.distance.csv'
-        self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest)
+        fpath_dist_furthest = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.distance.csv'
+        self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
 
-        fpath_fv_all = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.fv.all.csv'
-        self.df_fv_all.to_csv(path_or_buf=fpath_fv_all)
+        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
+        self.df_fv_all.to_csv(path_or_buf=fpath_fv_all, index=True, index_label='INDEX')
 
-        fpath_intent_tf = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.commands.words.tf.csv'
-        self.df_intent_tf.to_csv(path_or_buf=fpath_intent_tf)
+        fpath_intent_tf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.words.tf.csv'
+        self.df_intent_tf.to_csv(path_or_buf=fpath_intent_tf, index=True, index_label='INDEX')
+
+        # We write a dummy file to change the directory timestamp, so that our intent server can detect change
+        fpath_dummy_file = self.dirpath_rfv + '/.dummyfile'
+        try:
+            f = open(file=fpath_dummy_file, mode='w')
+            f.close()
+            os.remove(fpath_dummy_file)
+        except Exception as ex:
+            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ': Could not create/delete dummy file "' + fpath_dummy_file
+                             + '". ' + str(ex))
 
         return
 
     #
     # Get the measure of "separation" between different classes to the reference feature vector
     #
-    def get_separation(self, verbose=0):
+    def get_separation(self):
 
         self.df_dist_closest_non_class = pd.DataFrame({'Command':list(self.commands),
                                                        'DistanceClosestNonClass':[0]*len(self.commands)})
@@ -449,23 +552,22 @@ class ChatTraining:
                 self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[com_index].values
             overlap = same_class_furthest - distance_closest > 0
             if overlap:
-                log.Log.log('Warning: Intent '+ com +
+                log.Log.warning('Warning: Intent '+ com +
                       ', same class furthest = ' + str(same_class_furthest) +
                       ', closest non-class point = ' + str(distance_closest) +
                       ', overlap = ' + str(overlap) +
                       ', avg = ' + str(avg_non_class))
 
-            if verbose >= 2:
-                log.Log.log('Command = ' + com +
-                      ', same class furthest = ' + str(same_class_furthest) +
-                      ', closest non-class point = ' + str(distance_closest) +
-                      ', overlap = ' + str(overlap) +
-                      ', avg = ' + str(avg_non_class))
+            log.Log.info('Command = ' + com +
+                  ', same class furthest = ' + str(same_class_furthest) +
+                  ', closest non-class point = ' + str(distance_closest) +
+                  ', overlap = ' + str(overlap) +
+                  ', avg = ' + str(avg_non_class))
 
         return
 
     def read_fv_training_data_into_text(self):
-        fpath_fv_all = self.dirpath_rfv + '/' + self.lang + '.' + self.brand + '.' + 'chatbot.fv.all.csv'
+        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
         df = pd.read_csv(filepath_or_buffer=fpath_fv_all, sep=',', index_col=0)
 
         df_text = pd.DataFrame(data={'Text':['']*df.shape[0]}, index=df.index)
@@ -480,3 +582,8 @@ class ChatTraining:
 
         return df_text
 
+
+if __name__ == '__main__':
+    index_list = ['1111-1', '1111-2', '1111-3', '2222-1', '2222-2', '3333-10']
+    ChatTraining.retrieve_intent_from_training_data_index(index_list = index_list)
+    print(index_list)

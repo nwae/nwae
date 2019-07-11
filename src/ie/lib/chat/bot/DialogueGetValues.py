@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-import ie.lib.util.Log as lg
+import mozg.common.util.Log as lg
 
 
 #

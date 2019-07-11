@@ -7,14 +7,17 @@ import os
 import pandas as pd
 import collections
 import ie.app.ConfigFile as cf
-import ie.lib.util.StringUtils as su
+import mozg.common.util.StringUtils as su
 import ie.lib.chat.Chat as chat
 import ie.lib.lang.nlp.WordList as wl
 import ie.lib.lang.nlp.WordSegmentation as ws
 import ie.lib.lang.nlp.SynonymList as sl
 import ie.lib.lang.classification.TextClusterBasic as tc
-import ie.lib.chat.bot.Intent as lb
+import ie.lib.chat.bot.IntentEngineTest as lb
 
+#
+# TODO Code is probably broken
+#
 
 #
 # Purpose:
@@ -78,14 +81,17 @@ class ChatClustering:
         # Load application wordlist
 
         # Add application wordlist
-        self.wseg.add_wordlist(dirpath = cf.ConfigFile.DIR_APP_WORDLIST,
-                               postfix='.'+self.brand+cf.ConfigFile.POSTFIX_APP_WORDLIST,
-                               verbose=1)
+        self.wseg.add_wordlist(
+            dirpath = cf.ConfigFile.DIR_APP_WORDLIST,
+            postfix='.'+self.brand+cf.ConfigFile.POSTFIX_APP_WORDLIST
+        )
         # Add application stopwords
-        self.stopwords = wl.WordList(lang = self.lang,
-                                     dirpath_wordlist = cf.ConfigFile.DIR_APP_STOPWORDS,
-                                     postfix_wordlist=cf.ConfigFile.POSTFIX_APP_STOPWORDS)
-        self.stopwords.load_wordlist(verbose=1)
+        self.stopwords = wl.WordList(
+            lang = self.lang,
+            dirpath_wordlist = cf.ConfigFile.DIR_APP_STOPWORDS,
+            postfix_wordlist=cf.ConfigFile.POSTFIX_APP_STOPWORDS
+        )
+        self.stopwords.load_wordlist()
 
         # We need this for text clustering
         self.stopwords_list = list( self.stopwords.wordlist['Word'] )
@@ -184,9 +190,9 @@ class ChatClustering:
             df_result = self.lebot.get_text_class(
                 text_segmented            = str_split,
                 weigh_idf                 = True,
-                top                       = lb.Intent.SEARCH_TOPX_RFV,
+                top                       = lb.IntentEngine.SEARCH_TOPX_RFV,
                 return_match_results_only = True,
-                score_min_threshold       = lb.Intent.CONFIDENCE_LEVEL_1_SCORE,
+                score_min_threshold       = lb.IntentEngine.CONFIDENCE_LEVEL_1_SCORE,
                 verbose                   = 0
             )
 
@@ -195,13 +201,13 @@ class ChatClustering:
                 msg = msg + ' [' + str_split + '] = [NOMATCH]'
             else:
                 # Replace with normalized text (LeBot will replace synonyms with rootwords)
-                str_split_normalized = df_result[lb.Intent.COL_TEXT_NORMALIZED].loc[0]
+                str_split_normalized = df_result[lb.IntentEngine.COL_TEXT_NORMALIZED].loc[0]
                 memberlogs_linetop[chat.Chat.COL_CONTENT_SPLIT].at[line] = str_split_normalized
                 # Extract results from LeBot
-                top_result = df_result[lb.Intent.COL_COMMAND].loc[0]
-                top_result_match = df_result[lb.Intent.COL_MATCH].loc[0]
-                top_result_score = df_result[lb.Intent.COL_SCORE].loc[0]
-                top_result_score_conf = df_result[lb.Intent.COL_SCORE_CONFIDENCE_LEVEL].loc[0]
+                top_result = df_result[lb.IntentEngine.COL_COMMAND].loc[0]
+                top_result_match = df_result[lb.IntentEngine.COL_MATCH].loc[0]
+                top_result_score = df_result[lb.IntentEngine.COL_SCORE].loc[0]
+                top_result_score_conf = df_result[lb.IntentEngine.COL_SCORE_CONFIDENCE_LEVEL].loc[0]
 
                 msg = msg + ' [' + str_split_normalized + '] = [' + top_result +\
                       ', score=' + str(top_result_score) + '， conflevel=' + str(top_result_score_conf) + ']'
@@ -275,7 +281,7 @@ class ChatClustering:
         #
         # 2. Get highest frequency words from the split sentences, and remove stop words
         #
-        self.textcluster.calculate_top_keywords(remove_quartile=75, verbose=0)
+        self.textcluster.calculate_top_keywords(remove_quartile=75)
         df_word_freq_75 = self.textcluster.df_keywords_for_fv
         if verbose >= 1:
             print(df_word_freq_75[0:30])

@@ -347,7 +347,7 @@ class LangCharacters(object):
             return "other"
 
 
-def demo_1():
+if __name__ == '__main__':
     s = u'북핵 英国前首мешание相卡梅伦（David Cameron）将要接受一个新的война官方工作，领导一个关于英中合สวยจีง作的英国政府投资计划。'
     print ( s )
     lc = LangCharacters()
@@ -368,6 +368,3 @@ def demo_1():
     words = ['สวัสดี', 'สวัดดี', 'วัดดี']
     for w in words:
         print(lc.convert_string_to_number(s=w, verbose=1))
-
-
-# demo_1()

@@ -7,21 +7,28 @@ import re
 import ie.lib.lang.characters.LangCharacters as lc
 import ie.lib.lang.LangFeatures as lf
 import ie.lib.lang.nlp.WordList as wl
-import ie.lib.util.Log as log
+import ie.lib.lang.stats.LangStats as ls
+import mozg.common.util.Log as log
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
+import mozg.common.util.Profiling as prf
+from inspect import currentframe, getframeinfo
 
 
 #
 # Word Segmentation
 #   Reason we don't use open source libraries
+#     - We don't need perfect word segmentation, and for non-Thai languages, we actually don't need word
+#       segmentation at all if Intent Detection is our only goal. However we include for higher accuracy.
 #     - We have lots of jargons that these libraries will not split properly.
 #     - There is no single library in the same programming language that supports all
 #       Chinese, Thai, Vietnamese, Indonesian, Japanese, Korean, etc, which will make the code messy.
-#     - We need a mix of math, statistics, and language domain knowledge to split nicely, which may
-#       need special customization.
+#     - We need a mix of math, statistics, custom rules (e.g. conversion to "latin vietnamese"), and
+#       language domain knowledge to split nicely, which may need special customization.
 #     - Relatively good word segmentation can be achieved with relatively non-complicated algorithms &
 #       good language domain knowledge like below.
+#
+# TODO: Reduce task time from an average of 0.13 secs of an average 10 character Chinese to < 0.05 secs
 #
 # TODO: Add ability to handle spelling mistakes, using nearest word measure (need to create)
 # TODO: Improve on Thai word splitting, by improving word list, algorithm.
@@ -31,22 +38,56 @@ import hanziconv as hzc
 #
 class WordSegmentation(object):
 
-    def __init__(self, lang, dirpath_wordlist, postfix_wordlist, lang_stats=None):
+    # Length 4 is good enough to cover 97.95% of Chinese words
+    LOOKFORWARD_CN = 4
+    # Length 12 is good enough to cover 98.6% of Thai words
+    LOOKFORWARD_TH = 12
+    # Legnth 20 is good enough to cover 97.3% of Vietnamese words
+    # TODO For Vietnamese should use how many spaces, not characters
+    LOOKFORWARD_VN = 20
+
+    def __init__(
+            self,
+            lang,
+            dirpath_wordlist,
+            postfix_wordlist,
+            do_profiling = False,
+            lang_stats = None,
+            verbose = 0
+    ):
         self.lang = lang
+        self.do_profiling = do_profiling
+        self.verbose = verbose
+
         self.lang_stats = lang_stats
         self.lang_characters = lc.LangCharacters()
 
         self.lang_features = lf.LangFeatures()
-        self.lang_wordlist = wl.WordList(lang=lang, dirpath_wordlist=dirpath_wordlist, postfix_wordlist=postfix_wordlist)
+        self.lang_wordlist = wl.WordList(
+            lang             = lang,
+            dirpath_wordlist = dirpath_wordlist,
+            postfix_wordlist = postfix_wordlist,
+            verbose          = self.verbose
+        )
         self.lang_wordlist.load_wordlist()
+
         return
 
     def convert_to_simplified_chinese(self, text):
         text_sim = hzc.HanziConv.toSimplified(text)
         return text_sim
 
-    def add_wordlist(self, dirpath, postfix, array_words=None, verbose=0):
-        self.lang_wordlist.append_wordlist(dirpath=dirpath, postfix=postfix, array_words=array_words, verbose=verbose)
+    def add_wordlist(
+            self,
+            dirpath,
+            postfix,
+            array_words=None,
+    ):
+        self.lang_wordlist.append_wordlist(
+            dirpath     = dirpath,
+            postfix     = postfix,
+            array_words = array_words,
+        )
         return
 
     #
@@ -55,35 +96,55 @@ class WordSegmentation(object):
     # [True, False, True, False, False, False, False, False, False]
     # because possible words from start are "冤" and "冤大头".
     #
-    def get_possible_word_separators_from_start(self, text, max_lookforward_chars=0, verbose=0):
+    def get_possible_word_separators_from_start(
+            self,
+            text,
+            max_lookforward_chars=0,
+            look_from_longest=True
+    ):
         # Get language wordlist
         wl = self.lang_wordlist.wordlist
-        # Get language charset
-        lang_charset = lc.LangCharacters.get_language_charset(self.lang)
+
+        # TODO Start looking backwards from max_lookforward until 0, to further speed up (for longest match)
 
         if max_lookforward_chars<=0:
             max_lookforward_chars = len(text)
         else:
-            # For Thai, default needs to be longer. TODO: Optimize the minimal length via real language stats
-            if self.lang == 'th':
-                max_lookforward_chars = max(30, max_lookforward_chars)
+            # Cannot be longer than the length of the sentence
             max_lookforward_chars = min(len(text), max_lookforward_chars)
-        # But don't allow to look forward more than 100 characters, which is unlikely already to find a word beyond that
-        # TODO: Optimize this max length via real language stats (e.g. get 99% quartile in our own dictionary)
-        max_lookforward_chars = min(100, max_lookforward_chars)
+
+        # Not more than the longest lookforward we know, which is for Vietnamese
+        max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_VN, max_lookforward_chars)
 
         tlen = len(text)
-        if verbose >= 1: log.Log.log('Text Length: ' + str(tlen))
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Text Length: ' + str(tlen))
         # Record word separators
         matches = [False] * max_lookforward_chars
         curpos = 0
 
-        for i_match in range(0, max_lookforward_chars, 1):
+        start_range = 0
+        end_range = max_lookforward_chars
+        step_range = 1
+        if look_from_longest:
+            start_range = max_lookforward_chars - 1
+            end_range = -1
+            step_range = -1
+
+        for i_match in range(start_range, end_range, step_range):
             word_tmp = text[curpos:(curpos + i_match + 1)]
             # single_number = self.lang_characters.convert_string_to_number(word_tmp)
-            index_matches = wl.index[wl['Word'] == word_tmp].tolist()
-            if len(index_matches) == 0:
+
+            n_gram = i_match + 1
+            if n_gram not in self.lang_wordlist.ngrams.keys():
                 continue
+            if word_tmp not in self.lang_wordlist.ngrams[n_gram]:
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': [' + word_tmp + '] not in ' + str(n_gram) + '-gram')
+                continue
+            else:
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': [' + word_tmp + '] in ' + str(n_gram) + '-gram')
 
             #
             # Valid Boundary Check:
@@ -92,7 +153,7 @@ class WordSegmentation(object):
             # This step is super critical for Thai, otherwise there will be too many segmentation errors.
             #
             if i_match < max_lookforward_chars - 1:
-                if self.lang == 'th':
+                if self.lang == lf.LangFeatures.LANG_TH:
                     # For Thai, next alphabet must not be a vowel (after consonant) or tone mark
                     alphabets_not_start_of_word = lc.LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS + \
                                                   lc.LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT
@@ -102,15 +163,17 @@ class WordSegmentation(object):
 
             # Record the match
             matches[i_match] = True
-            if verbose >= 1:
-                log.Log.log('  Word [' + word_tmp + '] = ' + matches[i_match].__str__() + '.')
+            log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Word [' + word_tmp + '] = ' + matches[i_match].__str__() + '.')
+            if look_from_longest:
+                break
 
         return matches
 
     #
     # Returns all possible word segmentations, up to max_words
     #
-    def get_all_possible_segmentations(self, text, max_words=0, verbose=0):
+    def get_all_possible_segmentations(self, text, max_words=0):
         # TODO
         return
 
@@ -118,73 +181,117 @@ class WordSegmentation(object):
     # Segment words based on highest likelihood of all possible segmentations.
     # Make sure to call convert_to_simplified_chinese() first for traditional Chinese
     #
-    def segment_words_ml(self, text, join_single_alphabets=True, verbose=0):
+    def segment_words_ml(
+            self,
+            text,
+            join_single_alphabets = True,
+            look_from_longest     = True
+    ):
         # TODO
         return
+
+    def get_optimal_lookforward_chars(self, lang):
+        # Default to Thai
+        lookforward_chars = WordSegmentation.LOOKFORWARD_TH
+
+        if lang == lf.LangFeatures.LANG_CN:
+            lookforward_chars = WordSegmentation.LOOKFORWARD_CN
+        elif lang == lf.LangFeatures.LANG_TH:
+            lookforward_chars = WordSegmentation.LOOKFORWARD_TH
+        elif lang == lf.LangFeatures.LANG_VN:
+            lookforward_chars = WordSegmentation.LOOKFORWARD_VN
+
+        return lookforward_chars
 
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
     # Make sure to call convert_to_simplified_chinese() first for traditional Chinese
     #
-    def segment_words(self, text, join_single_alphabets=True, verbose=0):
-        if self.lang=='cn' or self.lang=='en' or len(text)<=1:
+    def segment_words(
+            self,
+            text,
+            join_single_alphabets = True,
+            look_from_longest     = True
+    ):
+
+        a = None
+        if self.do_profiling:
+            a = prf.Profiling.start()
+            log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + '.      PROFILING Segment Words [' + text + '] Start: ' + str(a))
+
+        if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_EN or len(text)<=1:
             join_single_alphabets = False
+
         # Get language wordlist
         wl = self.lang_wordlist.wordlist
         # Get language charset
         lang_charset = lc.LangCharacters.get_language_charset(self.lang)
 
-        lookforward_chars = 8
-        if self.lang == 'th':
-            lookforward_chars = 30
+        # Default to Thai
+        lookforward_chars = self.get_optimal_lookforward_chars(lang = self.lang)
+
+        # log.Log.log('Using ' + str(lookforward_chars) + ' lookforward characters')
 
         tlen = len(text)
-        if verbose >= 1: log.Log.log('Text Length: ' + str(tlen))
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                      + ': Text Length: ' + str(tlen))
         word_sep = [False]*tlen
         curpos = 0
 
+        #
+        # TODO We can speed up some more here by doing only longest matching, thus only looking from longest.
+        #
         while curpos < tlen:
             # Already at last character in text, automatically a word separator
             if curpos == tlen-1:
                 word_sep[curpos] = True
                 break
 
-            if verbose >= 1:
-                log.Log.log("Curpos " + str(curpos) + ", Word [" + text[curpos] + "]")
+            log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ": Curpos " + str(curpos) + ", Word [" + text[curpos] + "]")
 
             lookforward_window = min(lookforward_chars, tlen-curpos)
             match_longest = -1
 
             # Space always represents a word separator
             if text[curpos] == ' ' or (text[curpos] in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
-                if verbose >= 1:
-                    log.Log.log("  Word separator true")
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + "  Word separator true")
                 match_longest = 0
             # If character is not in language character set
             elif text[curpos] not in lang_charset:
                 # Look for continuous string of foreign characters, no limit up to the end of word
                 lookforward_window = tlen - curpos
                 match_longest = lookforward_window - 1
-                if verbose >= 1: log.Log.log('Lookforward Window = ' + str(lookforward_window))
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + ': Lookforward Window = ' + str(lookforward_window))
+
+                # TODO For Vietnamese, no need to compare until hit space boundary, so can optimize further
+
                 for i in range(curpos, curpos+lookforward_window, 1):
                     # Found a local character or space
-                    if verbose >= 2: log.Log.log('   Text['+str(i)+']="'+text[i]+'"')
+                    log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                       + '   Text['+str(i)+']="'+text[i]+'"')
                     if (text[i] in lang_charset) or (text[i] in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
                         # Don't include the local character or space
                         match_longest = i - curpos - 1
                         break
             # Character is in language character set, so we use dictionary longest matching
             else:
-                matches = self.get_possible_word_separators_from_start(text=text[curpos:tlen],
-                                                                       max_lookforward_chars=lookforward_window,
-                                                                       verbose=verbose)
+                matches = self.get_possible_word_separators_from_start(
+                    text = text[curpos:tlen],
+                    max_lookforward_chars = lookforward_window,
+                    look_from_longest = look_from_longest
+                )
                 for i_match in range(0,len(matches)):
                     if matches[i_match]:
                         match_longest = i_match
 
             if match_longest >= 0:
                 word_sep[curpos + match_longest] = True
-                if verbose >= 1: log.Log.log('    Found word [' + text[curpos:(curpos+match_longest+1)] + ']')
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + '    Found word [' + text[curpos:(curpos+match_longest+1)] + ']')
                 curpos = curpos + match_longest + 1
 
                 # TODO: Improved Segmentation
@@ -232,8 +339,36 @@ class WordSegmentation(object):
         regex = '[' + print_separator + ']+'
         s = re.sub(regex, print_separator, s)
 
-        if verbose >= 1:
-            log.Log.log('Sentence split as follows:')
-            log.Log.log('[' + s + ']')
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Sentence split as follows "' + str(s) + '".')
+
+        if self.do_profiling:
+            b = prf.Profiling.stop()
+            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                             + ':      PROFILING Segment Words for [' + text + '] to [' + s
+                             +'] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
 
         return s
+
+
+if __name__ == '__main__':
+    topdir = '/Users/mark.tan/git/mozg.nlp'
+    lang_stats = ls.LangStats(
+        dirpath_traindata   = topdir + '/nlp.data/traindata',
+        dirpath_collocation = topdir + '/nlp.output/collocation.stats'
+    )
+    lang_stats.load_collocation_stats()
+    ws = WordSegmentation(
+        lang             = 'cn',
+        dirpath_wordlist = topdir + '/nlp.data/wordlist',
+        postfix_wordlist = '-wordlist.txt',
+        lang_stats       = lang_stats,
+        do_profiling     = True,
+        verbose          = 0
+    )
+
+    text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
+    #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
+    print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=False))
+    print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=True))
+

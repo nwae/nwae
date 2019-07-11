@@ -5,13 +5,13 @@
 
 import re
 import pandas as pd
-import ie.lib.util.FileUtils
-import ie.lib.util.StringUtils as su
+import mozg.common.util.FileUtils as futil
+import mozg.common.util.StringUtils as su
 import ie.lib.lang.characters.LangCharacters
 import ie.lib.lang.LangFeatures
 import ie.lib.lang.nlp.LatinEquivalentForm as lef
 import ie.lib.lang.characters.LangCharacters as langchar
-import ie.lib.util.Log as log
+import mozg.common.util.Log as log
 
 
 class SynonymList:
@@ -39,7 +39,7 @@ class SynonymList:
         if verbose >= 1:
             log.Log.log('Loading list for [' + self.lang + ']' + '[' + filepath + ']')
 
-        fu = ie.lib.util.FileUtils.FileUtils()
+        fu = futil.FileUtils()
         content = fu.read_text_file(filepath)
 
         if verbose >= 1:
@@ -53,7 +53,7 @@ class SynonymList:
         words_latin = []
         measures_latin = []
         for line in content:
-            line = ie.lib.util.StringUtils.StringUtils.trim(line)
+            line = su.StringUtils.trim(line)
             # Remove empty lines
             if len(line)<=0: continue
             # Remove comment lines starting with '#'

@@ -4,8 +4,8 @@
 # !!! Will work only on Python 3 and above
 
 import pandas as pd
-import ie.lib.util.FileUtils
-import ie.lib.util.StringUtils
+import mozg.common.util.FileUtils
+import mozg.common.util.StringUtils
 import ie.lib.lang.characters.LangCharacters
 
 
@@ -17,6 +17,13 @@ import ie.lib.lang.characters.LangCharacters
 #   Also helps to grab word lists, dictionaries, stop words, of a language.
 #
 class LangFeatures:
+
+    LANG_EN = 'en'
+    LANG_CN = 'cn'
+    LANG_TH = 'th'
+    LANG_VN = 'vn'
+    LANG_IN = 'in'
+    LANG_KO = 'ko'
 
     ERROR_TOLERANCE = 0.000000000001
 
@@ -173,30 +180,31 @@ class LangFeatures:
         }
 
 
-def demo_1():
-    lf = LangFeatures()
-    print ( lf.langfeatures )
-    return
+if __name__ == '__main__':
+    def demo_1():
+        lf = LangFeatures()
+        print ( lf.langfeatures )
+        return
 
-def demo_2():
-    lf = LangFeatures()
+    def demo_2():
+        lf = LangFeatures()
 
-    for lang in lf.langfeatures['Language']:
-        print ( lang + ':alphabet=[' + str(lf.get_split_token(lang, 'alphabet')) + ']' )
-        print ( lang + ':syllable=[' + str(lf.get_split_token(lang, 'syllable')) + ']' )
-        print ( lang + ':unigram=[' + str(lf.get_split_token(lang, 'unigram')) + ']' )
-        print ( lang + ':Character Type = ' + lf.get_alphabet_type(lang) )
-        print ( lang + ':Token same as charset = ' + str(lf.is_lang_token_same_with_charset(lang=lang)))
+        for lang in lf.langfeatures['Language']:
+            print ( lang + ':alphabet=[' + str(lf.get_split_token(lang, 'alphabet')) + ']' )
+            print ( lang + ':syllable=[' + str(lf.get_split_token(lang, 'syllable')) + ']' )
+            print ( lang + ':unigram=[' + str(lf.get_split_token(lang, 'unigram')) + ']' )
+            print ( lang + ':Character Type = ' + lf.get_alphabet_type(lang) )
+            print ( lang + ':Token same as charset = ' + str(lf.is_lang_token_same_with_charset(lang=lang)))
 
-def demo_3():
-    lf = LangFeatures()
-    print ( lf.langfeatures )
+    def demo_3():
+        lf = LangFeatures()
+        print ( lf.langfeatures )
 
-    print ( lf.get_languages_with_word_separator() )
-    print ( lf.get_languages_with_syllable_separator() )
-    print ( lf.get_languages_with_only_syllable_separator())
+        print ( lf.get_languages_with_word_separator() )
+        print ( lf.get_languages_with_syllable_separator() )
+        print ( lf.get_languages_with_only_syllable_separator())
 
 
-#demo_1()
-#demo_2()
-#demo_3()
+    demo_1()
+    demo_2()
+    demo_3()

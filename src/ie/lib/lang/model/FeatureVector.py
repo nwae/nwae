@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import collections as col
+import mozg.common.util.Log as lg
+from inspect import currentframe, getframeinfo
 
 
 #
@@ -23,14 +25,24 @@ class FeatureVector:
     #
     # Set features for word frequency fv
     #
-    def set_freq_feature_vector_template(self, list_symbols):
+    def set_freq_feature_vector_template(
+            self,
+            list_symbols
+    ):
         # This number will become default vector ordering in all feature vectors
         len_symbols = len(list_symbols)
         no = range(1, len_symbols+1, 1)
+
         self.fv_template = pd.DataFrame({ 'No': no, 'Symbol':list_symbols })
         # Default feature weights to 1
         self.set_feature_weights( [1]*len_symbols )
         return
+
+    def get_fv_template(self):
+        return self.fv_template
+
+    def get_fv_weights(self):
+        return self.fv_weights
 
     #
     # Set feature weights, this can be some IDF measure or something along that line.
@@ -40,52 +52,78 @@ class FeatureVector:
     # TODO: can be pre-calculated and set here for convenience.
     #
     def set_feature_weights(self, fw):
-        self.fv_weights = fw
+        self.fv_weights = np.array(fw)
+        lg.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ' Feature weights set to ' + str(self.fv_weights) + '.')
         return
 
     #
     # Given a string, creates a word frequency fv based on set template.
     # If feature_as_presence_only=True, then only presence is considered (means frequency is 0 or 1 only)
     #
-    def get_freq_feature_vector(self, str, feature_as_presence_only=False, split_by=' '):
-        str_list = str.split(split_by)
-        #print(str_list)
+    def get_freq_feature_vector(
+            self,
+            text,
+            feature_as_presence_only = False,
+            split_by = ' '
+    ):
+        text_list = text.split(split_by)
+        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ' Text "' + str(text) + '" List ' + str(text_list) + '.')
 
-        counter = col.Counter(str_list)
+        counter = col.Counter(text_list)
         # Order the counter
         counter = counter.most_common()
 
         symbols = [x[0] for x in counter]
-        freqs = [x[1] for x in counter]
+        freqs = np.array( [x[1] for x in counter] )
+        presence = (freqs>=1)*1
+        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ': Symbols ' + str(symbols)
+                          + ', Frequencies ' + str(freqs)
+                          + ', Presence ' + str(presence))
+
         # If <feature_as_presence_only> flag set, we don't count frequency, but presence
         if feature_as_presence_only:
-            for i in range(0, len(freqs), 1):
-                if freqs[i] > 1:
-                    freqs[i] = 1
+            freqs = presence
         df_counter = pd.DataFrame({'Symbol': symbols, 'Frequency': freqs})
-        #print(df_counter)
+        #lg.Log.debugdebug(df_counter.values)
 
         # Merge feature vector template with counter
         df_merge = pd.merge(self.fv_template, df_counter, how='left', on=['Symbol'])
         df_merge = df_merge.sort_values(by=['No'], ascending=[True])
         # Replace NaN with 0's
         df_merge['Frequency'].fillna(0, inplace=True)
-        #print(df_merge)
+        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                          + ': Merged with FV template: ')
+        lg.Log.debugdebug(df_merge)
         #print(self.fv_weights)
         #print(df_merge['Frequency'].values)
         # Just a simple list multiplication
-        df_merge['FrequencyWeighted'] = df_merge['Frequency'].values * self.fv_weights
+        if not (df_merge.shape[0] == len(self.fv_weights)):
+            raise Exception(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Length of merged frequency ' + str(df_merge.shape)
+                            + ' differs from length of FV weights ' + str(len(self.fv_weights))
+                            + '. df_merge ' + str(df_merge) + ', fv weights ' + str(self.fv_weights))
+        df_merge['FrequencyWeighted'] = np.multiply(df_merge['Frequency'].values, self.fv_weights)
         #print(df_merge['FrequencyWeighted'])
 
         # Normalize vector
-        freq_col = list( df_merge['FrequencyWeighted'] )
-        normalize_factor = sum(np.multiply(freq_col, freq_col)) ** 0.5
-        df_merge['FrequencyNormalized'] = df_merge['FrequencyWeighted'] / normalize_factor
-        # Normalization factor can be 0
-        df_merge['FrequencyNormalized'].fillna(0, inplace=True)
-
+        freq_weighted = np.array( df_merge['FrequencyWeighted'] )
         # TF (Term Frequency)
-        df_merge['TF'] = df_merge['FrequencyWeighted'] / sum(freq_col)
+        if sum(freq_weighted) > 0.000000001:
+            normalize_factor = sum(np.multiply(freq_weighted, freq_weighted)) ** 0.5
+            df_merge['FrequencyNormalized'] = freq_weighted / normalize_factor
+            # Normalization factor can be 0
+            df_merge['FrequencyNormalized'].fillna(0, inplace=True)
+            df_merge['TF'] = freq_weighted / sum(freq_weighted)
+        else:
+            df_merge['FrequencyNormalized'] = 0
+            df_merge['TF'] = 0
+            lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Zero sum of weighted frequency for ' + str(text)
+                            + ', df_merge ' + str(df_merge))
+            df_merge['TF'] = 0
         # TF Normalized is just the same as frequency normalized
         # normalize_factor = (sum(df_merge['TF'].as_matrix()*df_merge['TF'].as_matrix()) ** 0.5)
         # df_merge['TFNormalized'] = df_merge['TF'] / normalize_factor
@@ -93,32 +131,34 @@ class FeatureVector:
         return df_merge
 
 
-def demo_1():
+if __name__ == '__main__':
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
+
     sb = ['我', '帮', '崔', 'I', '确实']
     f = FeatureVector()
     f.set_freq_feature_vector_template(sb)
     print(f.fv_template)
 
     # Use word frequency
-    str = '确实 有 在 帮 我 崔 吧 帮 我'
-    df_fv = f.get_freq_feature_vector(str, feature_as_presence_only=False)
+    txt = '确实 有 在 帮 我 崔 吧 帮 我'
+    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=False)
     print(df_fv)
     # Now try with different weights
     f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(str, feature_as_presence_only=False)
+    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=False)
     print(df_fv)
 
     # Use word presence
-    str = '确实 有 在 帮 我 崔 吧 帮 我'
+    txt = '确实 有 在 帮 我 崔 吧 帮 我'
     f.set_feature_weights([1,1,1,1,1])
-    df_fv = f.get_freq_feature_vector(str, feature_as_presence_only=True)
+    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
     print(df_fv)
     # Now try with different weights
     f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(str, feature_as_presence_only=True)
+    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
     print(df_fv)
 
-    return
-
-
-#demo_1()
+    txt = '为什么 无法 兑换 商品 ？'
+    f.set_feature_weights([1,1,1,1,1])
+    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
+    print(df_fv)

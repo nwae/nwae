@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import ie.app.ConfigFile as cf
-import ie.lib.chat.bot.Intent as lb
+import ie.lib.chat.bot.IntentEngineTest as lb
 import ie.lib.chat.classification.ChatClustering as cc
-import ie.app.CommandLine as cmdline
+import mozg.common.util.CommandLine as cmdline
 
+
+# TODO Code is probably broken
 
 class MemberCluster:
 
@@ -42,14 +44,14 @@ class MemberCluster:
     def extract_chat_by_first_non_greeting_member_line(self):
 
         # We use our LeBot to detect greetings/abuse/etc. so we know which line to start taking from member for clustering
-        lebot = lb.Intent(
+        lebot = lb.IntentEngine(
             lang                = self.lang,
             brand               = self.brand,
             dir_rfv_commands    = self.dir_rfv_commands,
             dirpath_synonymlist = self.dirpath_synonymlist
         )
+        lebot.do_background_load()
 
-        lebot.load_rfv_commands_from_file()
         ca = cc.ChatClustering(
             lang = self.lang,
             brand = self.brand,
