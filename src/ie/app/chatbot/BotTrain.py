@@ -4,8 +4,8 @@
 
 import ie.app.ConfigFile as cf
 import mozg.common.bot.BotIntentAnswer as botdata
-import ie.lib.chat.classification.training.ChatTrainingData as ctd
-import ie.lib.chat.classification.training.ChatTraining as ct
+import mozg.lib.chat.classification.training.ChatTrainingData as ctd
+import mozg.lib.chat.classification.training.ChatTraining as ct
 import mozg.common.data.security.Auth as au
 import mozg.common.util.CommandLine as cmdline
 import mozg.common.util.Log as lg

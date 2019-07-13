@@ -6,11 +6,11 @@ import sys
 import ie.app.ConfigFile as cf
 import numpy as np
 import pandas as pd
-import ie.lib.chat.classification.training.ChatTrainingData as ctd
+import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.StringUtils as su
 import mozg.common.util.Log as lg
-import ie.lib.chat.bot.IntentEngineTest as lb
-import ie.lib.chat.bot.IntentWrapper as gb
+import mozg.lib.chat.bot.IntentEngineTest as lb
+import mozg.lib.chat.bot.IntentWrapper as gb
 import mozg.common.util.CommandLine as cmdline
 import mozg.common.util.Profiling as pf
 import mozg.common.data.Intent as dbint
