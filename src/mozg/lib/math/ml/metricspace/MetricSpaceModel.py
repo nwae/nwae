@@ -46,54 +46,35 @@ class MetricSpaceModel(threading.Thread):
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
 
-        self.df_idf = None
-        # Just a single RFV for each Intent
-        self.df_rfv = None
-        # The furthest point distance of training data to each Intent RFV
-        self.df_rfv_distance_furthest = None
+        self.df_feature_idf = None
+        # Can be multiple RFVs for each class
+        self.df_class_rfv = None
+        # The furthest point distance of training data (in the same class) to the (one or more) class RFV
+        self.df_sample_rfv_distance_furthest = None
         # FV of all training data
-        # TODO: Replace with clusters instead of all, only when our auto optimal cluster count algo works better.
-        self.df_fv_all = None
-        self.df_intent_tf = None
-        # Closest distance of a non-class point to a class RFV
-        self.df_dist_closest_non_class = None
-        # Average distance of all non-class points to a class RFV
-        self.df_dist_avg_non_class = None
+        self.df_trainingdata_fv_all = None
+        # FV of clustered training data
+        self.df_trainingdata_fv_clustered = None
+        # Feature term frequency for curiosity?
+        self.df_feature_tf = None
 
-        self.textcluster = None
-        self.textcluster_bycategory = None
+        # Closest distance of a non-class point to a class RFV
+        self.df_sample_dist_closest_non_class = None
+        # Average distance of all non-class points to a class RFV
+        self.df_sample_dist_avg_non_class = None
+
+        self.cluster = None
+        self.cluster_bycategory = None
         # Commands or categories or classes of the classification
-        self.commands = None
+        self.classes = None
 
         self.bot_training_start_time = None
         self.bot_training_end_time = None
-        self.log_training = None
+        self.logs_training = None
         self.is_training_done = False
         self.__mutex_training = threading.Lock()
 
         return
-
-    #
-    # When we index FV of all training data, we keep in the format 'intentId-1', 'intentId-2,...
-    # So we just filter off the '-\d+'
-    #
-    @staticmethod
-    def retrieve_intent_from_training_data_index(
-            index_list,
-            convert_to_type = 'str'
-    ):
-        for i in range(0,len(index_list),1):
-            v = str(index_list[i])
-            v = re.sub(
-                pattern = '[-]\d+.*',
-                repl    = '',
-                string  = v
-            )
-            if convert_to_type == 'int':
-                index_list[i] = int(v)
-            else:
-                index_list[i] = v
-        return index_list
 
     def run(self):
         self.__mutex_training.acquire()
@@ -101,22 +82,22 @@ class MetricSpaceModel(threading.Thread):
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
             self.train(
-                self.keywords_remove_quartile,
-                self.stopwords,
+                self.key_features_remove_quartile,
+                self.stop_features,
                 self.weigh_idf
             )
             self.bot_training_end_time = dt.datetime.now()
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Botkey ' + str(self.botkey) + '" training exception: ' + str(ex) + '.'
+                + ': Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
             )
         finally:
             self.is_training_done = True
             self.__mutex_training.release()
 
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Botkey ' + str(self.botkey) + '" trained successfully.')
+                        + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
@@ -124,34 +105,24 @@ class MetricSpaceModel(threading.Thread):
     #
     def train(
             self,
-            keywords_remove_quartile = 50,
-            stopwords = (),
+            key_features_remove_quartile = 50,
+            stop_features = (),
             weigh_idf = False
     ):
-        td = None
         self.log_training = []
 
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training for botkey=' + self.botkey
-            + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
-            + ', stopwords = [' + str(stopwords) + ']'
+            + ': Training for identifier=' + self.identifier_string
+            + '. Using key features remove quartile = ' + str(key_features_remove_quartile)
+            + ', stop features = [' + str(stop_features) + ']'
             + ', weigh by IDF = ' + str(weigh_idf)
             , log_list = self.log_training
         )
 
-        if self.chat_training_data.use_db:
-            td = self.chat_training_data.get_training_data_from_db()
-            # Segment sentence and write back to DB if necessary
-            self.chat_training_data.segment_db_training_data()
-        else:
-            if self.chat_training_data.df_training_data is None:
-                raise Exception(str(self.__class__) + ' No training data from file!!')
-            td = self.chat_training_data.df_training_data
-
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training data: ' + str(td)
+            + ': Training data: ' + str(self.training_data)
         )
 
         #
@@ -161,7 +132,7 @@ class MetricSpaceModel(threading.Thread):
         #
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Starting text cluster, calculate top keywords...'
+            + ': Starting clustering, calculate top key features...'
             , log_list = self.log_training
         )
         self.textcluster = tcb.TextClusterBasic(

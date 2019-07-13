@@ -5,11 +5,11 @@
 import re
 import numpy as np
 import pandas as pd
-import ie.lib.math.Cluster as clst
+import mozg.lib.math.Cluster as clst
 import collections
-import ie.lib.lang.characters.LangCharacters as lc
+import mozg.lib.lang.characters.LangCharacters as lc
 import mozg.common.util.StringUtils as su
-import ie.lib.lang.model.FeatureVector as fv
+import mozg.lib.lang.model.FeatureVector as fv
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 
