@@ -7,9 +7,9 @@ import pandas as pd
 import threading
 import re
 import datetime as dt
-import ie.lib.lang.classification.TextClusterBasic as tcb
-import ie.lib.chat.classification.training.RefFeatureVec as reffv
-import ie.lib.chat.classification.training.ChatTrainingData as ctd
+import mozg.lib.lang.classification.TextClusterBasic as tcb
+import mozg.lib.chat.classification.training.RefFeatureVec as reffv
+import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 

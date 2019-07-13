@@ -3,8 +3,8 @@
 # !!! Will work only on Python 3 and above
 
 import ie.app.ConfigFile as cf
-import ie.lib.chat.bot.IntentEngineTest as lb
-import ie.lib.chat.bot.IntentWrapper as gb
+import mozg.lib.chat.bot.IntentEngineTest as lb
+import mozg.lib.chat.bot.IntentWrapper as gb
 import mozg.common.util.CommandLine as cmdline
 import mozg.common.data.security.Auth as au
 import mozg.common.util.Log as lg
