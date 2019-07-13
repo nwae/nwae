@@ -7,9 +7,9 @@ import re
 import pandas as pd
 import mozg.common.util.FileUtils as futil
 import mozg.common.util.StringUtils as sutil
-import ie.lib.lang.LangFeatures as lf
-import ie.lib.lang.nlp.LatinEquivalentForm as lef
-import ie.lib.lang.characters.LangCharacters as langchar
+import mozg.lib.lang.LangFeatures as lf
+import mozg.lib.lang.nlp.LatinEquivalentForm as lef
+import mozg.lib.lang.characters.LangCharacters as langchar
 import mozg.common.util.Log as log
 
 #

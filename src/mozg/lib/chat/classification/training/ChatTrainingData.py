@@ -50,10 +50,12 @@ class ChatTrainingData:
             account_id,
             bot_id,
             lang,
-            # TODO Remove this when fully switched to DB, this is only identifier for csv files
+            # Only used as identifier to filenames, etc.
             bot_key,
+            # File system training files
             dirpath_traindata,
             postfix_training_files,
+            # File system NLP stuff
             dirpath_wordlist,
             dirpath_app_wordlist,
             dirpath_synonymlist,
@@ -66,6 +68,7 @@ class ChatTrainingData:
 
         self.lang = lang
         self.bot_key = bot_key
+
         self.dirpath_traindata = dirpath_traindata
         self.postfix_training_files = postfix_training_files
         self.dirpath_wordlist = dirpath_wordlist

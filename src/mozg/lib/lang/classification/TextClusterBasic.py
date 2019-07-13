@@ -27,8 +27,6 @@ from inspect import currentframe, getframeinfo
 #
 class TextClusterBasic:
 
-    USE_DEPRECATED_NUMPY_MATRIX = False
-
     #
     # Initialize with a list of text, assumed to be already word separated by space.
     # TODO: Can't default to just [space] as word separator for languages like Vietnamese.
@@ -306,10 +304,7 @@ class TextClusterBasic:
         # Make sure to transpose to get a column matrix
         log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                       + ': IDF data frame: ' + str(self.df_idf))
-        if TextClusterBasic.USE_DEPRECATED_NUMPY_MATRIX:
-            self.idf_matrix = np.transpose( np.matrix(df_idf['IDF'].values) )
-        else:
-            self.idf_matrix = np.array( df_idf['IDF'].values ).reshape(df_idf.shape[0],1)
+        self.idf_matrix = np.array( df_idf['IDF'].values ).reshape(df_idf.shape[0],1)
 
         log.Log.info(str(self.__class__) + 'IDF Matrix as follows:')
         log.Log.info(self.idf_matrix)
@@ -364,11 +359,12 @@ class TextClusterBasic:
             if verbose>=1:
                 log.Log.log('Optimal Clusters = ' + str(optimal_clusters))
 
-        retval_cluster = clst.Cluster.cluster(matx=sentence_matrix,
-                                              feature_names=self.keywords_for_fv,
-                                              ncenters=ncenters,
-                                              iterations=iterations,
-                                              verbose=1)
+        retval_cluster = clst.Cluster.cluster(
+            matx=sentence_matrix,
+            feature_names=self.keywords_for_fv,
+            ncenters=ncenters,
+            iterations=iterations
+        )
         df_cluster_matrix = retval_cluster['ClusterMatrix']
         df_point_cluster_info = retval_cluster['PointClusterInfo']
 
@@ -543,6 +539,6 @@ class TextClusterBasic:
 
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_IMPORTANT
     ut = TextClusterBasic.UnitTest(verbose=1)
     ut.run_tests()

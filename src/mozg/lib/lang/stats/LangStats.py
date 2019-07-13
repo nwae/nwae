@@ -9,8 +9,8 @@ import re
 import numpy as np
 import pandas as pd
 import collections
-import ie.lib.lang.LangFeatures as langfeatures
-import ie.lib.lang.characters.LangCharacters as langcharacters
+import mozg.lib.lang.LangFeatures as langfeatures
+import mozg.lib.lang.characters.LangCharacters as langcharacters
 import mozg.common.util.FileUtils as futil
 import mozg.common.util.StringUtils as sutil
 

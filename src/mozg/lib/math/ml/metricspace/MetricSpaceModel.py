@@ -7,9 +7,8 @@ import pandas as pd
 import threading
 import re
 import datetime as dt
-import mozg.lib.lang.classification.TextClusterBasic as tcb
 import mozg.lib.chat.classification.training.RefFeatureVec as reffv
-import mozg.lib.chat.classification.training.ChatTrainingData as ctd
+import mozg.lib.math.ml.TrainingDataModel as tdmodel
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 
@@ -31,7 +30,7 @@ class MetricSpaceModel(threading.Thread):
             training_data,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 50,
-            # Initial features to remove
+            # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
             # If we will create an "IDF" based on the initial features
             weigh_idf = False
@@ -41,6 +40,12 @@ class MetricSpaceModel(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+        if type(self.training_data) is not tdmodel.TrainingDataModel:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Training data must be of type "' + str(tdmodel.TrainingDataModel.__class__)
+                + '", got type "' + str(type(self.training_data)) + '" instead from object ' + str(self.training_data) + '.'
+            )
 
         self.key_features_remove_quartile = key_features_remove_quartile
         self.stop_features = stop_features
@@ -73,6 +78,69 @@ class MetricSpaceModel(threading.Thread):
         self.logs_training = None
         self.is_training_done = False
         self.__mutex_training = threading.Lock()
+
+        return
+
+    #
+    # We calculate the total weight of all features, to decide which to throw and which to keep.
+    # We could also keep all if remove_quartile=0
+    # This can also be used to calculate the Importance of a feature using some measure like how special it is,
+    # appearing only in a few classes, as compared to features that appear almost everywhere.
+    #
+    def get_top_features(
+            self,
+            remove_quartile = 50
+    ):
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ' : Calculating Top Key Features. Using the following stop features:' + str(self.stopwords))
+
+        #
+        # 2. Get highest frequency words from the split sentences, and remove stop words
+        #
+        # Combine all vectors into a single huge vector, aggregated via column sum
+        #
+        x_combined = np.sum(self.training_data.get_x(), axis=0)
+        df_x_combined = pd.DataFrame({
+            'Feature': self.training_data.get_y(),
+            'Value': x_combined
+        })
+
+        df_feature_freq = pd.DataFrame()
+
+        for i in range(0, df_x_combined.shape[0], 1):
+            feature = df_x_combined['Feature'].loc[i]
+            value = df_x_combined['Value'].loc[i]
+
+            #
+            # Remove stop features if required
+            #
+            if (idx in self.stop_features):
+                log.Log.debug('Stopword [' + word + '] ignored..')
+                continue
+
+            df_word_freq = df_word_freq.append(pd.DataFrame({'Word': [word], 'Frequency': [freq]}),
+                                               ignore_index=True)
+
+        df_word_freq['Prop'] = df_word_freq['Frequency'] / sum(df_word_freq['Frequency'])
+        # if verbose >= 1:
+        #    print(df_word_freq)
+
+        #
+        # There will be a lot of words, so we remove (by default) the lower 50% quartile of keywords.
+        # This will help wipe out a lot of words, up to 80-90% or more.
+        #
+        q_remove = 0
+        # If user passes in 0, no words will be removed
+        if remove_quartile > 0:
+            q_remove = np.percentile(df_word_freq['Frequency'], remove_quartile)
+        df_word_freq_qt = df_word_freq[df_word_freq['Frequency'] > q_remove]
+        df_word_freq_qt = df_word_freq_qt.reset_index(drop=True)
+        # if verbose >= 1:
+        #    print(df_word_freq_qt)
+
+        self.df_keywords_for_fv = df_word_freq_qt
+        self.keywords_for_fv = list(df_word_freq_qt['Word'])
 
         return
 
@@ -120,6 +188,10 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
+        #
+        # Here training data must be prepared in the correct format already
+        # Значит что множество свойств уже объединено как одно (unified features)
+        #
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Training data: ' + str(self.training_data)
@@ -685,6 +757,30 @@ class MetricSpaceModel(threading.Thread):
 
 
 if __name__ == '__main__':
-    index_list = ['1111-1', '1111-2', '1111-3', '2222-1', '2222-2', '3333-10']
-    ChatTraining.retrieve_intent_from_training_data_index(index_list = index_list)
-    print(index_list)
+    x = np.array(
+        [
+            # 무리 A
+            [1, 2, 1, 1, 0, 0],
+            [2, 1, 2, 1, 0, 0],
+            [1, 1, 1, 1, 0, 0],
+            # 무리 B
+            [0, 1, 2, 1, 0, 0],
+            [0, 2, 2, 2, 0, 0],
+            [0, 2, 1, 2, 0, 0],
+            # 무리 C
+            [0, 0, 0, 1, 2, 3],
+            [0, 1, 0, 2, 1, 2],
+            [0, 1, 0, 1, 1, 2]
+        ]
+    )
+    y = np.array(
+        ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
+    )
+    tdmodel_obj = tdmodel.TrainingDataModel(
+        x = x,
+        y = y
+    )
+    print(tdmodel_obj.get_x())
+    print(tdmodel_obj.get_x().shape)
+    print(tdmodel_obj.get_y())
+    print(tdmodel_obj.get_y().shape)

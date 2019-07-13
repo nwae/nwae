@@ -4,10 +4,10 @@
 # !!! Will work only on Python 3 and above
 
 import re
-import ie.lib.lang.characters.LangCharacters as lc
-import ie.lib.lang.LangFeatures as lf
-import ie.lib.lang.nlp.WordList as wl
-import ie.lib.lang.stats.LangStats as ls
+import mozg.lib.lang.characters.LangCharacters as lc
+import mozg.lib.lang.LangFeatures as lf
+import mozg.lib.lang.nlp.WordList as wl
+import mozg.lib.lang.stats.LangStats as ls
 import mozg.common.util.Log as log
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
