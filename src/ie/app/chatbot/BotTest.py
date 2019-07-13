@@ -178,7 +178,7 @@ class BotTest:
                 lg.Log.debugdebug(df_scores)
                 if not correct:
                     result_wrong = result_wrong + 1
-                    lg.Log.log('Failed Command: ' + str(com) + ' (' + text_segmented + ') === ' + com_class)
+                    lg.Log.log('Failed Command: ' + str(com) + ' (' + str(text_segmented) + ') === ' + str(com_class))
                     lg.Log.log(df_com_class)
                     lg.Log.log('   Result: ' + str(com_class) + ', Match: ' + str(com_match))
                 else:

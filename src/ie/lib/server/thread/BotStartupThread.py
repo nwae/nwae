@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time as t
+import datetime as dt
 import threading
 import mozg.common.util.Log as lg
 from inspect import currentframe, getframeinfo
@@ -14,6 +15,7 @@ import ie.lib.chat.bot.IntentEngineTest as intentEngine
 import ie.lib.chat.classification.training.ChatTrainingData as ctd
 import ie.lib.chat.classification.training.ChatTraining as ct
 import ie.app.ConfigFile as cf
+import re
 
 
 #
@@ -35,7 +37,8 @@ class BotStartupThread(threading.Thread):
             cf_postfix_wordlist_app,
             cf_dirpath_traindata,
             cf_postfix_training_files,
-            do_profiling
+            do_profiling,
+            accept_training_requests = False
     ):
         super(BotStartupThread, self).__init__()
         self.is_bot_ready = False
@@ -56,6 +59,7 @@ class BotStartupThread(threading.Thread):
         self.postfix_training_files = cf_postfix_training_files
 
         self.do_profiling = do_profiling
+        self.accept_training_requests = accept_training_requests
 
         #
         # Bots
@@ -63,7 +67,9 @@ class BotStartupThread(threading.Thread):
         self.db_account_id_bots = {}
         self.bots_info = {}
         self.bots = {}
+        self.bots_trainer = {}
         self.__bots_mutex = threading.Lock()
+        self.__bots_trainer_mutex = threading.Lock()
 
         # Thread safe when cleaning up
         self.__mutex = threading.Lock()
@@ -77,12 +83,10 @@ class BotStartupThread(threading.Thread):
         lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Bot Thread ended..')
 
-    def run(self):
-        lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ' Thread started..')
+    def __start_bots(self):
         if self.use_db:
             all_account_ids = dbutil.Db.get_all_account_id(
-                db_profile = self.db_profile
+                db_profile=self.db_profile
             )
 
             for item_acc in all_account_ids:
@@ -97,16 +101,16 @@ class BotStartupThread(threading.Thread):
                         continue
 
                 lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                           + ': Initializing for account ' + str(account_name)
-                           + ', account ID ' + str(account_id) + '.')
+                                + ': Initializing for account ' + str(account_name)
+                                + ', account ID ' + str(account_id) + '.')
 
                 #
                 # This will return all bots in a dict with botId as key, language will be standardized
                 # by guessing the language from DB
                 #
                 self.db_account_id_bots[account_id] = dbutil.Db.get_bots_for_account_id(
-                    db_profile = self.db_profile,
-                    account_id = account_id
+                    db_profile=self.db_profile,
+                    account_id=account_id
                 )
                 for item_bot_id in self.db_account_id_bots[account_id].keys():
                     bot_details = self.db_account_id_bots[account_id][item_bot_id]
@@ -120,17 +124,17 @@ class BotStartupThread(threading.Thread):
                     botkey = ''
                     try:
                         botkey = dbBot.Bot.get_bot_key(
-                            db_profile = self.db_profile,
-                            account_id = account_id,
-                            bot_id     = bot_id,
-                            lang       = bot_lang
+                            db_profile=self.db_profile,
+                            account_id=account_id,
+                            bot_id=bot_id,
+                            lang=bot_lang
                         )
                         self.bots[botkey] = self.get_bot(
-                            account_id = account_id,
-                            bot_id     = bot_id,
-                            lang       = bot_lang,
-                            bot_key    = botkey,
-                            minimal    = self.minimal
+                            account_id=account_id,
+                            bot_id=bot_id,
+                            lang=bot_lang,
+                            bot_key=botkey,
+                            minimal=self.minimal
                         )
                         self.bots_info[bot_id] = {
                             dbBot.Bot.COL_ACCOUNT_ID: account_id,
@@ -141,7 +145,7 @@ class BotStartupThread(threading.Thread):
                         # We only start db cache after everything is successful
                         dbCache.DbCache.start_singleton_job(botkey=botkey)
                     except Exception as ex:
-                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                                  + ': Loading of bot of botkey "' + botkey + '" failed. ' + str(ex)
                         lg.Log.critical(errmsg)
                         # Remove botkeys from container
@@ -160,6 +164,11 @@ class BotStartupThread(threading.Thread):
                             + ' Running server from text files not implented!')
 
         self.is_bot_ready = True
+
+    def run(self):
+        lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ' Thread started..')
+        self.__start_bots()
 
     def get_bot_lang(
             self,
@@ -291,11 +300,12 @@ class BotStartupThread(threading.Thread):
             account_id,
             bot_id
     ):
-        log_result = []
-        try:
-            # We will return the entire training log later
-            lg.Log.set_is_log_to_variable()
+        if not self.accept_training_requests:
+            return 'This server does not accept training requests.'
 
+        ALLOWED_TO_TRAIN_AFTER_N_MINS = 300
+
+        try:
             bot_lang = self.get_bot_lang(bot_id = bot_id)
 
             botkey = dbBot.Bot.get_bot_key(
@@ -304,44 +314,83 @@ class BotStartupThread(threading.Thread):
                 bot_id     = bot_id,
                 lang       = bot_lang
             )
-            # TODO Training data from DB, remove csv reliance
-            ctdata = ctd.ChatTrainingData(
-                use_db                 = self.use_db,
-                db_profile             = self.db_profile,
-                account_id             = account_id,
-                bot_id                 = bot_id,
-                lang                   = bot_lang,
-                bot_key                = botkey,
-                dirpath_traindata      = self.dirpath_traindata,
-                postfix_training_files = self.postfix_training_files,
-                dirpath_wordlist       = self.dir_wordlist,
-                dirpath_app_wordlist   = self.dir_wordlist_app,
-                dirpath_synonymlist    = self.dir_synonymlist
-            )
 
-            if not self.use_db:
-                ctdata.get_training_data(verbose=1)
+            bot_trainer = None
+            if botkey in self.bots_trainer.keys():
+                bot_trainer = self.bots_trainer[botkey]
+                if bot_trainer.is_training_done:
+                    last_trained_time = bot_trainer.bot_training_end_time
 
-            trainer = ct.ChatTraining(
-                lang               = bot_lang,
-                botkey             = botkey,
-                dirpath_rfv        = self.dir_rfv_commands,
-                chat_training_data = ctdata
-            )
+                    train_dur = bot_trainer.bot_training_end_time - bot_trainer.bot_training_start_time
+                    train_dur_secs = round(train_dur.seconds + train_dur.microseconds / 1000000, 1)
 
-            # No stopwords (IDF will provide word weights), no removal of words
-            trainer.train(stopwords=[], keywords_remove_quartile=0, weigh_idf=True)
+                    since_trained_dur = dt.datetime.now() - last_trained_time
+                    since_trained_dur_secs = round(
+                        since_trained_dur.seconds + since_trained_dur.microseconds / 1000000, 1)
+
+                    if since_trained_dur_secs <= ALLOWED_TO_TRAIN_AFTER_N_MINS:
+                        return str(train_dur_secs) + ' SECS DONE. Bot training for account id ' + str(account_id)\
+                               + ', bot id ' + str(bot_id) + ' training started '\
+                               + str(bot_trainer.bot_training_start_time)\
+                               + ', ended ' + str(bot_trainer.bot_training_end_time)\
+                               + '. You can train again in '\
+                               + str(ALLOWED_TO_TRAIN_AFTER_N_MINS - since_trained_dur_secs) + ' secs.'\
+                               + '<br><br>Training log:<br><br>' \
+                               + re.sub(pattern='", "', repl='<br/>', string=str(bot_trainer.log_training))
+                else:
+                    progress_time = dt.datetime.now() - bot_trainer.bot_training_start_time
+                    progress_time_secs = round(progress_time.seconds + progress_time.microseconds / 1000000, 1)
+                    return str(progress_time_secs) + ' SECS IN PROGRESS. Bot training for account id '\
+                           + str(account_id) + ', bot id ' + str(bot_id) + ' training started ' \
+                           + str(bot_trainer.bot_training_start_time) \
+                           + '<br><br>Training log:<br><br>' \
+                           + re.sub(pattern='", "', repl='<br/>', string=str(bot_trainer.log_training))
+
+            self.__bots_trainer_mutex.acquire()
+            try:
+                ctdata = ctd.ChatTrainingData(
+                    use_db                 = self.use_db,
+                    db_profile             = self.db_profile,
+                    account_id             = account_id,
+                    bot_id                 = bot_id,
+                    lang                   = bot_lang,
+                    bot_key                = botkey,
+                    dirpath_traindata      = self.dirpath_traindata,
+                    postfix_training_files = self.postfix_training_files,
+                    dirpath_wordlist       = self.dir_wordlist,
+                    dirpath_app_wordlist   = self.dir_wordlist_app,
+                    dirpath_synonymlist    = self.dir_synonymlist
+                )
+
+                if not self.use_db:
+                    ctdata.get_training_data(verbose=1)
+
+                trainer = ct.ChatTraining(
+                    botkey             = botkey,
+                    dirpath_rfv        = self.dir_rfv_commands,
+                    chat_training_data = ctdata,
+                    keywords_remove_quartile = 0,
+                    stopwords          = (),
+                    weigh_idf          = True
+                )
+                self.bots_trainer[botkey] = trainer
+
+                # No stopwords (IDF will provide word weights), no removal of words
+                trainer.start()
+
+                return 'STARTED. Bot training for account id ' + str(account_id) \
+                               + ', bot id ' + str(bot_id) + ' training in started ' \
+                               + str(trainer.bot_training_start_time)
+            except Exception as ex:
+                raise ex
+            finally:
+                self.__bots_trainer_mutex.release()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Exception [' + str(ex) + '] training bot for account id '\
                      + str(account_id) + ', bot ID ' + str(bot_id) + '.'
             lg.Log.critical(errmsg)
             raise errmsg
-        finally:
-            log_result = lg.Log.log_list.copy()
-            lg.Log.clear_log_list()
-
-        return str(log_result)
 
     def handle_segment_words_request(
             self,

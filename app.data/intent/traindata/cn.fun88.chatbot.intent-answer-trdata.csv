@@ -2693,17 +2693,17 @@ fun88,cn,user,Account,设置自我限制,1,"【网页版】： 在乐天堂网�
  可以锁上账户吗
  账户限制",Set up self-exclusion,直接回答,Done,ruby
 fun88,cn,user,Account/Email,如何更换邮件地址？,1,"<require-signin>烦请您先登录网站，以方便小助手可以查询您的相关记录</require-signin>
- <form title=""更换邮件地址"">
- <field>真实姓名</field>
- <field>用户账号</field>
- <field>电话号码 </field>
- <field>生日日期</field>
- <field>生日月份</field>
- <field>生日年份</field>
- <field>旧注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
- <field>新注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
- <field>安全提问</field>
- <field>安全答案</field>
+ <form text=""更换邮件地址"" message=""Please fill the form"">
+ <field name=""真实姓名"">真实姓名</field>
+ <field name=""用户账号"">用户账号</field>
+ <field name=""电话号码"">电话号码 </field>
+ <field name=""生日日期"">生日日期</field>
+ <field name=""生日月份"">生日月份</field>
+ <field name=""生日年份"">生日年份</field>
+ <field name=""旧注册邮箱"">旧注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
+ <field name=""新注册邮箱"">新注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
+ <field name=""安全提问"">安全提问</field>
+ <field name=""安全答案"">安全答案</field>
  </form>
  <webhook>http://webhook.gohelp88.com/Member/ChangeEmailAddress</webhook>","你好，我邮箱后缀填写错误了
  邮箱填错怎么修改
@@ -2974,16 +2974,16 @@ fun88,cn,user,Account/Password,重置密码 - APP版操作,1,"APP版更换密码
  精装版忘记密码",Reset Password on APP,直接回答,Done,ruby
 fun88,cn,user,Account/Password,重置密码邮件链接无法使用,1,请您尝试复制链接至浏览器打开（推荐使用谷歌或者火狐）， 如果还是无法打开，请您点击联系我们的在线客服人员查询哦,重置密码的链接点了没开,Reset Password Email Link not working,人工客服,Done,ruby
 fun88,cn,user,Account/Phone,如何更换电话号码？,1,"<require-signin>烦请您先登录网站，以方便小助手可以查询您的相关记录</require-signin>
- <form title=""更换邮件地址"">
- <field>真实姓名</field>
- <field>注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
- <field>生日日期</field>
- <field>生日月份</field>
- <field>生日年份</field>
- <field>旧电话号码 (1xxxxxxxxxx)</field>
- <field>新电话号码 (1xxxxxxxxxx)</field>
- <field>安全提问</field>
- <field>安全答案</field>
+ <form text=""更换邮件地址"">
+ <field name=""真实姓名"">真实姓名</field>
+ <field name=""注册邮箱"">注册邮箱 (请根据格式 [xxx@xxxxx.xxx])</field>
+ <field name=""生日日期"">生日日期</field>
+ <field name=""生日月份"">生日月份</field>
+ <field name=""生日年份"">生日年份</field>
+ <field name=""旧电话号码"">旧电话号码 (1xxxxxxxxxx)</field>
+ <field name=""新电话号码"">新电话号码 (1xxxxxxxxxx)</field>
+ <field name=""安全提问"">安全提问</field>
+ <field name=""安全答案"">安全答案</field>
  </form>
  <webhook>http://webhook.gohelp88.com/Member/ChangePhoneNumber</webhook>","我想换电话号码，怎么换
  我忘记我的电话号码了，可以换吗
@@ -4210,7 +4210,7 @@ fun88,cn,user,Bet,怎么进行下注,1,"如果您尚未注册账户，您可以�
  体育如何下注
  我的咋下不了单啊
  怎么玩啊",How to bet,直接回答,Done,ruby
-fun88,cn,user,Bet,查询投注记录,1,"<form title=""游戏平台"">
+fun88,cn,user,Bet,查询投注记录,1,"<form text=游戏平台>
  <field>游戏平台</field>
  </form>
  <webhook>http://webhook.gohelp88.com/Bet/TurnoverCheckSelfservicepageFun88</webhook>","在哪里可以看到我的投注记录
@@ -6343,8 +6343,8 @@ b. 居住证明文件:水电单 / 网费单 / 信用卡纸质邮寄账单 /收�
 发送好后,将您发送邮件使用的邮箱提供给在线客服,可为您提交相关部门审核并催促处理哦！(ノ^∇^)
 
 亲可以了解更多关于：
-<intentlink>提款审核<intentlink>
-<intentlink>KYC需要什么证件<intentlink>","
+<intentlink>提款审核</intentlink>
+<intentlink>KYC需要什么证件</intentlink>","
 KYC审核是什么？
 审核是用来干什么？
 审核
@@ -6380,10 +6380,10 @@ fun88,cn,user,Introduction IOM,IOM介绍,1,"由于乐天堂是正规的博彩公
 在网站的最下方点击IOM的标识，即可跳转到IOM官网浏览。
 
 更多关于乐天堂的其他咨询：
-<intentlink>乐频道<intentlink>
-<intentlink>天王俱乐部<intentlink>
-<intentlink>赞助球队<intentlink>
-<intentlink>品牌大使<intentlink>","牌照
+<intentlink>乐频道</intentlink>
+<intentlink>天王俱乐部</intentlink>
+<intentlink>赞助球队</intentlink>
+<intentlink>品牌大使</intentlink>","牌照
 IOM是什么？
 IOM
 什么是IOM
@@ -6872,9 +6872,8 @@ fun88,cn,user,Keno/ Limit,优乐彩限额,1,亲～最低投注5元，最高根�
 快乐彩最低投注金额
 优乐彩最低投注金额
 彩票最低投注金额",Keno limit,,,ruby
-fun88,cn,user,Other,抱怨输太多,1,"
-亲，网站的游戏面向所有客户都是一样的哦，而且游戏的结果都是随机派彩，我们也是无法预知的呢
-乐天使温馨提示您，娱乐博彩都是有一定的风险性喔，请您根据自身的承受能力选择是否需要加入游戏哦ヾ(＾-＾)ノ","你们是不是骗钱
+fun88,cn,user,Other,抱怨输太多,1,"亲，网站的游戏面向所有客户都是一样的哦，而且游戏的结果都是随机派彩，我们也是无法预知的呢
+乐天使温馨提示您，娱乐博彩都是有一定的风险性喔，请您根据自身的承受能力选择是否需要加入游戏哦","你们是不是骗钱
 你日怎么一直输
 还钱
 钱全部输光了 ",Lose money,,,ruby

@@ -1,15 +1,11 @@
 #!/bin/bash
 
-MODULEDIR=`pwd | sed s/.*[/]//g`
+COMPILE_DIR="ie"
 
-TOPDIR=`pwd | sed s/[/]$MODULEDIR//g`
-echo "Using module directory $MODULEDIR and top directory $TOPDIR."
+source ../../mozg.common/src/run.common.sh
 
 export PYTHONIOENCODING=utf-8
 
-PYTHONPATH="$TOPDIR"/"$MODULEDIR" \
-   /usr/bin/python3.6 \
-   ie/app/chatbot/BotTrain.py \
-      topdir=$TOPDIR \
-      verbose=1 \
-      debug=0
+PYTHONPATH="$PYTHON_BIN"/"$MODULEDIR":"$COMMONSRC" \
+   $PYTHON_BIN -m ie.app.chatbot.BotTrain \
+      topdir=$PROJECTDIR "$@"

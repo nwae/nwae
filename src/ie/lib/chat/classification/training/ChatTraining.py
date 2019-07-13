@@ -4,8 +4,9 @@
 
 import numpy as np
 import pandas as pd
-import os
+import threading
 import re
+import datetime as dt
 import ie.lib.lang.classification.TextClusterBasic as tcb
 import ie.lib.chat.classification.training.RefFeatureVec as reffv
 import ie.lib.chat.classification.training.ChatTrainingData as ctd
@@ -14,6 +15,8 @@ from inspect import currentframe, getframeinfo
 
 
 #
+# TODO Split out the core math algorithm into a generalized ML algorithm
+#
 # Supervised training of chats, grouping into command/intent types.
 # We provide a few approaches to recognize intents:
 #  1. Closest Distance using IDF weights
@@ -21,7 +24,7 @@ from inspect import currentframe, getframeinfo
 #  3. TODO: Logistic Classification by Every Intent Pair (I suspect
 #     TODO: this method will not work well thus not a priority for now)
 #
-class ChatTraining:
+class ChatTraining(threading.Thread):
 
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
 
@@ -30,13 +33,19 @@ class ChatTraining:
             botkey,
             dirpath_rfv,
             chat_training_data,
-            # TODO Not needed anymore?
-            lang = None
+            keywords_remove_quartile=50,
+            stopwords = (),
+            weigh_idf = False
     ):
+        super(ChatTraining, self).__init__()
 
         self.botkey = botkey
         self.dirpath_rfv = dirpath_rfv
         self.chat_training_data = chat_training_data
+
+        self.keywords_remove_quartile = keywords_remove_quartile
+        self.stopwords = stopwords
+        self.weigh_idf = weigh_idf
 
         self.df_idf = None
         # Just a single RFV for each Intent
@@ -56,6 +65,12 @@ class ChatTraining:
         self.textcluster_bycategory = None
         # Commands or categories or classes of the classification
         self.commands = None
+
+        self.bot_training_start_time = None
+        self.bot_training_end_time = None
+        self.log_training = None
+        self.is_training_done = False
+        self.__mutex_training = threading.Lock()
 
         return
 
@@ -81,6 +96,29 @@ class ChatTraining:
                 index_list[i] = v
         return index_list
 
+    def run(self):
+        self.__mutex_training.acquire()
+        try:
+            self.bot_training_start_time = dt.datetime.now()
+            self.log_training = []
+            self.train(
+                self.keywords_remove_quartile,
+                self.stopwords,
+                self.weigh_idf
+            )
+            self.bot_training_end_time = dt.datetime.now()
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Botkey ' + str(self.botkey) + '" training exception: ' + str(ex) + '.'
+            )
+        finally:
+            self.is_training_done = True
+            self.__mutex_training.release()
+
+        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Botkey ' + str(self.botkey) + '" trained successfully.')
+
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
@@ -92,12 +130,16 @@ class ChatTraining:
             weigh_idf = False
     ):
         td = None
+        self.log_training = []
 
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Training for botkey=' + self.botkey
-                         + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
-                         + ', stopwords = [' + str(stopwords) + ']'
-                         + ', weigh by IDF = ' + str(weigh_idf))
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Training for botkey=' + self.botkey
+            + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
+            + ', stopwords = [' + str(stopwords) + ']'
+            + ', weigh by IDF = ' + str(weigh_idf)
+            , log_list = self.log_training
+        )
 
         if self.chat_training_data.use_db:
             td = self.chat_training_data.get_training_data_from_db()
@@ -106,19 +148,23 @@ class ChatTraining:
         else:
             if self.chat_training_data.df_training_data is None:
                 raise Exception(str(self.__class__) + ' No training data from file!!')
-
             td = self.chat_training_data.df_training_data
 
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                      + ': Training data: ' + str(td))
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Training data: ' + str(td)
+        )
 
         #
         # Extract all keywords
         # Our training now doesn't remove any word, uses no stopwords, but uses an IDF weightage to measure
         # keyword value.
         #
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Starting text cluster, calculate top keywords...')
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Starting text cluster, calculate top keywords...'
+            , log_list = self.log_training
+        )
         self.textcluster = tcb.TextClusterBasic(
             text      = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]),
             stopwords = stopwords
@@ -130,16 +176,22 @@ class ChatTraining:
                          + ': Keywords extracted as follows:' + str(self.textcluster.keywords_for_fv))
 
         # Extract unique Commands/Intents
-        log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Extracting unique commands/intents..')
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Extracting unique commands/intents..'
+            , log_list = self.log_training
+        )
         self.commands = set( list( td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID] ) )
         # Change back to list, this list may change due to deletion of invalid commands.
         self.commands = list(self.commands)
         log.Log.critical(self.commands)
 
         # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Preparing RFV data frames...')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Preparing RFV data frames...'
+            , log_list = self.log_training
+        )
         m = np.zeros((len(self.commands), len(self.textcluster.keywords_for_fv)))
         self.df_rfv = pd.DataFrame(m, columns=self.textcluster.keywords_for_fv, index=self.commands)
         self.df_rfv_distance_furthest = pd.DataFrame({
@@ -153,8 +205,11 @@ class ChatTraining:
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Joining all training data in the same command/intent to get IDF...')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Joining all training data in the same command/intent to get IDF...'
+            , log_list = self.log_training
+        )
         i = 0
         text_bycategory = [''] * len(self.commands)
         for com in self.commands:
@@ -164,38 +219,48 @@ class ChatTraining:
             text_com = ' '.join(text_samples)
             text_bycategory[i] = text_com
             i = i + 1
-        log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                           + ': Joined intents: ' + str(text_bycategory))
         # Create a new TextCluster object
         self.textcluster_bycategory = tcb.TextClusterBasic(text=text_bycategory, stopwords=stopwords)
         # Always use the same keywords FV!!
         self.textcluster_bycategory.set_keywords(df_keywords=self.textcluster.df_keywords_for_fv.copy())
 
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Calculating sentence matrix of combined Intents to get IDF...')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Calculating sentence matrix of combined Intents to get IDF...'
+            , log_list = self.log_training
+        )
         self.textcluster_bycategory.calculate_sentence_matrix(
             freq_measure='normalized',
             feature_presence_only=False,
             idf_matrix=None
         )
 
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Calculating IDF...')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) + ': Calculating IDF...'
+            , log_list = self.log_training
+        )
         self.textcluster_bycategory.calculate_idf()
         # Create a column matrix for IDF
         idf_matrix = self.textcluster_bycategory.idf_matrix.copy()
         log.Log.info(idf_matrix)
         if not weigh_idf:
-            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Not using IDF')
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) + ': Not using IDF'
+            , log_list = self.log_training
+            )
             idf_matrix = None
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
         #
         # Get sentence matrix for all sentences first
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Calculating sentence matrix for all training data...')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Calculating sentence matrix for all training data...'
+            , log_list = self.log_training
+        )
         self.textcluster.calculate_sentence_matrix(
             freq_measure          = 'normalized',
             feature_presence_only = False,
@@ -231,9 +296,12 @@ class ChatTraining:
             if abs(check_dist-1) > 0.000001:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Warning! FV for intent [' + str(idx) + '] not 1, but [' + str(check_dist) + '].'
-                log.Log.critical(errmsg)
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': Dropping this training data [' + str(idx) + ']...')
+                log.Log.critical(errmsg, log_list=self.log_training)
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Dropping this training data [' + str(idx) + ']...'
+                    , log_list = self.log_training
+                )
                 len_before = self.df_fv_all.shape[0]
                 self.df_fv_all = self.df_fv_all.drop(labels=idx, axis=0)
                 len_after = self.df_fv_all.shape[0]
@@ -252,9 +320,11 @@ class ChatTraining:
         #    can't be used as a general method to detect intent because it is intent specific.
         #
         m_tmp = np.zeros(self.df_rfv.shape)
-        self.df_intent_tf = pd.DataFrame(m_tmp,
-                                    columns=self.textcluster.keywords_for_fv,
-                                    index=self.df_rfv.index.tolist())
+        self.df_intent_tf = pd.DataFrame(
+            m_tmp,
+            columns = self.textcluster.keywords_for_fv,
+            index   = self.df_rfv.index.tolist()
+        )
         tmp_fv_td_matrix = self.textcluster.sentence_matrix.copy()
         row_indexes = None
         for com in self.commands:
@@ -270,15 +340,13 @@ class ChatTraining:
                 if tmp_intent_matrix.shape[0] == 0:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                              + ': For intent ID [' + str(com) + '], no rows matched! ' + 'Possibly data has no common features in FV...'
-                    log.Log.critical(errmsg)
+                    log.Log.critical(errmsg, log_list=self.log_training)
                     continue
                     #raise Exception(errmsg)
 
                 #
                 # TODO FutureWarning: Method .as_matrix will be removed in a future version. Use .values instead.
                 #
-                #log.Log.log(tmp_fv_td_intent_matrix)
-                # tmp_intent_matrix = tmp_intent_matrix.as_matrix()
                 tmp_intent_array = tmp_intent_matrix.values
 
                 #
@@ -291,13 +359,16 @@ class ChatTraining:
                 word_presence_array = (tmp_intent_array>0)*1
                 # Sum columns
                 keyword_presence_tf = np.sum(word_presence_array, axis=0) / word_presence_array.shape[0]
-                #log.Log.log(keyword_presence_tf)
+                #log.Log.debugdebug(keyword_presence_tf)
                 self.df_intent_tf.loc[com] = keyword_presence_tf
-                #log.Log.log(df_intent_tf)
+                #log.Log.debugdebug(df_intent_tf)
                 #raise Exception('Debug End')
             except Exception as ex:
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': Error for intent ID [' + com + '], at row indexes ' + str(row_indexes))
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Error for intent ID [' + com + '], at row indexes ' + str(row_indexes)
+                    , log_list = self.log_training
+                )
                 raise(ex)
 
         #
@@ -306,8 +377,11 @@ class ChatTraining:
         # Because self.commands may change, due to deletion of invalid commands
         all_commands = self.commands.copy()
         for com in all_commands:
-            log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Doing intent ID [' + str(com) + ']')
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Doing intent ID [' + str(com) + ']'
+                , log_list = self.log_training
+            )
             is_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]==com
             text_samples = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command])
             text_samples_indexes = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command].index)
@@ -335,7 +409,7 @@ class ChatTraining:
                                  + ': Removing row [' + str(mrow) + '] of training data.' +\
                                  'Error in training data ['  + textsam + ']! FV for sample command [' + str(com) +\
                                  '] not 1, but [' + str(check_magnitude) + '].'
-                        log.Log.critical(errmsg)
+                        log.Log.critical(errmsg, log_list=self.log_training)
                         # We need to break because the matrix dimensions changed in the loop
                         ok = False
                         break
@@ -346,34 +420,49 @@ class ChatTraining:
             if sample_matrix.shape[0] == 0:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Empty matrix for command [' + str(com) + '] Removing this command from list..'
-                log.Log.critical(errmsg)
+                log.Log.critical(errmsg, log_list=self.log_training)
                 len_before = len(self.commands)
                 self.commands.remove(com)
                 len_after = len(self.commands)
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': ' + str(len_after) + ' commands left from previous ' + str(len_before)
-                                 + ' commands. Not calculating RFV for [' + str(com) + ']')
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': ' + str(len_after) + ' commands left from previous ' + str(len_before)
+                    + ' commands. Not calculating RFV for [' + str(com) + ']'
+                    , log_list = self.log_training
+                )
 
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': Now dropping command [' + str(com) + '] from df_rfv..')
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Now dropping command [' + str(com) + '] from df_rfv..'
+                    , log_list = self.log_training
+                )
                 len_before = self.df_rfv.shape[0]
                 self.df_rfv = self.df_rfv.drop(labels=com, axis=0)
                 len_after = self.df_rfv.shape[0]
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': ' + str(len_after) + ' df_rfv left from previous ' + str(len_before)
-                                 + ' commands.')
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': ' + str(len_after) + ' df_rfv left from previous ' + str(len_before)
+                    + ' commands.'
+                    , log_list = self.log_training
+                )
 
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ': Now dropping command [' + str(com) + '] from df_rfv_distance_furthest..')
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Now dropping command [' + str(com) + '] from df_rfv_distance_furthest..'
+                    , log_list = self.log_training
+                )
                 len_before = self.df_rfv_distance_furthest.shape[0]
                 com_index = \
                     self.df_rfv_distance_furthest.loc[
                         self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
                 self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.drop(labels=com_index, axis=0)
                 len_after = self.df_rfv_distance_furthest.shape[0]
-                log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + ':' + str(len_after) + ' df_rfv_distance_furthest left from previous '
-                                 + str(len_before) + ' commands.')
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ':' + str(len_after) + ' df_rfv_distance_furthest left from previous '
+                    + str(len_before) + ' commands.'
+                    , log_list = self.log_training
+                )
                 continue
 
             #
@@ -393,8 +482,10 @@ class ChatTraining:
                          + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(check_dist) + '].'
                 raise(errmsg)
             else:
-                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Check RFV normalized ok [' + str(check_dist) + '].')
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Check RFV normalized ok [' + str(check_dist) + '].'
+                )
 
             #
             # Get furthest point of classification to rfv
@@ -406,8 +497,10 @@ class ChatTraining:
             com_index =\
                 self.df_rfv_distance_furthest.loc[self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
             for i in range(0, sample_matrix.shape[0], 1):
-                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                 + '   Checking ' + str(i) + ': [' + text_samples[i] + ']')
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + '   Checking ' + str(i) + ': [' + text_samples[i] + ']'
+                )
                 fv_text = sample_matrix[i]
                 dist_vec = rfv - fv_text
                 dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
@@ -465,9 +558,12 @@ class ChatTraining:
                          + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(dist) + '].'
                 raise(Exception(errmsg))
             else:
-                log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': ' + str(count) + '. Check RFV for [' + str(com)
-                             + '] normalized ok [' + str(dist) + '].')
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': ' + str(count) + '. Check RFV for [' + str(com)
+                    + '] normalized ok [' + str(dist) + '].'
+                    , log_list = self.log_training
+                )
                 count = count + 1
 
         #
@@ -476,31 +572,66 @@ class ChatTraining:
         #
         fpath_idf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.words.idf.csv'
         self.textcluster_bycategory.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved IDF dimensions [' + str(self.textcluster_bycategory.df_idf.shape) + '] filepath [' + fpath_idf + ']'
+            , log_list = self.log_training
+        )
 
         fpath_rfv = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.csv'
         self.df_rfv.to_csv(path_or_buf=fpath_rfv, index=True, index_label='INDEX')
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Saved RFV dimensions [' + str(self.df_rfv.shape) + '] filepath [' + fpath_rfv + ']')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved RFV dimensions [' + str(self.df_rfv.shape) + '] filepath [' + fpath_rfv + ']'
+            , log_list = self.log_training
+        )
 
         fpath_dist_furthest = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.distance.csv'
         self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
-
-        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
-        self.df_fv_all.to_csv(path_or_buf=fpath_fv_all, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved RFV (furthest) dimensions [' + str(self.df_rfv_distance_furthest.shape)
+            + '] filepath [' + fpath_dist_furthest + ']'
+            , log_list = self.log_training
+        )
 
         fpath_intent_tf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.words.tf.csv'
         self.df_intent_tf.to_csv(path_or_buf=fpath_intent_tf, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved TF dimensions [' + str(self.df_intent_tf.shape)
+            + '] filepath [' + fpath_intent_tf + ']'
+            , log_list = self.log_training
+        )
 
-        # We write a dummy file to change the directory timestamp, so that our intent server can detect change
-        fpath_dummy_file = self.dirpath_rfv + '/.dummyfile'
+        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
+        self.df_fv_all.to_csv(path_or_buf=fpath_fv_all, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data [' + str(self.df_fv_all.shape) + '] filepath [' + fpath_fv_all + ']'
+            , log_list=self.log_training
+        )
+
+        # Our servers look to this file to see if RFV has changed
+        # It is important to do it last (and fast), after everything is done
+        fpath_updated_file = self.dirpath_rfv + '/' + self.botkey + '.lastupdated.txt'
         try:
-            f = open(file=fpath_dummy_file, mode='w')
+            f = open(file=fpath_updated_file, mode='w')
+            f.write(str(dt.datetime.now()))
             f.close()
-            os.remove(fpath_dummy_file)
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved update time file "' + fpath_updated_file
+                + '" for other processes to detect and restart.'
+                , log_list=self.log_training
+            )
         except Exception as ex:
-            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Could not create/delete dummy file "' + fpath_dummy_file
-                             + '". ' + str(ex))
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create last updated file "' + fpath_updated_file
+                + '". ' + str(ex)
+            , log_list = self.log_training
+            )
 
         return
 

@@ -2,10 +2,12 @@
 
 # !!! Will work only on Python 3 and above
 
+import os
 import numpy as np
 import pandas as pd
 import threading
 import time
+import datetime as dt
 import ie.lib.chat.bot.IntentEngineThread as intEngThread
 import ie.lib.chat.classification.training.ChatTraining as chatTr
 import ie.lib.lang.model.FeatureVector as fv
@@ -19,6 +21,8 @@ from inspect import currentframe, getframeinfo
 #
 # Intent AI/NLP Engine
 #
+# TODO Super important. Reducing features should be done in training, NOT HERE
+#
 class IntentEngine:
 
     #
@@ -29,7 +33,7 @@ class IntentEngine:
     # When we measure distance between a random text and all the RFVs, we multiply the furthest distance
     # by this. The final Score will be affected by this
     FURTHEST_DISTANCE_TO_RFV_MULTIPLIER = 1.1
-    DEFAULT_SCORE_MIN_THRESHOLD = 10
+    DEFAULT_SCORE_MIN_THRESHOLD = 5
     # Weight given to distance to RFV & closest sample, to determine the distance to a command
     WEIGHT_RFV = 0.5
     WEIGHT_SAMPLE = 1 - WEIGHT_RFV
@@ -90,17 +94,54 @@ class IntentEngine:
         self.bot_key = bot_key.lower()
         self.dir_rfv_commands = dir_rfv_commands
 
+        self.fpath_updated_file = self.dir_rfv_commands + '/' + self.bot_key + '.lastupdated.txt'
+        if not os.path.isfile(self.fpath_updated_file):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Last update file "' + self.fpath_updated_file + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
+        # Keep checking time stamp of this file for changes
+        self.last_updated_time_rfv = 0
+
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
+        self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.words.idf.csv'
+        if not os.path.isfile(self.fpath_idf):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': IDF file "' + self.fpath_idf + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
         self.df_idf_ro = None
+
+        self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.csv'
+        if not os.path.isfile(self.fpath_rfv):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': RFV file "' + self.fpath_rfv + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
         self.df_rfv_ro = None
         # This is the cached data frame version of the RFV in numpy array form
         self.df_rfv_np_array_ro = None
+
+        self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.distance.csv'
+        if not os.path.isfile(self.fpath_rfv):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
         self.df_rfv_dist_furthest_ro = None
+
+        self.fpath_fv_all = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.fv.all.csv'
+        if not os.path.isfile(self.fpath_rfv):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Training Data file "' + self.fpath_fv_all + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
         # Used to zoom into an intent/command group and compare against exact training data in that group
         self.df_fv_training_data_ro = None
         self.index_command_fv_training_data_ro = None
+
         # Used to finally confirm if it is indeed the intent by matching top keywords in the intent category
         # self.df_intent_tf_ro = None
 
@@ -125,7 +166,8 @@ class IntentEngine:
         self.minimal = minimal
 
         # Reduce and optimize features
-        self.reduce_features = reduce_features
+        # TODO Should be in training not here!
+        self.reduce_features = False
 
         self.count_intent_calls = 0
 
@@ -143,10 +185,15 @@ class IntentEngine:
         self.is_training_data_ready = False
         self.is_reduced_features_ready = False
         self.background_thread = intEngThread.IntentEngineThread(
+            botkey      = self.bot_key,
             intent_self = self
         )
-
         return
+
+    def reset_ready_flags(self):
+        self.is_rfv_ready = False
+        self.is_training_data_ready = False
+        self.is_reduced_features_ready = False
 
     def do_background_load(self):
         self.background_thread.start()
@@ -163,6 +210,30 @@ class IntentEngine:
             self.is_training_data_ready = True
         return
 
+    def check_if_rfv_updated(self):
+        updated_rfv_time = os.path.getmtime(self.fpath_updated_file)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': RFV for botkey "' + str(self.bot_key)
+            + '" last updated time ' + str(self.last_updated_time_rfv)
+            + ', updated "' + str(updated_rfv_time) + '".'
+        )
+        if (updated_rfv_time > self.last_updated_time_rfv):
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': RFV update time for botkey "' + str(self.bot_key) + '" - "'
+                + str(dt.datetime.fromtimestamp(updated_rfv_time)) + '" is newer than "'
+                + str(dt.datetime.fromtimestamp(self.last_updated_time_rfv))
+                + '". Restarting...'
+            )
+            self.__mutex.acquire()
+            self.reset_ready_flags()
+            self.last_updated_time_rfv = updated_rfv_time
+            self.__mutex.release()
+            return True
+        else:
+            return False
+
     #
     # Run this slow load up in background thread
     #
@@ -171,7 +242,6 @@ class IntentEngine:
 
         try:
             # TODO This data actually not needed
-            self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.words.idf.csv'
             self.df_idf_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_idf,
                 sep       =',',
@@ -183,7 +253,6 @@ class IntentEngine:
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines')
 
-            self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.csv'
             self.df_rfv_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv,
                 sep       = ',',
@@ -200,7 +269,6 @@ class IntentEngine:
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cached huge RFV array from dataframe..')
 
-            self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.distance.csv'
             self.df_rfv_dist_furthest_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv_dist,
                 sep       = ',',
@@ -209,18 +277,18 @@ class IntentEngine:
             if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_rfv_dist_furthest_ro.index = self.df_rfv_dist_furthest_ro.index.astype(str)
-            log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_dist_furthest_ro.shape[0]) + ' lines')
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_dist_furthest_ro.shape[0]) + ' lines'
+            )
 
             #
             # RFV is ready, means we can start detecting intents. But still can't use training data
             #
-            if not self.reduce_features:
-                self.is_rfv_ready = True
+            self.is_rfv_ready = True
 
             # TODO When we go live to production, training data is no longer in file but in DB. How will we do?
             if not self.minimal:
-                self.fpath_fv_all = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.fv.all.csv'
                 self.df_fv_training_data_ro = pd.read_csv(
                     filepath_or_buffer = self.fpath_fv_all,
                     sep       = ',',
@@ -239,15 +307,17 @@ class IntentEngine:
                                     + str(list(self.index_command_fv_training_data_ro)) + '".')
                 log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                    + ': Index original  "' + str(list(self.df_fv_training_data_ro.index)) + '".')
+
+                self.sanity_check()
+
                 #
                 # Training data finally ready
                 #
-                if not self.reduce_features:
-                    self.is_training_data_ready = True
+                self.is_training_data_ready = True
             else:
+                self.sanity_check()
                 # Training data is never ready in minimal mode
                 self.is_training_data_ready = False
-
 
             # TODO This data actually not needed
             # self.fpath_intent_tf = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.words.tf.csv'
@@ -269,7 +339,6 @@ class IntentEngine:
         finally:
             self.__mutex.release()
 
-        self.sanity_check()
         return
 
     def sanity_check(self):
@@ -287,17 +356,19 @@ class IntentEngine:
                 raise Exception('RFV error')
 
         if not self.minimal:
-            for com in list(self.df_fv_training_data_ro.index):
-                fv = np.array(self.df_fv_training_data_ro.loc[com].values)
+            for idx in list(self.df_fv_training_data_ro.index):
+                fv = np.array(self.df_fv_training_data_ro.loc[idx].values)
                 if len(fv.shape) != 1:
-                    raise Exception(str(self.__class__) + ': Training data vector must be 1-dimensional, got ' + str(len(fv.shape)) +
-                                    '-dimensional for intentId ' + str(com) +
-                                    '!! Possible clash of index (e.g. for number type index column 1234.1 is identical to 1234.10)')
+                    raise Exception(
+                        str(self.__class__) + ': Training data vector must be 1-dimensional, got ' + str(len(fv.shape))
+                        + '-dimensional for index ' + str(idx)
+                        + '!! Possible clash of index (e.g. for number type index column 1234.1 is identical to 1234.10)')
                 dist = np.sum(np.multiply(fv,fv))**0.5
                 if abs(dist-1) > 0.000001:
-                    log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                + ': Warning: FV for command [' + str(com) + '] not 1, ' + str(dist))
-                    raise Exception('FV error')
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Warning: Training data FV Error for index [' + str(idx) + '] not 1, ' + str(dist)
+                    log.Log.critical(errmsg)
+                    raise Exception(errmsg)
         return
 
     def get_command_index_from_training_data_index(self):
@@ -399,7 +470,6 @@ class IntentEngine:
         count = 1
         sleep_time_wait_rfv = 0.1
         wait_max_time = 10
-        wait_max_time = wait_max_time + (self.reduce_features*2*wait_max_time)
         while not (self.is_rfv_ready and
                    (self.is_training_data_ready or self.minimal or not_necessary_to_use_training_data_samples)):
             log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -1029,96 +1099,128 @@ class IntentEngine:
         #
         self.__mutex.acquire()
 
-        #
-        # Removing features may cause some RFV to become 0, need to deal with that also
-        #
-        self.df_rfv_ro = self.df_rfv_ro.loc[:, features_keep_list]
-        if not self.minimal:
-            self.df_fv_training_data_ro = self.df_fv_training_data_ro.loc[:, features_keep_list]
-
-        # Check which RFVs became 0
-        df_rfv_zeroes = self.df_rfv_ro[ self.df_rfv_ro.sum(axis=1)==0 ]
-        rfvs_to_throw = df_rfv_zeroes.index.tolist()
-        log.Log.warning('RFVs that became zero:')
-        log.Log.warning(df_rfv_zeroes.index)
-        log.Log.warning(df_rfv_zeroes)
-        log.Log.warning(rfvs_to_throw)
-
-        # Drop the RFVs with 0 vector
-        self.df_rfv_ro = self.df_rfv_ro.drop(rfvs_to_throw)
-
-        # Which training data to remain kept
-        df_td = pd.DataFrame()
-
-        # Renormalize RFV, loop through indexes
-        for idx in self.df_rfv_ro.index:
-            log.Log.debug('.   Doing index ' + str(idx) + '...')
-
+        try:
+            #
+            # Removing features may cause some RFV to become 0, need to deal with that also
+            #
+            self.df_rfv_ro = self.df_rfv_ro.loc[:, features_keep_list]
             if not self.minimal:
-                filter_intent = str(idx) + '-' + '[0-9]+.*'
-                df_tmp = self.df_fv_training_data_ro.filter(regex=filter_intent, axis=0)
-                if df_tmp.shape[0] == 0:
-                    log.Log.warning('Warning! For intent [' + str(idx) + '] - No Training Data Filtered!')
-                    continue
-                df_td = df_td.append(df_tmp)
+                self.df_fv_training_data_ro = self.df_fv_training_data_ro.loc[:, features_keep_list]
 
-            v = np.array(self.df_rfv_ro.loc[idx].values)
-            # Normalize v
-            mag = np.multiply(v, v)
-            mag = np.sum(mag) ** 0.5
-            v = v / mag
+            # Check which RFVs became 0
+            df_rfv_zeroes = self.df_rfv_ro[ self.df_rfv_ro.sum(axis=1)==0 ]
+            rfvs_to_throw = df_rfv_zeroes.index.tolist()
+            log.Log.warning('RFVs that became zero:')
+            log.Log.warning(df_rfv_zeroes.index)
+            log.Log.warning(df_rfv_zeroes)
+            log.Log.warning(rfvs_to_throw)
 
-            mag_check = np.multiply(v, v)
-            mag_check = np.sum(mag_check) ** 0.5
-            if abs(mag_check - 1) > 0.000000001:
-                raise Exception('Not normalized!')
+            # Drop the RFVs with 0 vector
+            self.df_rfv_ro = self.df_rfv_ro.drop(rfvs_to_throw)
 
-            log.Log.debug(v)
-            self.df_rfv_ro.at[idx] = v
+            # Which training data to remain kept
+            df_td = pd.DataFrame()
 
-        log.Log.important('Renormalized RFV:')
-        log.Log.important('New RFV dimensions: ' + str(self.df_rfv_ro.shape))
-        log.Log.debug(self.df_rfv_ro)
+            # Renormalize RFV, loop through indexes
+            for idx in self.df_rfv_ro.index:
+                log.Log.debug('.   Doing index ' + str(idx) + '...')
 
-        # Now do the same for IDF
-        self.df_idf_ro = self.df_idf_ro[self.df_idf_ro['Word'].isin(features_keep_list)]
-        log.Log.important('Renormalized IDF:')
-        log.Log.important('New IDF dimensions: ' + str(self.df_rfv_ro.shape))
-        log.Log.debug(self.df_idf_ro)
+                if not self.minimal:
+                    filter_intent = str(idx) + '-' + '[0-9]+.*'
+                    df_tmp = self.df_fv_training_data_ro.filter(regex=filter_intent, axis=0)
+                    if df_tmp.shape[0] == 0:
+                        log.Log.warning('Warning! For intent [' + str(idx) + '] - No Training Data Filtered!')
+                        continue
+                    df_td = df_td.append(df_tmp)
 
-        # Remember to update also the cached numpy array
-        self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
+                v = np.array(self.df_rfv_ro.loc[idx].values)
+                # Normalize v
+                mag = np.multiply(v, v)
+                mag = np.sum(mag) ** 0.5
+                v = v / mag
 
-        # Now do the same for training data
-        if not self.minimal:
-            self.df_fv_training_data_ro = df_td
-            log.Log.important('New Training Data dimensions: ' + str(self.df_fv_training_data_ro.shape))
-            # This is very slow, we do it first! Cache it!
-            self.index_command_fv_training_data_ro = np.array(self.get_command_index_from_training_data_index())
-            log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                               + ': Reduced Features Index of training data by command "'
-                               + str(list(self.index_command_fv_training_data_ro)) + '".')
-            log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                               + ': Reduced Features Index original  "'
-                               + str(list(self.df_fv_training_data_ro.index)) + '".')
+                mag_check = np.multiply(v, v)
+                mag_check = np.sum(mag_check) ** 0.5
+                if abs(mag_check - 1) > 0.000000001:
+                    raise Exception('Not normalized!')
 
-        # Now for RFV Furthest Distance of sample
-        log.Log.debug('Nothing to do for RFV Furthest Distance:')
-        log.Log.debug('RFV Furthest Distance dimensions: ' + str(self.df_rfv_dist_furthest_ro.shape))
+                log.Log.debug(v)
+                self.df_rfv_ro.at[idx] = v
 
-        self.__mutex.release()
+            log.Log.important('Renormalized RFV:')
+            log.Log.important('New RFV dimensions: ' + str(self.df_rfv_ro.shape))
+            log.Log.debug(self.df_rfv_ro)
 
-        #
-        # 2. Remove columns with sums < ...
-        #
-        # This is s pandas series
-        colsums = self.df_rfv_ro.sum(axis=0)
-        colsums = colsums.sort_values(axis=0, ascending=False)
-        #log.Log.log(colsums)
+            # Now do the same for IDF
+            self.df_idf_ro = self.df_idf_ro[self.df_idf_ro['Word'].isin(features_keep_list)]
+            log.Log.important('Renormalized IDF:')
+            log.Log.important('New IDF dimensions: ' + str(self.df_rfv_ro.shape))
+            log.Log.debug(self.df_idf_ro)
 
-        self.is_reduced_features_ready = True
+            # Remember to update also the cached numpy array
+            self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
 
-        self.sanity_check()
+            # Now do the same for training data
+            if not self.minimal:
+                self.df_fv_training_data_ro = df_td.copy()
+                # Renormalize TD, loop through indexes
+                for idx in self.df_fv_training_data_ro.index:
+                    v = np.array(self.df_fv_training_data_ro.loc[idx].values)
+                    # Normalize v
+                    mag = np.multiply(v, v)
+                    mag = np.sum(mag) ** 0.5
+                    if mag < 0.000000001:
+                        log.Log.warning(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Training data at index ' + str(idx) + ' became 0. Removing..'
+                        )
+                        df_td = df_td.drop(idx)
+                        continue
+                    v = v / mag
+
+                    mag_check = np.multiply(v, v)
+                    mag_check = np.sum(mag_check) ** 0.5
+                    if abs(mag_check - 1) > 0.000000001:
+                        raise Exception('Not normalized!')
+
+                    log.Log.debug(v)
+                    df_td.at[idx] = v
+
+                # Reassign back df_td
+                self.df_fv_training_data_ro = df_td
+
+                log.Log.important('New Training Data dimensions: ' + str(self.df_fv_training_data_ro.shape))
+                # This is very slow, we do it first! Cache it!
+                self.index_command_fv_training_data_ro = np.array(self.get_command_index_from_training_data_index())
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + ': Reduced Features Index of training data by command "'
+                                   + str(list(self.index_command_fv_training_data_ro)) + '".')
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + ': Reduced Features Index original  "'
+                                   + str(list(self.df_fv_training_data_ro.index)) + '".')
+
+            # Now for RFV Furthest Distance of sample
+            log.Log.debug('Nothing to do for RFV Furthest Distance:')
+            log.Log.debug('RFV Furthest Distance dimensions: ' + str(self.df_rfv_dist_furthest_ro.shape))
+
+            #
+            # 2. Remove columns with sums < ...
+            #
+            # This is s pandas series
+            colsums = self.df_rfv_ro.sum(axis=0)
+            colsums = colsums.sort_values(axis=0, ascending=False)
+            #log.Log.log(colsums)
+
+            self.sanity_check()
+
+            self.is_reduced_features_ready = True
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Botkey "' + self.bot_key + '" failed to load reduced features. Exception ' + str(ex)
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
+        finally:
+            self.__mutex.release()
 
         return True
 
@@ -1148,6 +1250,7 @@ if __name__ == '__main__':
     it.do_background_load()
 
     txt_segm = '怎么 吗'
+    #txt_segm = '你 是不是 野种'
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     res = it.get_text_class(

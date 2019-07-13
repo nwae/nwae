@@ -1,4 +1,34 @@
-Brand,Category,Intent,Intent ID,Intent Type,Lang,Text
+Brand,Category,Intent,Intent ID,Intent.Type,Lang,Text
+fun88,cx,APP,cx/APP,internal,th,มือถือ
+fun88,cx,APP,cx/APP,internal,th,แอพ
+fun88,cx,APP,cx/APP,internal,th,เอาออก
+fun88,cx,APP,cx/APP,internal,th,ตั้งค่า
+fun88,cx,APP,cx/APP,internal,th,IOS
+fun88,cx,APP,cx/APP,internal,th,แอนดอย
+fun88,cx,APP,cx/APP,internal,th,apple
+fun88,cx,APP,cx/APP,internal,th,ระบบ
+fun88,cx,APP,cx/APP,internal,th,ซอฟแวร์
+fun88,cx,APP,cx/APP,internal,th,แอพพลิเคชั่น
+fun88,cx,APP,cx/APP,internal,th,โปรแกรม
+fun88,cx,APP,cx/APP,internal,th,โหลด
+fun88,cx,APP,cx/APP,internal,th,ดาวน์โหลด
+fun88,cx,APP,cx/APP,internal,th,เวอร์ชั่น
+fun88,cx,UI,cx/UI,internal,th,น่าเกลียด
+fun88,cx,UI,cx/UI,internal,th,ไม่น่าสนใจ
+fun88,cx,UI,cx/UI,internal,th,ไม่สวย
+fun88,cx,UI,cx/UI,internal,th,กาก
+fun88,cx,UI,cx/UI,internal,th,ยาก
+fun88,cx,UI,cx/UI,internal,th,ไม่ชอบ
+fun88,cx,UI,cx/UI,internal,th,แย่
+fun88,cx,UI,cx/UI,internal,th,ห่วย
+fun88,cx,UI,cx/UI,internal,th,เซง
+fun88,cx,UI,cx/UI,internal,th,ยุ่งยาก
+fun88,cx,UI,cx/UI,internal,th,ปุ่ม
+fun88,cx,UI,cx/UI,internal,th,กรอก
+fun88,cx,UI,cx/UI,internal,th,หน้าเว็บ
+fun88,cx,UI,cx/UI,internal,th,ค้นหา
+fun88,cx,UI,cx/UI,internal,th,แถบ
+fun88,cx,UI,cx/UI,internal,th,ไอคอน
 fun88,account,การตั้งค่าส่วนตัว,account/การตั้งค่าส่วนตัว,user,th,ปิดการใช้งาน
 fun88,account,การตั้งค่าส่วนตัว,account/การตั้งค่าส่วนตัว,user,th,ต้องการระงับการเข้าใช้งาน
 fun88,account,การตั้งค่าส่วนตัว,account/การตั้งค่าส่วนตัว,user,th,ขอปิดการเข้าใช้งานไปเลยคับ

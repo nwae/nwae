@@ -50,6 +50,7 @@ class IntentApi:
             'account': '',
             'port': 5000,
             'protocol': 'http',
+            'training': '0',
             'minimal': '0',
             'debug': '0',
             'loglevel': lg.Log.LOG_LEVEL_INFO
@@ -82,6 +83,11 @@ class IntentApi:
         self.minimal = False
         if pv['minimal'] == '1':
             self.minimal = True
+
+        # Can accept training?
+        self.accept_training_requests = False
+        if pv['training'] == '1':
+            self.accept_training_requests = True
 
         # Logs
         self.loglevel = float(pv['loglevel'])
@@ -163,14 +169,6 @@ class IntentApi:
         lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Worker "' + self.worker_name + '" starting...')
 
-        # So that we will be able to automatically restart bots if detected change in RFV
-        self.rfv_updated_timestamp = os.path.getmtime(cf.ConfigFile.DIR_RFV_INTENTS)
-        lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                   + ': Last updated timestamp for path "'
-                   + cf.ConfigFile.DIR_RFV_INTENTS
-                   + '" is "' + str(dt.datetime.fromtimestamp(self.rfv_updated_timestamp))
-                   + ' (' + str(self.rfv_updated_timestamp) + ')')
-
         # To keep track of RPS
         self.request_per_second = 0
         self.request_times = np.array([])
@@ -239,18 +237,6 @@ class IntentApi:
                    + ', ChatId=' + str(chatid) + ', Intent query txt=' + str(s) + '.'
         lg.Log.important(info_msg)
 
-        updated_bot_time = os.path.getmtime(cf.ConfigFile.DIR_RFV_INTENTS)
-        lg.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                     + ' Last updated time ' + str(self.rfv_updated_timestamp)
-                     + ', updated ' + str(updated_bot_time))
-        if updated_bot_time > self.rfv_updated_timestamp:
-            lg.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                       + ': Bot update time "'
-                       + str(dt.datetime.fromtimestamp(updated_bot_time)) + '" is newer than "'
-                       + str(dt.datetime.fromtimestamp(self.rfv_updated_timestamp)) + '. Restarting bots...')
-            self.rfv_updated_timestamp = updated_bot_time
-            self.restart_bots()
-
         if s is None:
             return "Error: No txt field provided. Please specify a txt."
         else:
@@ -306,24 +292,18 @@ class IntentApi:
             bot_id,
             lang
     ):
-        log_result = None
         try:
-            log_result = self.bot_startup_thread.handle_train_bot_request(
+            msg = self.bot_startup_thread.handle_train_bot_request(
                 account_id = account_id,
                 bot_id     = bot_id
             )
-            lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Bot ID ' + str(bot_id) + ', Account ID ' + str(account_id)
-                            + ', lang "' + str(lang) + '" trained successfully.')
-            self.restart_bots()
+            return msg
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Exception [' + str(ex) + '] training bot for account id '\
                      + str(account_id) + ', bot ID ' + str(bot_id) + ', lang ' + str(lang) + '.'
             lg.Log.critical(errmsg)
             raise errmsg
-
-        return str(log_result)
 
     def restart_bots(
             self
@@ -347,7 +327,8 @@ class IntentApi:
             cf_postfix_wordlist_app   = cf.ConfigFile.POSTFIX_APP_WORDLIST,
             cf_dirpath_traindata      = cf.ConfigFile.DIR_INTENT_TRAINDATA,
             cf_postfix_training_files = cf.ConfigFile.POSTFIX_INTENT_TRAINING_FILES,
-            do_profiling              = True
+            do_profiling              = True,
+            accept_training_requests  = self.accept_training_requests
         )
         self.bot_startup_thread.start()
         return 'Bots restarting'

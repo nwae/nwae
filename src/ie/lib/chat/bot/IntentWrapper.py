@@ -56,7 +56,7 @@ class IntentWrapper:
             postfix_wordlist_app,
             do_profiling = False,
             minimal = False,
-            min_score_threshold = intEng.IntentEngine.CONFIDENCE_LEVEL_1_SCORE,
+            min_score_threshold = intEng.IntentEngine.DEFAULT_SCORE_MIN_THRESHOLD,
             verbose = 0
     ):
         #
@@ -83,7 +83,7 @@ class IntentWrapper:
         self.min_score_threshold = min_score_threshold
 
         self.lebot = None
-        self.lebot_reduced = None
+        #self.lebot_reduced = None
         self.wseg = None
         self.bot_reply = None
         self.verbose = verbose
@@ -109,28 +109,6 @@ class IntentWrapper:
             verbose      = self.verbose
         )
         self.lebot.do_background_load()
-        time.sleep(0.1)
-        if self.lebot.background_thread.is_failed_to_load():
-            self.lebot.kill_background_job()
-            raise Exception(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Failed loading intent engine for botkey "' + self.bot_key + '".')
-
-        self.lebot_reduced = intEng.IntentEngine(
-            lang    = self.lang,
-            bot_key = self.bot_key,
-            dir_rfv_commands    = self.dir_rfv_commands,
-            dirpath_synonymlist = self.dir_synonymlist,
-            reduce_features = True,
-            do_profiling = self.do_profiling,
-            minimal      = self.minimal,
-            verbose      = self.verbose
-        )
-        self.lebot_reduced.do_background_load()
-        time.sleep(0.1)
-        if self.lebot.background_thread.is_failed_to_load():
-            self.lebot_reduced.kill_background_job()
-            raise Exception(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Failed loading intent engine for botkey "' + self.bot_key + '".')
 
         self.wseg = ws.WordSegmentation(
             lang = self.lang,
@@ -250,8 +228,6 @@ class IntentWrapper:
                         + ': Segmented Text: [' + chatstr_segmented + ']')
 
         intent_engine = self.lebot
-        if reduced_features:
-            intent_engine = self.lebot_reduced
 
         df_intent = intent_engine.get_text_class(
             text_segmented            = chatstr_segmented,

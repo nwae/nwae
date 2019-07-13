@@ -711,7 +711,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 13,bet,查询投注记录,bet/查询投注记录,fun88,cn,8.0,哪里看投注记录的,哪里 看 投注 记录 的 
 14,bet,查询投注记录,bet/查询投注记录,fun88,cn,8.0,怎么查询投注记录,怎么 查询 投注 记录 
 15,bet,查询投注记录,bet/查询投注记录,fun88,cn,8.0,怎么查看投注记录,怎么 查看 投注 记录 
-16,bet,查询投注记录,bet/查询投注记录,fun88,cn,20.0,我刚才玩的经典百家乐，投注记录怎么查不到,我 刚才 玩 的 经典百家乐 ， 投注 记录 怎么 查 不到 
+16,bet,查询投注记录,bet/查询投注记录,fun88,cn,20.0,我刚才玩的经典百家乐，投注记录怎么查不到,我 刚才 玩 的 经典 百家乐 ， 投注 记录 怎么 查 不到 
 17,bet,查询投注记录,bet/查询投注记录,fun88,cn,8.0,查询不了记录吗？,查询 不了 记录 吗 ？ 
 18,bet,查询投注记录,bet/查询投注记录,fun88,cn,10.0,我投注记录里没有显示,我 投注 记录 里 没有 显示 
 19,bet,查询投注记录,bet/查询投注记录,fun88,cn,10.0,AG的额度记录哪里看,AG 的 额度 记录 哪里 看 
@@ -901,7 +901,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 24,bet,账户余额不对？,bet/账户余额不对？,fun88,cn,7.0,真人平台不见钱,真人 平台 不见 钱 
 25,bet,账户余额不对？,bet/账户余额不对？,fun88,cn,4.0,查询余额,查询 余额 
 1,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,22.0,我在10分钟前的捕鱼王赢得奖金为什么没给我？,我 在 10 分钟 前 的 捕鱼王 赢得 奖金 为什么 没 给 我 ？ 
-2,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,26.0,我在PT深海大赢家击毙了条鱼没给我派钱，咋个一回事？,我 在 PT 深海大赢家 击毙 了 条 鱼 没 给 我 派 钱 ， 咋 个 一回 事 ？ 
+2,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,26.0,我在PT深海大赢家击毙了条鱼没给我派钱，咋个一回事？,我 在 PT 深海 大 赢家 击毙 了 条 鱼 没 给 我 派 钱 ， 咋 个 一回 事 ？ 
 3,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,18.0,我的PT捕鱼王怎么没给我派彩？子弹呢,我 的 PT 捕鱼王 怎么 没 给 我 派彩 ？ 子弹 呢 
 4,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,24.0,我刚才在捕鱼王射死了一条金龙，为什么没有给我奖金,我 刚才 在 捕鱼王 射 死 了 一条 金龙 ， 为什么 没有 给 我 奖金 
 5,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,26.0,刚刚在捕鱼，成功射爆炸弹，炸死好多鱼，怎么没有奖金？,刚刚 在 捕鱼 ， 成功 射 爆炸 弹 ， 炸死 好多 鱼 ， 怎么 没有 奖金 ？ 
@@ -911,7 +911,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 9,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,27.0,你们捕鱼王是不是骗人的，花了那么多钱打死了鱼却不赔钱？,你们 捕鱼王 是不是 骗人 的 ， 花 了 那么 多 钱 打死 了 鱼 却 不 赔钱 ？ 
 10,bet/fishing,PT 捕鱼王游戏未派彩,bet/fishing/PT 捕鱼王游戏未派彩,fun88,cn,17.0,我捕鱼的钱呢，明明打死那条大鱼了的,我 捕鱼 的 钱 呢 ， 明明 打死 那条 大鱼 了 的 
 1,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,11.0,玩百家乐为什么老是卡呢,玩 百家乐 为什么 老 是 卡 呢 
-2,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,14.0,浏览器怎么登真人百家乐进不去,浏览器 怎么 登 真人百家乐 进 不 去 
+2,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,14.0,浏览器怎么登真人百家乐进不去,浏览器 怎么 登 真人 百家乐 进 不 去 
 3,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,13.0,为什么在电脑上玩不了真人呢,为什么 在 电脑 上 玩 不了 真人 呢 
 4,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,15.0,你们的AG平台好卡；UC开不了,你们 的 AG 平台 好 卡 ；UC 开 不了 
 5,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,13.0,娱乐场自动确认总是交易失败,娱乐场 自动 确认 总是 交易 失败 
@@ -939,7 +939,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 27,bet/livedealer,为什么无法登陆真人平台或者真人平台卡,bet/livedealer/为什么无法登陆真人平台或者真人平台卡,fun88,cn,8.0,真人一直无法投注,真人 一直 无法 投注 
 1,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,10.0,荷官开错单双，结算了,荷官 开 错 单 双 ， 结算 了 
 2,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,18.0,您好刚刚轮盘游戏帮我的结算出现错误了,您好 刚刚 轮盘 游戏 帮 我 的 结算 出现 错误 了 
-3,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,17.0,我玩的时候真人百家乐。你们结算错了,我 玩 的 时候 真人百家乐 。 你们 结算 错 了 
+3,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,17.0,我玩的时候真人百家乐。你们结算错了,我 玩 的 时候 真人 百家乐 。 你们 结算 错 了 
 4,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,21.0,我真人有一单子结算错误，问下处理的怎么样了,我 真人 有 一 单子 结算 错误 ， 问 下处 理 的 怎么样 了 
 5,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,44.0,我21号就前天晚上5点玩骰宝我压了240大，开得结果也是大可是没有赔钱给我还倒扣我240,我 21 号 就 前天 晚上 5 点 玩 骰宝 我 压 了 240 大 ， 开 得 结果 也 是 大 可是 没有 赔钱 给 我 还 倒扣 我 240 
 6,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,43.0,我今天下午玩炸金花赢了钱，可是在登录后就看到输了钱！现在炸金花也没有了！请问是怎么回事,我 今天 下午 玩 炸 金花 赢 了 钱 ， 可是 在 登录 后 就 看到 输 了 钱 ！ 现在 炸 金花 也 没有 了 ！ 请问 是 怎么 回事 
@@ -960,13 +960,13 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 21,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,20.0,刚刚那局AG真人结算错了，结果应该是盈利,刚刚 那 局 AG 真人 结算 错 了 ， 结果 应该 是 盈利 
 22,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,35.0,我买的明明是对子，结果也是对子，怎么判我输？AG真人的，是不是想坑钱？,我 买 的 明明 是 对子 ， 结果 也 是 对子 ， 怎么 判 我 输 ？ AG 真人 的 ， 是不是 想 坑 钱 ？ 
 23,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,21.0,刚刚那局AG轮盘结算不对，不应该派这么少的,刚刚 那 局 AG 轮盘 结算 不对 ， 不 应该 派 这么 少 的 
-24,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,31.0,明明上一秒看还是盈利，怎么卡一下后就成输了的，Ag真人百家乐的,明明 上 一秒 看 还是 盈利 ， 怎么 卡 一下 后 就 成 输 了 的 ， Ag 真人百家乐 的 
+24,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,31.0,明明上一秒看还是盈利，怎么卡一下后就成输了的，Ag真人百家乐的,明明 上 一秒 看 还是 盈利 ， 怎么 卡 一下 后 就 成 输 了 的 ， Ag 真人 百家乐 的 
 25,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,19.0,AG真人结算的结果和视频对不上，请退款,AG 真人 结算 的 结果 和 视频 对不上 ， 请 退款 
 26,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,18.0,我要求退款，你们AG百家乐老是乱结算,我 要求 退款 ， 你们 AG 百家乐 老 是 乱 结算 
 27,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,28.0,我的AG有单牛牛结算有问题，明明是牛9，怎么按无牛来判？,我 的 AG 有 单 牛牛 结算 有 问题 ， 明明 是 牛 9 ， 怎么 按 无 牛 来 判 ？ 
 28,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,14.0,我在MG真人投注，结算有问题,我 在 MG 真人 投注 ， 结算 有 问题 
 29,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,23.0,你们这单MG真人结算错了，根据结果不应该是输的,你们 这 单 MG 真人 结算 错 了 ， 根据 结果 不 应该 是 输 的 
-30,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,16.0,我的MG真人百家乐有一局结算错了,我 的 MG 真人百家乐 有 一局 结算 错 了 
+30,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,16.0,我的MG真人百家乐有一局结算错了,我 的 MG 真人 百家乐 有 一局 结算 错 了 
 31,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,21.0,瞎结算，我的MG真人刚刚那局明显就是赢了的,瞎 结算 ， 我 的 MG 真人 刚刚 那 局 明显 就是 赢 了 的 
 32,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,16.0,刚刚那局MG真人结算错了，查下吧,刚刚 那 局 MG 真人 结算 错 了 ， 查 下 吧 
 33,bet/livedealer,真人注单结算问题,bet/livedealer/真人注单结算问题,fun88,cn,47.0,我刚才玩MGS，最后一局，我下了一千五，闲是三点，庄是二点，你们让庄博牌，闲不博牌，故意让我输,我 刚才 玩 MGS ， 最后 一局 ， 我 下 了 一千 五 ， 闲 是 三点 ， 庄 是 二点 ， 你们 让 庄 博 牌 ， 闲 不 博 牌 ， 故意 让 我 输 
@@ -995,7 +995,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 19,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,18.0,等了好久，刚才那局MG真人也不见派彩,等 了 好久 ， 刚才 那 局 MG 真人 也 不见 派彩 
 20,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,16.0,MG真人结算了，为什么钱没有到账,MG 真人 结算 了 ， 为什么 钱 没有 到 账 
 21,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,20.0,你们MG怎么结算了都没有派彩，打算黑我吗,你们 MG 怎么 结算 了 都 没有 派彩 ， 打算 黑 我 吗 
-22,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,25.0,好几局MG真人百家乐的结算了，等了好久都没有派奖金,好几 局 MG 真人百家乐 的 结算 了 ， 等 了 好久 都 没有 派 奖金 
+22,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,25.0,好几局MG真人百家乐的结算了，等了好久都没有派奖金,好几 局 MG 真人 百家乐 的 结算 了 ， 等 了 好久 都 没有 派 奖金 
 23,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,19.0,刚才我压了一把闲，200，没有结算给我,刚才 我 压 了 一把 闲 ， 200 ， 没有 结算 给 我 
 24,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,7.0,真人的钱没结算,真人 的 钱 没 结算 
 25,bet/livedealer,真人游戏结算未派彩,bet/livedealer/真人游戏结算未派彩,fun88,cn,15.0,我百家乐投注赢了怎么没给我结算,我 百家乐 投注 赢 了 怎么 没 给 我 结算 
@@ -1058,9 +1058,9 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 1,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,30.0,我玩百家乐我买了闲龙宝100，闲9点庄0点为什么只赢100？,我 玩 百家乐 我 买 了 闲 龙 宝 100 ， 闲 9 点 庄 0 点 为什么 只 赢 100 ？ 
 2,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,6.0,闲龙宝是什么,闲 龙 宝 是 什么 
 3,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,6.0,庄龙宝是什么,庄 龙 宝 是 什么 
-4,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,10.0,龙宝百家乐怎么玩儿？,龙宝百家乐 怎么 玩儿 ？ 
-5,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,14.0,可以解释下龙宝百家乐的规则吗,可以 解释 下 龙宝百家乐 的 规则 吗 
-6,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,21.0,什么是龙宝百家乐，和一般百家乐又有什么不同,什么 是 龙宝百家乐 ， 和 一般 百家乐 又 有 什么 不同 
+4,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,10.0,龙宝百家乐怎么玩儿？,龙 宝 百家乐 怎么 玩儿 ？ 
+5,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,14.0,可以解释下龙宝百家乐的规则吗,可以 解释 下 龙 宝 百家乐 的 规则 吗 
+6,bet/livedealer,龙宝百家乐的游戏规则,bet/livedealer/龙宝百家乐的游戏规则,fun88,cn,21.0,什么是龙宝百家乐，和一般百家乐又有什么不同,什么 是 龙 宝 百家乐 ， 和 一般 百家乐 又 有 什么 不同 
 1,bet/slot,无法登入老虎机游戏/免费旋转或有未完成游戏,bet/slot/无法登入老虎机游戏/免费旋转或有未完成游戏,fun88,cn,10.0,老虎机怎么登入不了？,老虎机 怎么 登 入 不了 ？ 
 2,bet/slot,无法登入老虎机游戏/免费旋转或有未完成游戏,bet/slot/无法登入老虎机游戏/免费旋转或有未完成游戏,fun88,cn,9.0,老虎机总是连接失败,老虎机 总是 连接 失败 
 3,bet/slot,无法登入老虎机游戏/免费旋转或有未完成游戏,bet/slot/无法登入老虎机游戏/免费旋转或有未完成游戏,fun88,cn,9.0,老虎机给个网址登入,老虎机 给 个 网址 登 入 
@@ -1117,10 +1117,10 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 7,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,16.0,刚游戏的老虎机赢的钱还没给我派？,刚 游戏 的 老虎机 赢 的 钱 还 没 给 我 派 ？ 
 8,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,24.0,我中了免费旋转就中断了，为什么重登后就没有了？！,我 中 了 免费旋转 就 中断 了 ， 为什么 重登 后 就 没有 了 ？ ！ 
 9,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,17.0,老虎机低于一元赌注就不能正常赔付吗,老虎机 低于 一元 赌注 就 不能 正常 赔付 吗 
-10,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,31.0,大奖老虎机一次压注低于1元中了500倍的就给11元赔付不正常啊,大奖老虎机 一次 压 注 低于 1 元 中 了 500 倍 的 就 给 11 元 赔付 不正 常 啊 
+10,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,31.0,大奖老虎机一次压注低于1元中了500倍的就给11元赔付不正常啊,大奖 老虎机 一次 压 注 低于 1 元 中 了 500 倍 的 就 给 11 元 赔付 不正 常 啊 
 11,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,28.0,PT五虎将我应该赢了500元，怎么到现在只有300元？？,PT 五 虎将 我 应该 赢 了 500 元 ， 怎么 到 现在 只有 300 元 ？ ？ 
 12,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,16.0,PT结算有问题吗，怎么赔付不对？,PT 结算 有 问题 吗 ， 怎么 赔付 不对 ？ 
-13,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,23.0,你们结算错了，高速公路之王的赔付不应该那么少的,你们 结算 错 了 ， 高速公路之王 的 赔付 不 应该 那么 少 的 
+13,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,23.0,你们结算错了，高速公路之王的赔付不应该那么少的,你们 结算 错 了 ， 高速公路 之 王 的 赔付 不 应该 那么 少 的 
 14,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,25.0,我在MG老虎机投注中了好多投注线，怎么奖金这么少？,我 在 MG 老虎机 投注 中 了 好多 投注 线 ， 怎么 奖金 这么 少 ？ 
 15,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,21.0,火热KTV为什么免费游戏拉了几百就只有几十,火热 KTV 为什么 免费 游戏 拉 了 几百 就 只有 几十 
 16,bet/slot,老虎机结算问题,bet/slot/老虎机结算问题,fun88,cn,42.0,怎么我在MG老虎机的银行爆破家游戏中我5.4元的注子出了个无5线钻石带万能才得4千多,怎么 我 在 MG 老虎机 的 银行爆破 家 游戏 中 我 5 . 4 元 的 注 子 出 了 个 无 5 线 钻石 带 万能 才 得 4 千 多 
@@ -1893,7 +1893,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 6,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,2.0,捕鱼,捕鱼 
 7,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,4.0,捕鱼平台,捕鱼 平台 
 8,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,4.0,深海捕鱼,深海 捕鱼 
-9,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,5.0,深海大赢家,深海大赢家 
+9,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,5.0,深海大赢家,深海 大 赢家 
 10,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,4.0,子弹捕鱼,子弹 捕鱼 
 11,fishing,捕鱼游戏玩法,fishing/捕鱼游戏玩法,fun88,cn,4.0,捕鱼多福,捕鱼多福 
 1,free spin,免费旋转,free spin/免费旋转,fun88,cn,8.0,怎样获得免费旋转,怎样 获得 免费旋转 
@@ -2420,7 +2420,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 12,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,22.0,就没有办法可以弄掉这些处理中的银联支付存款吗,就 没有 办法 可以 弄 掉 这些 处理 中 的 银联支付 存款 吗 
 13,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,35.0,在线存款提示限额，然后页面显示处理中，不取消会不会影响我接下来的存款？,在线存款 提示 限额 ， 然后 页面 显示 处理 中 ， 不 取消 会 不会 影响 我 接下来 的 存款 ？ 
 14,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,27.0,这些一直显示处理中的京东看着心烦，有没有办法删掉啊？？,这些 一直 显示 处理 中 的 京东 看着 心烦 ， 有没有 办法 删掉 啊 ？ ？ 
-15,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,25.0,这些处理中的在线支付宝存款的申请没有办法删掉的吗？,这些 处理 中 的 在线支付宝 存款 的 申请 没有 办法 删掉 的 吗 ？ 
+15,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,25.0,这些处理中的在线支付宝存款的申请没有办法删掉的吗？,这些 处理 中 的 在线 支付宝 存款 的 申请 没有 办法 删掉 的 吗 ？ 
 16,payment/deposit,可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,payment/deposit/可否取消在线支付宝/京东支付/在线支付/银联支付处理中的存款申请？,fun88,cn,9.0,存款记录可以删除吗,存款 记录 可以 删除 吗 
 1,payment/deposit,哪一种的存款方式最快？,payment/deposit/哪一种的存款方式最快？,fun88,cn,12.0,你们哪一种存款方式最快？,你们 哪 一种 存款 方式 最快 ？ 
 2,payment/deposit,哪一种的存款方式最快？,payment/deposit/哪一种的存款方式最快？,fun88,cn,16.0,支付宝太慢了，有没有快点的存款？,支付宝 太 慢 了 ， 有没有 快点 的 存款 ？ 
@@ -2466,7 +2466,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 26,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,13.0,我的京东支付怎么还没到账？,我 的 京东 支付 怎么 还 没 到 账 ？ 
 27,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,16.0,京东扫码支付了，怎么还没有到账？,京东 扫 码 支付 了 ， 怎么 还 没有 到 账 ？ 
 28,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,20.0,我有一笔500的京东钱包充值，怎么没到账,我 有 一笔 500 的 京东 钱包 充值 ， 怎么 没 到 账 
-29,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,11.0,在线支付宝钱扣了没到账,在线支付宝 钱 扣 了 没 到 账 
+29,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,11.0,在线支付宝钱扣了没到账,在线 支付宝 钱 扣 了 没 到 账 
 30,payment/deposit,在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,payment/deposit/在线支付宝/京东支付/在线支付/银联支付已经扣款了，但是还没有到账？,fun88,cn,6.0,在线支付掉单,在线 支付 掉 单 
 1,payment/deposit,在线支付宝/京东支付/在线支付/银联支付无法充值,payment/deposit/在线支付宝/京东支付/在线支付/银联支付无法充值,fun88,cn,8.0,我的充值充不进去,我 的 充值 充 不 进去 
 2,payment/deposit,在线支付宝/京东支付/在线支付/银联支付无法充值,payment/deposit/在线支付宝/京东支付/在线支付/银联支付无法充值,fun88,cn,8.0,怎么还是充不了钱,怎么 还是 充 不了 钱 
@@ -2528,15 +2528,15 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 1,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,6.0,充值多久能到,充值 多久 能 到 
 2,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,7.0,存款多久可以到,存款 多久 可以 到 
 3,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,8.0,存款多久到账啊？,存款 多久 到 账 啊 ？ 
-4,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,12.0,支付宝转账一般多久到账户,支付宝转账 一般 多久 到 账户 
-5,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,13.0,你好支付宝转账一般多久到账,你好 支付宝转账 一般 多久 到 账 
+4,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,12.0,支付宝转账一般多久到账户,支付宝 转账 一般 多久 到 账户 
+5,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,13.0,你好支付宝转账一般多久到账,你好 支付宝 转账 一般 多久 到 账 
 6,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,6.0,存钱多久到账,存款 多久 到 账 
 7,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,支付宝充值多久到帐,支付宝 充值 多久 到 帐 
 8,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,10.0,存款一般多久到支付宝,存款 一般 多久 到 支付宝 
 9,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,11.0,支付宝充值的话多久到账,支付宝 充值 的话 多久 到 账 
 10,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,8.0,存款是多久到账呢,存款 是 多久 到 账 呢 
 11,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,8.0,请问存款多久能到,请问 存款 多久 能 到 
-12,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,11.0,支付宝转账钱多久到账户,支付宝转账 钱 多久 到 账户 
+12,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,11.0,支付宝转账钱多久到账户,支付宝 转账 钱 多久 到 账户 
 13,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,7.0,充值一般多久到,充值 一般 多久 到 
 14,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,11.0,请问充值了钱多久才能到,请问 充值 了 钱 多久 才能 到 
 15,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,大约多久能存款成功,大约 多久 能 存款 成功 
@@ -2557,9 +2557,9 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 30,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,存款怎么还没到啊！,存款 怎么 还 没 到 啊 ！ 
 31,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,6.0,我的存款呢？,我 的 存款 呢 ？ 
 32,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,存款到账能不能快点,存款 到 账 能 不能 快点 
-33,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,30.0,支付宝转账到那个你们民生银行方和安，已提示到账了麻烦处理一下,支付宝转账 到 那个 你们 民生银行 方 和 安 ， 已 提示 到 账 了 麻烦 处理 一下 
-34,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,24.0,我刚才已经支付宝转账到您们指定的账户，多久能到账,我 刚才 已经 支付宝转账 到 您们 指定 的 账户 ， 多久 能 到 账 
-35,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,支付宝转账尚未到账,支付宝转账 尚未 到 账 
+33,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,30.0,支付宝转账到那个你们民生银行方和安，已提示到账了麻烦处理一下,支付宝 转账 到 那个 你们 民生银行 方 和 安 ， 已 提示 到 账 了 麻烦 处理 一下 
+34,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,24.0,我刚才已经支付宝转账到您们指定的账户，多久能到账,我 刚才 已经 支付宝 转账 到 您们 指定 的 账户 ， 多久 能 到 账 
+35,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,支付宝转账尚未到账,支付宝 转账 尚未 到 账 
 36,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,9.0,转账成功请速度入账,转账 成功 请 速度 入账 
 37,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,7.0,存款可以快点吗,存款 可以 快点 吗 
 38,payment/deposit,存款多久到账？,payment/deposit/存款多久到账？,fun88,cn,5.0,催一下存款,催 一下 存款 
@@ -2606,7 +2606,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 8,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,11.0,可以知道我的存款情况吗,可以 知道 我 的 存款 情况 吗 
 9,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,8.0,我的存款到账了吗,我 的 存款 到 账 了 吗 
 10,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,7.0,存款有查询了吗,存款 有 查询 了 吗 
-11,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,14.0,帮我看下我的支付宝转账到了没,帮 我 看 下 我 的 支付宝转账 到 了 没 
+11,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,14.0,帮我看下我的支付宝转账到了没,帮 我 看 下 我 的 支付宝 转账 到 了 没 
 12,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,4.0,存款状态,存款 状态 
 13,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,8.0,我现在的存款情况,我 现在 的 存款 情况 
 14,payment/deposit,存款申请状态,payment/deposit/存款申请状态,fun88,cn,7.0,最新的存款状态,最新 的 存款 状态 
@@ -2775,12 +2775,12 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 11,payment/deposit/jingdong,无法进行京东支付存款,payment/deposit/jingdong/无法进行京东支付存款,fun88,cn,8.0,我用不了京东钱包,我 用 不了 京东 钱包 
 12,payment/deposit/jingdong,无法进行京东支付存款,payment/deposit/jingdong/无法进行京东支付存款,fun88,cn,12.0,京东的在线支付怎么用不了,京东 的 在线 支付 怎么 用 不了 
 13,payment/deposit/jingdong,无法进行京东支付存款,payment/deposit/jingdong/无法进行京东支付存款,fun88,cn,6.0,京东无法使用,京东 无法 使用 
-1,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,13.0,我的支付宝转账存款被拒绝了,我 的 支付宝转账 存款 被 拒绝 了 
+1,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,13.0,我的支付宝转账存款被拒绝了,我 的 支付宝 转账 存款 被 拒绝 了 
 2,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,22.0,我用网银转账存款了100元来了个信息说拒绝了,我 用 网 银 转账 存款 了 100 元 来 了 个 信息 说 拒绝 了 
 3,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,23.0,用支付宝存款，已经转账到账了，为什么拒绝存款呢,用 支付宝 存款 ， 已经 转账 到 账 了 ， 为什么 拒绝 存款 呢 
 4,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,7.0,支付宝存款被拒,支付宝 存款 被 拒 
-5,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,13.0,本银/支付宝转账存款失败了,本银 / 支付宝转账 存款 失败 了 
-6,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,8.0,支付宝转账失败了,支付宝转账 失败 了 
+5,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,13.0,本银/支付宝转账存款失败了,本银 / 支付宝 转账 存款 失败 了 
+6,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,8.0,支付宝转账失败了,支付宝 转账 失败 了 
 7,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,13.0,我的两笔存款为什么被拒绝了,我 的 两笔 存款 为什么 被 拒绝 了 
 8,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,19.0,现在过了这么久，财务一直拒绝我的存款。,现在 过 了 这么 久 ， 财务 一直 拒绝 我 的 存款 。 
 9,payment/deposit/localbank,本银/支付宝存款申请失败,payment/deposit/localbank/本银/支付宝存款申请失败,fun88,cn,10.0,怎么存款总是拒绝？？,怎么 存款 总是 拒绝 ？ ？ 
@@ -2799,15 +2799,15 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 7,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,11.0,支付宝充值400未入帐,支付宝 充值 400 未 入 帐 
 8,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,12.0,你好，支付宝存款还没到呢,你好 ， 支付宝 存款 还 没 到 呢 
 9,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,17.0,你好刚才用支付宝转了10000过去,你好 刚才 用 支付宝 转 了 10000 过去 
-10,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,35.0,我现在用支付宝转账2000了已经到账了你帮我查询下速度冲进去我要下单了,我 现在 用 支付宝转账 2000 了 已经 到 账 了 你 帮 我 查询 下 速度 冲 进去 我 要 下单 了 
-11,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,25.0,我一直点支付宝转账然后交易记录一直显示是在待处理？,我 一直 点 支付宝转账 然后 交易 记录 一直 显示 是 在 待 处理 ？ 
+10,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,35.0,我现在用支付宝转账2000了已经到账了你帮我查询下速度冲进去我要下单了,我 现在 用 支付宝 转账 2000 了 已经 到 账 了 你 帮 我 查询 下 速度 冲 进去 我 要 下单 了 
+11,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,25.0,我一直点支付宝转账然后交易记录一直显示是在待处理？,我 一直 点 支付宝 转账 然后 交易 记录 一直 显示 是 在 待 处理 ？ 
 12,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,13.0,我银行转账的钱怎么还没到账,我 银行 转账 的 钱 怎么 还 没 到 账 
 13,payment/deposit/localbank,本银/支付宝存款申请超过30分钟仍然还没有到账,payment/deposit/localbank/本银/支付宝存款申请超过30分钟仍然还没有到账,fun88,cn,7.0,支付宝转错金额,支付宝 转 错金 额 
-1,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,15.0,怎么用支付宝转账至你们的账户？,怎么 用 支付宝转账 至 你们 的 账户 ？ 
+1,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,15.0,怎么用支付宝转账至你们的账户？,怎么 用 支付宝 转账 至 你们 的 账户 ？ 
 2,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,9.0,支付宝存款怎么操作,支付宝 存款 怎么 操作 
 3,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,8.0,支付宝可以充值吗,支付宝 可以 充值 吗 
 4,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,8.0,支付宝怎么转账？,支付宝 怎么 转账 ？ 
-5,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,15.0,请问支付宝转账的一般多久到账啊,请问 支付宝转账 的 一般 多久 到 账 啊 
+5,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,15.0,请问支付宝转账的一般多久到账啊,请问 支付宝 转账 的 一般 多久 到 账 啊 
 6,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,7.0,支付宝如何存款,支付宝 如何 存款 
 7,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,8.0,支付宝充值怎么充,支付宝 充值 怎么 充 
 8,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,9.0,请问支付宝如何转账,请问 支付宝 如何 转账 
@@ -2823,7 +2823,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 18,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,8.0,支付宝冲钱看不懂,支付宝 冲 钱 看 不 懂 
 19,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,22.0,支付宝不输入密码怎么扣，不好意思，我有点不懂,支付宝 不 输入 密码 怎么 扣 ， 不好意思 ， 我 有点 不 懂 
 20,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,16.0,我想用支付宝存款，应该怎么操作呢,我 想 用 支付宝 存款 ， 应该 怎么 操作 呢 
-21,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,21.0,为什么支付宝转账提交100元显示99.65,为什么 支付宝转账 提交 100 元 显示 99 . 65 
+21,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,21.0,为什么支付宝转账提交100元显示99.65,为什么 支付宝 转账 提交 100 元 显示 99 . 65 
 22,payment/deposit/localbank,本银/支付宝转账存款,payment/deposit/localbank/本银/支付宝转账存款,fun88,cn,7.0,支付宝存款方式,支付宝 存款 方式 
 1,payment/deposit/localbank,本银转账存款,payment/deposit/localbank/本银转账存款,fun88,cn,8.0,如何进行本银存款,如何 进行 本银 存款 
 2,payment/deposit/localbank,本银转账存款,payment/deposit/localbank/本银转账存款,fun88,cn,17.0,"本地银行存款,怎么存款不懂怎么填写","本地银行 存款 , 怎么 存款 不 懂 怎么 填写 "
@@ -2841,22 +2841,22 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 1,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,23.0,现在本银存不了了吗？最近这两天都没有账号可以存,现在 本银 存 不了 了 吗 ？ 最近 这 两天 都 没有 账号 可以 存 
 2,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,现在支付宝存款没有对方账号,现在 支付宝 存款 没有 对方 账号 
 3,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,支付宝不能充值了吗？,支付宝 不能 充值 了 吗 ？ 
-4,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,15.0,网银支付宝转账现在不可以充值吗,网 银 支付宝转账 现在 不可 以 充值 吗 
+4,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,15.0,网银支付宝转账现在不可以充值吗,网 银 支付宝 转账 现在 不可 以 充值 吗 
 5,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,你们的银行卡提示账号不存在,你们 的 银行卡 提示 账号 不 存在 
-6,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,支付宝转账没有转账账号,支付宝转账 没有 转账 账号 
+6,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,支付宝转账没有转账账号,支付宝 转账 没有 转账 账号 
 7,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,48.0,存款提示目前你所选择的存款方式出现技术问题，请您尝试用其他的存款方式或联系我们的在线客服，谢谢。,存款 提示 目前 你 所 选择 的 存款 方式 出现 技术 问题 ， 请 您 尝试 用 其他 的 存款 方式 或 联系 我们 的 在线 客 服 ， 谢谢 。 
 8,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,支付宝存款方式出问题了,支付宝 存款 方式 出 问题 了 
 9,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,支付宝充值这么充不了啦,支付宝 充值 这么 充 不了 啦 
 10,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,7.0,为什么不能支付,为什么 不能 支付 
-11,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,支付宝转账无法存款帮我看下,支付宝转账 无法 存款 帮 我 看 下 
+11,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,支付宝转账无法存款帮我看下,支付宝 转账 无法 存款 帮 我 看 下 
 12,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,支付宝存款现在不行？,支付宝 存款 现在 不行 ？ 
 13,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,6.0,支付宝存不了,支付宝 存 不了 
 14,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,本地银行存款不行了吗,本地银行 存款 不行 了 吗 
 15,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,你们转账的支行找不到,你们 转账 的 支行 找 不到 
-16,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,12.0,怎么支付宝转账无法充值了,怎么 支付宝转账 无法 充值 了 
+16,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,12.0,怎么支付宝转账无法充值了,怎么 支付宝 转账 无法 充值 了 
 17,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,12.0,现在支付宝怎么冲值不了？,现在 支付宝 怎么 冲 值 不了 ？ 
 18,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,支付宝充值什么时候能用,支付宝 充值 什么 时候 能 用 
-19,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,支付宝转账用不了了呢,支付宝转账 用 不了 了 呢 
+19,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,支付宝转账用不了了呢,支付宝 转账 用 不了 了 呢 
 20,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,7.0,支付宝不能转吗,支付宝 不能 转 吗 
 21,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,5.0,存款没帐号,存款 没 帐号 
 22,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,9.0,支付宝怎么存不了款,支付宝 怎么 存 不了 款 
@@ -2872,17 +2872,17 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 32,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,支付宝怎么无法存款了,支付宝 怎么 无法 存款 了 
 33,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,17.0,入款我重复提交了然后看不见银行卡号,入 款 我 重复 提交 了然 后 看 不见 银行卡 号 
 34,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,11.0,现在支付宝存款用不了吗,现在 支付宝 存款 用 不了 吗 
-35,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,18.0,我怎么用不了支付宝转账存款，提示错误,我 怎么 用 不了 支付宝转账 存款 ， 提示 错误 
+35,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,18.0,我怎么用不了支付宝转账存款，提示错误,我 怎么 用 不了 支付宝 转账 存款 ， 提示 错误 
 36,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,21.0,为什么我存款，老提示该存款方式有技术故障呢,为什么 我 存款 ， 老 提示 该 存款 方式 有 技术 故障 呢 
 37,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,19.0,我想要用支付宝存款，但是没有收款人信息,我 想要 用 支付宝 存款 ， 但是 没有 收款人 信息 
 38,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,7.0,支付宝充值不了,支付宝 充值 不了 
-39,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,23.0,我点击支付宝转账就提示错误，是不是有什么问题呀,我 点击 支付宝转账 就 提示 错误 ， 是不是 有 什么 问题 呀 
+39,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,23.0,我点击支付宝转账就提示错误，是不是有什么问题呀,我 点击 支付宝 转账 就 提示 错误 ， 是不是 有 什么 问题 呀 
 40,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,本银存款但是显示有技术故障,本银 存款 但是 显示 有 技术 故障 
 41,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,你们的收款账户是多少,你们 的 收款 账户 是 多少 
 42,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,14.0,转账人信息在哪里看，我找不到,转账 人 信息 在 哪里 看 ， 我 找 不到 
 43,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,8.0,存款显示技术问题,存款 显示 技术 问题 
 44,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,13.0,支付宝存款什么时候可以用啊,支付宝 存款 什么 时候 可以 用 啊 
-45,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,16.0,为什么我的支付宝转账没有收款账号,为什么 我 的 支付宝转账 没有 收款 账号 
+45,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,16.0,为什么我的支付宝转账没有收款账号,为什么 我 的 支付宝 转账 没有 收款 账号 
 46,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,10.0,你们的收款人涉及咋骗,你们 的 收款人 涉及 咋 骗 
 47,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,7.0,没有收款人账号,没有 收款人 账号 
 48,payment/deposit/localbank,没有本银/支付宝存款收款账户， 存入旧账户,payment/deposit/localbank/没有本银/支付宝存款收款账户， 存入旧账户,fun88,cn,7.0,转了老账户上了,转 了 老账 户 上 了 
@@ -2950,13 +2950,13 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 11,payment/deposit/online-alipay,在线支付宝存款,payment/deposit/online-alipay/在线支付宝存款,fun88,cn,10.0,支付宝扫码可以存款不,支付宝 扫 码 可以 存款 不 
 12,payment/deposit/online-alipay,在线支付宝存款,payment/deposit/online-alipay/在线支付宝存款,fun88,cn,12.0,账户如何用支付宝扫码充值,账户 如何 用 支付宝 扫 码 充值 
 13,payment/deposit/online-alipay,在线支付宝存款,payment/deposit/online-alipay/在线支付宝存款,fun88,cn,10.0,有没有支付宝扫码支付,有没有 支付宝 扫 码 支付 
-14,payment/deposit/online-alipay,在线支付宝存款,payment/deposit/online-alipay/在线支付宝存款,fun88,cn,5.0,在线支付宝,在线支付宝 
+14,payment/deposit/online-alipay,在线支付宝存款,payment/deposit/online-alipay/在线支付宝存款,fun88,cn,5.0,在线支付宝,在线 支付宝 
 1,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,12.0,支付宝扫码又提示商户异常,支付宝 扫 码 又 提示 商户 异常 
 2,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,12.0,支付宝扫码后显示商户异常,支付宝 扫 码 后 显示 商户 异常 
 3,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,11.0,支付宝扫码支付怎么不行,支付宝 扫 码 支付 怎么 不行 
 4,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,11.0,支付宝扫码一直是错误。,支付宝 扫 码 一直 是 错误 。 
 5,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,42.0,9点半用支付宝扫码支付一次显示商家异常，你们客服说过会再用，刚用又是一样，存款不不了,9 点 半 用 支付宝 扫 码 支付 一次 显示 商家 异常 ， 你们 客 服 说 过 会 再 用 ， 刚 用 又 是 一样 ， 存款 不 不了 
-6,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,28.0,在线支付宝扫码付款老是提示商户收款存在异常啊，麻烦处理下,在线支付宝 扫 码 存款 老 是 提示 商户 收款 存在 异常 啊 ， 麻烦 处理 下 
+6,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,28.0,在线支付宝扫码付款老是提示商户收款存在异常啊，麻烦处理下,在线 支付宝 扫 码 存款 老 是 提示 商户 收款 存在 异常 啊 ， 麻烦 处理 下 
 7,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,11.0,你们的支付宝扫码不能用,你们 的 支付宝 扫 码 不能 用 
 8,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,11.0,为啥支付宝扫码付不了款,为啥 支付宝 扫 码 付 不了 款 
 9,payment/deposit/online-alipay,无法使用在线支付宝存款,payment/deposit/online-alipay/无法使用在线支付宝存款,fun88,cn,10.0,支付宝扫码一直都不行,支付宝 扫 码 一直 都 不行 
@@ -4192,8 +4192,8 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 6,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,18.0,能给个安卓版的乐天堂真人app地址么,能 给 个 安 卓 版 的 乐天堂 真人 app 地址 么 
 7,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,16.0,给一个链接乐天堂真人app安卓的,给 一个 链接 乐天堂 真人 app 安 卓 的 
 8,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,17.0,你们乐天堂真人安卓版app有链接吗,你们 乐天堂 真人 安 卓 版 app 有 链接 吗 
-9,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,19.0,可以给个真人娱乐场安卓版的app链接吗,可以 给 个 真人娱乐场 安 卓 版 的 app 链接 吗 
-10,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,16.0,乐天堂真人娱乐场有安卓版app吗,乐天堂 真人娱乐场 有 安 卓 版 app 吗 
+9,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,19.0,可以给个真人娱乐场安卓版的app链接吗,可以 给 个 真人 娱乐场 安 卓 版 的 app 链接 吗 
+10,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,16.0,乐天堂真人娱乐场有安卓版app吗,乐天堂 真人 娱乐场 有 安 卓 版 app 吗 
 11,portal/app/android,乐天堂真人APP 安卓下载版,portal/app/android/乐天堂真人APP 安卓下载版,fun88,cn,7.0,真人安卓app,真人 安 卓 app 
 1,portal/app/android,如何更新/重新下载APP安卓下载版,portal/app/android/如何更新/重新下载APP安卓下载版,fun88,cn,12.0,如何更新乐天堂安卓APP,如何 更新 乐天堂 安 卓 APP 
 2,portal/app/android,如何更新/重新下载APP安卓下载版,portal/app/android/如何更新/重新下载APP安卓下载版,fun88,cn,23.0,好卡，我想把安卓app卸载，从新安装怎么操作？,好 卡 ， 我 想 把 安 卓 app 卸载 ， 从 新安 装 怎么 操作 ？ 
@@ -4289,8 +4289,8 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 5,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,18.0,能给个苹果版的乐天堂真人app地址么,能 给 个 苹果 版 的 乐天堂 真人 app 地址 么 
 6,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,16.0,给一个链接乐天堂真人app苹果的,给 一个 链接 乐天堂 真人 app 苹果 的 
 7,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,17.0,你们乐天堂真人苹果版app有链接吗,你们 乐天堂 真人 苹果 版 app 有 链接 吗 
-8,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,19.0,可以给个真人娱乐场苹果版的app链接吗,可以 给 个 真人娱乐场 苹果 版 的 app 链接 吗 
-9,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,16.0,乐天堂真人娱乐场有苹果版app吗,乐天堂 真人娱乐场 有 苹果 版 app 吗 
+8,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,19.0,可以给个真人娱乐场苹果版的app链接吗,可以 给 个 真人 娱乐场 苹果 版 的 app 链接 吗 
+9,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,16.0,乐天堂真人娱乐场有苹果版app吗,乐天堂 真人 娱乐场 有 苹果 版 app 吗 
 10,portal/app/ios,乐天堂真人APP 苹果 - 易博厅下载版,portal/app/ios/乐天堂真人APP 苹果 - 易博厅下载版,fun88,cn,11.0,有没有娱乐场苹果app,有没有 娱乐场 苹果 app 
 1,portal/app/ios,如何更新/重新下载APP苹果下载版,portal/app/ios/如何更新/重新下载APP苹果下载版,fun88,cn,12.0,如何更新乐天堂苹果APP,如何 更新 乐天堂 苹果 APP 
 2,portal/app/ios,如何更新/重新下载APP苹果下载版,portal/app/ios/如何更新/重新下载APP苹果下载版,fun88,cn,10.0,怎样重新下载苹果软件,怎样 重新 下载 苹果 软件 
@@ -4605,7 +4605,7 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 6,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,11.0,请问这个红利怎么领取啊,请问 这个 红利 怎么 领取 啊 
 7,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,24.0,我的二存红利显示可以领取，但是没有找到领取的地方,我 的 二 存 红利 显示 可以 领取 ， 但是 没有 找到 领取 的 地方 
 8,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,18.0,我这里显示有一个可领取红利，在哪领取,我 这里 显示 有 一个 可 领取 红利 ， 在 哪 领取 
-9,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,40.0,你好，请问百分之二十的反水流水任务已达成，但是钱一直没到账，优惠上面状态显示领取,你好 ， 请问 百分之二十 的 反水 流水 任务 已 达成 ， 但是 钱 一直 没 到 账 ， 优惠 上面 状态 显示 领取 
+9,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,40.0,你好，请问百分之二十的反水流水任务已达成，但是钱一直没到账，优惠上面状态显示领取,你好 ， 请问 百分之二 十 的 反水 流水 任务 已 达成 ， 但是 钱 一直 没 到 账 ， 优惠 上面 状态 显示 领取 
 10,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,15.0,流水完成了，红利是自动到账吗？,流水 完成 了 ， 红利 是 自动 到 账 吗 ？ 
 11,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,8.0,怎么查询红利流水,怎么 查询 红利 流水 
 12,promotion,流水达到，但是红利无法领取？,promotion/流水达到，但是红利无法领取？,fun88,cn,8.0,怎样领取优惠红利,怎样 领取 优惠 红利 
@@ -4889,12 +4889,12 @@ IntentIndex,Category,Intent,Intent ID,Brand,Lang,TextLength,Text,TextSegmented
 10,settlement/cancel or rejected,其他游戏注单作废,settlement/cancel or rejected/其他游戏注单作废,fun88,cn,7.0,轮盘游戏被作废,轮盘 游戏 被 作废 
 11,settlement/cancel or rejected,其他游戏注单作废,settlement/cancel or rejected/其他游戏注单作废,fun88,cn,8.0,为什么游戏被作废,为什么 游戏 被 作废 
 12,settlement/cancel or rejected,其他游戏注单作废,settlement/cancel or rejected/其他游戏注单作废,fun88,cn,8.0,为什么注单被作废,为什么 注 单被 作废 
-1,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,8.0,什么是大奖老虎机,什么 是 大奖老虎机 
+1,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,8.0,什么是大奖老虎机,什么 是 大奖 老虎机 
 2,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,5.0,奖池老虎机,奖 池 老虎机 
 3,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,7.0,老虎机奖池游戏,老虎机 奖 池 游戏 
-4,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,10.0,哪些游戏是大奖老虎机,哪些 游戏 是 大奖老虎机 
-5,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,8.0,大奖老虎机干吗的,大奖老虎机 干吗 的 
-6,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,5.0,大奖老虎机,大奖老虎机 
+4,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,10.0,哪些游戏是大奖老虎机,哪些 游戏 是 大奖 老虎机 
+5,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,8.0,大奖老虎机干吗的,大奖 老虎机 干吗 的 
+6,slot,大奖老虎机,slot/大奖老虎机,fun88,cn,5.0,大奖老虎机,大奖 老虎机 
 1,slots/ limit,老虎机限额,slots/ limit/老虎机限额,fun88,cn,7.0,老虎机最低投注,老虎机 最低 投注 
 2,slots/ limit,老虎机限额,slots/ limit/老虎机限额,fun88,cn,7.0,老虎机投注金额,老虎机 投注 金额 
 3,slots/ limit,老虎机限额,slots/ limit/老虎机限额,fun88,cn,5.0,老虎机金额,老虎机 金额 

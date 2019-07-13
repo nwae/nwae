@@ -56,6 +56,7 @@ class BotTrain:
         else:
             print(str(self.__class__) + ' Extracting Training Data...')
             bd = botdata.BotIntentAnswer(
+                use_db     = cf.ConfigFile.USE_DB,
                 db_profile = cf.ConfigFile.DB_PROFILE,
                 account_id = self.account_id,
                 bot_id     = self.bot_id,
