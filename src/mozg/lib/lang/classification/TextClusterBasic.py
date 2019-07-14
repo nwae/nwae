@@ -220,7 +220,7 @@ class TextClusterBasic:
             sentence_matrix[i] = list(df_fv['TF'])
             sentence_matrix_freq[i] = list(df_fv['Frequency'])
             sentence_matrix_norm[i] = list(df_fv['FrequencyNormalized'])
-            log.Log.debug('Sentence ' + str(i) + ': [' + sent + ']')
+            log.Log.debugdebug('Sentence ' + str(i) + ': [' + sent + ']')
             #log.Log.info(df_fv)
             #log.Log.info(sentence_matrix[i])
             #log.Log.info(sentence_matrix_norm[i])

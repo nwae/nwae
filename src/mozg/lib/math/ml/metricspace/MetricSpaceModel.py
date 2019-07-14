@@ -120,7 +120,7 @@ class MetricSpaceModel(threading.Thread):
         np_feature_presence = (np_agg_sum>0)*1
         # Sum by column axis=0
         np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
-        log.Log.debugdebug(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
             + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
@@ -146,7 +146,7 @@ class MetricSpaceModel(threading.Thread):
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
             idf = np.array([1]*len(x.shape[1]))
-        log.Log.debugdebug(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
@@ -184,7 +184,7 @@ class MetricSpaceModel(threading.Thread):
         # Here training data must be prepared in the correct format already
         # Значит что множество свойств уже объединено как одно (unified features)
         #
-        log.Log.debugdebug(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
             + '\n\r\tx names: ' + str(self.training_data.get_x_name())
@@ -211,15 +211,10 @@ class MetricSpaceModel(threading.Thread):
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Merging training data in the same class (y) to get "IDF" weights...'
-            , log_list = self.log_training
-        )
         # Sum x by class
         idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
         self.df_idf = pd.DataFrame({'Word': x_name, 'IDF': idf})
-        log.Log.debugdebug(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': IDF Dataframe:\n\r' + str(self.df_idf)
             , log_list = self.log_training
@@ -296,7 +291,7 @@ class MetricSpaceModel(threading.Thread):
         # Because self.commands may change, due to deletion of invalid commands
         all_classes = self.classes.copy()
         for cs in all_classes:
-            log.Log.info(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Doing class [' + str(cs) + ']'
                 , log_list = self.log_training
@@ -701,7 +696,7 @@ def demo_chat_training():
 
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
     #demo_chat_training()
 
     x_expected = np.array(

@@ -44,7 +44,7 @@ class Cluster:
         # We try different cluster counts starting from 1 cluster
         #
         for i in range(1, n_tries+1, 1):
-            lg.Log.debug(
+            lg.Log.debugdebug(
                 str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Trying ' + str(i) + ' cluster(s)...'
             )

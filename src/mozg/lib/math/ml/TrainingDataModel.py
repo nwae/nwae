@@ -305,7 +305,7 @@ def demo_text_data():
         np_txt_arr = np_txt_arr[np.isin(element=np_txt_arr, test_elements=np_words)]
         txt_arr = np_txt_arr.tolist()
         if len(txt_arr) == 0:
-            print('Sentence "' + txt + '" became nothing after removing quartile.')
+            log.Log.debugdebug('Sentence "' + txt + '" became nothing after removing quartile.')
             continue
 
         min_freq = 0.0
