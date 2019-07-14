@@ -26,6 +26,24 @@ class TrainingDataModel:
         self.x = x
         self.y = y
         self.x_name = x_name
+
+        if type(self.x) is not np.ndarray:
+            raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
+        if type(self.y) is not np.ndarray:
+            raise Exception('x must be np.array type, got type "' + str(type(self.y)) + '".')
+
+        if (self.x.shape[0] != self.y.shape[0]):
+            raise Exception(
+                'Number of x training points = ' + str(self.x.shape[0])
+                + ' is not equal to number of labels = ' + str(self.y.shape[0])
+            )
+
+        if ( (self.x_name is not None) and (self.x.shape[1] != self.x_name.shape[0]) ):
+            raise Exception(
+                'Number of x columns = ' + str(self.x.shape[1])
+                + ' is not equal to number of x names = ' + str(self.x_name.shape[0])
+            )
+
         return
 
     def get_x(self):
