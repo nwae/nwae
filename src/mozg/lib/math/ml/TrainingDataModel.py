@@ -199,7 +199,8 @@ def demo_text_data():
         # Compare with original text
         txt = np_text_segmented[i]
         txt = tcb.TextClusterBasic.filter_sentence(
-            sentence_text = txt
+            sentence_text = txt,
+            stopwords     = ()
         )
         txt_arr = txt.split(sep=' ')
         # Filter out words not in wordlabels as we might have removed some quartile
