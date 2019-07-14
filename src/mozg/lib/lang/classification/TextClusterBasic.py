@@ -30,11 +30,26 @@ class TextClusterBasic:
     @staticmethod
     def filter_sentence(
             sentence_text,
+            stopwords = (),
             sep = ' '
     ):
+        all_words_split = sentence_text.split(sep)
+        # Remove empty string ''
+        all_words_split = [ x for x in all_words_split if x!='' ]
+
+        # Remove numbers, or just fullstop/commas
+        df_tmp = pd.DataFrame({'Word':all_words_split})
+        is_number = df_tmp['Word'].str.match(pat='^[0-9.,]+$', case=False)
+        df_tmp = df_tmp[~is_number]
+
+        sentence_txt_prefiltered = list(df_tmp['Word'])
         new_sentence = ''
-        for word in sentence_text.split(sep=sep):
+        for word in sentence_txt_prefiltered:
             word = word.lower()
+            # Ignore empty string
+            if word == '':
+                continue
+
             # Remove word/sentence separators, punctuations
             if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
                     or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
@@ -42,7 +57,16 @@ class TextClusterBasic:
                 continue
             # Clean up punctuations at the end of a word
             word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
+
+            #
+            # Remove stopwords, quite an important step to improve clustering accuracy.
+            # TODO: Once we have an efficient keyword extraction algorithm, we won't need stopwords anymore.
+            #
+            if (word in stopwords):
+                log.Log.debug('Stopword [' + word + '] ignored..')
+                continue
             new_sentence = new_sentence + word + ' '
+
         # Remove last space
         new_sentence = new_sentence[0:(len(new_sentence)-1)]
         return new_sentence
@@ -90,8 +114,10 @@ class TextClusterBasic:
     # TODO: TextRank don't work very well at all, need something else.
     #
     def calculate_top_keywords(self, remove_quartile=50,):
-        log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ' : Calculating Top Keywords. Using the following stopwords:' + str(self.stopwords))
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ' : Calculating Top Keywords. Using the following stopwords:' + str(self.stopwords)
+        )
 
         #
         # 2. Get highest frequency words from the split sentences, and remove stop words
@@ -100,48 +126,24 @@ class TextClusterBasic:
         all_words = ''
         for i in range(0, len(self.text), 1):
             all_words = all_words + ' ' + su.StringUtils.trim(self.text[i])
-        all_words_split = all_words.split(' ')
-        # Remove empty string ''
-        all_words_split = [ x for x in all_words_split if x!='' ]
 
-        # Remove numbers, or just fullstop/commas
-        df_tmp = pd.DataFrame({'Word':all_words_split})
-        is_number = df_tmp['Word'].str.match(pat='^[0-9.,]+$', case=False)
-        df_tmp = df_tmp[~is_number]
-        all_words_split = list(df_tmp['Word'])
+        sentence_all_words_filtered = TextClusterBasic.filter_sentence(
+            sentence_text = all_words,
+            sep           = ' '
+        )
+        all_words_split = sentence_all_words_filtered.split(sep=' ')
 
         col = collections.Counter(all_words_split)
         # Order by top frequency keywords, and also convert to a Dictionary type (otherwise we can't extract
         # into DataFrame columns later)
         col = col.most_common()
-        df_word_freq_all = pd.DataFrame({'Word': [x[0] for x in col], 'Frequency': [x[1] for x in col]})
-
-        df_word_freq = pd.DataFrame()
-
-        for i in range(0, df_word_freq_all.shape[0], 1):
-            word = df_word_freq_all['Word'][i]
-            freq = df_word_freq_all['Frequency'][i]
-
-            # Remove word/sentence separators, punctuations
-            if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS)\
-                    or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS)\
-                    or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
-                continue
-            # Clean up punctuations at the end of a word
-            word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
-            #
-            # Remove stopwords, quite an important step to improve clustering accuracy.
-            # TODO: Once we have an efficient keyword extraction algorithm, we won't need stopwords anymore.
-            #
-            if (word in self.stopwords):
-                log.Log.debug('Stopword [' + word + '] ignored..')
-                continue
-
-            df_word_freq = df_word_freq.append(pd.DataFrame({'Word':[word], 'Frequency':[freq]}), ignore_index=True)
-
+        df_word_freq = pd.DataFrame({'Word': [x[0] for x in col], 'Frequency': [x[1] for x in col]})
         df_word_freq['Prop'] = df_word_freq['Frequency'] / sum(df_word_freq['Frequency'])
-        #if verbose >= 1:
-        #    print(df_word_freq)
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Word Frequency (' + str(df_word_freq.shape[0]) + ' words).'
+        )
+        log.Log.debugdebug(str(df_word_freq))
 
         #
         # There will be a lot of words, so we remove (by default) the lower 50% quartile of keywords.
@@ -151,10 +153,19 @@ class TextClusterBasic:
         # If user passes in 0, no words will be removed
         if remove_quartile > 0:
             q_remove = np.percentile(df_word_freq['Frequency'], remove_quartile)
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Quartile : ' + str(remove_quartile) + '% is at frequency value ' + str(q_remove) + '.'
+            )
+
         df_word_freq_qt = df_word_freq[df_word_freq['Frequency'] > q_remove]
         df_word_freq_qt = df_word_freq_qt.reset_index(drop=True)
-        #if verbose >= 1:
-        #    print(df_word_freq_qt)
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Word Frequency (' + str(df_word_freq_qt.shape[0]) + ' words). After removing quartile : '
+            + str(remove_quartile) + '%.'
+        )
+        log.Log.debugdebug(str(df_word_freq_qt))
 
         self.df_keywords_for_fv = df_word_freq_qt
         self.keywords_for_fv = list(df_word_freq_qt['Word'])

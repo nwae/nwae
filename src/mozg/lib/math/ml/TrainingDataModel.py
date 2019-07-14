@@ -132,6 +132,8 @@ class TrainingDataModel:
         # Sanity check
         for i in range(0, sentence_fv.shape[0], 1):
             v = sentence_fv[i]
+            if np.sum(v) == 0:
+                continue
             if abs(1 - np.sum(np.multiply(v,v))**0.5) > 0.00000000001:
                 raise Exception(
                     'Feature vector ' + str(v) + ' not normalized!'
@@ -180,7 +182,7 @@ def demo_text_data():
     retdict = TrainingDataModel.unify_word_features_for_text_data(
         label_id       = np_label_id.tolist(),
         text_segmented = np_text_segmented.tolist(),
-        keywords_remove_quartile = 0
+        keywords_remove_quartile = 50
     )
     np_wordlabels = retdict[TrainingDataModel.KEY_WORD_LABELS]
     fv = retdict[TrainingDataModel.KEY_SENTENCE_TENSOR]
@@ -194,14 +196,27 @@ def demo_text_data():
         v_show = v[print_indexes]
         df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
 
-        min_freq = np.min(v_show)
-
         # Compare with original text
         txt = np_text_segmented[i]
         txt = tcb.TextClusterBasic.filter_sentence(
             sentence_text = txt
         )
         txt_arr = txt.split(sep=' ')
+        # Filter out words not in wordlabels as we might have removed some quartile
+        np_txt_arr = np.array(txt_arr)
+        np_txt_arr = np_txt_arr[np.isin(element=np_txt_arr, test_elements=np_wordlabels)]
+        txt_arr = np_txt_arr.tolist()
+        if len(txt_arr) == 0:
+            print('Sentence "' + txt + '" became nothing after removing quartile.')
+            continue
+
+        min_freq = 0.0
+        try:
+            min_freq = np.min(v_show)
+        except Exception as ex:
+            raise Exception('Cannot get min frequency for sentence "' + str(np_text_segmented[i])
+                            + '", values ' + str(v_show) + '.')
+
         labels_show = labels_show.tolist()
         # Some words need to repeat more than once
         new_labels_show = []

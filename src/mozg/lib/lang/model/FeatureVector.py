@@ -120,9 +120,11 @@ class FeatureVector:
         else:
             df_merge['FrequencyNormalized'] = 0
             df_merge['TF'] = 0
-            lg.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Zero sum of weighted frequency for ' + str(text)
-                            + ', df_merge ' + str(df_merge))
+            lg.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Zero sum of weighted frequency for ' + str(text)
+                + ', df_merge ' + str(df_merge)
+            )
             df_merge['TF'] = 0
         # TF Normalized is just the same as frequency normalized
         # normalize_factor = (sum(df_merge['TF'].as_matrix()*df_merge['TF'].as_matrix()) ** 0.5)
