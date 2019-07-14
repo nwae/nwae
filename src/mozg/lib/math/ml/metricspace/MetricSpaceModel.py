@@ -401,7 +401,7 @@ class MetricSpaceModel(threading.Thread):
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        fpath_x_name = self.dir_path_model + '/' + self.identifier_string + '.' + '.x_name.csv'
+        fpath_x_name = self.dir_path_model + '/' + self.identifier_string + '.x_name.csv'
         self.df_x_name.to_csv(path_or_buf=fpath_x_name, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -409,7 +409,7 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
-        fpath_idf = self.dir_path_model + '/' + self.identifier_string + '.' + '.idf.csv'
+        fpath_idf = self.dir_path_model + '/' + self.identifier_string + '.idf.csv'
         self.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -417,7 +417,7 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
-        fpath_rfv = self.dir_path_model + '/' + self.identifier_string + '.' + '.rfv.csv'
+        fpath_rfv = self.dir_path_model + '/' + self.identifier_string + '.rfv.csv'
         self.df_rfv.to_csv(path_or_buf=fpath_rfv, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -425,7 +425,7 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
-        fpath_dist_furthest = self.dir_path_model + '/' + self.identifier_string + '.' + '.rfv.distance.csv'
+        fpath_dist_furthest = self.dir_path_model + '/' + self.identifier_string + '.rfv.distance.csv'
         self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -434,7 +434,7 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
-        fpath_x_clustered = self.dir_path_model + '/' + self.identifier_string + '.' + '.x_clustered.csv'
+        fpath_x_clustered = self.dir_path_model + '/' + self.identifier_string + '.x_clustered.csv'
         self.df_x_clustered.to_csv(path_or_buf=fpath_x_clustered, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -444,7 +444,7 @@ class MetricSpaceModel(threading.Thread):
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
-        fpath_updated_file = self.dir_path_model + '/' + self.identifier_string+ '.lastupdated.txt'
+        fpath_updated_file = self.dir_path_model + '/' + self.identifier_string + '.lastupdated.txt'
         try:
             f = open(file=fpath_updated_file, mode='w')
             f.write(str(dt.datetime.now()))
@@ -591,7 +591,7 @@ if __name__ == '__main__':
     print(tdm_obj.get_x_name())
     print(tdm_obj.get_y())
 
-    topdir = '/Users/mark.tan/git/mozg.nlp'
+    topdir = '/Users/mark.tan/git/mozg'
     ms_model = MetricSpaceModel(
         identifier_string = 'demo_msmodel_testdata',
         # Directory to keep all our model files
