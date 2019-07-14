@@ -851,7 +851,8 @@ if __name__ == '__main__':
     )
     tdmodel_obj = tdm.TrainingDataModel(
         x = x,
-        y = y
+        y = y,
+        x_name = None
     )
     print(tdmodel_obj.get_x())
     print(tdmodel_obj.get_x().shape)

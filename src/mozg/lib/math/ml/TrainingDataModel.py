@@ -21,7 +21,7 @@ class TrainingDataModel:
             # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
             y,
             # np array 형식으호. Имена дименций x
-            x_name
+            x_name = None
     ):
         self.x = x
         self.y = y
