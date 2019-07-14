@@ -468,7 +468,8 @@ class MetricSpaceModel(threading.Thread):
 
 def demo_chat_training():
     au.Auth.init_instances()
-    topdir = '/Users/mark.tan/git/mozg.nlp'
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    topdir = '/Users/mark.tan/git/mozg'
     chat_td = ctd.ChatTrainingData(
         use_db     = True,
         db_profile = 'mario2',
@@ -537,7 +538,8 @@ def demo_chat_training():
 
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-    #demo_chat_training()
+    demo_chat_training()
+    exit(0)
 
     x_expected = np.array(
         [
