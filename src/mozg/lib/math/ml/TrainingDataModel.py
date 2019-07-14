@@ -35,27 +35,39 @@ class TrainingDataModel:
     # Помогающая Функция объединить разные свойства в тренинговый данные.
     #
     @staticmethod
-    def unify_features_for_text_data(
-            self,
+    def unify_word_features_for_text_data(
             # At least 2 columns must exist 'Intent ID', 'TextSegmented'
-            training_data,
+            label_id,
+            text_segmented,
             keywords_remove_quartile,
-            stopwords,
+            stopwords = (),
     ):
-        td = None
-        self.log_training = []
+        log_training = []
 
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        if ( type(label_id) not in (list, tuple) ) or ( type(text_segmented) not in (list, tuple) ):
+            raise Exception(
+                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Label ID and Text Segmented must be list/tuple type. Got label id type '
+                + str(type(label_id)) + ', and text segmented type ' + str(type(text_segmented)) + '.'
+            )
+        if len(label_id) != len(text_segmented):
+            raise Exception(
+                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Label ID length = ' + str(len(label_id))
+                + ' and Text Segmented length = ' + str(len(text_segmented)) + ' not equal.'
+            )
+
+        log.Log.info(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
-            + ', stopwords = [' + str(stopwords) + ']'
-            + ', weigh by IDF = ' + str(weigh_idf)
-            , log_list = self.log_training
+            + ', stopwords = ' + str(stopwords) + '.'
+            , log_list = log_training
         )
 
         log.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training data: ' + str(td)
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Training data text\n\r' + str(text_segmented)
+            + ', labels\n\r' + str(label_id)
         )
 
         #
@@ -64,81 +76,67 @@ class TrainingDataModel:
         # keyword value.
         #
         log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Starting text cluster, calculate top keywords...'
-            , log_list = self.log_training
+            , log_list = log_training
         )
-        self.textcluster = tcb.TextClusterBasic(
-            text      = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]),
+        textcluster = tcb.TextClusterBasic(
+            text      = text_segmented,
             stopwords = stopwords
         )
-        self.textcluster.calculate_top_keywords(
+        textcluster.calculate_top_keywords(
             remove_quartile = keywords_remove_quartile
         )
-        log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Keywords extracted as follows:' + str(self.textcluster.keywords_for_fv))
+        log.Log.info(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Keywords extracted as follows:\n\r' + str(textcluster.keywords_for_fv)
+        )
 
         # Extract unique Commands/Intents
-        log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        log.Log.info(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Extracting unique commands/intents..'
-            , log_list = self.log_training
+            , log_list = log_training
         )
-        self.commands = set( list( td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID] ) )
+        unique_classes = set(label_id)
         # Change back to list, this list may change due to deletion of invalid commands.
-        self.commands = list(self.commands)
-        log.Log.critical(self.commands)
-
-        # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Preparing RFV data frames...'
-            , log_list = self.log_training
+        unique_classes = list(unique_classes)
+        log.Log.info(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Unique classes:\n\r' + str(unique_classes)
+            , log_list = log_training
         )
-        m = np.zeros((len(self.commands), len(self.textcluster.keywords_for_fv)))
-        self.df_rfv = pd.DataFrame(m, columns=self.textcluster.keywords_for_fv, index=self.commands)
-        self.df_rfv_distance_furthest = pd.DataFrame({
-            reffv.RefFeatureVector.COL_COMMAND:list(self.commands),
-            reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[ChatTraining.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.commands),
-            reffv.RefFeatureVector.COL_TEXT: ['']*len(self.commands)
-        })
 
         #
-        # Get IDF first
-        #   We join all text from the same intent, to get IDF
-        # TODO: IDF may not be the ideal weights, design an optimal one.
+        # Get RFV for every command/intent, representative feature vectors by command type
         #
+        # Get sentence matrix for all sentences first
         log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Joining all training data in the same command/intent to get IDF...'
-            , log_list = self.log_training
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Calculating sentence matrix for all training data...'
+            , log_list = log_training
         )
-        i = 0
-        text_bycategory = [''] * len(self.commands)
-        for com in self.commands:
-            # Join all text of the same command/intent together and treat them as one
-            is_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]==com
-            text_samples = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command])
-            text_com = ' '.join(text_samples)
-            text_bycategory[i] = text_com
-            i = i + 1
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ': Joined intents: ' + str(text_bycategory))
-        # Create a new TextCluster object
-        self.textcluster_bycategory = tcb.TextClusterBasic(text=text_bycategory, stopwords=stopwords)
-        # Always use the same keywords FV!!
-        self.textcluster_bycategory.set_keywords(df_keywords=self.textcluster.df_keywords_for_fv.copy())
+        textcluster.calculate_sentence_matrix(
+            freq_measure          = 'normalized',
+            feature_presence_only = False,
+            idf_matrix            = None
+        )
 
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Calculating sentence matrix of combined Intents to get IDF...'
-            , log_list = self.log_training
-        )
-        self.textcluster_bycategory.calculate_sentence_matrix(
-            freq_measure='normalized',
-            feature_presence_only=False,
-            idf_matrix=None
-        )
+        fv_wordlabels = textcluster.keywords_for_fv
+        sentence_fv = textcluster.sentence_matrix
+
+        # Sanity check
+        for i in range(0, sentence_fv.shape[0], 1):
+            v = sentence_fv[i]
+            if abs(1 - np.sum(np.multiply(v,v))**0.5) > 0.00000000001:
+                raise Exception(
+                    'Feature vector ' + str(v) + ' not normalized!'
+                )
+
+        return {
+            'wordlabels': fv_wordlabels,
+            'fv': sentence_fv
+        }
 
 
 def demo_text_data():
@@ -156,12 +154,40 @@ def demo_text_data():
         dirpath_app_wordlist   = topdir + '/nlp.data/app/chats',
         dirpath_synonymlist    = topdir + '/nlp.data/app/chats'
     )
+
     td = chat_td.get_training_data_from_db()
-    td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
+    # Take just ten labels
+    unique_classes = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
+    text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
+
+    keep = 10
+    unique_classes_trimmed = list(set(unique_classes))[0:keep]
+    np_unique_classes_trimmed = np.array(unique_classes_trimmed)
+    np_indexes = np.isin(element=unique_classes, test_elements=np_unique_classes_trimmed)
+
+    np_label_id = unique_classes[np_indexes]
+    np_text_segmented = text_segmented[np_indexes]
+
+    print(np_label_id[0:20])
+    print(np_text_segmented[0:20])
+
+    retdict = TrainingDataModel.unify_word_features_for_text_data(
+        label_id = np_label_id.tolist(),
+        text_segmented = np_text_segmented.tolist(),
+        keywords_remove_quartile = 0
+    )
+    wordlabels = retdict['wordlabels']
+    fv = retdict['fv']
+    for i in range(0, fv.shape[0], 1):
+        df = pd.DataFrame(data={'wordlabel': wordlabels, 'fv': fv[i]})
+        print(df)
+
+    # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
 
 
 if __name__ == '__main__':
     au.Auth.init_instances()
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     demo_text_data()
     exit(0)
     x = np.array(
