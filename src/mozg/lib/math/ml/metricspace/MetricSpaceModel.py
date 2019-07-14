@@ -83,74 +83,6 @@ class MetricSpaceModel(threading.Thread):
 
         return
 
-    #
-    # We calculate the total weight of all features, to decide which to throw and which to keep.
-    # We could also keep all if remove_quartile=0
-    # This can also be used to calculate the Importance of a feature using some measure like how special it is,
-    # appearing only in a few classes, as compared to features that appear almost everywhere.
-    #
-    def get_top_features(
-            self,
-            remove_quartile = 50
-    ):
-        log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ' : Calculating Top Key Features. Using the following stop features: ' + str(self.stop_features)
-        )
-
-        #
-        # 2. Get highest frequency words from the split sentences, and remove stop words
-        #
-        # Combine all vectors into a single huge vector, aggregated via column sum
-        #
-        x_combined = np.sum(self.training_data.get_x(), axis=0)
-        df_x_combined = pd.DataFrame({
-            'Feature': self.training_data.get_y(),
-            'Value': x_combined
-        })
-        log.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Combined Features'
-        )
-
-        df_feature_freq = pd.DataFrame()
-
-        for i in range(0, df_x_combined.shape[0], 1):
-            feature = df_x_combined['Feature'].loc[i]
-            value = df_x_combined['Value'].loc[i]
-
-            #
-            # Remove stop features if required
-            #
-            if (idx in self.stop_features):
-                log.Log.debug('Stopword [' + word + '] ignored..')
-                continue
-
-            df_word_freq = df_word_freq.append(pd.DataFrame({'Word': [word], 'Frequency': [freq]}),
-                                               ignore_index=True)
-
-        df_word_freq['Prop'] = df_word_freq['Frequency'] / sum(df_word_freq['Frequency'])
-        # if verbose >= 1:
-        #    print(df_word_freq)
-
-        #
-        # There will be a lot of words, so we remove (by default) the lower 50% quartile of keywords.
-        # This will help wipe out a lot of words, up to 80-90% or more.
-        #
-        q_remove = 0
-        # If user passes in 0, no words will be removed
-        if remove_quartile > 0:
-            q_remove = np.percentile(df_word_freq['Frequency'], remove_quartile)
-        df_word_freq_qt = df_word_freq[df_word_freq['Frequency'] > q_remove]
-        df_word_freq_qt = df_word_freq_qt.reset_index(drop=True)
-        # if verbose >= 1:
-        #    print(df_word_freq_qt)
-
-        self.df_keywords_for_fv = df_word_freq_qt
-        self.keywords_for_fv = list(df_word_freq_qt['Word'])
-
-        return
-
     def run(self):
         self.__mutex_training.acquire()
         try:
@@ -195,6 +127,10 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
+        x = self.training_data.get_x()
+        y = self.training_data.get_y()
+        x_names = self.training_data.get_x_names()
+
         #
         # Here training data must be prepared in the correct format already
         # Значит что множество свойств уже объединено как одно (unified features)
@@ -204,47 +140,16 @@ class MetricSpaceModel(threading.Thread):
             + ': Training data: ' + str(self.training_data)
         )
 
-        #
-        # Extract all keywords
-        # Our training now doesn't remove any word, uses no stopwords, but uses an IDF weightage to measure
-        # keyword value.
-        #
-        log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Starting clustering, calculate top key features...'
-            , log_list = self.log_training
-        )
-        self.textcluster = tcb.TextClusterBasic(
-            text      = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]),
-            stopwords = stopwords
-        )
-        self.textcluster.calculate_top_keywords(
-            remove_quartile = keywords_remove_quartile
-        )
-        log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Keywords extracted as follows:' + str(self.textcluster.keywords_for_fv))
-
-        # Extract unique Commands/Intents
-        log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Extracting unique commands/intents..'
-            , log_list = self.log_training
-        )
-        self.commands = set( list( td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID] ) )
-        # Change back to list, this list may change due to deletion of invalid commands.
-        self.commands = list(self.commands)
-        log.Log.critical(self.commands)
-
         # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Preparing RFV data frames...'
             , log_list = self.log_training
         )
-        m = np.zeros((len(self.commands), len(self.textcluster.keywords_for_fv)))
-        self.df_rfv = pd.DataFrame(m, columns=self.textcluster.keywords_for_fv, index=self.commands)
+        m = np.zeros((len(y), x.shape[1]))
+        self.df_rfv = pd.DataFrame(m, columns=x_names.copy(), index=self)
         self.df_rfv_distance_furthest = pd.DataFrame({
-            reffv.RefFeatureVector.COL_COMMAND:list(self.commands),
+            reffv.RefFeatureVector.COL_COMMAND: y.copy(),
             reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[ChatTraining.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.commands),
             reffv.RefFeatureVector.COL_TEXT: ['']*len(self.commands)
         })
@@ -822,6 +727,11 @@ def demo_chat_training():
         stop_features                = (),
         # If we will create an "IDF" based on the initial features
         weigh_idf                    = True
+    )
+    ms_model.train(
+        key_features_remove_quartile = 0,
+        stop_features = (),
+        weigh_idf     = True
     )
     return
 
