@@ -106,6 +106,76 @@ class MetricSpaceModel(threading.Thread):
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
+    def get_feature_weight_idf(
+            self,
+            x,
+            y,
+            x_name
+    ):
+        df_tmp = pd.DataFrame(data=x, index=y)
+        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
+        np_agg_sum = df_agg_sum.values
+        # Get presence only by cell, then sum up by columns to get total presence by document
+        np_feature_presence = (np_agg_sum>0)*1
+        # Sum by column axis=0
+        np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
+            + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
+            + '\n\r\tPresence sum:\n\r' + str(np_feature_presence_sum)
+            + '\n\r\tx_names: ' + str(x_name) + '.'
+        )
+
+        # Total document count
+        n_documents = np_feature_presence.shape[0]
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
+        )
+
+        # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
+        idf = np.log(n_documents / np_feature_presence_sum)
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tWeight IDF:\n\r' + str(idf)
+        )
+        return idf
+
+        df_idf = None
+        if n_documents <= 1:
+            # If there is only a single document, there is no IDF as log(1)=0 and all values will be 0, so just set all to 1
+            df_idf = pd.DataFrame({'Word': self.keywords_for_fv, 'IDF': 1})
+            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1: '
+                            + str(df_idf))
+        else:
+            try:
+                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                  + ': Using Keywords: ' + str(self.keywords_for_fv))
+                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                  + ': Using IDF type ' + str(type(idf)) + ': ' + str(idf))
+                # To make sure idf is in a single array, we convert to values as it could be a single row narray or matrix
+                if idf.shape[0] == total_columns_or_words:
+                    df_idf = pd.DataFrame({'Word':self.keywords_for_fv, 'IDF':idf.tolist()})
+                else:
+                    df_idf = pd.DataFrame({'Word':self.keywords_for_fv, 'IDF':idf.tolist()[0]})
+            except Exception as ex:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': IDF Data Frame error: ' + str(ex) + '.'
+                log.Log.critical(errmsg)
+                raise(errmsg)
+
+        self.df_idf = df_idf
+        # Make sure to transpose to get a column matrix
+        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                      + ': IDF data frame: ' + str(self.df_idf))
+        self.idf_matrix = np.array( df_idf['IDF'].values ).reshape(df_idf.shape[0],1)
+
+        log.Log.info(str(self.__class__) + 'IDF Matrix as follows:')
+        log.Log.info(self.idf_matrix)
+        return
+
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
@@ -137,15 +207,11 @@ class MetricSpaceModel(threading.Thread):
         #
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training data:\n\r' + str(self.training_data)
+            + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
+            + '\n\r\tx names: ' + str(self.training_data.get_x_name())
+            + '\n\r\ty labels: ' + str(self.training_data.get_y())
         )
 
-        # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Preparing RFV data frames...'
-            , log_list = self.log_training
-        )
         m = np.zeros((len(y), x.shape[1]))
         self.df_rfv = pd.DataFrame(m, columns=x_name, index=y)
         self.df_rfv_distance_furthest = pd.DataFrame({
@@ -153,6 +219,13 @@ class MetricSpaceModel(threading.Thread):
             reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(y),
             reffv.RefFeatureVector.COL_FEATURES: ['']*len(y)
         })
+        # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
+        # log.Log.debugdebug(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + '\n\r\tPrepared RFV data frames:\n\r' + str(self.df_rfv)
+        #     + '\n\r\tRFV distance furthest:\n\r' + str(self.df_rfv_distance_furthest)
+        #     , log_list = self.log_training
+        # )
 
         #
         # Get IDF first
@@ -165,11 +238,7 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
         # Sum x by class
-        df_tmp = pd.DataFrame(data=x, index=y)
-        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
-        print(df_agg_sum.values)
-        print(type(df_agg_sum))
-        print(x_name)
+        self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
 
         raise Exception('DEBUGGING')
         self.textcluster_bycategory.calculate_idf()
@@ -646,6 +715,7 @@ class MetricSpaceModel(threading.Thread):
 
 
 def demo_chat_training():
+    au.Auth.init_instances()
     topdir = '/Users/mark.tan/git/mozg.nlp'
     chat_td = ctd.ChatTrainingData(
         use_db     = True,
@@ -714,9 +784,7 @@ def demo_chat_training():
 
 
 if __name__ == '__main__':
-    au.Auth.init_instances()
-
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
     #demo_chat_training()
 
     x_expected = np.array(
@@ -790,5 +858,31 @@ if __name__ == '__main__':
         stop_features = (),
         weigh_idf     = True
     )
+
+    # How to make sure order is the same output from TextCluster in unit tests?
+    x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
+
+    sentence_matrix_expected = np.array([
+            [0.37796447 ,0.75592895 ,0.37796447 ,0.         ,0.         ,0.37796447],
+            [0.31622777 ,0.31622777 ,0.63245553 ,0.         ,0.         ,0.63245553],
+            [0.5        ,0.5        ,0.5        ,0.         ,0.         ,0.5       ],
+            [0.40824829 ,0.40824829 ,0.81649658 ,0.         ,0.         ,0.        ],
+            [0.57735027 ,0.57735027 ,0.57735027 ,0.         ,0.         ,0.        ],
+            [0.66666667 ,0.66666667 ,0.33333333 ,0.         ,0.         ,0.        ],
+            [0.26726124 ,0.         ,0.         ,0.80178373 ,0.53452248 ,0.        ],
+            [0.5547002  ,0.2773501  ,0.         ,0.5547002  ,0.5547002  ,0.        ],
+            [0.37796447 ,0.37796447 ,0.         ,0.75592895 ,0.37796447 ,0.        ]
+        ])
+    for i in range(0,sentence_matrix_expected.shape[0],1):
+        v = sentence_matrix_expected[i]
+        ss = np.sum(np.multiply(v,v))**0.5
+        print(v)
+        print(ss)
+
+    agg_by_labels_expected = np.array([
+        [1.19419224 ,1.57215671 ,1.51042001 ,0.         ,0.         ,1.51042001],
+        [1.65226523 ,1.65226523 ,1.72718018 ,0.         ,0.         ,0.        ],
+        [1.19992591 ,0.65531457 ,0.         ,2.11241287 ,1.46718715 ,0.        ]
+    ])
 
 
