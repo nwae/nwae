@@ -14,6 +14,7 @@ import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au
 import mozg.lib.math.Cluster as clstr
+import mozg.lib.math.Constants as const
 
 
 #
@@ -213,6 +214,9 @@ class MetricSpaceModel(threading.Thread):
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             x_name = self.training_data.get_x_name()
+            # Unique y or classes
+            # We have to list() the set(), to make it into a proper 1D vector
+            self.classes = np.array(list(set(y)))
 
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -287,40 +291,58 @@ class MetricSpaceModel(threading.Thread):
             + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
         )
 
-        raise Exception('DEBUGGING HERE')
-
         #
         # RFV Derivation
         #
-        all_classes = self.classes.copy()
-        for cs in all_classes:
+        m = np.zeros((len(self.classes), len(x_name)))
+        # self.classes
+        self.df_rfv = pd.DataFrame(
+            m,
+            columns = x_name,
+            index   = self.classes
+        )
+        self.df_rfv_distance_furthest = pd.DataFrame(
+            {
+                reffv.RefFeatureVector.COL_COMMAND:list(self.classes),
+                reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
+            },
+            index = self.classes
+        )
+
+        for cs in self.classes:
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Doing class [' + str(cs) + ']'
                 , log_list = self.log_training
             )
             # Extract class points
-            x_tmp_class = x[x==cs]
+            class_points = x[y==cs]
             #
             # Reference feature vector for the command is the average of all feature vectors
-            # TODO: Important!!! Cluster a training intent into several clusters for even more accuracy
             #
-            rfv = np.sum(sample_matrix, axis=0) / sample_matrix.shape[0]
+            rfv = np.sum(class_points, axis=0) / class_points.shape[0]
             # Renormalize it again
+            # At this point we don't have to check if it is a 0 vector, etc. as it was already done in TrainingDataModel
+            # after weighing process
             normalize_factor = np.sum(np.multiply(rfv, rfv)) ** 0.5
+            if normalize_factor < const.Constants.SMALL_VALUE:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Normalize factor for rfv in class "' + str(cs) + '" is 0.'
+                )
             rfv = rfv / normalize_factor
             # A single array will be created as a column dataframe, thus we have to name the index and not columns
-            self.df_rfv.loc[com] = rfv
+            self.df_rfv.at[cs] = rfv
 
-            check_dist = np.sum(np.multiply(rfv,rfv))**0.5
-            if abs(check_dist-1) > 0.000001:
+            check_normalized = np.sum(np.multiply(rfv,rfv))**0.5
+            if abs(check_normalized-1) > const.Constants.SMALL_VALUE:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(check_dist) + '].'
-                raise(errmsg)
+                         + ': Warning! RFV for class [' + str(cs) + '] not 1, but [' + str(check_normalized) + '].'
+                raise Exception(errmsg)
             else:
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Check RFV normalized ok [' + str(check_dist) + '].'
+                    + ': Check RFV class "' + str(cs) + '" normalized ok [' + str(check_normalized) + '].'
                 )
 
             #
@@ -329,33 +351,30 @@ class MetricSpaceModel(threading.Thread):
             # once the nearest class is found (in which no class is found then).
             #
             # Minimum value of threshold, don't allow 0's
-            dist_furthest = ChatTraining.MINIMUM_THRESHOLD_DIST_TO_RFV
-            com_index =\
-                self.df_rfv_distance_furthest.loc[self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
-            for i in range(0, sample_matrix.shape[0], 1):
-                log.Log.info(
+            dist_furthest = MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV
+            for i in range(0, class_points.shape[0], 1):
+                log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '   Checking ' + str(i) + ': [' + text_samples[i] + ']'
+                    + '   Checking ' + str(i) + ':\n\r' + str(class_points[i])
                 )
-                fv_text = sample_matrix[i]
+                fv_text = class_points[i]
                 dist_vec = rfv - fv_text
                 dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
                 if dist > dist_furthest:
                     dist_furthest = dist
-                    self.df_rfv_distance_furthest.at[com_index, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
-                    self.df_rfv_distance_furthest.at[com_index, reffv.RefFeatureVector.COL_TEXT] = text_samples[i]
+                    self.df_rfv_distance_furthest.at[cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
 
-            log.Log.info('Command [' + str(com) + ']..')
-            log.Log.info('Furthest distance = ' +
-                  str(float(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST][com_index])))
-            s_tmp = self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_TEXT].loc[com_index].values
-            log.Log.info('  [' + s_tmp + ']')
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Class "' + str(cs) + '". Furthest distance = '
+                + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
+            )
 
-            #if re.match('choice.[0-9]+', com):
-            #    log.Log.log(com)
-            #    log.Log.log(text_samples)
-            #    log.Log.log(rfv)
-            #    raise Exception('Done debug')
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tRFV:\n\r' + str(self.df_rfv)
+            + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
+        )
 
         #
         # TODO: Optimization
@@ -365,42 +384,13 @@ class MetricSpaceModel(threading.Thread):
         # TODO: IDF measure can then be used as weight to the features. Means we use the above average of the
         # TODO: RFV to start the iteration with the IDF of the feature.
         #
-        #word_presence_matrix = np.zeros((len(self.commands), len(self.keywords_for_fv)))
-        #i = 0
-        # Create a copy to ensure we don't overwrite the original
-        #df_rfv_copy = self.df_rfv.copy(deep=True)
-        #for cmd in df_rfv_copy.index:
-        #    rfv_cmd = df_rfv_copy.loc[cmd].as_matrix()
-        #    # Set to 1 if word is present
-        #    rfv_cmd[rfv_cmd>0] = 1
-        #    word_presence_matrix[i] = rfv_cmd
-        #    i = i + 1
-
         # Sort
         self.df_rfv = self.df_rfv.sort_index()
         self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
         self.df_fv_all = self.df_fv_all.sort_index()
         self.df_intent_tf = self.df_intent_tf.sort_index()
 
-        #
-        # Check RFV is normalized
-        #
-        count = 1
-        for com in list(self.df_rfv.index):
-            rfv = np.array(self.df_rfv.loc[com].values)
-            dist = np.sum(np.multiply(rfv,rfv))**0.5
-            if abs(dist-1) > 0.000001:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Warning! RFV for command [' + str(com) + '] not 1, but [' + str(dist) + '].'
-                raise(Exception(errmsg))
-            else:
-                log.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': ' + str(count) + '. Check RFV for [' + str(com)
-                    + '] normalized ok [' + str(dist) + '].'
-                    , log_list = self.log_training
-                )
-                count = count + 1
+        raise Exception('DEBUGGING')
 
         #
         # Save to file
