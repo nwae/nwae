@@ -14,9 +14,6 @@ import mozg.lib.lang.classification.TextClusterBasic as tcb
 #
 class TrainingDataModel:
 
-    KEY_WORD_LABELS = 'word_labels'
-    KEY_SENTENCE_TENSOR = 'sentence_tensor'
-
     def __init__(
             self,
             # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해
@@ -37,6 +34,7 @@ class TrainingDataModel:
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
     # Returns sentence matrix array of combined word features
+    # After this we will have our x (samples) and y (labels).
     #
     @staticmethod
     def unify_word_features_for_text_data(
@@ -139,10 +137,10 @@ class TrainingDataModel:
                     'Feature vector ' + str(v) + ' not normalized!'
                 )
 
-        return {
-            TrainingDataModel.KEY_WORD_LABELS: np.array(fv_wordlabels),
-            TrainingDataModel.KEY_SENTENCE_TENSOR: sentence_fv
-        }
+        return TrainingDataModel(
+            x = sentence_fv,
+            y = np.array(fv_wordlabels)
+        )
 
 
 def demo_text_data():
@@ -179,13 +177,13 @@ def demo_text_data():
     print(np_text_segmented[0:20])
     print(np_text_segmented[0])
 
-    retdict = TrainingDataModel.unify_word_features_for_text_data(
+    tdm_obj = TrainingDataModel.unify_word_features_for_text_data(
         label_id       = np_label_id.tolist(),
         text_segmented = np_text_segmented.tolist(),
         keywords_remove_quartile = 0
     )
-    np_wordlabels = retdict[TrainingDataModel.KEY_WORD_LABELS]
-    fv = retdict[TrainingDataModel.KEY_SENTENCE_TENSOR]
+    np_wordlabels = tdm_obj.get_y()
+    fv = tdm_obj.get_x()
 
     error_count = 0
     total_count = fv.shape[0]
@@ -236,7 +234,7 @@ def demo_text_data():
             error_count = error_count + 1
             print('WARNING!')
         else:
-            print(str(i) + '. CHECK PASSED.')
+            print(str(i+1) + '. CHECK PASSED.')
     print(str(error_count) + ' errors from ' + str(total_count) + ' tests')
 
     # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
