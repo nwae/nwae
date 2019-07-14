@@ -134,7 +134,7 @@ class TrainingDataModel:
                 )
 
         return {
-            'wordlabels': fv_wordlabels,
+            'wordlabels': np.array(fv_wordlabels),
             'fv': sentence_fv
         }
 
@@ -176,10 +176,14 @@ def demo_text_data():
         text_segmented = np_text_segmented.tolist(),
         keywords_remove_quartile = 0
     )
-    wordlabels = retdict['wordlabels']
+    np_wordlabels = retdict['wordlabels']
     fv = retdict['fv']
     for i in range(0, fv.shape[0], 1):
-        df = pd.DataFrame(data={'wordlabel': wordlabels, 'fv': fv[i]})
+        v = fv[i]
+        print_indexes = v>0
+        labels_show = np_wordlabels[print_indexes]
+        v_show = v[print_indexes]
+        df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
         print(df)
 
     # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
