@@ -25,6 +25,10 @@ class TrainingDataModel:
     ):
         self.x = x
         self.y = y
+
+        if x_name is None:
+            # If no x_name given we just use 0,1,2,3... as column names
+            x_name = np.array(range(0, self.x.shape[1], 1))
         self.x_name = x_name
 
         if type(self.x) is not np.ndarray:
@@ -58,11 +62,6 @@ class TrainingDataModel:
             self,
             min_value_as_one = True
     ):
-        # If no x_name given we just use 0,1,2,3... as column names
-        x_name = np.array(range(0,self.x.shape[1],1))
-        if self.x_name is not None:
-            x_name = self.x_name
-
         x_dict = {}
         for i in range(0, self.x.shape[0], 1):
             # Extract training data row
@@ -70,7 +69,7 @@ class TrainingDataModel:
             # Keep only those > 0
             non_zero_indexes = v > 0
             # Extract x and x_name with non-zero x values
-            x_name_show = x_name[non_zero_indexes]
+            x_name_show = self.x_name[non_zero_indexes]
             v_show = v[non_zero_indexes]
 
             min_v = 0.0

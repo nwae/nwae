@@ -136,45 +136,20 @@ class MetricSpaceModel(threading.Thread):
 
         # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
         idf = np.log(n_documents / np_feature_presence_sum)
+        # Replace infinity with 1 count or log(n_documents)
+        idf[idf==np.inf] = np.log(n_documents)
+        # If only 1 document, all IDF will be zero, we will handle below
+        if n_documents <= 1:
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
+            )
+            idf = np.array([1]*len(x.shape[1]))
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
         return idf
-
-        df_idf = None
-        if n_documents <= 1:
-            # If there is only a single document, there is no IDF as log(1)=0 and all values will be 0, so just set all to 1
-            df_idf = pd.DataFrame({'Word': self.keywords_for_fv, 'IDF': 1})
-            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1: '
-                            + str(df_idf))
-        else:
-            try:
-                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + ': Using Keywords: ' + str(self.keywords_for_fv))
-                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + ': Using IDF type ' + str(type(idf)) + ': ' + str(idf))
-                # To make sure idf is in a single array, we convert to values as it could be a single row narray or matrix
-                if idf.shape[0] == total_columns_or_words:
-                    df_idf = pd.DataFrame({'Word':self.keywords_for_fv, 'IDF':idf.tolist()})
-                else:
-                    df_idf = pd.DataFrame({'Word':self.keywords_for_fv, 'IDF':idf.tolist()[0]})
-            except Exception as ex:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': IDF Data Frame error: ' + str(ex) + '.'
-                log.Log.critical(errmsg)
-                raise(errmsg)
-
-        self.df_idf = df_idf
-        # Make sure to transpose to get a column matrix
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                      + ': IDF data frame: ' + str(self.df_idf))
-        self.idf_matrix = np.array( df_idf['IDF'].values ).reshape(df_idf.shape[0],1)
-
-        log.Log.info(str(self.__class__) + 'IDF Matrix as follows:')
-        log.Log.info(self.idf_matrix)
-        return
 
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
@@ -238,39 +213,23 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
         # Sum x by class
-        self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
-
-        raise Exception('DEBUGGING')
-        self.textcluster_bycategory.calculate_idf()
-        # Create a column matrix for IDF
-        idf_matrix = self.textcluster_bycategory.idf_matrix.copy()
-        log.Log.info(idf_matrix)
-        if not weigh_idf:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) + ': Not using IDF'
+        idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
+        self.df_idf = pd.DataFrame({'Word': x_name, 'IDF': idf})
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': IDF Dataframe:\n\r' + str(self.df_idf)
             , log_list = self.log_training
-            )
-            idf_matrix = None
+        )
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
         #
-        # Get sentence matrix for all sentences first
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Calculating sentence matrix for all training data...'
-            , log_list = self.log_training
-        )
-        self.textcluster.calculate_sentence_matrix(
-            freq_measure          = 'normalized',
-            feature_presence_only = False,
-            idf_matrix            = idf_matrix
-        )
 
         #
         # Data frame for all training data
         # Get index for training data df
         #
+        raise('EXCEPTION IN DEVELOPMENT UNTIL HERE')
         td_indexes = ['']*td.shape[0]
         for i in range(0, td.shape[0], 1):
             intent = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
@@ -884,5 +843,7 @@ if __name__ == '__main__':
         [1.65226523 ,1.65226523 ,1.72718018 ,0.         ,0.         ,0.        ],
         [1.19992591 ,0.65531457 ,0.         ,2.11241287 ,1.46718715 ,0.        ]
     ])
+
+    idf_expected = [0.         ,0.         ,0.40546511 ,1.09861229 ,1.09861229 ,1.09861229]
 
 
