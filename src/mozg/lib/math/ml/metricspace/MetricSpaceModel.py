@@ -238,16 +238,16 @@ class MetricSpaceModel(threading.Thread):
         #
         x_clustered = None
         y_clustered = None
-        for cls in self.classes:
+        for cs in self.classes:
             try:
                 # Extract only rows of this class
-                rows_of_class = x[y==cls]
+                rows_of_class = x[y==cs]
                 if rows_of_class.shape[0] == 0:
                     continue
 
                 log.Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tRows of class "' + str(cls) + ':'
+                    + '\n\r\tRows of class "' + str(cs) + ':'
                     + '\n\r' + str(rows_of_class)
                 )
 
@@ -268,48 +268,46 @@ class MetricSpaceModel(threading.Thread):
                     np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
                 if x_clustered is None:
                     x_clustered = np_class_cluster
-                    y_clustered = np.array([cls]*x_clustered.shape[0])
+                    y_clustered = np.array([cs]*x_clustered.shape[0])
                 else:
                     # Append rows (thus 1st dimension at axis index 0)
                     x_clustered = np.append(x_clustered, np_class_cluster, axis=0)
                     # Appending to a 1D array always at axis=0
-                    y_clustered = np.append(y_clustered, [cls]*np_class_cluster.shape[0], axis=0)
+                    y_clustered = np.append(y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
             except Exception as ex:
                 log.Log.error(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Error for class "' + cls + '", Exception msg ' + str(ex) + '.'
+                    + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
                     , log_list = self.log_training
                 )
                 raise(ex)
 
-        log.Log.debugdebug(
+        self.x_clustered = x_clustered
+        self.y_clustered = y_clustered
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tCluster of x\n\r' + str(x_clustered)
-            + '\n\r\ty labels for cluster: ' + str(y_clustered)
+            + '\n\r\tCluster of x\n\r' + str(self.x_clustered)
+            + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
         )
-
-        raise Exception('DEBUGGING ')
 
         #
         # Weigh by IDF above and normalize back
         #
         # Because self.commands may change, due to deletion of invalid commands
-        all_commands = self.commands.copy()
-        for com in all_commands:
+        all_classes = self.classes.copy()
+        for cs in all_classes:
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Doing intent ID [' + str(com) + ']'
+                + ': Doing class [' + str(cs) + ']'
                 , log_list = self.log_training
             )
-            is_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]==com
-            text_samples = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command])
-            text_samples_indexes = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command].index)
-            # Convert to numpy ndarray
-            sample_matrix = self.textcluster.sentence_matrix[text_samples_indexes] * 1
+            # Ex
+            x_tmp_class = x[x==cs]
 
             #
             # Sanity check to make sure FV is normalized 1
             #
+
             ok = False
             while not ok:
                 ok = True

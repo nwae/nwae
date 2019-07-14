@@ -23,6 +23,7 @@ class TrainingDataModel:
             # np array 형식으호. Имена дименций x
             x_name = None
     ):
+        # Only positive real values
         self.x = x
         self.y = y
 
@@ -35,6 +36,8 @@ class TrainingDataModel:
             raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
         if type(self.y) is not np.ndarray:
             raise Exception('x must be np.array type, got type "' + str(type(self.y)) + '".')
+
+        self.__remove_bad_rows()
 
         if (self.x.shape[0] != self.y.shape[0]):
             raise Exception(
@@ -54,6 +57,32 @@ class TrainingDataModel:
                     )
 
         return
+
+    #
+    # Remove rows with 0's
+    #
+    def __remove_bad_rows(self):
+        indexes_to_remove = []
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '. x dimension ' + str(self.x.shape) + ', y dimension ' + str(self.y.shape)
+        )
+        for i in range(0,self.x.shape[0],1):
+            if np.sum(self.x[i]) < 0.00000000001:
+                indexes_to_remove.append(i)
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Bad x at index ' + str(i) + ', values ' + str(self.x[i])
+                )
+
+        if len(indexes_to_remove) > 0:
+            self.x = np.delete(self.x, indexes_to_remove, axis=0)
+            self.y = np.delete(self.y, indexes_to_remove, axis=0)
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Deleted indexes ' + str(indexes_to_remove)
+                + '. New x now dimension ' + str(self.x.shape) + ', y dimension ' + str(self.y.shape)
+            )
 
     #
     # x training data is usually huge, here we print non zero columns only for purposes of saving, etc.
@@ -76,8 +105,11 @@ class TrainingDataModel:
             try:
                 min_v = np.min(v_show)
             except Exception as ex:
-                raise Exception('Cannot get min val for x index "' + str(i)
-                                + '", values ' + str(v_show) + '.')
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Cannot get min val for x index ' + str(i)\
+                         + ' , nonzero x_name ' + str(x_name_show)\
+                         + ', nonzero values ' + str(v_show) + '.'
+                raise Exception(errmsg)
 
             if min_value_as_one:
                 v_show = np.round(v_show / min_v, 1)
@@ -309,7 +341,7 @@ def demo_text_data():
 
 if __name__ == '__main__':
     au.Auth.init_instances()
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
     #demo_text_data()
     #exit(0)
 
@@ -326,11 +358,13 @@ if __name__ == '__main__':
             # 무리 C
             [0, 0, 0, 1, 2, 3],
             [0, 1, 0, 2, 1, 2],
-            [0, 1, 0, 1, 1, 2]
+            [0, 1, 0, 1, 1, 2],
+            # Bad row on purpose
+            [0, 0, 0, 0, 0, 0],
         ]
     )
     y = np.array(
-        ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
+        ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'C']
     )
     x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
     obj = TrainingDataModel(
