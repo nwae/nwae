@@ -13,6 +13,7 @@ import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au
+import mozg.lib.math.Cluster as clstr
 
 
 #
@@ -175,6 +176,9 @@ class MetricSpaceModel(threading.Thread):
         x = self.training_data.get_x()
         y = self.training_data.get_y()
         x_name = self.training_data.get_x_name()
+        # Unique y or classes
+        # We have to list() the set(), to make it into a proper 1D vector
+        self.classes = np.array(list(set(y)))
 
         #
         # Here training data must be prepared in the correct format already
@@ -226,109 +230,65 @@ class MetricSpaceModel(threading.Thread):
         #
 
         #
-        # Data frame for all training data
-        # Get index for training data df
-        #
-        raise('EXCEPTION IN DEVELOPMENT UNTIL HERE')
-        td_indexes = ['']*td.shape[0]
-        for i in range(0, td.shape[0], 1):
-            intent = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
-            intent_index = td[ctd.ChatTrainingData.COL_TDATA_INTENT_INDEX].loc[i]
-            #
-            # IMPORTANT!!
-            # Don't use '.' here, as the index will become a number such that 1234.1 becomes
-            # equal to 1234.10 when read back from CSV !!!
-            #
-            td_indexes[i] = str(intent) + '-' + str(intent_index)
-
-        self.df_fv_all = pd.DataFrame(
-            data    = self.textcluster.sentence_matrix.copy(),
-            columns = self.textcluster.keywords_for_fv,
-            index   = td_indexes
-        )
-
-        # Sanity check for training data with incorrect FV, e.g. no common features at all
-        for idx in list(self.df_fv_all.index):
-            # Convert to array
-            fv = np.array(self.df_fv_all.loc[idx].values)
-            check_dist = np.sum(np.multiply(fv,fv))**0.5
-            if abs(check_dist-1) > 0.000001:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Warning! FV for intent [' + str(idx) + '] not 1, but [' + str(check_dist) + '].'
-                log.Log.critical(errmsg, log_list=self.log_training)
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Dropping this training data [' + str(idx) + ']...'
-                    , log_list = self.log_training
-                )
-                len_before = self.df_fv_all.shape[0]
-                self.df_fv_all = self.df_fv_all.drop(labels=idx, axis=0)
-                len_after = self.df_fv_all.shape[0]
-                log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Length before = ' + str(len_before) + ', length now = ' + str(len_after))
-            else:
-                log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ': Normalization check for training data array ' + str(idx) + ' ok')
-
-
-        #
         # 1. Cluster training data of the same intent.
         #    Instead of a single RFV to represent a single intent, we should have multiple.
         # 2. Get word importance or equivalent term frequency (TF) within an intent
         #    This can only be used to confirm if a detected intent is indeed the intent,
         #    can't be used as a general method to detect intent because it is intent specific.
         #
-        m_tmp = np.zeros(self.df_rfv.shape)
-        self.df_intent_tf = pd.DataFrame(
-            m_tmp,
-            columns = self.textcluster.keywords_for_fv,
-            index   = self.df_rfv.index.tolist()
-        )
-        tmp_fv_td_matrix = self.textcluster.sentence_matrix.copy()
-        row_indexes = None
-        for com in self.commands:
+        x_clustered = None
+        y_clustered = None
+        for cls in self.classes:
             try:
-                if type(com) is str:
-                    # Use training data FVs (if text contains '?', '+',... need to replace with '[?]',... otherwise regex will fail
-                    for specchar in ['?', '+', '*', '(', ')']:
-                        com = com.replace(specchar, '[' + specchar + ']')
-
-                # Extract only rows of this intent
-                row_indexes = self.df_fv_all.index.str.match(str(com)+'.[0-9]+')
-                tmp_intent_matrix = self.df_fv_all[row_indexes]
-                if tmp_intent_matrix.shape[0] == 0:
-                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': For intent ID [' + str(com) + '], no rows matched! ' + 'Possibly data has no common features in FV...'
-                    log.Log.critical(errmsg, log_list=self.log_training)
+                # Extract only rows of this class
+                rows_of_class = x[y==cls]
+                if rows_of_class.shape[0] == 0:
                     continue
-                    #raise Exception(errmsg)
 
-                #
-                # TODO FutureWarning: Method .as_matrix will be removed in a future version. Use .values instead.
-                #
-                tmp_intent_array = tmp_intent_matrix.values
-
-                #
-                # TODO: Cluster intent
-                #
-
-                #
-                # Get some measure equivalent to "TF"
-                #
-                word_presence_array = (tmp_intent_array>0)*1
-                # Sum columns
-                keyword_presence_tf = np.sum(word_presence_array, axis=0) / word_presence_array.shape[0]
-                #log.Log.debugdebug(keyword_presence_tf)
-                self.df_intent_tf.loc[com] = keyword_presence_tf
-                #log.Log.debugdebug(df_intent_tf)
-                #raise Exception('Debug End')
-            except Exception as ex:
-                log.Log.critical(
+                log.Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Error for intent ID [' + com + '], at row indexes ' + str(row_indexes)
+                    + '\n\r\tRows of class "' + str(cls) + ':'
+                    + '\n\r' + str(rows_of_class)
+                )
+
+                #
+                # Cluster intent
+                #
+                # If there is only 1 row, then the cluster is the row
+                np_class_cluster = rows_of_class
+                # Otherwise we do proper clustering
+                if rows_of_class.shape[0] > 1:
+                    class_cluster = clstr.Cluster.cluster(
+                        matx          = rows_of_class,
+                        feature_names = x_name,
+                        # Not more than 5 clusters per label
+                        ncenters      = min(5, round(rows_of_class.shape[0] * 2/3)),
+                        iterations    = 20
+                    )
+                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+                if x_clustered is None:
+                    x_clustered = np_class_cluster
+                    y_clustered = np.array([cls]*x_clustered.shape[0])
+                else:
+                    # Append rows (thus 1st dimension at axis index 0)
+                    x_clustered = np.append(x_clustered, np_class_cluster, axis=0)
+                    # Appending to a 1D array always at axis=0
+                    y_clustered = np.append(y_clustered, [cls]*np_class_cluster.shape[0], axis=0)
+            except Exception as ex:
+                log.Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Error for class "' + cls + '", Exception msg ' + str(ex) + '.'
                     , log_list = self.log_training
                 )
                 raise(ex)
+
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tCluster of x\n\r' + str(x_clustered)
+            + '\n\r\ty labels for cluster: ' + str(y_clustered)
+        )
+
+        raise Exception('DEBUGGING ')
 
         #
         # Weigh by IDF above and normalize back
@@ -845,5 +805,16 @@ if __name__ == '__main__':
     ])
 
     idf_expected = [0.         ,0.         ,0.40546511 ,1.09861229 ,1.09861229 ,1.09861229]
+
+    # Cluster value will change everytime! So don't rely on this
+    x_clustered_expected = [
+        [0.40824829 ,0.40824829 ,0.81649658 ,0.         ,0.         ,0.        ],
+        [0.62200847 ,0.62200847 ,0.4553418  ,0.         ,0.         ,0.        ],
+        [0.46633233 ,0.32765729 ,0.         ,0.65531457 ,0.46633233 ,0.        ],
+        [0.26726124 ,0.         ,0.         ,0.80178373 ,0.53452248 ,0.        ],
+        [0.40811388 ,0.40811388 ,0.56622777 ,0.         ,0.         ,0.56622777],
+        [0.37796447 ,0.75592895 ,0.37796447 ,0.         ,0.         ,0.37796447]
+    ]
+    y_clustered_expected = ['B', 'B', 'C', 'C', 'A', 'A']
 
 

@@ -17,6 +17,10 @@ class Cluster:
 
     THRESHOLD_CHANGE_DIST_TO_CENTROIDS = 0.1
 
+    COL_CLUSTER_MATRIX = 'ClusterMatrix'
+    COL_CLUSTER_NDARRY = 'ClusterNdarray'
+    COL_CODE_BOOK      = 'PointClusterInfo'
+
     #
     # Get's optimal clusters, based on changes on sum of mean-square distance to centroids.
     # TODO: Need to include other factors like average centroid distance, average distance point-centroids, etc.
@@ -163,6 +167,7 @@ class Cluster:
         # Keep cluster matrix in data frame
         #
         nrows = cluster_kmeans[0].shape[0]
+        np_cluster = np.array(cluster_kmeans[0])
         df_cluster_matrix = pd.DataFrame(data=cluster_kmeans[0], columns=feature_names, index=list(range(0, nrows, 1)))
         lg.Log.debugdebug(
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -199,7 +204,11 @@ class Cluster:
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Final Cluster\n\r ' + str(df_point_cluster)
         )
-        return { 'ClusterMatrix': df_cluster_matrix, 'PointClusterInfo': df_point_cluster }
+        return {
+            Cluster.COL_CLUSTER_NDARRY: np_cluster,
+            Cluster.COL_CLUSTER_MATRIX: df_cluster_matrix,
+            Cluster.COL_CODE_BOOK:      df_point_cluster
+        }
 
 
 if __name__ == '__main__':
@@ -228,6 +237,7 @@ if __name__ == '__main__':
         ncenters=3,
         iterations=20
     )
-    #print(retval['ClusterMatrix'])
-    #print(retval['PointClusterInfo'])
+    print(retval[Cluster.COL_CLUSTER_NDARRY])
+    print(retval[Cluster.COL_CLUSTER_MATRIX])
+    print(retval[Cluster.COL_CODE_BOOK])
     exit(0)
