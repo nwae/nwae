@@ -30,7 +30,7 @@ class TextClusterBasic:
     @staticmethod
     def filter_sentence(
             sentence_text,
-            stopwords = (),
+            stopwords,
             sep = ' '
     ):
         all_words_split = sentence_text.split(sep)
@@ -129,6 +129,7 @@ class TextClusterBasic:
 
         sentence_all_words_filtered = TextClusterBasic.filter_sentence(
             sentence_text = all_words,
+            stopwords     = self.stopwords,
             sep           = ' '
         )
         all_words_split = sentence_all_words_filtered.split(sep=' ')

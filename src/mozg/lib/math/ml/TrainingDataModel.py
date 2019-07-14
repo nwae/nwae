@@ -182,7 +182,7 @@ def demo_text_data():
     retdict = TrainingDataModel.unify_word_features_for_text_data(
         label_id       = np_label_id.tolist(),
         text_segmented = np_text_segmented.tolist(),
-        keywords_remove_quartile = 50
+        keywords_remove_quartile = 0
     )
     np_wordlabels = retdict[TrainingDataModel.KEY_WORD_LABELS]
     fv = retdict[TrainingDataModel.KEY_SENTENCE_TENSOR]
