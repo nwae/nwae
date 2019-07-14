@@ -7,6 +7,7 @@ import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au
 import mozg.lib.lang.classification.TextClusterBasic as tcb
+import mozg.lib.math.Constants as const
 
 
 #
@@ -21,7 +22,8 @@ class TrainingDataModel:
             # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
             y,
             # np array 형식으호. Имена дименций x
-            x_name = None
+            x_name = None,
+            check_if_x_normalized = False
     ):
         # Only positive real values
         self.x = x
@@ -31,6 +33,8 @@ class TrainingDataModel:
             # If no x_name given we just use 0,1,2,3... as column names
             x_name = np.array(range(0, self.x.shape[1], 1))
         self.x_name = x_name
+
+        self.check_if_x_normalized = check_if_x_normalized
 
         if type(self.x) is not np.ndarray:
             raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
@@ -58,6 +62,49 @@ class TrainingDataModel:
 
         return
 
+    def weigh_x(
+            self,
+            w
+    ):
+        if type(w) is not np.ndarray:
+            raise Exception('Weight w must be of type numpy ndarray, got type "' + str(type(w)) + '".')
+
+        # Length of w must be same with length of x columns
+        pass_condition = (w.ndim == 1) and (w.shape[0] == self.x.shape[1])
+        if not pass_condition:
+            raise Exception('Weight w has wrong dimensions ' + str(w.shape)
+                            + ', not compatible with x dim ' + str(self.x.shape) + '.')
+
+        #
+        # Weigh x by w
+        #
+        x_w = np.multiply(self.x, w)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': x weighted by w:\n\r' + str(x_w)
+        )
+
+        #
+        # After weighing need to renormalize and do cleanup if necessary
+        #
+        for i in range(0, x_w.shape[0], 1):
+            p = x_w[i]
+            mag = np.sum(np.multiply(p, p)) ** 0.5
+            if mag < const.Constants.SMALL_VALUE:
+                x_w[i] = p * 0
+            else:
+                x_w[i] = p / mag
+
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': x weighted by w and renormalized:\n\r' + str(x_w)
+        )
+
+        self.x = x_w
+
+        # Now redo cleanup
+        self.__remove_bad_rows()
+
     #
     # Remove rows with 0's
     #
@@ -68,12 +115,15 @@ class TrainingDataModel:
             + '. x dimension ' + str(self.x.shape) + ', y dimension ' + str(self.y.shape)
         )
         for i in range(0,self.x.shape[0],1):
-            if np.sum(self.x[i]) < 0.00000000001:
+            p = self.x[i]
+            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > 0.000001
+            if (np.sum(p) < 0.000001) or (self.check_if_x_normalized and is_not_normalized):
                 indexes_to_remove.append(i)
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Bad x at index ' + str(i) + ', values ' + str(self.x[i])
+                    + ': Bad (sum to 0 or not normalized) x at index ' + str(i) + ', values ' + str(p)
                 )
+                continue
 
         if len(indexes_to_remove) > 0:
             self.x = np.delete(self.x, indexes_to_remove, axis=0)
@@ -230,7 +280,7 @@ class TrainingDataModel:
             v = sentence_fv[i]
             if np.sum(v) == 0:
                 continue
-            if abs(1 - np.sum(np.multiply(v,v))**0.5) > 0.00000000001:
+            if abs(1 - np.sum(np.multiply(v,v))**0.5) > 0.000001:
                 raise Exception(
                     'Feature vector ' + str(v) + ' not normalized!'
                 )
@@ -238,7 +288,8 @@ class TrainingDataModel:
         return TrainingDataModel(
             x = sentence_fv,
             x_name = np.array(fv_wordlabels),
-            y = np.array(label_id)
+            y = np.array(label_id),
+            check_if_x_normalized = True
         )
 
 

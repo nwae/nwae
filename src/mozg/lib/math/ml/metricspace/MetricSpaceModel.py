@@ -22,6 +22,7 @@ import mozg.lib.math.Cluster as clstr
 class MetricSpaceModel(threading.Thread):
 
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
+    SMALL_VALUE = 0.0000001
 
     def __init__(
             self,
@@ -191,34 +192,36 @@ class MetricSpaceModel(threading.Thread):
             + '\n\r\ty labels: ' + str(self.training_data.get_y())
         )
 
-        m = np.zeros((len(y), x.shape[1]))
-        self.df_rfv = pd.DataFrame(m, columns=x_name, index=y)
-        self.df_rfv_distance_furthest = pd.DataFrame({
-            reffv.RefFeatureVector.COL_COMMAND: y.copy(),
-            reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(y),
-            reffv.RefFeatureVector.COL_FEATURES: ['']*len(y)
-        })
-        # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
-        # log.Log.debugdebug(
-        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-        #     + '\n\r\tPrepared RFV data frames:\n\r' + str(self.df_rfv)
-        #     + '\n\r\tRFV distance furthest:\n\r' + str(self.df_rfv_distance_furthest)
-        #     , log_list = self.log_training
-        # )
-
         #
         # Get IDF first
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        # Sum x by class
-        idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
-        self.df_idf = pd.DataFrame({'Word': x_name, 'IDF': idf})
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': IDF Dataframe:\n\r' + str(self.df_idf)
-            , log_list = self.log_training
-        )
+        if weigh_idf:
+            # Sum x by class
+            idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
+            self.df_idf = pd.DataFrame({'Word': x_name, 'IDF': idf})
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': IDF Dataframe:\n\r' + str(self.df_idf)
+                , log_list = self.log_training
+            )
+
+            self.training_data.weigh_x(w=idf)
+
+            # Refetch again after weigh
+            x = self.training_data.get_x()
+            y = self.training_data.get_y()
+            x_name = self.training_data.get_x_name()
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
+                + '\n\r\ty\n\r' + str(y)
+                + '\n\r\tx_name\n\r' + str(x_name)
+                , log_list=self.log_training
+            )
+        raise Exception('DEBUGGING HERE')
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
@@ -288,7 +291,6 @@ class MetricSpaceModel(threading.Thread):
         #
         # Weigh by IDF above and normalize back
         #
-        # Because self.commands may change, due to deletion of invalid commands
         all_classes = self.classes.copy()
         for cs in all_classes:
             log.Log.debug(
@@ -296,87 +298,8 @@ class MetricSpaceModel(threading.Thread):
                 + ': Doing class [' + str(cs) + ']'
                 , log_list = self.log_training
             )
-            # Ex
+            # Extract class points
             x_tmp_class = x[x==cs]
-
-            #
-            # Sanity check to make sure FV is normalized 1
-            #
-
-            ok = False
-            while not ok:
-                ok = True
-                for mrow in range(0, sample_matrix.shape[0], 1):
-                    x = sample_matrix[mrow]
-                    textsam = text_samples[mrow]
-
-                    check_magnitude = np.sum( np.multiply(x,x) ) ** 0.5
-                    if abs(check_magnitude-1) > 0.000001:
-                        # Remove this row
-                        sample_matrix = np.delete(arr=sample_matrix, obj=mrow, axis=0)
-                        del text_samples[mrow]
-                        del text_samples_indexes[mrow]
-
-                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                                 + ': Removing row [' + str(mrow) + '] of training data.' +\
-                                 'Error in training data ['  + textsam + ']! FV for sample command [' + str(com) +\
-                                 '] not 1, but [' + str(check_magnitude) + '].'
-                        log.Log.critical(errmsg, log_list=self.log_training)
-                        # We need to break because the matrix dimensions changed in the loop
-                        ok = False
-                        break
-
-            #
-            # This case of empty sample matrix means all training data have been deleted due to bad data
-            #
-            if sample_matrix.shape[0] == 0:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Empty matrix for command [' + str(com) + '] Removing this command from list..'
-                log.Log.critical(errmsg, log_list=self.log_training)
-                len_before = len(self.commands)
-                self.commands.remove(com)
-                len_after = len(self.commands)
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': ' + str(len_after) + ' commands left from previous ' + str(len_before)
-                    + ' commands. Not calculating RFV for [' + str(com) + ']'
-                    , log_list = self.log_training
-                )
-
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Now dropping command [' + str(com) + '] from df_rfv..'
-                    , log_list = self.log_training
-                )
-                len_before = self.df_rfv.shape[0]
-                self.df_rfv = self.df_rfv.drop(labels=com, axis=0)
-                len_after = self.df_rfv.shape[0]
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': ' + str(len_after) + ' df_rfv left from previous ' + str(len_before)
-                    + ' commands.'
-                    , log_list = self.log_training
-                )
-
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Now dropping command [' + str(com) + '] from df_rfv_distance_furthest..'
-                    , log_list = self.log_training
-                )
-                len_before = self.df_rfv_distance_furthest.shape[0]
-                com_index = \
-                    self.df_rfv_distance_furthest.loc[
-                        self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_COMMAND] == com].index
-                self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.drop(labels=com_index, axis=0)
-                len_after = self.df_rfv_distance_furthest.shape[0]
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ':' + str(len_after) + ' df_rfv_distance_furthest left from previous '
-                    + str(len_before) + ' commands.'
-                    , log_list = self.log_training
-                )
-                continue
-
             #
             # Reference feature vector for the command is the average of all feature vectors
             # TODO: Important!!! Cluster a training intent into several clusters for even more accuracy
