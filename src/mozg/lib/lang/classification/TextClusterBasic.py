@@ -27,6 +27,25 @@ from inspect import currentframe, getframeinfo
 #
 class TextClusterBasic:
 
+    @staticmethod
+    def filter_sentence(
+            sentence_text,
+            sep = ' '
+    ):
+        new_sentence = ''
+        for word in sentence_text.split(sep=sep):
+            # Remove word/sentence separators, punctuations
+            if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
+                    or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
+                    or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
+                continue
+            # Clean up punctuations at the end of a word
+            word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
+            new_sentence = new_sentence + word + ' '
+        # Remove last space
+        new_sentence = new_sentence[0:(len(new_sentence)-1)]
+        return new_sentence
+
     #
     # Initialize with a list of text, assumed to be already word separated by space.
     # TODO: Can't default to just [space] as word separator for languages like Vietnamese.

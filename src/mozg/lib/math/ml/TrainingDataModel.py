@@ -14,6 +14,9 @@ import mozg.lib.lang.classification.TextClusterBasic as tcb
 #
 class TrainingDataModel:
 
+    KEY_WORD_LABELS = 'word_labels'
+    KEY_SENTENCE_TENSOR = 'sentence_tensor'
+
     def __init__(
             self,
             # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해
@@ -33,6 +36,7 @@ class TrainingDataModel:
 
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
+    # Returns sentence matrix array of combined word features
     #
     @staticmethod
     def unify_word_features_for_text_data(
@@ -134,8 +138,8 @@ class TrainingDataModel:
                 )
 
         return {
-            'wordlabels': np.array(fv_wordlabels),
-            'fv': sentence_fv
+            TrainingDataModel.KEY_WORD_LABELS: np.array(fv_wordlabels),
+            TrainingDataModel.KEY_SENTENCE_TENSOR: sentence_fv
         }
 
 
@@ -165,19 +169,24 @@ def demo_text_data():
     np_unique_classes_trimmed = np.array(unique_classes_trimmed)
     np_indexes = np.isin(element=unique_classes, test_elements=np_unique_classes_trimmed)
 
-    np_label_id = unique_classes[np_indexes]
-    np_text_segmented = text_segmented[np_indexes]
+    # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
+    np_label_id = np.array(list(unique_classes[np_indexes]))
+    np_text_segmented = np.array(list(text_segmented[np_indexes]))
 
     print(np_label_id[0:20])
     print(np_text_segmented[0:20])
+    print(np_text_segmented[0])
 
     retdict = TrainingDataModel.unify_word_features_for_text_data(
-        label_id = np_label_id.tolist(),
+        label_id       = np_label_id.tolist(),
         text_segmented = np_text_segmented.tolist(),
         keywords_remove_quartile = 0
     )
-    np_wordlabels = retdict['wordlabels']
-    fv = retdict['fv']
+    np_wordlabels = retdict[TrainingDataModel.KEY_WORD_LABELS]
+    fv = retdict[TrainingDataModel.KEY_SENTENCE_TENSOR]
+
+    error_count = 0
+    total_count = fv.shape[0]
     for i in range(0, fv.shape[0], 1):
         v = fv[i]
         print_indexes = v>0
@@ -185,6 +194,23 @@ def demo_text_data():
         v_show = v[print_indexes]
         df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
         print(df)
+        # Compare with original text
+        txt = np_text_segmented[i]
+        txt = tcb.TextClusterBasic.filter_sentence(
+            sentence_text = txt
+        )
+        txt_arr = txt.split(sep=' ')
+        labels_show = labels_show.tolist()
+        labels_show.sort()
+        txt_arr.sort()
+        if not (labels_show==txt_arr):
+            print(labels_show)
+            print(txt_arr)
+            error_count = error_count + 1
+            print('WARNING!')
+        else:
+            print('CHECK PASSED.')
+    print(str(error_count) + ' errors from ' + str(total_count) + ' tests')
 
     # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
 
