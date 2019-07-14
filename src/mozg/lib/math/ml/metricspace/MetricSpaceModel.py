@@ -221,7 +221,6 @@ class MetricSpaceModel(threading.Thread):
                 + '\n\r\tx_name\n\r' + str(x_name)
                 , log_list=self.log_training
             )
-        raise Exception('DEBUGGING HERE')
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
@@ -288,8 +287,10 @@ class MetricSpaceModel(threading.Thread):
             + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
         )
 
+        raise Exception('DEBUGGING HERE')
+
         #
-        # Weigh by IDF above and normalize back
+        # RFV Derivation
         #
         all_classes = self.classes.copy()
         for cs in all_classes:
@@ -722,15 +723,27 @@ if __name__ == '__main__':
 
     idf_expected = [0.         ,0.         ,0.40546511 ,1.09861229 ,1.09861229 ,1.09861229]
 
+    x_w_expected = [
+        [0.         ,0.         ,0.34624155 ,0.         ,0.         ,0.9381454 ],
+        [0.         ,0.         ,0.34624155 ,0.         ,0.         ,0.9381454 ],
+        [0.         ,0.         ,0.34624155 ,0.         ,0.         ,0.9381454 ],
+        [0.         ,0.         ,1.         ,0.         ,0.         ,0.        ],
+        [0.         ,0.         ,1.         ,0.         ,0.         ,0.        ],
+        [0.         ,0.         ,1.         ,0.         ,0.         ,0.        ],
+        [0.         ,0.         ,0.         ,0.83205029 ,0.5547002  ,0.        ],
+        [0.         ,0.         ,0.         ,0.70710678 ,0.70710678 ,0.        ],
+        [0.         ,0.         ,0.         ,0.89442719 ,0.4472136  ,0.        ]
+    ]
+    y_w_expected = ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
+    x_name_w_expected = ['넷', '두', '셋', '여섯', '다섯', '하나']
+
     # Cluster value will change everytime! So don't rely on this
     x_clustered_expected = [
-        [0.40824829 ,0.40824829 ,0.81649658 ,0.         ,0.         ,0.        ],
-        [0.62200847 ,0.62200847 ,0.4553418  ,0.         ,0.         ,0.        ],
-        [0.46633233 ,0.32765729 ,0.         ,0.65531457 ,0.46633233 ,0.        ],
-        [0.26726124 ,0.         ,0.         ,0.80178373 ,0.53452248 ,0.        ],
-        [0.40811388 ,0.40811388 ,0.56622777 ,0.         ,0.         ,0.56622777],
-        [0.37796447 ,0.75592895 ,0.37796447 ,0.         ,0.         ,0.37796447]
+        [0.         ,0.         ,0.34624155 ,0.         ,0.         ,0.9381454 ],
+        [0.         ,0.         ,1.         ,0.         ,0.         ,0.        ],
+        [0.         ,0.         ,0.         ,0.86323874 ,0.5009569  ,0.        ],
+        [0.         ,0.         ,0.         ,0.70710678 ,0.70710678 ,0.        ]
     ]
-    y_clustered_expected = ['B', 'B', 'C', 'C', 'A', 'A']
+    y_clustered_expected = ['A', 'B', 'C', 'C']
 
 
