@@ -198,14 +198,13 @@ class MetricSpaceModel(threading.Thread):
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
+        idf = None
         if weigh_idf:
             # Sum x by class
             idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
-            self.df_idf = pd.DataFrame({'Word': x_name, 'IDF': idf})
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': IDF Dataframe:\n\r' + str(self.df_idf)
-                , log_list = self.log_training
+                + '\n\r\tIDF values:\n\r' + str(idf)
             )
 
             self.training_data.weigh_x(w=idf)
@@ -370,12 +369,6 @@ class MetricSpaceModel(threading.Thread):
                 + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
             )
 
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tRFV:\n\r' + str(self.df_rfv)
-            + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
-        )
-
         #
         # TODO: Optimization
         # TODO: One idea is to find the biggest difference between features and magnify this difference
@@ -385,62 +378,73 @@ class MetricSpaceModel(threading.Thread):
         # TODO: RFV to start the iteration with the IDF of the feature.
         #
         # Sort
+        self.df_x_name = pd.DataFrame(data=x_name)
+        self.df_idf = pd.DataFrame(data=idf, index=x_name)
         self.df_rfv = self.df_rfv.sort_index()
         self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
-        self.df_fv_all = self.df_fv_all.sort_index()
-        self.df_intent_tf = self.df_intent_tf.sort_index()
+        self.df_x_clustered = pd.DataFrame(
+            data    = self.x_clustered,
+            index   = self.y_clustered,
+            columns = x_name
+        ).sort_index()
 
-        raise Exception('DEBUGGING')
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tx_name:\n\r' + str(self.df_x_name)
+            + '\n\r\tIDF:\n\r' + str(self.df_idf)
+            + '\n\r\tRFV:\n\r' + str(self.df_rfv)
+            + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
+            + '\n\r\tx clustered:\n\r' + str(self.df_x_clustered)
+        )
 
         #
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        fpath_idf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.words.idf.csv'
-        self.textcluster_bycategory.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
+        fpath_x_name = self.dir_path_model + '/' + self.identifier_string + '.' + '.x_name.csv'
+        self.df_x_name.to_csv(path_or_buf=fpath_x_name, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved IDF dimensions [' + str(self.textcluster_bycategory.df_idf.shape) + '] filepath [' + fpath_idf + ']'
+            + ': Saved x_name shape ' + str(self.df_x_name.shape) + ', filepath "' + fpath_x_name + ']'
             , log_list = self.log_training
         )
 
-        fpath_rfv = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.csv'
+        fpath_idf = self.dir_path_model + '/' + self.identifier_string + '.' + '.idf.csv'
+        self.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved IDF dimensions ' + str(self.df_idf.shape) + ' filepath "' + fpath_idf + '"'
+            , log_list = self.log_training
+        )
+
+        fpath_rfv = self.dir_path_model + '/' + self.identifier_string + '.' + '.rfv.csv'
         self.df_rfv.to_csv(path_or_buf=fpath_rfv, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions [' + str(self.df_rfv.shape) + '] filepath [' + fpath_rfv + ']'
+            + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + fpath_rfv + '"'
             , log_list = self.log_training
         )
 
-        fpath_dist_furthest = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.rfv.distance.csv'
+        fpath_dist_furthest = self.dir_path_model + '/' + self.identifier_string + '.' + '.rfv.distance.csv'
         self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV (furthest) dimensions [' + str(self.df_rfv_distance_furthest.shape)
-            + '] filepath [' + fpath_dist_furthest + ']'
+            + ': Saved RFV (furthest) dimensions ' + str(self.df_rfv_distance_furthest.shape)
+            + ' filepath "' + fpath_dist_furthest + '"'
             , log_list = self.log_training
         )
 
-        fpath_intent_tf = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.commands.words.tf.csv'
-        self.df_intent_tf.to_csv(path_or_buf=fpath_intent_tf, index=True, index_label='INDEX')
+        fpath_x_clustered = self.dir_path_model + '/' + self.identifier_string + '.' + '.x_clustered.csv'
+        self.df_x_clustered.to_csv(path_or_buf=fpath_x_clustered, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved TF dimensions [' + str(self.df_intent_tf.shape)
-            + '] filepath [' + fpath_intent_tf + ']'
-            , log_list = self.log_training
-        )
-
-        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
-        self.df_fv_all.to_csv(path_or_buf=fpath_fv_all, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data [' + str(self.df_fv_all.shape) + '] filepath [' + fpath_fv_all + ']'
+            + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + fpath_x_clustered + '"'
             , log_list=self.log_training
         )
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
-        fpath_updated_file = self.dirpath_rfv + '/' + self.botkey + '.lastupdated.txt'
+        fpath_updated_file = self.dir_path_model + '/' + self.identifier_string+ '.lastupdated.txt'
         try:
             f = open(file=fpath_updated_file, mode='w')
             f.write(str(dt.datetime.now()))
@@ -460,84 +464,6 @@ class MetricSpaceModel(threading.Thread):
             )
 
         return
-
-    #
-    # Get the measure of "separation" between different classes to the reference feature vector
-    #
-    def get_separation(self):
-
-        self.df_dist_closest_non_class = pd.DataFrame({'Command':list(self.commands),
-                                                       'DistanceClosestNonClass':[0]*len(self.commands)})
-        self.df_dist_avg_non_class = pd.DataFrame({'Command':list(self.commands),
-                                                   'DistanceAvgNonClass':[0]*len(self.commands)})
-
-        td = self.chat_training_data.df_training_data
-
-        for com in self.commands:
-            # RFV for this command
-            rfv_com = self.df_rfv.loc[com]
-
-            # Get average distance to all other non-class points
-            not_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID] != com
-            #text_non_class = list(td[ChatTraining.COL_TDATA_TEXT_SEGMENTED].loc[not_same_command])
-            text_non_class_indexes = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[not_same_command].index)
-
-            com_index = self.df_dist_closest_non_class.loc[self.df_dist_closest_non_class['Command'] == com].index
-
-            # Get sentence matrix of those not in this class
-            text_non_class_matrix = self.textcluster.sentence_matrix[text_non_class_indexes] * 1
-
-            # Now get the distance of all points to the RFV and sum them up
-            total_distance = 0
-            total_points = 0
-            distance_closest = 99999999
-            for i in range(0, text_non_class_matrix.shape[0], 1):
-                fv_text = text_non_class_matrix[i]
-                dist_vec = rfv_com - fv_text
-                dist = np.sum(dist_vec * dist_vec) ** 0.5
-                if distance_closest > dist:
-                    distance_closest = dist
-
-                total_points = total_points + 1
-                total_distance = total_distance + dist
-
-            avg_non_class = (float)(total_distance / total_points)
-            self.df_dist_closest_non_class.at[com_index, 'DistanceClosestNonClass'] = round(distance_closest,3)
-            self.df_dist_avg_non_class.at[com_index, 'DistanceAvgNonClass'] = round(avg_non_class,3)
-
-            same_class_furthest =\
-                self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[com_index].values
-            overlap = same_class_furthest - distance_closest > 0
-            if overlap:
-                log.Log.warning('Warning: Intent '+ com +
-                      ', same class furthest = ' + str(same_class_furthest) +
-                      ', closest non-class point = ' + str(distance_closest) +
-                      ', overlap = ' + str(overlap) +
-                      ', avg = ' + str(avg_non_class))
-
-            log.Log.info('Command = ' + com +
-                  ', same class furthest = ' + str(same_class_furthest) +
-                  ', closest non-class point = ' + str(distance_closest) +
-                  ', overlap = ' + str(overlap) +
-                  ', avg = ' + str(avg_non_class))
-
-        return
-
-    def read_fv_training_data_into_text(self):
-        fpath_fv_all = self.dirpath_rfv + '/' + self.botkey + '.' + 'chatbot.fv.all.csv'
-        df = pd.read_csv(filepath_or_buffer=fpath_fv_all, sep=',', index_col=0)
-
-        df_text = pd.DataFrame(data={'Text':['']*df.shape[0]}, index=df.index)
-        # Only numpy array type can work like a data frame
-        kwlist = np.array(df.columns)
-        df_word_presence = df>0
-        for idx in df.index:
-            presence_i = (df_word_presence.loc[idx]).tolist()
-            text_nonzero = kwlist[presence_i]
-            text_i = ' '.join(text_nonzero)
-            df_text['Text'].at[idx] = text_i
-
-        return df_text
 
 
 def demo_chat_training():
