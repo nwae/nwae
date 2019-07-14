@@ -38,11 +38,16 @@ class TrainingDataModel:
                 + ' is not equal to number of labels = ' + str(self.y.shape[0])
             )
 
-        if ( (self.x_name is not None) and (self.x.shape[1] != self.x_name.shape[0]) ):
-            raise Exception(
-                'Number of x columns = ' + str(self.x.shape[1])
-                + ' is not equal to number of x names = ' + str(self.x_name.shape[0])
-            )
+        # The x_names are names of the dimension points of x
+        # So if x is 2 dimensions, and the columns are of length 10, then x_names must be of length 10
+        # If x is 3 dimensions with the 2nd and 3rd dimensions of shape (12,55), then x_names must be (12,55) in shape
+        if self.x_name is not None:
+            for i_dim in range(1,self.x.ndim,1):
+                if self.x.shape[i_dim] != self.x_name.shape[i_dim-1]:
+                    raise Exception(
+                        'Number of x dim ' + str(i_dim) + ' = ' + str(self.x.shape[i_dim])
+                        + ' is not equal to number of x names dim ' + str(i_dim-1) + ' = ' + str(self.x_name.shape[i_dim-1])
+                    )
 
         return
 
