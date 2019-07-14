@@ -8,9 +8,11 @@ import threading
 import re
 import datetime as dt
 import mozg.lib.chat.classification.training.RefFeatureVec as reffv
-import mozg.lib.math.ml.TrainingDataModel as tdmodel
+import mozg.lib.math.ml.TrainingDataModel as tdm
+import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
+import mozg.common.data.security.Auth as au
 
 
 #
@@ -40,10 +42,10 @@ class MetricSpaceModel(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
-        if type(self.training_data) is not tdmodel.TrainingDataModel:
+        if type(self.training_data) is not tdm.TrainingDataModel:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Training data must be of type "' + str(tdmodel.TrainingDataModel.__class__)
+                + ': Training data must be of type "' + str(tdm.TrainingDataModel.__class__)
                 + '", got type "' + str(type(self.training_data)) + '" instead from object ' + str(self.training_data) + '.'
             )
 
@@ -70,7 +72,7 @@ class MetricSpaceModel(threading.Thread):
 
         self.cluster = None
         self.cluster_bycategory = None
-        # Commands or categories or classes of the classification
+        #  Classes of the classification
         self.classes = None
 
         self.bot_training_start_time = None
@@ -93,7 +95,8 @@ class MetricSpaceModel(threading.Thread):
     ):
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ' : Calculating Top Key Features. Using the following stop features:' + str(self.stopwords))
+            + ' : Calculating Top Key Features. Using the following stop features: ' + str(self.stop_features)
+        )
 
         #
         # 2. Get highest frequency words from the split sentences, and remove stop words
@@ -105,6 +108,10 @@ class MetricSpaceModel(threading.Thread):
             'Feature': self.training_data.get_y(),
             'Value': x_combined
         })
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Combined Features'
+        )
 
         df_feature_freq = pd.DataFrame()
 
@@ -756,7 +763,73 @@ class MetricSpaceModel(threading.Thread):
         return df_text
 
 
+def demo_chat_training():
+    topdir = '/Users/mark.tan/git/mozg.nlp'
+    chat_td = ctd.ChatTrainingData(
+        use_db     = True,
+        db_profile = 'mario2',
+        account_id = 4,
+        bot_id     = 22,
+        lang       = 'cn',
+        bot_key    = 'db_mario2.accid4.botid22',
+        dirpath_traindata      = None,
+        postfix_training_files = None,
+        dirpath_wordlist       = topdir + '/nlp.data/wordlist',
+        dirpath_app_wordlist   = topdir + '/nlp.data/app/chats',
+        dirpath_synonymlist    = topdir + '/nlp.data/app/chats'
+    )
+
+    td = chat_td.get_training_data_from_db()
+    # Take just ten labels
+    unique_classes = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
+    text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
+
+    keep = 10
+    unique_classes_trimmed = list(set(unique_classes))[0:keep]
+    np_unique_classes_trimmed = np.array(unique_classes_trimmed)
+    np_indexes = np.isin(element=unique_classes, test_elements=np_unique_classes_trimmed)
+
+    # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
+    np_label_id = np.array(list(unique_classes[np_indexes]))
+    np_text_segmented = np.array(list(text_segmented[np_indexes]))
+
+    print(np_label_id[0:20])
+    print(np_text_segmented[0:20])
+    print(np_text_segmented[0])
+
+    #
+    # Finally we have our text data in the desired format
+    #
+    tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
+        label_id       = np_label_id.tolist(),
+        text_segmented = np_text_segmented.tolist(),
+        keywords_remove_quartile = 0
+    )
+
+    print(tdm_obj.get_x())
+    print(tdm_obj.get_x_name())
+    print(tdm_obj.get_y())
+
+    ms_model = MetricSpaceModel(
+        identifier_string = 'demo_msmodel_accid4_botid22',
+        # Directory to keep all our model files
+        dir_path_model    = topdir + '/app.data/intent/rfv',
+        # Training data in TrainingDataModel class type
+        training_data     = tdm_obj,
+        # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
+        key_features_remove_quartile = 0,
+        # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
+        stop_features                = (),
+        # If we will create an "IDF" based on the initial features
+        weigh_idf                    = True
+    )
+    return
+
+
 if __name__ == '__main__':
+    au.Auth.init_instances()
+    demo_chat_training()
+
     x = np.array(
         [
             # 무리 A
@@ -776,7 +849,7 @@ if __name__ == '__main__':
     y = np.array(
         ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
     )
-    tdmodel_obj = tdmodel.TrainingDataModel(
+    tdmodel_obj = tdm.TrainingDataModel(
         x = x,
         y = y
     )

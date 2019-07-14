@@ -19,10 +19,13 @@ class TrainingDataModel:
             # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해
             x,
             # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
-            y
+            y,
+            # np array 형식으호. Имена дименций x
+            x_name
     ):
         self.x = x
         self.y = y
+        self.x_name = x_name
         return
 
     def get_x(self):
@@ -31,6 +34,9 @@ class TrainingDataModel:
     def get_y(self):
         return self.y
 
+    def get_x_name(self):
+        return self.x_name
+
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
     # Returns sentence matrix array of combined word features
@@ -38,9 +44,11 @@ class TrainingDataModel:
     #
     @staticmethod
     def unify_word_features_for_text_data(
-            # At least 2 columns must exist 'Intent ID', 'TextSegmented'
-            label_id,
+            # List of segmented text data (the "x" but not in our unified format yet)
+            # This function will convert this into our unified "x".
             text_segmented,
+            # List of labels (the "y")
+            label_id,
             keywords_remove_quartile,
             stopwords = (),
     ):
@@ -139,7 +147,8 @@ class TrainingDataModel:
 
         return TrainingDataModel(
             x = sentence_fv,
-            y = np.array(fv_wordlabels)
+            x_name = np.array(fv_wordlabels),
+            y = np.array(label_id)
         )
 
 
@@ -182,7 +191,7 @@ def demo_text_data():
         text_segmented = np_text_segmented.tolist(),
         keywords_remove_quartile = 0
     )
-    np_wordlabels = tdm_obj.get_y()
+    np_words = tdm_obj.get_x_name()
     fv = tdm_obj.get_x()
 
     error_count = 0
@@ -190,7 +199,7 @@ def demo_text_data():
     for i in range(0, fv.shape[0], 1):
         v = fv[i]
         print_indexes = v>0
-        labels_show = np_wordlabels[print_indexes]
+        labels_show = np_words[print_indexes]
         v_show = v[print_indexes]
         df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
 
@@ -203,7 +212,7 @@ def demo_text_data():
         txt_arr = txt.split(sep=' ')
         # Filter out words not in wordlabels as we might have removed some quartile
         np_txt_arr = np.array(txt_arr)
-        np_txt_arr = np_txt_arr[np.isin(element=np_txt_arr, test_elements=np_wordlabels)]
+        np_txt_arr = np_txt_arr[np.isin(element=np_txt_arr, test_elements=np_words)]
         txt_arr = np_txt_arr.tolist()
         if len(txt_arr) == 0:
             print('Sentence "' + txt + '" became nothing after removing quartile.')
