@@ -51,6 +51,42 @@ class TrainingDataModel:
 
         return
 
+    #
+    # x training data is usually huge, here we print non zero columns only for purposes of saving, etc.
+    #
+    def get_print_friendly_x(
+            self,
+            min_value_as_one = True
+    ):
+        # If no x_name given we just use 0,1,2,3... as column names
+        x_name = np.array(range(0,self.x.shape[1],1))
+        if self.x_name is not None:
+            x_name = self.x_name
+
+        x_dict = {}
+        for i in range(0, self.x.shape[0], 1):
+            # Extract training data row
+            v = self.x[i]
+            # Keep only those > 0
+            non_zero_indexes = v > 0
+            # Extract x and x_name with non-zero x values
+            x_name_show = x_name[non_zero_indexes]
+            v_show = v[non_zero_indexes]
+
+            min_v = 0.0
+            try:
+                min_v = np.min(v_show)
+            except Exception as ex:
+                raise Exception('Cannot get min val for x index "' + str(i)
+                                + '", values ' + str(v_show) + '.')
+
+            if min_value_as_one:
+                v_show = np.round(v_show / min_v, 1)
+
+            # Column names mean nothing because we convert to values list
+            x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
+        return x_dict
+
     def get_x(self):
         return self.x
 
@@ -275,8 +311,9 @@ def demo_text_data():
 if __name__ == '__main__':
     au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
-    demo_text_data()
-    exit(0)
+    #demo_text_data()
+    #exit(0)
+
     x = np.array(
         [
             # 무리 A
@@ -296,3 +333,12 @@ if __name__ == '__main__':
     y = np.array(
         ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
     )
+    x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+    obj = TrainingDataModel(
+        x = x,
+        y = y,
+        x_name = x_name
+    )
+    x_friendly = obj.get_print_friendly_x()
+    for k in x_friendly.keys():
+        print(x_friendly[k])

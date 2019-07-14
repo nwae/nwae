@@ -129,7 +129,7 @@ class MetricSpaceModel(threading.Thread):
 
         x = self.training_data.get_x()
         y = self.training_data.get_y()
-        x_names = self.training_data.get_x_names()
+        x_name = self.training_data.get_x_name()
 
         #
         # Here training data must be prepared in the correct format already
@@ -137,7 +137,7 @@ class MetricSpaceModel(threading.Thread):
         #
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training data: ' + str(self.training_data)
+            + ': Training data:\n\r' + str(self.training_data)
         )
 
         # Prepare data frames to hold RFV, etc. These also may change due to deletion of invalid commands.
@@ -147,11 +147,11 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
         m = np.zeros((len(y), x.shape[1]))
-        self.df_rfv = pd.DataFrame(m, columns=x_names.copy(), index=self)
+        self.df_rfv = pd.DataFrame(m, columns=x_name, index=y)
         self.df_rfv_distance_furthest = pd.DataFrame({
             reffv.RefFeatureVector.COL_COMMAND: y.copy(),
-            reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[ChatTraining.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.commands),
-            reffv.RefFeatureVector.COL_TEXT: ['']*len(self.commands)
+            reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(y),
+            reffv.RefFeatureVector.COL_FEATURES: ['']*len(y)
         })
 
         #
@@ -159,42 +159,19 @@ class MetricSpaceModel(threading.Thread):
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        log.Log.critical(
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Joining all training data in the same command/intent to get IDF...'
+            + ': Merging training data in the same class (y) to get "IDF" weights...'
             , log_list = self.log_training
         )
-        i = 0
-        text_bycategory = [''] * len(self.commands)
-        for com in self.commands:
-            # Join all text of the same command/intent together and treat them as one
-            is_same_command = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]==com
-            text_samples = list(td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[is_same_command])
-            text_com = ' '.join(text_samples)
-            text_bycategory[i] = text_com
-            i = i + 1
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ': Joined intents: ' + str(text_bycategory))
-        # Create a new TextCluster object
-        self.textcluster_bycategory = tcb.TextClusterBasic(text=text_bycategory, stopwords=stopwords)
-        # Always use the same keywords FV!!
-        self.textcluster_bycategory.set_keywords(df_keywords=self.textcluster.df_keywords_for_fv.copy())
+        # Sum x by class
+        df_tmp = pd.DataFrame(data=x, index=y)
+        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
+        print(df_agg_sum.values)
+        print(type(df_agg_sum))
+        print(x_name)
 
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Calculating sentence matrix of combined Intents to get IDF...'
-            , log_list = self.log_training
-        )
-        self.textcluster_bycategory.calculate_sentence_matrix(
-            freq_measure='normalized',
-            feature_presence_only=False,
-            idf_matrix=None
-        )
-
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) + ': Calculating IDF...'
-            , log_list = self.log_training
-        )
+        raise Exception('DEBUGGING')
         self.textcluster_bycategory.calculate_idf()
         # Create a column matrix for IDF
         idf_matrix = self.textcluster_bycategory.idf_matrix.copy()
@@ -738,9 +715,11 @@ def demo_chat_training():
 
 if __name__ == '__main__':
     au.Auth.init_instances()
-    demo_chat_training()
 
-    x = np.array(
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    #demo_chat_training()
+
+    x_expected = np.array(
         [
             # 무리 A
             [1, 2, 1, 1, 0, 0],
@@ -756,14 +735,60 @@ if __name__ == '__main__':
             [0, 1, 0, 1, 1, 2]
         ]
     )
+    texts = [
+        # 'A'
+        '하나 두 두 셋 넷',
+        '하나 하나 두 셋 셋 넷',
+        '하나 두 셋 넷',
+        # 'B'
+        '두 셋 셋 넷',
+        '두 두 셋 셋 넷 넷',
+        '두 두 셋 넷 넷',
+        # 'C'
+        '넷 다섯 다섯 여섯 여섯 여섯',
+        '두 넷 넷 다섯 다섯 여섯 여섯',
+        '두 넷 다섯 여섯 여섯',
+    ]
+
     y = np.array(
         ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
     )
-    tdmodel_obj = tdm.TrainingDataModel(
-        x = x,
-        y = y
+    x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+    #
+    # Finally we have our text data in the desired format
+    #
+    tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
+        label_id       = y.tolist(),
+        text_segmented = texts,
+        keywords_remove_quartile = 0
     )
-    print(tdmodel_obj.get_x())
-    print(tdmodel_obj.get_x().shape)
-    print(tdmodel_obj.get_y())
-    print(tdmodel_obj.get_y().shape)
+
+    x_friendly = tdm_obj.get_print_friendly_x()
+
+    print(tdm_obj.get_x())
+    for k in x_friendly.keys():
+        print(x_friendly[k])
+    print(tdm_obj.get_x_name())
+    print(tdm_obj.get_y())
+
+    topdir = '/Users/mark.tan/git/mozg.nlp'
+    ms_model = MetricSpaceModel(
+        identifier_string = 'demo_msmodel_testdata',
+        # Directory to keep all our model files
+        dir_path_model    = topdir + '/app.data/intent/rfv',
+        # Training data in TrainingDataModel class type
+        training_data     = tdm_obj,
+        # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
+        key_features_remove_quartile = 0,
+        # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
+        stop_features                = (),
+        # If we will create an "IDF" based on the initial features
+        weigh_idf                    = True
+    )
+    ms_model.train(
+        key_features_remove_quartile = 0,
+        stop_features = (),
+        weigh_idf     = True
+    )
+
+
