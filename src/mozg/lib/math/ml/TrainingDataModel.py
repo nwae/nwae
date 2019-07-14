@@ -193,7 +193,9 @@ def demo_text_data():
         labels_show = np_wordlabels[print_indexes]
         v_show = v[print_indexes]
         df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
-        print(df)
+
+        min_freq = np.min(v_show)
+
         # Compare with original text
         txt = np_text_segmented[i]
         txt = tcb.TextClusterBasic.filter_sentence(
@@ -201,15 +203,24 @@ def demo_text_data():
         )
         txt_arr = txt.split(sep=' ')
         labels_show = labels_show.tolist()
-        labels_show.sort()
+        # Some words need to repeat more than once
+        new_labels_show = []
+        for j in range(0,df.shape[0],1):
+            char = df['wordlabel'].loc[j]
+            freq = int(df['fv'].loc[j] / min_freq)
+            for k in range(0,freq,1):
+                new_labels_show.append(char)
+
+        new_labels_show.sort()
         txt_arr.sort()
-        if not (labels_show==txt_arr):
-            print(labels_show)
+        if not (new_labels_show==txt_arr):
+            print(df)
+            print(new_labels_show)
             print(txt_arr)
             error_count = error_count + 1
             print('WARNING!')
         else:
-            print('CHECK PASSED.')
+            print(str(i) + '. CHECK PASSED.')
     print(str(error_count) + ' errors from ' + str(total_count) + ' tests')
 
     # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')

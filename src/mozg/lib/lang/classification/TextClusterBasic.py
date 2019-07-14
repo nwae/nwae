@@ -34,6 +34,7 @@ class TextClusterBasic:
     ):
         new_sentence = ''
         for word in sentence_text.split(sep=sep):
+            word = word.lower()
             # Remove word/sentence separators, punctuations
             if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
                     or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
