@@ -380,6 +380,12 @@ class MetricSpaceModel(threading.Thread):
         # Sort
         self.df_x_name = pd.DataFrame(data=x_name)
         self.df_idf = pd.DataFrame(data=idf, index=x_name)
+        xy = tdm.TrainingDataModel(
+            x = np.array(self.df_rfv.values),
+            y = np.array(self.df_rfv.index),
+            x_name = np.array(self.df_rfv.columns)
+        )
+        rfv_friendly = xy.get_print_friendly_x()
         self.df_rfv = self.df_rfv.sort_index()
         self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
         self.df_x_clustered = pd.DataFrame(
@@ -422,6 +428,14 @@ class MetricSpaceModel(threading.Thread):
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + fpath_rfv + '"'
+            , log_list = self.log_training
+        )
+
+        fpath_rfv_friendly = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.csv'
+        self.df_rfv.to_csv(path_or_buf=fpath_rfv_friendly, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved RFV (friendly format) dimensions ' + str(rfv_friendly) + ' filepath "' + fpath_rfv_friendly + '"'
             , log_list = self.log_training
         )
 
@@ -538,8 +552,8 @@ def demo_chat_training():
 
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-    demo_chat_training()
-    exit(0)
+    #demo_chat_training()
+    #exit(0)
 
     x_expected = np.array(
         [

@@ -139,9 +139,10 @@ class TrainingDataModel:
     #
     def get_print_friendly_x(
             self,
-            min_value_as_one = True
+            min_value_as_one = False
     ):
         x_dict = {}
+        # Loop every sample
         for i in range(0, self.x.shape[0], 1):
             # Extract training data row
             v = self.x[i]
@@ -165,7 +166,12 @@ class TrainingDataModel:
                 v_show = np.round(v_show / min_v, 1)
 
             # Column names mean nothing because we convert to values list
-            x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
+            #x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
+            x_dict[str(i)] = {
+                'index': i,
+                'x_name': x_name_show.tolist(),
+                'x': v_show.tolist()
+            }
         return x_dict
 
     def get_x(self):
@@ -424,5 +430,6 @@ if __name__ == '__main__':
         x_name = x_name
     )
     x_friendly = obj.get_print_friendly_x()
+    print(x_friendly)
     for k in x_friendly.keys():
-        print(x_friendly[k])
+        print(str(k) + ': ' + str(x_friendly[k]))
