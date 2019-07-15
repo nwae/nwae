@@ -359,7 +359,7 @@ class IntentEngine:
                     # Convert Index column to string
                     self.df_x_clustered_ro.index = self.df_x_clustered_ro.index.astype(str)
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': x clustered data: Read ' + str(self.df_x_clustered_ro.shape[0]) + ' lines')
+                            + ': x clustered data: Read ' + str(self.df_x_clustered_ro.shape[0]) + ' lines\n\r')
                 self.np_x_clustered_ro = np.array(self.df_x_clustered_ro.values)
                 log.Log.info(self.df_x_clustered_ro)
                 log.Log.info(self.np_x_clustered_ro)
@@ -411,17 +411,12 @@ class IntentEngine:
                 raise Exception('RFV error')
 
         if not self.minimal:
-            for idx in list(self.df_x_clustered_ro.index):
-                fv = np.array(self.df_x_clustered_ro.loc[idx].values)
-                if len(fv.shape) != 1:
-                    raise Exception(
-                        str(self.__class__) + ': x data vector must be 1-dimensional, got ' + str(len(fv.shape))
-                        + '-dimensional for index ' + str(idx)
-                        + '!! Possible clash of index (e.g. for number type index column 1234.1 is identical to 1234.10)')
+            for i in range(0,self.np_x_clustered_ro.shape[0],1):
+                fv = self.np_x_clustered_ro[i]
                 dist = np.sum(np.multiply(fv,fv))**0.5
                 if abs(dist-1) > 0.000001:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Warning: x fv error for index [' + str(idx) + '] not 1, ' + str(dist)
+                             + ': Warning: x fv error for index [' + str(i) + '] not 1, ' + str(dist)
                     log.Log.critical(errmsg)
                     raise Exception(errmsg)
         return
