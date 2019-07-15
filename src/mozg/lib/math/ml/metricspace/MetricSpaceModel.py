@@ -251,6 +251,7 @@ class MetricSpaceModel(threading.Thread):
                     + '\n\r\tIDF values:\n\r' + str(self.idf)
                 )
 
+                # This will change the x in self.training data
                 self.training_data.weigh_x(w=self.idf)
 
                 # Refetch again after weigh
@@ -307,6 +308,16 @@ class MetricSpaceModel(threading.Thread):
                             iterations    = 20
                         )
                         np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+
+                    # Renormalize x_clustered
+                    for ii in range(0,np_class_cluster.shape[0],1):
+                        v = np_class_cluster[ii]
+                        mag = np.sum(np.multiply(v, v))**0.5
+                        print('Before normalize ' + str(np_class_cluster[ii]))
+                        v = v / mag
+                        np_class_cluster[ii] = v
+                        print('After normalize ' + str(np_class_cluster[ii]))
+
                     if self.x_clustered is None:
                         self.x_clustered = np_class_cluster
                         self.y_clustered = np.array([cs]*self.x_clustered.shape[0])
@@ -424,6 +435,8 @@ class MetricSpaceModel(threading.Thread):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
                      + ' Exception message ' + str(ex) + '.'
+            log.Log.error(errmsg)
+            raise ex
         finally:
             self.__mutex_training.release()
         return
@@ -549,7 +562,7 @@ class MetricSpaceModel(threading.Thread):
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys)
+                + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
                 + ' filepath "' + fpath_x_clustered_friendly_txt + '"'
                 , log_list=self.log_training
             )
@@ -761,7 +774,7 @@ class MetricSpaceModel(threading.Thread):
             cs = self.y_clustered[i]
             fv = self.x_clustered[i]
             dist = np.sum(np.multiply(fv,fv))**0.5
-            if abs(dist-1) > 0.000001:
+            if abs(dist-1) > const.Constants.SMALL_VALUE:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Warning: x fv error for class "' + str(cs)\
                          + '" at index ' + str(i) + ' not 1, ' + str(dist)
@@ -841,8 +854,6 @@ def demo_chat_training():
 
 
 def unit_test():
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-
     x_expected = np.array(
         [
             # 무리 A
@@ -967,6 +978,8 @@ def unit_test():
     y_clustered_expected = ['A', 'B', 'C', 'C']
 
 if __name__ == '__main__':
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+
     topdir = '/Users/mark.tan/git/mozg'
     #unit_test()
     #demo_chat_training()
