@@ -156,9 +156,20 @@ class Cluster:
         lg.Log.debug(
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start clustering ncenters=' + str(ncenters) + ', data=\n\r' + str(matx)
+            + ', shape ' + str(matx.shape) + '.'
         )
+        if ncenters > matx.shape[0]:
+            ncenters = matx.shape[0]
+
+        if len(feature_names) != matx.shape[1]:
+            raise Exception(
+                str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Number of columns for matx of shape ' + str(matx.shape)
+                + ' not equal to feature name columns ' + str(len(feature_names)) + '.'
+            )
+
         # Set starting centers to be the top keywords
-        ncols_matx = matx.shape[1]
+        # ncols_matx = matx.shape[1]
         # centers_initial = np.zeros((ncenters, ncols_matx))
         cluster_kmeans = kmeans(matx, k_or_guess=ncenters, iter=iterations)
         cluster_idx = vq(obs=matx, code_book=cluster_kmeans[0])
@@ -214,7 +225,7 @@ class Cluster:
 if __name__ == '__main__':
     lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
     fn = ['a', 'b', 'c', 'd', 'e']
-    m = np.zeros((8, 5))
+    m = np.zeros((9, 5))
     m[0] = [1,2,1,0,0]
     m[1] = [2,1,2,0,0]
     m[2] = [1,1,1,0,0]
@@ -223,6 +234,7 @@ if __name__ == '__main__':
     m[5] = [0,10,10,0,10]
     m[6] = [0,9,11,0,12]
     m[7] = [0,10,9,0,10]
+    m[8] = [0,10,9,0,10]
 
     # Optimal clusters
     optimal_clusters = Cluster.get_optimal_cluster(
@@ -234,10 +246,27 @@ if __name__ == '__main__':
     retval = Cluster.cluster(
         matx=m,
         feature_names=fn,
-        ncenters=3,
+        ncenters=10,
         iterations=20
     )
     print(retval[Cluster.COL_CLUSTER_NDARRY])
     print(retval[Cluster.COL_CLUSTER_MATRIX])
     print(retval[Cluster.COL_CODE_BOOK])
-    exit(0)
+
+    fn = ['a', 'b', 'c', 'd', 'e']
+    m = np.array([
+        [1.0, 2.0 ,1.0 ,5.0 ,0.0],
+        [1.0 ,2.0 ,1.0 ,5.0 ,0.0]
+    ],
+    ndmin=2)
+    print(m)
+
+    retval = Cluster.cluster(
+        matx=m,
+        feature_names=fn,
+        ncenters=10,
+        iterations=20
+    )
+    print(retval[Cluster.COL_CLUSTER_NDARRY])
+    print(retval[Cluster.COL_CLUSTER_MATRIX])
+    print(retval[Cluster.COL_CODE_BOOK])

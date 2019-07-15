@@ -261,8 +261,11 @@ class IntentEngine:
             if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_idf_ro.index = self.df_idf_ro.index.astype(str)
-            log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines')
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines'
+            )
+            log.Log.info(self.df_idf_ro)
 
             self.df_rfv_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv,
@@ -272,22 +275,26 @@ class IntentEngine:
             if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_rfv_ro.index = self.df_rfv_ro.index.astype(str)
-            log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': RFV Data: Read ' + str(self.df_rfv_ro.shape[0]) + ' lines: ')
-            log.Log.important(self.df_rfv_ro.loc[self.df_rfv_ro.index[0:10]])
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': RFV Data: Read ' + str(self.df_rfv_ro.shape[0]) + ' lines: '
+            )
+            log.Log.info(self.df_rfv_ro)
             # Cached the numpy array
             self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cached huge RFV array from dataframe..')
 
             # f = open(file=fpath_rfv_friendly, mode='w')
-            with open(self.fpath_rfv_friendly, 'r') as f:
+            with open(self.fpath_rfv_friendly_json, 'r') as f:
                 self.rfv_friendly_json = json.load(f)
             f.close()
-            log.Log.critical(
+            log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Rfv friendly read ' + str(self.rfv_friendly_json) + ' from file "' + self.fpath_rfv_friendly + '".'
+                + ': Rfv friendly read keys ' + str(self.rfv_friendly_json.keys())
+                + ' from file "' + self.fpath_rfv_friendly_json + '".'
             )
+            log.Log.info(self.rfv_friendly_json)
 
             self.df_rfv_dist_furthest_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv_dist,
@@ -301,25 +308,25 @@ class IntentEngine:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_dist_furthest_ro.shape[0]) + ' lines'
             )
+            log.Log.info(self.df_rfv_dist_furthest_ro)
 
             #
             # RFV is ready, means we can start detecting intents. But still can't use training data
             #
             self.is_rfv_ready = True
 
-            # TODO When we go live to production, training data is no longer in file but in DB. How will we do?
             if not self.minimal:
-                self.df_fv_training_data_ro = pd.read_csv(
-                    filepath_or_buffer = self.fpath_fv_all,
+                self.df_x_clustered_ro = pd.read_csv(
+                    filepath_or_buffer = self.fpath_x_clustered,
                     sep       = ',',
                     index_col = 'INDEX'
                 )
                 if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                     # Convert Index column to string
-                    self.df_fv_training_data_ro.index = self.df_fv_training_data_ro.index.astype(str)
+                    self.df_x_clustered_ro.index = self.df_x_clustered_ro.index.astype(str)
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': FV Training Data: Read ' + str(self.df_fv_training_data_ro.shape[0]) + ' lines')
-                log.Log.info(self.df_fv_training_data_ro[0:5])
+                            + ': x clustered data: Read ' + str(self.df_x_clustered_ro.shape[0]) + ' lines')
+                log.Log.info(self.df_x_clustered_ro)
                 # This is very slow, we do it first! Cache it!
                 self.index_command_fv_training_data_ro = np.array(self.get_command_index_from_training_data_index())
                 log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

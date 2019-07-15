@@ -68,7 +68,7 @@ class IntentEngineThread(threading.Thread):
                      + '" Exception in background thread rfv/etc from file. ' + str(ex)
             log.Log.critical(errmsg)
             # Don't throw exception here, no one is catching it as it is a thread
-            # raise Exception(errmsg)
+            raise Exception(errmsg)
 
     def run(self):
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
