@@ -199,6 +199,7 @@ class TrainingDataModel:
             label_id,
             keywords_remove_quartile,
             stopwords = (),
+            x_name_preferred_order = None,
     ):
         log_training = []
 
