@@ -178,12 +178,34 @@ class MetricSpaceModel(threading.Thread):
             x
     ):
         x_classes = None
+
+        log.Log.debugdebug('x: ' + str(x))
         # Weigh x with idf
         x_weighted = x * self.idf
-        print(x_weighted)
-        raise Exception('DEBUGGING')
+        log.Log.debugdebug('x_weighted: ' + str(x_weighted))
 
         # Calculate distance to RFV
+        for i in range(0,x_weighted.shape[0]):
+            v = x_weighted[i]
+            log.Log.debugdebug('v: ' + str(v))
+
+            # Create an array with the same number of rows with rfv
+            vv = np.repeat(a=v, repeats=self.rfv_x.shape[0], axis=0)
+            log.Log.debugdebug('vv repeat: ' + str(vv))
+            dif = vv - self.rfv_x
+            log.Log.debugdebug('dif with rfv: ' + str(dif))
+            # Square every element in the matrix
+            dif2 = np.power(dif, 2)
+            log.Log.debugdebug('dif squared: ' + str(dif2))
+            # Sum every row to create a single column matrix
+            dif2_sum = dif2.sum(axis=1)
+            log.Log.debugdebug('dif aggregated sum: ' + str(dif2_sum))
+            # Take the square root of every element in the single column matrix as distance
+            distance_rfv = np.power(dif2_sum, 0.5)
+            log.Log.debugdebug('distance to rfv: ' + str(distance_rfv))
+            # Convert to a single row matrix
+            distance_rfv = distance_rfv.transpose()
+            log.Log.debugdebug('distance transposed: ' + str(distance_rfv))
 
         # Compare with x_clustered
 
@@ -992,4 +1014,24 @@ if __name__ == '__main__':
     ms.load_model_parameters_from_storage(
         dir_model = topdir + '/app.data/models'
     )
+
+    test_data = np.array(
+        [
+            # 무리 A
+            [1, 2, 1, 1, 0, 0],
+            [2, 1, 2, 1, 0, 0],
+            [1, 1, 1, 1, 0, 0],
+            # 무리 B
+            [0, 1, 2, 1, 0, 0],
+            [0, 2, 2, 2, 0, 0],
+            [0, 2, 1, 2, 0, 0],
+            # 무리 C
+            [0, 0, 0, 1, 2, 3],
+            [0, 1, 0, 2, 1, 2],
+            [0, 1, 0, 1, 1, 2]
+        ]
+    )
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    ms.predict_classes(x=test_data[0])
+
 
