@@ -79,6 +79,18 @@ class MetricSpaceModel(threading.Thread):
         #  Classes of the classification
         self.classes = None
 
+        #
+        # RFVs
+        # Original x, y, x_name in self.training_data
+        # All np array type unless stated
+        #
+        self.idf = None
+        self.rfv = None
+        self.rfv_furthest = None
+        self.x_clustered = None
+        self.y_clustered = None
+        self.x_names = None
+
         self.bot_training_start_time = None
         self.bot_training_end_time = None
         self.logs_training = None
@@ -155,6 +167,14 @@ class MetricSpaceModel(threading.Thread):
         )
         return idf
 
+    def predict_classes(
+            self,
+            # ndarray type
+            x
+    ):
+
+        return cls
+
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
@@ -199,16 +219,16 @@ class MetricSpaceModel(threading.Thread):
         #   We join all text from the same intent, to get IDF
         # TODO: IDF may not be the ideal weights, design an optimal one.
         #
-        idf = None
+        self.idf = None
         if weigh_idf:
             # Sum x by class
-            idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
+            self.idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tIDF values:\n\r' + str(idf)
+                + '\n\r\tIDF values:\n\r' + str(self.idf)
             )
 
-            self.training_data.weigh_x(w=idf)
+            self.training_data.weigh_x(w=self.idf)
 
             # Refetch again after weigh
             x = self.training_data.get_x()
@@ -237,8 +257,6 @@ class MetricSpaceModel(threading.Thread):
         #    This can only be used to confirm if a detected intent is indeed the intent,
         #    can't be used as a general method to detect intent because it is intent specific.
         #
-        x_clustered = None
-        y_clustered = None
         for cs in self.classes:
             try:
                 # Extract only rows of this class
@@ -267,14 +285,14 @@ class MetricSpaceModel(threading.Thread):
                         iterations    = 20
                     )
                     np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
-                if x_clustered is None:
-                    x_clustered = np_class_cluster
-                    y_clustered = np.array([cs]*x_clustered.shape[0])
+                if self.x_clustered is None:
+                    self.x_clustered = np_class_cluster
+                    self.y_clustered = np.array([cs]*self.x_clustered.shape[0])
                 else:
                     # Append rows (thus 1st dimension at axis index 0)
-                    x_clustered = np.append(x_clustered, np_class_cluster, axis=0)
+                    self.x_clustered = np.append(self.x_clustered, np_class_cluster, axis=0)
                     # Appending to a 1D array always at axis=0
-                    y_clustered = np.append(y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
+                    self.y_clustered = np.append(self.y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
             except Exception as ex:
                 log.Log.error(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -283,8 +301,6 @@ class MetricSpaceModel(threading.Thread):
                 )
                 raise(ex)
 
-        self.x_clustered = x_clustered
-        self.y_clustered = y_clustered
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tCluster of x\n\r' + str(self.x_clustered)
@@ -369,7 +385,7 @@ class MetricSpaceModel(threading.Thread):
                 + ': Class "' + str(cs) + '". Furthest distance = '
                 + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
             )
-
+        self.rfv = np.array(self.df_rfv.values)
         #
         # TODO: Optimization
         # TODO: One idea is to find the biggest difference between features and magnify this difference
@@ -378,9 +394,17 @@ class MetricSpaceModel(threading.Thread):
         # TODO: IDF measure can then be used as weight to the features. Means we use the above average of the
         # TODO: RFV to start the iteration with the IDF of the feature.
         #
+
+        self.persist_model_to_storage()
+        return
+
+    def persist_model_to_storage(self):
+        x_name = self.training_data.get_x_name()
+
         # Sort
         self.df_x_name = pd.DataFrame(data=x_name)
-        self.df_idf = pd.DataFrame(data=idf, index=x_name)
+        self.df_idf = pd.DataFrame(data=self.idf, index=x_name)
+        # We use this training data model class to get the friendly representation of the RFV
         xy = tdm.TrainingDataModel(
             x = np.array(self.df_rfv.values),
             y = np.array(self.df_rfv.index),
