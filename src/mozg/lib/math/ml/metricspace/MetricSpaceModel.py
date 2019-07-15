@@ -518,7 +518,7 @@ def demo_chat_training():
     ms_model = MetricSpaceModel(
         identifier_string = 'demo_msmodel_accid4_botid22',
         # Directory to keep all our model files
-        dir_path_model    = topdir + '/app.data/intent/rfv',
+        dir_path_model    = topdir + '/app.data/models',
         # Training data in TrainingDataModel class type
         training_data     = tdm_obj,
         # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
@@ -597,7 +597,7 @@ if __name__ == '__main__':
     ms_model = MetricSpaceModel(
         identifier_string = 'demo_msmodel_testdata',
         # Directory to keep all our model files
-        dir_path_model    = topdir + '/app.data/intent/rfv',
+        dir_path_model    = topdir + '/app.data/models',
         # Training data in TrainingDataModel class type
         training_data     = tdm_obj,
         # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
