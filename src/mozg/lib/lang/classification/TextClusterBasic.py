@@ -113,7 +113,10 @@ class TextClusterBasic:
     # TODO: and use some kind of keyword extraction algorithm.
     # TODO: TextRank don't work very well at all, need something else.
     #
-    def calculate_top_keywords(self, remove_quartile=50,):
+    def calculate_top_keywords(
+            self,
+            remove_quartile=0
+    ):
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ' : Calculating Top Keywords. Using the following stopwords:' + str(self.stopwords)

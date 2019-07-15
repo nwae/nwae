@@ -187,12 +187,14 @@ class MetricSpaceModel(threading.Thread):
         # Calculate distance to RFV
         for i in range(0,x_weighted.shape[0]):
             v = x_weighted[i]
-            if v.ndim == 1:
-                v = np.array(v, ndmin=2)
             log.Log.debugdebug('v: ' + str(v))
 
             # Create an array with the same number of rows with rfv
-            vv = np.repeat(a=v, repeats=self.rfv_x.shape[0], axis=0)
+            v_ok = v
+            if v.ndim == 1:
+                v_ok = np.array([v])
+                print(v_ok)
+            vv = np.repeat(a=v_ok, repeats=self.rfv_x.shape[0], axis=0)
             log.Log.debugdebug('vv repeat: ' + str(vv))
             dif = vv - self.rfv_x
             log.Log.debugdebug('dif with rfv: ' + str(dif))
@@ -208,6 +210,11 @@ class MetricSpaceModel(threading.Thread):
             # Convert to a single row matrix
             distance_rfv = distance_rfv.transpose()
             log.Log.debugdebug('distance transposed: ' + str(distance_rfv))
+
+            if x_classes is None:
+                x_classes = np.array([distance_rfv])
+            else:
+                x_classes = np.append(x_classes, np.array([distance_rfv]), axis=0)
 
         # Compare with x_clustered
 
@@ -693,8 +700,10 @@ class MetricSpaceModel(threading.Thread):
             if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
                 # Convert Index column to string
                 df_x_name.index = df_x_name.index.astype(str)
-            self.x_name = np.array(df_x_name.values)
-            self.x_name = self.x_name.transpose()
+            self.x_name = np.array(df_x_name[df_x_name.columns[0]])
+            if self.x_name.ndim == 1:
+                self.x_name = np.array([self.x_name])
+
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': x_name Data: Read ' + str(df_x_name.shape[0]) + ' lines'
@@ -709,8 +718,9 @@ class MetricSpaceModel(threading.Thread):
             if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
                 # Convert Index column to string
                 df_idf.index = df_idf.index.astype(str)
-            self.idf = np.array(df_idf.values)
-            self.idf = self.idf.transpose()
+            self.idf = np.array(df_idf[df_idf.columns[0]])
+            if self.idf.ndim == 1:
+                self.idf = np.array([self.idf])
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': IDF Data: Read ' + str(df_idf.shape[0]) + ' lines'
@@ -1017,7 +1027,7 @@ if __name__ == '__main__':
         dir_model = topdir + '/app.data/models'
     )
 
-    test_data = np.array(
+    test_x = np.array(
         [
             # 무리 A
             [1, 2, 1, 1, 0, 0],
@@ -1033,7 +1043,38 @@ if __name__ == '__main__':
             [0, 1, 0, 1, 1, 2]
         ]
     )
+    test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+    model_x_name = ms.x_name
+    if model_x_name.ndim == 2:
+        model_x_name = model_x_name[0]
+    print(model_x_name)
+
+    # Reorder by model x_name
+    df_x_name = pd.DataFrame(data={'word':model_x_name, 'target_order':range(0,len(model_x_name),1)})
+    df_test_x_name = pd.DataFrame(data={'word':test_x_name, 'original_order':range(0,len(test_x_name),1)})
+    df_x_name = df_x_name.merge(df_test_x_name)
+    # Then order by original order
+    df_x_name = df_x_name.sort_values(by=['target_order'], ascending=True)
+    # Then the order we need to reorder is the target_order column
+    reorder = np.array(df_x_name['original_order'])
+    print(df_x_name)
+    print(reorder)
+    print(test_x)
+
+    test_x_transpose = test_x.transpose()
+    print(test_x_transpose)
+
+    reordered_test_x = np.zeros(shape=test_x_transpose.shape)
+    print(reordered_test_x)
+
+    for i in range(0,reordered_test_x.shape[0],1):
+        reordered_test_x[i] = test_x_transpose[reorder[i]]
+
+    reordered_test_x = reordered_test_x.transpose()
+    print(reordered_test_x)
+
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
-    ms.predict_classes(x=test_data[0])
+    x_classes = ms.predict_classes(x=reordered_test_x)
+    print(x_classes)
 
 
