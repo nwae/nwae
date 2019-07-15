@@ -151,6 +151,7 @@ class TrainingDataModel:
             # Extract x and x_name with non-zero x values
             x_name_show = self.x_name[non_zero_indexes]
             v_show = v[non_zero_indexes]
+            y_show = self.y[i]
 
             min_v = 0.0
             try:
@@ -170,7 +171,8 @@ class TrainingDataModel:
             x_dict[str(i)] = {
                 'index': i,
                 'x_name': x_name_show.tolist(),
-                'x': v_show.tolist()
+                'x': v_show.tolist(),
+                'y': y_show
             }
         return x_dict
 
