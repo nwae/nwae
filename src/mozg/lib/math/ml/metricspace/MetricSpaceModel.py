@@ -185,52 +185,19 @@ class MetricSpaceModel(threading.Thread):
             stop_features = (),
             weigh_idf = False
     ):
-        self.log_training = []
+        self.__mutex_training.acquire()
+        try:
+            self.log_training = []
 
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training for identifier=' + self.identifier_string
-            + '. Using key features remove quartile = ' + str(key_features_remove_quartile)
-            + ', stop features = [' + str(stop_features) + ']'
-            + ', weigh by IDF = ' + str(weigh_idf)
-            , log_list = self.log_training
-        )
-
-        x = self.training_data.get_x()
-        y = self.training_data.get_y()
-        x_name = self.training_data.get_x_name()
-        # Unique y or classes
-        # We have to list() the set(), to make it into a proper 1D vector
-        self.classes = np.array(list(set(y)))
-
-        #
-        # Here training data must be prepared in the correct format already
-        # Значит что множество свойств уже объединено как одно (unified features)
-        #
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
-            + '\n\r\tx names: ' + str(self.training_data.get_x_name())
-            + '\n\r\ty labels: ' + str(self.training_data.get_y())
-        )
-
-        #
-        # Get IDF first
-        #   We join all text from the same intent, to get IDF
-        # TODO: IDF may not be the ideal weights, design an optimal one.
-        #
-        self.idf = None
-        if weigh_idf:
-            # Sum x by class
-            self.idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
-            log.Log.debug(
+            log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tIDF values:\n\r' + str(self.idf)
+                + ': Training for identifier=' + self.identifier_string
+                + '. Using key features remove quartile = ' + str(key_features_remove_quartile)
+                + ', stop features = [' + str(stop_features) + ']'
+                + ', weigh by IDF = ' + str(weigh_idf)
+                , log_list = self.log_training
             )
 
-            self.training_data.weigh_x(w=self.idf)
-
-            # Refetch again after weigh
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             x_name = self.training_data.get_x_name()
@@ -238,164 +205,205 @@ class MetricSpaceModel(threading.Thread):
             # We have to list() the set(), to make it into a proper 1D vector
             self.classes = np.array(list(set(y)))
 
+            #
+            # Here training data must be prepared in the correct format already
+            # Значит что множество свойств уже объединено как одно (unified features)
+            #
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
-                + '\n\r\ty\n\r' + str(y)
-                + '\n\r\tx_name\n\r' + str(x_name)
-                , log_list=self.log_training
+                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
+                + '\n\r\tx names: ' + str(self.training_data.get_x_name())
+                + '\n\r\ty labels: ' + str(self.training_data.get_y())
             )
 
-        #
-        # Get RFV for every command/intent, representative feature vectors by command type
-        #
-
-        #
-        # 1. Cluster training data of the same intent.
-        #    Instead of a single RFV to represent a single intent, we should have multiple.
-        # 2. Get word importance or equivalent term frequency (TF) within an intent
-        #    This can only be used to confirm if a detected intent is indeed the intent,
-        #    can't be used as a general method to detect intent because it is intent specific.
-        #
-        for cs in self.classes:
-            try:
-                # Extract only rows of this class
-                rows_of_class = x[y==cs]
-                if rows_of_class.shape[0] == 0:
-                    continue
-
-                log.Log.debugdebug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tRows of class "' + str(cs) + ':'
-                    + '\n\r' + str(rows_of_class)
-                )
-
-                #
-                # Cluster intent
-                #
-                # If there is only 1 row, then the cluster is the row
-                np_class_cluster = rows_of_class
-                # Otherwise we do proper clustering
-                if rows_of_class.shape[0] > 1:
-                    class_cluster = clstr.Cluster.cluster(
-                        matx          = rows_of_class,
-                        feature_names = x_name,
-                        # Not more than 5 clusters per label
-                        ncenters      = min(5, round(rows_of_class.shape[0] * 2/3)),
-                        iterations    = 20
-                    )
-                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
-                if self.x_clustered is None:
-                    self.x_clustered = np_class_cluster
-                    self.y_clustered = np.array([cs]*self.x_clustered.shape[0])
-                else:
-                    # Append rows (thus 1st dimension at axis index 0)
-                    self.x_clustered = np.append(self.x_clustered, np_class_cluster, axis=0)
-                    # Appending to a 1D array always at axis=0
-                    self.y_clustered = np.append(self.y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
-            except Exception as ex:
-                log.Log.error(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                    , log_list = self.log_training
-                )
-                raise(ex)
-
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tCluster of x\n\r' + str(self.x_clustered)
-            + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
-        )
-
-        #
-        # RFV Derivation
-        #
-        m = np.zeros((len(self.classes), len(x_name)))
-        # self.classes
-        self.df_rfv = pd.DataFrame(
-            m,
-            columns = x_name,
-            index   = self.classes
-        )
-        self.df_rfv_distance_furthest = pd.DataFrame(
-            {
-                reffv.RefFeatureVector.COL_COMMAND:list(self.classes),
-                reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
-            },
-            index = self.classes
-        )
-
-        for cs in self.classes:
-            log.Log.debug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Doing class [' + str(cs) + ']'
-                , log_list = self.log_training
-            )
-            # Extract class points
-            class_points = x[y==cs]
             #
-            # Reference feature vector for the command is the average of all feature vectors
+            # Get IDF first
+            #   We join all text from the same intent, to get IDF
+            # TODO: IDF may not be the ideal weights, design an optimal one.
             #
-            rfv = np.sum(class_points, axis=0) / class_points.shape[0]
-            # Renormalize it again
-            # At this point we don't have to check if it is a 0 vector, etc. as it was already done in TrainingDataModel
-            # after weighing process
-            normalize_factor = np.sum(np.multiply(rfv, rfv)) ** 0.5
-            if normalize_factor < const.Constants.SMALL_VALUE:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Normalize factor for rfv in class "' + str(cs) + '" is 0.'
-                )
-            rfv = rfv / normalize_factor
-            # A single array will be created as a column dataframe, thus we have to name the index and not columns
-            self.df_rfv.at[cs] = rfv
-
-            check_normalized = np.sum(np.multiply(rfv,rfv))**0.5
-            if abs(check_normalized-1) > const.Constants.SMALL_VALUE:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Warning! RFV for class [' + str(cs) + '] not 1, but [' + str(check_normalized) + '].'
-                raise Exception(errmsg)
-            else:
-                log.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Check RFV class "' + str(cs) + '" normalized ok [' + str(check_normalized) + '].'
-                )
-
-            #
-            # Get furthest point of classification to rfv
-            # This will be used to accept or reject a classified point to a particular class,
-            # once the nearest class is found (in which no class is found then).
-            #
-            # Minimum value of threshold, don't allow 0's
-            dist_furthest = MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV
-            for i in range(0, class_points.shape[0], 1):
+            self.idf = None
+            if weigh_idf:
+                # Sum x by class
+                self.idf = self.get_feature_weight_idf(x=x, y=y, x_name=x_name)
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '   Checking ' + str(i) + ':\n\r' + str(class_points[i])
+                    + '\n\r\tIDF values:\n\r' + str(self.idf)
                 )
-                fv_text = class_points[i]
-                dist_vec = rfv - fv_text
-                dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
-                if dist > dist_furthest:
-                    dist_furthest = dist
-                    self.df_rfv_distance_furthest.at[cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
+
+                self.training_data.weigh_x(w=self.idf)
+
+                # Refetch again after weigh
+                x = self.training_data.get_x()
+                y = self.training_data.get_y()
+                x_name = self.training_data.get_x_name()
+                # Unique y or classes
+                # We have to list() the set(), to make it into a proper 1D vector
+                self.classes = np.array(list(set(y)))
+
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
+                    + '\n\r\ty\n\r' + str(y)
+                    + '\n\r\tx_name\n\r' + str(x_name)
+                    , log_list=self.log_training
+                )
+
+            #
+            # Get RFV for every command/intent, representative feature vectors by command type
+            #
+
+            #
+            # 1. Cluster training data of the same intent.
+            #    Instead of a single RFV to represent a single intent, we should have multiple.
+            # 2. Get word importance or equivalent term frequency (TF) within an intent
+            #    This can only be used to confirm if a detected intent is indeed the intent,
+            #    can't be used as a general method to detect intent because it is intent specific.
+            #
+            for cs in self.classes:
+                try:
+                    # Extract only rows of this class
+                    rows_of_class = x[y==cs]
+                    if rows_of_class.shape[0] == 0:
+                        continue
+
+                    log.Log.debugdebug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + '\n\r\tRows of class "' + str(cs) + ':'
+                        + '\n\r' + str(rows_of_class)
+                    )
+
+                    #
+                    # Cluster intent
+                    #
+                    # If there is only 1 row, then the cluster is the row
+                    np_class_cluster = rows_of_class
+                    # Otherwise we do proper clustering
+                    if rows_of_class.shape[0] > 1:
+                        class_cluster = clstr.Cluster.cluster(
+                            matx          = rows_of_class,
+                            feature_names = x_name,
+                            # Not more than 5 clusters per label
+                            ncenters      = min(5, round(rows_of_class.shape[0] * 2/3)),
+                            iterations    = 20
+                        )
+                        np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+                    if self.x_clustered is None:
+                        self.x_clustered = np_class_cluster
+                        self.y_clustered = np.array([cs]*self.x_clustered.shape[0])
+                    else:
+                        # Append rows (thus 1st dimension at axis index 0)
+                        self.x_clustered = np.append(self.x_clustered, np_class_cluster, axis=0)
+                        # Appending to a 1D array always at axis=0
+                        self.y_clustered = np.append(self.y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
+                except Exception as ex:
+                    log.Log.error(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
+                        , log_list = self.log_training
+                    )
+                    raise(ex)
 
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Class "' + str(cs) + '". Furthest distance = '
-                + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
+                + '\n\r\tCluster of x\n\r' + str(self.x_clustered)
+                + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
             )
-        self.rfv = np.array(self.df_rfv.values)
-        #
-        # TODO: Optimization
-        # TODO: One idea is to find the biggest difference between features and magnify this difference
-        # TODO: (means higher weight on the feature), or some form of optimization algorithm
-        # TODO: A simpler way to start is to use IDF where document in this case is the categories. This
-        # TODO: IDF measure can then be used as weight to the features. Means we use the above average of the
-        # TODO: RFV to start the iteration with the IDF of the feature.
-        #
 
-        self.persist_model_to_storage()
+            #
+            # RFV Derivation
+            #
+            m = np.zeros((len(self.classes), len(x_name)))
+            # self.classes
+            self.df_rfv = pd.DataFrame(
+                m,
+                columns = x_name,
+                index   = self.classes
+            )
+            self.df_rfv_distance_furthest = pd.DataFrame(
+                {
+                    reffv.RefFeatureVector.COL_COMMAND:list(self.classes),
+                    reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
+                },
+                index = self.classes
+            )
+
+            for cs in self.classes:
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Doing class [' + str(cs) + ']'
+                    , log_list = self.log_training
+                )
+                # Extract class points
+                class_points = x[y==cs]
+                #
+                # Reference feature vector for the command is the average of all feature vectors
+                #
+                rfv = np.sum(class_points, axis=0) / class_points.shape[0]
+                # Renormalize it again
+                # At this point we don't have to check if it is a 0 vector, etc. as it was already done in TrainingDataModel
+                # after weighing process
+                normalize_factor = np.sum(np.multiply(rfv, rfv)) ** 0.5
+                if normalize_factor < const.Constants.SMALL_VALUE:
+                    raise Exception(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Normalize factor for rfv in class "' + str(cs) + '" is 0.'
+                    )
+                rfv = rfv / normalize_factor
+                # A single array will be created as a column dataframe, thus we have to name the index and not columns
+                self.df_rfv.at[cs] = rfv
+
+                check_normalized = np.sum(np.multiply(rfv,rfv))**0.5
+                if abs(check_normalized-1) > const.Constants.SMALL_VALUE:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Warning! RFV for class [' + str(cs) + '] not 1, but [' + str(check_normalized) + '].'
+                    raise Exception(errmsg)
+                else:
+                    log.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Check RFV class "' + str(cs) + '" normalized ok [' + str(check_normalized) + '].'
+                    )
+
+                #
+                # Get furthest point of classification to rfv
+                # This will be used to accept or reject a classified point to a particular class,
+                # once the nearest class is found (in which no class is found then).
+                #
+                # Minimum value of threshold, don't allow 0's
+                dist_furthest = MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV
+                for i in range(0, class_points.shape[0], 1):
+                    log.Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + '   Checking ' + str(i) + ':\n\r' + str(class_points[i])
+                    )
+                    fv_text = class_points[i]
+                    dist_vec = rfv - fv_text
+                    dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
+                    if dist > dist_furthest:
+                        dist_furthest = dist
+                        self.df_rfv_distance_furthest.at[cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
+
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Class "' + str(cs) + '". Furthest distance = '
+                    + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
+                )
+            self.rfv = np.array(self.df_rfv.values)
+            #
+            # TODO: Optimization
+            # TODO: One idea is to find the biggest difference between features and magnify this difference
+            # TODO: (means higher weight on the feature), or some form of optimization algorithm
+            # TODO: A simpler way to start is to use IDF where document in this case is the categories. This
+            # TODO: IDF measure can then be used as weight to the features. Means we use the above average of the
+            # TODO: RFV to start the iteration with the IDF of the feature.
+            #
+
+            self.persist_model_to_storage()
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
+                     + ' Exception message ' + str(ex) + '.'
+        finally:
+            self.__mutex_training.release()
         return
 
     def persist_model_to_storage(self):
@@ -419,6 +427,13 @@ class MetricSpaceModel(threading.Thread):
             index   = self.y_clustered,
             columns = x_name
         ).sort_index()
+        # We use this training data model class to get the friendly representation of the x_clustered
+        xy_x_clustered = tdm.TrainingDataModel(
+            x = np.array(self.x_clustered),
+            y = np.array(self.y_clustered),
+            x_name = x_name
+        )
+        x_clustered_friendly = xy_x_clustered.get_print_friendly_x()
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -428,6 +443,7 @@ class MetricSpaceModel(threading.Thread):
             + '\n\r\tRFV friendly:\n\r' + str(rfv_friendly)
             + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
             + '\n\r\tx clustered:\n\r' + str(self.df_x_clustered)
+            + '\n\r\tx clustered friendly:\n\r' + str(x_clustered_friendly)
         )
 
         #
@@ -501,6 +517,29 @@ class MetricSpaceModel(threading.Thread):
             + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + fpath_x_clustered + '"'
             , log_list=self.log_training
         )
+
+        # This file only for debugging
+        fpath_x_clustered_friendly_txt = self.dir_path_model + '/' + self.identifier_string + '.x_clustered_friendly.txt'
+        try:
+            # This file only for debugging
+            f = open(file=fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
+            for i in x_clustered_friendly.keys():
+                line = str(x_clustered_friendly[i])
+                f.write(str(line) + '\n\r')
+            f.close()
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys)
+                + ' filepath "' + fpath_x_clustered_friendly_txt + '"'
+                , log_list=self.log_training
+            )
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create x_clustered friendly file "' + fpath_x_clustered_friendly_txt
+                + '". ' + str(ex)
+            , log_list = self.log_training
+            )
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
