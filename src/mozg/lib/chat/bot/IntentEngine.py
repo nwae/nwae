@@ -8,11 +8,11 @@ import pandas as pd
 import threading
 import time
 import datetime as dt
-import ie.lib.chat.bot.IntentEngineThread as intEngThread
-import ie.lib.chat.classification.training.ChatTraining as chatTr
-import ie.lib.lang.model.FeatureVector as fv
-import ie.lib.chat.classification.training.RefFeatureVec as reffv
-import ie.lib.lang.nlp.SynonymList as sl
+import mozg.lib.chat.bot.IntentEngineThread as intEngThread
+import mozg.lib.chat.classification.training.ChatTraining as chatTr
+import mozg.lib.lang.model.FeatureVector as fv
+import mozg.lib.chat.classification.training.RefFeatureVec as reffv
+import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.common.util.Profiling as prf
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo

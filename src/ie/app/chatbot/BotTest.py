@@ -9,7 +9,7 @@ import pandas as pd
 import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.StringUtils as su
 import mozg.common.util.Log as lg
-import mozg.lib.chat.bot.IntentEngineTest as lb
+import mozg.lib.chat.bot.IntentEngine as lb
 import mozg.lib.chat.bot.IntentWrapper as gb
 import mozg.common.util.CommandLine as cmdline
 import mozg.common.util.Profiling as pf

@@ -386,7 +386,8 @@ class MetricSpaceModel(threading.Thread):
             y = np.array(self.df_rfv.index),
             x_name = np.array(self.df_rfv.columns)
         )
-        json_rfv_friendly = json.dumps(obj=xy.get_print_friendly_x(), ensure_ascii=False)
+        rfv_friendly = xy.get_print_friendly_x()
+        #json_rfv_friendly = json.dumps(obj=xy.get_print_friendly_x(), ensure_ascii=False)
         self.df_rfv = self.df_rfv.sort_index()
         self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
         self.df_x_clustered = pd.DataFrame(
@@ -400,7 +401,7 @@ class MetricSpaceModel(threading.Thread):
             + '\n\r\tx_name:\n\r' + str(self.df_x_name)
             + '\n\r\tIDF:\n\r' + str(self.df_idf)
             + '\n\r\tRFV:\n\r' + str(self.df_rfv)
-            + '\n\r\tRFV friendly:\n\r' + str(json_rfv_friendly)
+            + '\n\r\tRFV friendly:\n\r' + str(rfv_friendly)
             + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
             + '\n\r\tx clustered:\n\r' + str(self.df_x_clustered)
         )
@@ -434,12 +435,23 @@ class MetricSpaceModel(threading.Thread):
         )
 
         fpath_rfv_friendly = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.csv'
-        self.df_rfv.to_csv(path_or_buf=fpath_rfv_friendly, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV (friendly format) dimensions ' + str(json_rfv_friendly) + ' filepath "' + fpath_rfv_friendly + '"'
+        try:
+            # f = open(file=fpath_rfv_friendly, mode='w')
+            with open(fpath_rfv_friendly, 'w') as f:
+                json.dump(rfv_friendly, f)
+            f.close()
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + fpath_rfv_friendly + '".'
+                , log_list=self.log_training
+            )
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create rfv friendly file "' + fpath_rfv_friendly
+                + '". ' + str(ex)
             , log_list = self.log_training
-        )
+            )
 
         fpath_dist_furthest = self.dir_path_model + '/' + self.identifier_string + '.rfv.distance.csv'
         self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
