@@ -253,12 +253,20 @@ class ChatTrainingData:
         #     bot_id     = self.bot_id,
         #     bot_lang   = self.lang
         # )
-        # At one go, get all intent names under this bot. Faster than getting one by one.
-        handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
-        all_intent_rows = handle_db_intent.get()
-        dict_intents = {}
-        for rw in all_intent_rows:
-            dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
+
+        dict_intents = None
+        try:
+            # At one go, get all intent names under this bot. Faster than getting one by one.
+            handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
+            all_intent_rows = handle_db_intent.get()
+            dict_intents = {}
+            for rw in all_intent_rows:
+                dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
+        except Exception as ex:
+            log.Log.error(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': DB Error could not get intent names. Exception: ' + str(ex) + '.'
+            )
 
         unique_intent_ids = list(set(self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID]))
         for intId in unique_intent_ids:
@@ -357,7 +365,7 @@ class ChatTrainingData:
             verbose    = self.verbose
         )
 
-        for i in list(self.df_training_data_db.index):
+        for i in self.df_training_data_db.index:
             text_segmented = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[i]
             if (text_segmented is None) or (text_segmented == ''):
                 intent_td_id = self.df_training_data_db[ChatTrainingData.COL_TDATA_TRAINING_DATA_ID].loc[i]
@@ -532,6 +540,6 @@ if __name__ == '__main__':
     )
 
     td = ctdata.get_training_data_from_db()
-    td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv', index=True, index_label='INDEX')
-
     ctdata.segment_db_training_data()
+
+    td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv', index=True, index_label='INDEX')
