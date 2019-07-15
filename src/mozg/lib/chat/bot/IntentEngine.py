@@ -109,6 +109,18 @@ class IntentEngine:
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
+        self.fpath_x_name = self.dir_rfv_commands + '/' + self.bot_key + '.x_name.csv'
+        if not os.path.isfile(self.fpath_x_name):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': x_name file "' + self.fpath_idf + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
+        self.df_x_name_ro = None
+        self.np_x_name_ro = None
+
+        #
+        # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
+        #
         self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.idf.csv'
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -116,6 +128,7 @@ class IntentEngine:
             log.Log.error(errmsg)
             raise Exception(errmsg)
         self.df_idf_ro = None
+        self.np_idf_ro = None
 
         self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.rfv.csv'
         if not os.path.isfile(self.fpath_rfv):
@@ -125,7 +138,7 @@ class IntentEngine:
             raise Exception(errmsg)
         self.df_rfv_ro = None
         # This is the cached data frame version of the RFV in numpy array form
-        self.df_rfv_np_array_ro = None
+        self.np_rfv_array_ro = None
 
         self.fpath_rfv_friendly_json = self.dir_rfv_commands + '/' + self.bot_key + '.rfv_friendly.json'
         if not os.path.isfile(self.fpath_rfv_friendly_json):
@@ -151,6 +164,7 @@ class IntentEngine:
             raise Exception(errmsg)
         # Used to zoom into an intent/command group and compare against exact training data in that group
         self.df_x_clustered_ro = None
+        self.np_x_clustered_ro = None
         self.index_x_clustered_ro = None
 
         # Used to finally confirm if it is indeed the intent by matching top keywords in the intent category
@@ -252,7 +266,23 @@ class IntentEngine:
         self.__mutex.acquire()
 
         try:
-            # TODO This data actually not needed
+            self.df_x_name_ro = pd.read_csv(
+                filepath_or_buffer = self.fpath_x_name,
+                sep       =',',
+                index_col = 'INDEX'
+            )
+            if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+                # Convert Index column to string
+                self.df_x_name_ro.index = self.df_x_name_ro.index.astype(str)
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': x_name Data: Read ' + str(self.df_x_name_ro.shape[0]) + ' lines'
+            )
+            self.np_x_name_ro = np.array(self.df_x_name_ro.values)
+            self.np_x_name_ro = self.np_x_name_ro.transpose()
+            log.Log.info(self.df_x_name_ro)
+            log.Log.info(self.np_x_name_ro)
+
             self.df_idf_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_idf,
                 sep       =',',
@@ -265,7 +295,10 @@ class IntentEngine:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines'
             )
+            self.np_idf_ro = np.array(self.df_idf_ro.values)
+            self.np_idf_ro = self.np_idf_ro.transpose()
             log.Log.info(self.df_idf_ro)
+            log.Log.info(self.np_idf_ro)
 
             self.df_rfv_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv,
@@ -281,9 +314,10 @@ class IntentEngine:
             )
             log.Log.info(self.df_rfv_ro)
             # Cached the numpy array
-            self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
+            self.np_rfv_array_ro = np.array(self.df_rfv_ro.values)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cached huge RFV array from dataframe..')
+            log.Log.info(self.np_rfv_array_ro)
 
             # f = open(file=fpath_rfv_friendly, mode='w')
             with open(self.fpath_rfv_friendly_json, 'r') as f:
@@ -326,15 +360,9 @@ class IntentEngine:
                     self.df_x_clustered_ro.index = self.df_x_clustered_ro.index.astype(str)
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + ': x clustered data: Read ' + str(self.df_x_clustered_ro.shape[0]) + ' lines')
+                self.np_x_clustered_ro = np.array(self.df_x_clustered_ro.values)
                 log.Log.info(self.df_x_clustered_ro)
-                # This is very slow, we do it first! Cache it!
-                self.index_command_fv_training_data_ro = np.array(self.get_command_index_from_training_data_index())
-                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                    +': Index of training data by command "'
-                                    + str(list(self.index_command_fv_training_data_ro)) + '".')
-                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                   + ': Index original  "' + str(list(self.df_fv_training_data_ro.index)) + '".')
-
+                log.Log.info(self.np_x_clustered_ro)
                 self.sanity_check()
 
                 #
@@ -383,36 +411,20 @@ class IntentEngine:
                 raise Exception('RFV error')
 
         if not self.minimal:
-            for idx in list(self.df_fv_training_data_ro.index):
-                fv = np.array(self.df_fv_training_data_ro.loc[idx].values)
+            for idx in list(self.df_x_clustered_ro.index):
+                fv = np.array(self.df_x_clustered_ro.loc[idx].values)
                 if len(fv.shape) != 1:
                     raise Exception(
-                        str(self.__class__) + ': Training data vector must be 1-dimensional, got ' + str(len(fv.shape))
+                        str(self.__class__) + ': x data vector must be 1-dimensional, got ' + str(len(fv.shape))
                         + '-dimensional for index ' + str(idx)
                         + '!! Possible clash of index (e.g. for number type index column 1234.1 is identical to 1234.10)')
                 dist = np.sum(np.multiply(fv,fv))**0.5
                 if abs(dist-1) > 0.000001:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Warning: Training data FV Error for index [' + str(idx) + '] not 1, ' + str(dist)
+                             + ': Warning: x fv error for index [' + str(idx) + '] not 1, ' + str(dist)
                     log.Log.critical(errmsg)
                     raise Exception(errmsg)
         return
-
-    def get_command_index_from_training_data_index(self):
-        # This is very slow, we do it first! Cache it!
-        convert_to_type = 'str'
-        if not IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
-            convert_to_type = 'int'
-
-        # We derive the intent id or command from the strings '888-1', '888-2',...
-        # by removing the ending '-1', '-2', ...
-        # This will speed up filtering of training data later by command.
-        index_command = \
-            chatTr.ChatTraining.retrieve_intent_from_training_data_index(
-                index_list      = list(self.df_fv_training_data_ro.index),
-                convert_to_type = convert_to_type
-            )
-        return index_command
 
     def get_count_intent_calls(self):
         return self.count_intent_calls
