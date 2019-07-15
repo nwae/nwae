@@ -187,6 +187,8 @@ class MetricSpaceModel(threading.Thread):
         # Calculate distance to RFV
         for i in range(0,x_weighted.shape[0]):
             v = x_weighted[i]
+            if v.ndim == 1:
+                v = np.array(v, ndmin=2)
             log.Log.debugdebug('v: ' + str(v))
 
             # Create an array with the same number of rows with rfv
