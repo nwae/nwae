@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import threading
 import time
+import json
 import datetime as dt
 import mozg.lib.chat.bot.IntentEngineThread as intEngThread
 import mozg.lib.chat.classification.training.ChatTraining as chatTr
@@ -16,6 +17,8 @@ import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.common.util.Profiling as prf
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
+import mozg.lib.math.ml.metricspace.MetricSpaceModel as msmodel
+import mozg.lib.math.ml.TrainingDataModel as tdmodel
 
 
 #
@@ -106,7 +109,7 @@ class IntentEngine:
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
-        self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.words.idf.csv'
+        self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.idf.csv'
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': IDF file "' + self.fpath_idf + '" not found!'
@@ -114,7 +117,7 @@ class IntentEngine:
             raise Exception(errmsg)
         self.df_idf_ro = None
 
-        self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.csv'
+        self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.rfv.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV file "' + self.fpath_rfv + '" not found!'
@@ -124,7 +127,15 @@ class IntentEngine:
         # This is the cached data frame version of the RFV in numpy array form
         self.df_rfv_np_array_ro = None
 
-        self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.distance.csv'
+        self.fpath_rfv_friendly_json = self.dir_rfv_commands + '/' + self.bot_key + '.rfv_friendly.json'
+        if not os.path.isfile(self.fpath_rfv_friendly_json):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': RFV friendly file "' + self.fpath_rfv_friendly_json + '" not found!'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
+        self.rfv_friendly_json = None
+
+        self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.rfv.distance.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
@@ -132,15 +143,15 @@ class IntentEngine:
             raise Exception(errmsg)
         self.df_rfv_dist_furthest_ro = None
 
-        self.fpath_fv_all = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.fv.all.csv'
+        self.fpath_x_clustered = self.dir_rfv_commands + '/' + self.bot_key + '.x_clustered.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Training Data file "' + self.fpath_fv_all + '" not found!'
+                     + ': x clustered file "' + self.fpath_x_clustered + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
         # Used to zoom into an intent/command group and compare against exact training data in that group
-        self.df_fv_training_data_ro = None
-        self.index_command_fv_training_data_ro = None
+        self.df_x_clustered_ro = None
+        self.index_x_clustered_ro = None
 
         # Used to finally confirm if it is indeed the intent by matching top keywords in the intent category
         # self.df_intent_tf_ro = None
@@ -148,7 +159,7 @@ class IntentEngine:
         self.hash_df_rfv_ro = None
         self.hash_df_rfv_np_array_ro = None
         self.hash_df_idf_ro = None
-        self.hash_index_command_fv_training_data_ro = None
+        self.hash_index_x_clustered_ro = None
         # Don't do for training data, it takes too long
         self.hash_df_rfv_dist_furthest_ro = None
 
@@ -268,6 +279,15 @@ class IntentEngine:
             self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cached huge RFV array from dataframe..')
+
+            # f = open(file=fpath_rfv_friendly, mode='w')
+            with open(self.fpath_rfv_friendly, 'r') as f:
+                self.rfv_friendly_json = json.load(f)
+            f.close()
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Rfv friendly read ' + str(self.rfv_friendly_json) + ' from file "' + self.fpath_rfv_friendly + '".'
+            )
 
             self.df_rfv_dist_furthest_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv_dist,
@@ -1226,22 +1246,24 @@ class IntentEngine:
 
 
 if __name__ == '__main__':
-    topdir = '/Users/mark.tan/git/mozg.nlp'
+    topdir = '/Users/mark.tan/git/mozg'
     db_profile = 'mario2'
     account_id = 3
     bot_id = 4
     bot_lang = 'cn'
 
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+
     it = IntentEngine(
         lang = 'cn',
-        bot_key = 'cn.fun88',
+        bot_key = 'demo_msmodel_testdata',
         # bot_key = botia.BotIntentAnswer.get_bot_key(
         #     db_profile = db_profile,
         #     account_id = account_id,
         #     bot_id     = bot_id,
         #     lang       = bot_lang
         # ),
-        dir_rfv_commands = topdir + '/app.data/intent/rfv',
+        dir_rfv_commands = topdir + '/app.data/models',
         dirpath_synonymlist = topdir + '/nlp.data/app/chats',
         do_profiling = True,
         minimal = False,

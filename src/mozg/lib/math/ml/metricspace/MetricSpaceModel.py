@@ -434,21 +434,29 @@ class MetricSpaceModel(threading.Thread):
             , log_list = self.log_training
         )
 
-        fpath_rfv_friendly = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.csv'
+        fpath_rfv_friendly_json = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.json'
+        # This file only for debugging
+        fpath_rfv_friendly_txt = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.txt'
         try:
-            # f = open(file=fpath_rfv_friendly, mode='w')
-            with open(fpath_rfv_friendly, 'w') as f:
-                json.dump(rfv_friendly, f)
+            # This file only for debugging
+            f = open(file=fpath_rfv_friendly_txt, mode='w', encoding='utf-8')
+            for i in rfv_friendly.keys():
+                line = str(rfv_friendly[i])
+                f.write(str(line) + '\n\r')
+            f.close()
+
+            with open(fpath_rfv_friendly_json, 'w', encoding='utf-8') as f:
+                json.dump(rfv_friendly, f, indent=2)
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + fpath_rfv_friendly + '".'
+                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + fpath_rfv_friendly_json + '".'
                 , log_list=self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create rfv friendly file "' + fpath_rfv_friendly
+                + ': Could not create rfv friendly file "' + fpath_rfv_friendly_json
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
