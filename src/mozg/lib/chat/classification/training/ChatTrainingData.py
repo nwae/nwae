@@ -4,8 +4,8 @@
 
 import pandas as pd
 import numpy as np
-import mozg.lib.lang.nlp.WordSegmentation as ws
-import mozg.lib.lang.nlp.SynonymList as sl
+import ie.lib.lang.nlp.WordSegmentation as ws
+import ie.lib.lang.nlp.SynonymList as sl
 import mozg.common.util.StringUtils as su
 import mozg.common.util.Log as log
 import mozg.common.data.BasicData as bd
@@ -17,6 +17,7 @@ import mozg.common.data.ViewBotTrainingData as viewBotTd
 import ie.app.ConfigFile as cf
 import mozg.common.data.security.Auth as au
 from inspect import currentframe, getframeinfo
+import mozg.common.util.DbCache as dbcache
 
 
 #
@@ -50,12 +51,10 @@ class ChatTrainingData:
             account_id,
             bot_id,
             lang,
-            # Only used as identifier to filenames, etc.
+            # TODO Remove this when fully switched to DB, this is only identifier for csv files
             bot_key,
-            # File system training files
             dirpath_traindata,
             postfix_training_files,
-            # File system NLP stuff
             dirpath_wordlist,
             dirpath_app_wordlist,
             dirpath_synonymlist,
@@ -68,7 +67,6 @@ class ChatTrainingData:
 
         self.lang = lang
         self.bot_key = bot_key
-
         self.dirpath_traindata = dirpath_traindata
         self.postfix_training_files = postfix_training_files
         self.dirpath_wordlist = dirpath_wordlist
@@ -246,6 +244,58 @@ class ChatTrainingData:
         log.Log.info(self.df_training_data_db.columns)
         log.Log.info(self.df_training_data_db.shape)
 
+        #
+        # Add intent name to training data
+        #
+        # db_cache_singleton = dbcache.DbCache.get_singleton(
+        #     db_profile = self.db_profile,
+        #     account_id = self.account_id,
+        #     bot_id     = self.bot_id,
+        #     bot_lang   = self.lang
+        # )
+        # At one go, get all intent names under this bot. Faster than getting one by one.
+        handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
+        all_intent_rows = handle_db_intent.get()
+        dict_intents = {}
+        for rw in all_intent_rows:
+            dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
+
+        unique_intent_ids = list(set(self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID]))
+        for intId in unique_intent_ids:
+            try:
+                # int_name = db_cache_singleton.get_intent_name(intent_id=intId)
+                int_name = None
+                if intId in dict_intents.keys():
+                    int_name = dict_intents[intId]
+                else:
+                    log.Log.warning(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': No intent name for intent ID ' + str(intId) + ' found.'
+                    )
+                    continue
+                text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(int_name))
+
+                row_to_append = pd.DataFrame(data={
+                        ChatTrainingData.COL_TDATA_INTENT_ID:        [intId],
+                        ChatTrainingData.COL_TDATA_INTENT_TYPE:      ['user'],
+                        ChatTrainingData.COL_TDATA_TRAINING_DATA_ID: [0],
+                        ChatTrainingData.COL_TDATA_TEXT:             [int_name],
+                        ChatTrainingData.COL_TDATA_TEXT_SEGMENTED:   [text_segmented]
+                    })
+                self.df_training_data_db = self.df_training_data_db.append(row_to_append)
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Appended intent name "' + str(int_name) + '" with intent ID ' + str(intId)
+                    + ' to list of training data. Row appended = ' + str(row_to_append)
+                )
+            except Exception as ex:
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Could append to dataframe or could not get intent name for intent ID '
+                    + str(intId) + '. Exception ' + str(ex)
+                )
+        self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
+
         # Remove empty lines
         self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] =\
             self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT].str.len()
@@ -307,26 +357,33 @@ class ChatTrainingData:
             verbose    = self.verbose
         )
 
-        # Shorten variable
-        td = self.df_training_data_db
+        for i in list(self.df_training_data_db.index):
+            text_segmented = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[i]
+            if (text_segmented is None) or (text_segmented == ''):
+                intent_td_id = self.df_training_data_db[ChatTrainingData.COL_TDATA_TRAINING_DATA_ID].loc[i]
+                intent_id = self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
 
-        for i in list(td.index):
-            text_segmented = td[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[i]
-            if text_segmented is None:
-                intent_td_id = td[ChatTrainingData.COL_TDATA_TRAINING_DATA_ID].loc[i]
-                intent_id = td[ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
-
-                text = td[ChatTrainingData.COL_TDATA_TEXT].loc[i]
+                text = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT].loc[i]
                 text = str(text)
 
                 text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(text))
 
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + ': Training Data ID ' + str(intent_td_id)
-                                  + '. No segmented text for training data "'
-                                  + text + '". Segmented to "' + str(text_segmented) + '"')
+                                  + ': Training Data ID "' + str(intent_td_id)
+                                  + '". No segmented text for training data "'
+                                  + str(text) + '". Segmented to "' + str(text_segmented) + '"')
 
-                td[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].at[i] = text_segmented
+                # TODO I notice this row doesn't work!!
+                self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].at[i] = text_segmented
+
+                # If no training id, continue
+                if (intent_td_id is None) or (intent_td_id==0):
+                    log.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': No training data ID or ID=0, not writing segmented training data "'
+                        + str(text_segmented) + '" to DB.'
+                    )
+                    continue
 
                 try:
                     # Write this segmented text back to DB
@@ -348,7 +405,7 @@ class ChatTrainingData:
                 except Exception as ex:
                     log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                 + ': Exception updating training data id '
-                                + str(intent_td_id) + 'with intent id=' + str(intent_id)
+                                + str(intent_td_id) + ' with intent id=' + str(intent_id)
                                 + ', sentence=' + text + ', segmented text=' + str(text_segmented)
                                 + '. Exception message: ' + str(ex) + '.')
 
