@@ -332,8 +332,8 @@ class BotStartupThread(threading.Thread):
                         return str(train_dur_secs) + ' SECS DONE. Bot training for account id ' + str(account_id)\
                                + ', bot id ' + str(bot_id) + ' training started '\
                                + str(bot_trainer.bot_training_start_time)\
-                               + ', ended ' + str(bot_trainer.bot_training_end_time)\
-                               + '. You can train again in '\
+                               + ', ended ' + str(bot_trainer.bot_training_end_time) + '.'\
+                               + '<br/><br/>You can train again in '\
                                + str(ALLOWED_TO_TRAIN_AFTER_N_MINS - since_trained_dur_secs) + ' secs.'\
                                + '<br><br>Training log:<br><br>' \
                                + re.sub(pattern='", "', repl='<br/>', string=str(bot_trainer.log_training))
