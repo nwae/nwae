@@ -17,7 +17,6 @@ import mozg.common.data.ViewBotTrainingData as viewBotTd
 import ie.app.ConfigFile as cf
 import mozg.common.data.security.Auth as au
 from inspect import currentframe, getframeinfo
-import mozg.common.util.DbCache as dbcache
 
 
 #
@@ -58,6 +57,8 @@ class ChatTrainingData:
             dirpath_wordlist,
             dirpath_app_wordlist,
             dirpath_synonymlist,
+            # Do word segmentation for all sentences, when word/synonym list changes
+            resegment_all_words = False,
             verbose = 0
     ):
         self.use_db = use_db
@@ -74,6 +75,7 @@ class ChatTrainingData:
         self.dirpath_synonymlist = dirpath_synonymlist
         self.df_training_data = None
 
+        self.resegment_all_words = resegment_all_words
         self.verbose = verbose
 
         postfix_wordlist = '-wordlist.txt'
@@ -99,6 +101,19 @@ class ChatTrainingData:
             postfix_synonymlist = '.synonymlist.txt')
 
         self.synonymlist.load_synonymlist(verbose=self.verbose)
+
+        len_before = self.wseg.lang_wordlist.wordlist.shape[0]
+        self.wseg.add_wordlist(
+            dirpath     = None,
+            postfix     = None,
+            array_words = list(self.synonymlist.synonymlist['Word'])
+        )
+        len_after = self.wseg.lang_wordlist.wordlist.shape[0]
+        if len_after - len_before > 0:
+            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ": Warning. These words not in word list but in synonym list:")
+            words_not_synched = self.wseg.lang_wordlist.wordlist['Word'][len_before:len_after]
+            log.Log.warning(words_not_synched)
 
         self.viewBotTrainingData = viewBotTd.ViewBotTrainingData(
             db_profile = cf.ConfigFile.DB_PROFILE
@@ -254,33 +269,32 @@ class ChatTrainingData:
         #     bot_lang   = self.lang
         # )
 
-        dict_intents = None
-        try:
-            # At one go, get all intent names under this bot. Faster than getting one by one.
-            handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
-            all_intent_rows = handle_db_intent.get()
-            dict_intents = {}
-            for rw in all_intent_rows:
-                dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
-        except Exception as ex:
-            log.Log.error(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': DB Error could not get intent names. Exception: ' + str(ex) + '.'
-            )
+        # dict_intents = None
+        # try:
+        #     # At one go, get all intent names under this bot. Faster than getting one by one.
+        #     handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
+        #     all_intent_rows = handle_db_intent.get()
+        #     dict_intents = {}
+        #     for rw in all_intent_rows:
+        #         dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
+        # except Exception as ex:
+        #     log.Log.error(
+        #         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #         + ': DB Error could not get intent names. Exception: ' + str(ex) + '.'
+        #     )
 
-        unique_intent_ids = list(set(self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID]))
-        for intId in unique_intent_ids:
+        df_intent_id_name = pd.DataFrame(
+            {
+                ChatTrainingData.COL_TDATA_INTENT_ID: self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID],
+                ChatTrainingData.COL_TDATA_INTENT:    self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT]
+            })
+        df_intent_id_name.drop_duplicates(inplace=True)
+        # unique_intent_ids = list(set(self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID]))
+        for idx in df_intent_id_name.index:
+            intId = df_intent_id_name[ChatTrainingData.COL_TDATA_INTENT_ID].loc[idx]
             try:
-                # int_name = db_cache_singleton.get_intent_name(intent_id=intId)
-                int_name = None
-                if intId in dict_intents.keys():
-                    int_name = dict_intents[intId]
-                else:
-                    log.Log.warning(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': No intent name for intent ID ' + str(intId) + ' found.'
-                    )
-                    continue
+                int_name = str(df_intent_id_name[ChatTrainingData.COL_TDATA_INTENT].loc[idx])
+
                 text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(int_name))
 
                 row_to_append = pd.DataFrame(data={
@@ -367,7 +381,7 @@ class ChatTrainingData:
 
         for i in self.df_training_data_db.index:
             text_segmented = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[i]
-            if (text_segmented is None) or (text_segmented == ''):
+            if self.resegment_all_words or (text_segmented is None) or (text_segmented == ''):
                 intent_td_id = self.df_training_data_db[ChatTrainingData.COL_TDATA_TRAINING_DATA_ID].loc[i]
                 intent_id = self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID].loc[i]
 
@@ -378,7 +392,8 @@ class ChatTrainingData:
 
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                   + ': Training Data ID "' + str(intent_td_id)
-                                  + '". No segmented text for training data "'
+                                  + '". Force segment all = ' + str(self.resegment_all_words)
+                                  + ', or no segmented text for training data "'
                                   + str(text) + '". Segmented to "' + str(text_segmented) + '"')
 
                 # TODO I notice this row doesn't work!!
@@ -532,6 +547,7 @@ if __name__ == '__main__':
         bot_id     = botId,
         lang       = lang,
         bot_key    = botkey,
+        resegment_all_words = True,
         dirpath_traindata      = cf.ConfigFile.DIR_INTENT_TRAINDATA,
         postfix_training_files = cf.ConfigFile.POSTFIX_INTENT_TRAINING_FILES,
         dirpath_wordlist       = cf.ConfigFile.DIR_WORDLIST,

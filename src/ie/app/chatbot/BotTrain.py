@@ -4,8 +4,8 @@
 
 import ie.app.ConfigFile as cf
 import mozg.common.bot.BotIntentAnswer as botdata
-import mozg.lib.chat.classification.training.ChatTrainingData as ctd
-import mozg.lib.chat.classification.training.ChatTraining as ct
+import ie.lib.chat.classification.training.ChatTrainingData as ctd
+import ie.lib.chat.classification.training.ChatTraining as ct
 import mozg.common.data.security.Auth as au
 import mozg.common.util.CommandLine as cmdline
 import mozg.common.util.Log as lg
@@ -24,6 +24,7 @@ class BotTrain:
             bot_id,
             lang,
             botkey,
+            resegment_all_words = False,
             verbose = 0.0
     ):
         self.account_id = account_id
@@ -31,6 +32,8 @@ class BotTrain:
 
         self.lang = lang
         self.botkey = botkey
+
+        self.resegment_all_words = resegment_all_words
 
         self.verbose = verbose
 
@@ -118,6 +121,7 @@ class BotTrain:
             bot_id                 = self.bot_id,
             lang                   = self.lang,
             bot_key                = self.botkey,
+            resegment_all_words    = self.resegment_all_words,
             dirpath_traindata      = self.dir_traindata,
             postfix_training_files = self.postfix_chatbot_training_files,
             dirpath_wordlist       = self.dir_wordlist,
@@ -187,6 +191,8 @@ if __name__ == '__main__':
     # Default values
     pv = {
         'topdir': None,
+        # Resegment all words, when say synonym list or wordlist change
+        'resegment_all_words': '0',
         'debug': '0',
         'verbose': lg.Log.LOG_LEVEL_IMPORTANT
     }
@@ -224,6 +230,10 @@ if __name__ == '__main__':
     if pv['debug'] == '1':
         lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
 
+    resegment_all_words = False
+    if pv['resegment_all_words'] == '1':
+        resegment_all_words = True
+
     # DB Stuff initializations
     au.Auth.init_instances()
 
@@ -235,6 +245,7 @@ if __name__ == '__main__':
         bot_id     = botId,
         lang       = botLang,
         botkey     = botkey,
+        resegment_all_words = resegment_all_words,
         verbose    = float(pv['verbose'])
     )
     bt.run()
