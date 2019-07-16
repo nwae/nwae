@@ -4,8 +4,8 @@
 
 import pandas as pd
 import numpy as np
-import ie.lib.lang.nlp.WordSegmentation as ws
-import ie.lib.lang.nlp.SynonymList as sl
+import mozg.lib.lang.nlp.WordSegmentation as ws
+import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.common.util.StringUtils as su
 import mozg.common.util.Log as log
 import mozg.common.data.BasicData as bd

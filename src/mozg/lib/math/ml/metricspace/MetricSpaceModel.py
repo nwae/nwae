@@ -172,6 +172,43 @@ class MetricSpaceModel(threading.Thread):
         )
         return idf
 
+    def calc_distance_of_point_to_x_ref(
+            self,
+            # Point
+            v,
+            x_ref
+    ):
+        log.Log.debugdebug('v: ' + str(v))
+
+        # Create an array with the same number of rows with rfv
+        v_ok = v
+        if v.ndim == 1:
+            v_ok = np.array([v])
+            print(v_ok)
+        vv = np.repeat(a=v_ok, repeats=x_ref.shape[0], axis=0)
+        log.Log.debugdebug('vv repeat: ' + str(vv))
+
+        dif = vv - x_ref
+        log.Log.debugdebug('dif with x_ref: ' + str(dif))
+
+        # Square every element in the matrix
+        dif2 = np.power(dif, 2)
+        log.Log.debugdebug('dif squared: ' + str(dif2))
+
+        # Sum every row to create a single column matrix
+        dif2_sum = dif2.sum(axis=1)
+        log.Log.debugdebug('dif aggregated sum: ' + str(dif2_sum))
+
+        # Take the square root of every element in the single column matrix as distance
+        distance_x_ref = np.power(dif2_sum, 0.5)
+        log.Log.debugdebug('distance to x_ref: ' + str(distance_x_ref))
+
+        # Convert to a single row matrix
+        distance_x_ref = distance_x_ref.transpose()
+        log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
+
+        return distance_x_ref
+
     def predict_classes(
             self,
             # ndarray type
@@ -184,39 +221,25 @@ class MetricSpaceModel(threading.Thread):
         x_weighted = x * self.idf
         log.Log.debugdebug('x_weighted: ' + str(x_weighted))
 
+        x_distance_to_x_ref = None
+        x_distance_to_x_clustered = None
+
         # Calculate distance to RFV
         for i in range(0,x_weighted.shape[0]):
             v = x_weighted[i]
-            log.Log.debugdebug('v: ' + str(v))
 
-            # Create an array with the same number of rows with rfv
-            v_ok = v
-            if v.ndim == 1:
-                v_ok = np.array([v])
-                print(v_ok)
-            vv = np.repeat(a=v_ok, repeats=self.rfv_x.shape[0], axis=0)
-            log.Log.debugdebug('vv repeat: ' + str(vv))
-            dif = vv - self.rfv_x
-            log.Log.debugdebug('dif with rfv: ' + str(dif))
-            # Square every element in the matrix
-            dif2 = np.power(dif, 2)
-            log.Log.debugdebug('dif squared: ' + str(dif2))
-            # Sum every row to create a single column matrix
-            dif2_sum = dif2.sum(axis=1)
-            log.Log.debugdebug('dif aggregated sum: ' + str(dif2_sum))
-            # Take the square root of every element in the single column matrix as distance
-            distance_rfv = np.power(dif2_sum, 0.5)
-            log.Log.debugdebug('distance to rfv: ' + str(distance_rfv))
-            # Convert to a single row matrix
-            distance_rfv = distance_rfv.transpose()
-            log.Log.debugdebug('distance transposed: ' + str(distance_rfv))
+            distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.rfv_x)
+            distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.x_clustered)
 
-            if x_classes is None:
-                x_classes = np.array([distance_rfv])
+            if i == 0:
+                x_distance_to_x_ref = np.array([distance_x_ref])
+                x_distance_to_x_clustered = np.array([distance_x_clustered])
             else:
-                x_classes = np.append(x_classes, np.array([distance_rfv]), axis=0)
+                x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
+                x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-        # Compare with x_clustered
+        log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
+        log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
 
         # Get weighted score or something
         return x_classes
