@@ -21,10 +21,21 @@ import mozg.lib.math.Constants as const
 #
 # MetricSpace Machine Learning Model
 #
+# The model treat all points as lying on the hypersphere (normalized measure),
+# thus the maximum Euclidean Distance in the positive section of the hypersphere is 2^0.5=1.4142
+# The formal problem statement is:
+#
+#    If given positive x_a, x_b, x_c, ... and y_a, y_b, y_c, ...
+#    and the constraints (x_a^2 + x_b^2 + x_c^2 + ...) = (y_a^2 + y_b^2 + y_c^2 + ...) = 1
+#    then proof that (x_a - y_a)^2 + (x_b - y_b)^2 + (x_c - y_c)^2 + ... <= 2
+#
 class MetricSpaceModel(threading.Thread):
 
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
     SMALL_VALUE = 0.0000001
+
+    HYPERSPHERE_MAX_EUCLIDEAN_DISTANCE = 2**0.5
+    HYPERSPHERE_MIN_EUCLIDEAN_DISTANCE = 0
 
     CONVERT_DATAFRAME_INDEX_TO_STR = True
 
@@ -209,6 +220,11 @@ class MetricSpaceModel(threading.Thread):
 
         return distance_x_ref
 
+    #
+    # Steps to predict classes
+    #
+    #  1. Weight by IDF and normalize input x
+    #
     def predict_classes(
             self,
             # ndarray type
@@ -219,14 +235,25 @@ class MetricSpaceModel(threading.Thread):
         log.Log.debugdebug('x: ' + str(x))
         # Weigh x with idf
         x_weighted = x * self.idf
-        log.Log.debugdebug('x_weighted: ' + str(x_weighted))
+        log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
+
+        x_weighted_normalized = x_weighted.copy()
+        # Normalize x_weighted
+        for i in range(0,x_weighted_normalized.shape[0]):
+            v = x_weighted_normalized[i]
+            mag = np.sum(np.multiply(v,v)**0.5)
+            if mag < const.Constants.SMALL_VALUE:
+                x_weighted_normalized[i] = np.multiply(v, 0)
+            else:
+                x_weighted_normalized[i] = v / mag
+        log.Log.debugdebug('x_weighted_normalized:\n\r' + str(x_weighted_normalized))
 
         x_distance_to_x_ref = None
         x_distance_to_x_clustered = None
 
         # Calculate distance to RFV
-        for i in range(0,x_weighted.shape[0]):
-            v = x_weighted[i]
+        for i in range(0,x_weighted_normalized.shape[0]):
+            v = x_weighted_normalized[i]
 
             distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.rfv_x)
             distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.x_clustered)
