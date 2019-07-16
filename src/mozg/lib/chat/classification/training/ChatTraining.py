@@ -7,9 +7,9 @@ import pandas as pd
 import threading
 import re
 import datetime as dt
-import mozg.lib.lang.classification.TextClusterBasic as tcb
-import mozg.lib.chat.classification.training.RefFeatureVec as reffv
-import mozg.lib.chat.classification.training.ChatTrainingData as ctd
+import ie.lib.lang.classification.TextClusterBasic as tcb
+import ie.lib.chat.classification.training.RefFeatureVec as reffv
+import ie.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 
@@ -108,10 +108,10 @@ class ChatTraining(threading.Thread):
             )
             self.bot_training_end_time = dt.datetime.now()
         except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Botkey ' + str(self.botkey) + '" training exception: ' + str(ex) + '.'
-            )
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Botkey ' + str(self.botkey) + '" training exception: ' + str(ex) + '.'
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
         finally:
             self.is_training_done = True
             self.__mutex_training.release()

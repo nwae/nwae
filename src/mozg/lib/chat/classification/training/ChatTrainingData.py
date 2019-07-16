@@ -259,6 +259,12 @@ class ChatTrainingData:
         log.Log.info(self.df_training_data_db.columns)
         log.Log.info(self.df_training_data_db.shape)
 
+        # Remove empty lines
+        self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] =\
+            self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT].str.len()
+        is_text_not_empty = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] > 0
+        self.df_training_data_db = self.df_training_data_db[is_text_not_empty]
+
         # Filter out certain intent types
         condition = np.invert(
             np.isin(
@@ -278,30 +284,6 @@ class ChatTrainingData:
         )
         self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
 
-        #
-        # Add intent name to training data
-        #
-        # db_cache_singleton = dbcache.DbCache.get_singleton(
-        #     db_profile = self.db_profile,
-        #     account_id = self.account_id,
-        #     bot_id     = self.bot_id,
-        #     bot_lang   = self.lang
-        # )
-
-        # dict_intents = None
-        # try:
-        #     # At one go, get all intent names under this bot. Faster than getting one by one.
-        #     handle_db_intent = dbint.Intent(db_profile=self.db_profile, bot_id=self.bot_id)
-        #     all_intent_rows = handle_db_intent.get()
-        #     dict_intents = {}
-        #     for rw in all_intent_rows:
-        #         dict_intents[rw[dbint.Intent.COL_INTENT_ID]] = rw[dbint.Intent.COL_INTENT_NAME]
-        # except Exception as ex:
-        #     log.Log.error(
-        #         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-        #         + ': DB Error could not get intent names. Exception: ' + str(ex) + '.'
-        #     )
-
         df_intent_id_name = pd.DataFrame(
             {
                 ChatTrainingData.COL_TDATA_INTENT_ID: self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID],
@@ -318,12 +300,13 @@ class ChatTrainingData:
                 text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(int_name))
 
                 row_to_append = pd.DataFrame(data={
-                        ChatTrainingData.COL_TDATA_INTENT_ID:        [intId],
-                        ChatTrainingData.COL_TDATA_INTENT_TYPE:      ['user'],
-                        ChatTrainingData.COL_TDATA_TRAINING_DATA_ID: [0],
-                        ChatTrainingData.COL_TDATA_TEXT:             [int_name],
-                        ChatTrainingData.COL_TDATA_TEXT_SEGMENTED:   [text_segmented]
-                    })
+                    ChatTrainingData.COL_TDATA_INTENT_ID:        [intId],
+                    ChatTrainingData.COL_TDATA_INTENT:           [int_name],
+                    ChatTrainingData.COL_TDATA_INTENT_TYPE:      ['user'],
+                    ChatTrainingData.COL_TDATA_TRAINING_DATA_ID: [0],
+                    ChatTrainingData.COL_TDATA_TEXT:             [int_name],
+                    ChatTrainingData.COL_TDATA_TEXT_SEGMENTED:   [text_segmented]
+                })
                 self.df_training_data_db = self.df_training_data_db.append(row_to_append)
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -336,13 +319,13 @@ class ChatTrainingData:
                     + ': Could append to dataframe or could not get intent name for intent ID '
                     + str(intId) + '. Exception ' + str(ex)
                 )
-        self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
 
-        # Remove empty lines
-        self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] =\
-            self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT].str.len()
-        is_text_not_empty = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] > 0
-        self.df_training_data_db = self.df_training_data_db[is_text_not_empty]
+        # Sort by 'intentPath' and reset index
+        self.df_training_data_db = self.df_training_data_db.sort_values(
+            [ChatTrainingData.COL_TDATA_INTENT_ID],
+            ascending=True
+        )
+        self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
 
         # Now derive the training data index
         log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -372,7 +355,8 @@ class ChatTrainingData:
     # to the segmented text column.
     #
     def segment_db_training_data(
-            self
+            self,
+            write_segmented_text_to_db = True
     ):
         # Training Data DB
         db_int_td = dbinttrn.IntentTraining(
@@ -414,8 +398,9 @@ class ChatTrainingData:
                     )
                     continue
 
-                # FOr now don't write back to DB
-                # continue
+                if not write_segmented_text_to_db:
+                    continue
+
                 try:
                     # Write this segmented text back to DB
                     res = db_int_td.insert_or_update(
@@ -555,7 +540,7 @@ if __name__ == '__main__':
         bot_id     = botId,
         lang       = lang,
         bot_key    = botkey,
-        resegment_all_words = True,
+        resegment_all_words = False,
         dirpath_traindata      = cf.ConfigFile.DIR_INTENT_TRAINDATA,
         postfix_training_files = cf.ConfigFile.POSTFIX_INTENT_TRAINING_FILES,
         dirpath_wordlist       = cf.ConfigFile.DIR_WORDLIST,
