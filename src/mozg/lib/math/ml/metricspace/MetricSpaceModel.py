@@ -34,8 +34,9 @@ class MetricSpaceModel(threading.Thread):
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
     SMALL_VALUE = 0.0000001
 
-    HYPERSPHERE_MAX_EUCLIDEAN_DISTANCE = 2**0.5
-    HYPERSPHERE_MIN_EUCLIDEAN_DISTANCE = 0
+    # Hypersphere max/min Euclidean Distance
+    HPS_MAX_EUCL_DIST = 2**0.5
+    HPS_MIN_EUCL_DIST = 0
 
     CONVERT_DATAFRAME_INDEX_TO_STR = True
 
@@ -218,12 +219,26 @@ class MetricSpaceModel(threading.Thread):
         distance_x_ref = distance_x_ref.transpose()
         log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
 
+        # Theoretical Inequality check
+        check_less_than_max = np.sum(1 * (distance_x_ref > MetricSpaceModel.HPS_MAX_EUCL_DIST))
+        check_greater_than_min = np.sum(1 * (distance_x_ref < MetricSpaceModel.HPS_MIN_EUCL_DIST))
+
+        if (check_less_than_max > 0) or (check_greater_than_min > 0):
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Point ' + str(v) + ' distance to x_ref:\n\r' + str(x_ref) + ' fail theoretical inequality test.'
+                + ' Distance tensor:\n\r' + str(distance_x_ref)
+            )
+
         return distance_x_ref
 
     #
     # Steps to predict classes
     #
     #  1. Weight by IDF and normalize input x
+    #  2. Calculate Euclidean Distance of x to each of the x_ref (or rfv)
+    #  3. Calculate Euclidean Distance of x to each of the x_clustered (or rfv)
+    #  4. Normalize Euclidean Distance so that it is in the range [0,1]
     #
     def predict_classes(
             self,
@@ -232,21 +247,24 @@ class MetricSpaceModel(threading.Thread):
     ):
         x_classes = None
 
-        log.Log.debugdebug('x: ' + str(x))
+        log.Log.debug('x:\n\r' + str(x))
         # Weigh x with idf
         x_weighted = x * self.idf
-        log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
+        log.Log.debug('x_weighted:\n\r' + str(x_weighted))
 
         x_weighted_normalized = x_weighted.copy()
         # Normalize x_weighted
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
             mag = np.sum(np.multiply(v,v)**0.5)
+            #
+            # In the case of 0 magnitude, we put the point right in the center of the hypersphere at 0
+            #
             if mag < const.Constants.SMALL_VALUE:
                 x_weighted_normalized[i] = np.multiply(v, 0)
             else:
                 x_weighted_normalized[i] = v / mag
-        log.Log.debugdebug('x_weighted_normalized:\n\r' + str(x_weighted_normalized))
+        log.Log.debug('x_weighted_normalized:\n\r' + str(x_weighted_normalized))
 
         x_distance_to_x_ref = None
         x_distance_to_x_clustered = None
@@ -265,8 +283,11 @@ class MetricSpaceModel(threading.Thread):
                 x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-        log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
-        log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
+        x_distance_to_x_ref = x_distance_to_x_ref / MetricSpaceModel.HPS_MAX_EUCL_DIST
+        x_distance_to_x_clustered = x_distance_to_x_clustered / MetricSpaceModel.HPS_MAX_EUCL_DIST
+
+        log.Log.debug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
+        log.Log.debug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
 
         # Get weighted score or something
         return x_classes
@@ -501,15 +522,7 @@ class MetricSpaceModel(threading.Thread):
                 )
             self.rfv_y = np.array(self.df_rfv.index)
             self.rfv_x = np.array(self.df_rfv.values)
-            print('**************** ' + str(self.rfv_y))
-            #
-            # TODO: Optimization
-            # TODO: One idea is to find the biggest difference between features and magnify this difference
-            # TODO: (means higher weight on the feature), or some form of optimization algorithm
-            # TODO: A simpler way to start is to use IDF where document in this case is the categories. This
-            # TODO: IDF measure can then be used as weight to the features. Means we use the above average of the
-            # TODO: RFV to start the iteration with the IDF of the feature.
-            #
+            log.Log.debug('**************** ' + str(self.rfv_y))
 
             self.persist_model_to_storage()
         except Exception as ex:
@@ -1080,17 +1093,17 @@ if __name__ == '__main__':
     test_x = np.array(
         [
             # 무리 A
-            [1, 2, 1, 1, 0, 0],
-            [2, 1, 2, 1, 0, 0],
-            [1, 1, 1, 1, 0, 0],
+            [1.2, 2.0, 1.1, 1.0, 0, 0],
+            [2.1, 1.0, 2.4, 1.0, 0, 0],
+            [1.5, 1.0, 1.3, 1.0, 0, 0],
             # 무리 B
-            [0, 1, 2, 1, 0, 0],
-            [0, 2, 2, 2, 0, 0],
-            [0, 2, 1, 2, 0, 0],
+            [0, 1.1, 2.5, 1.5, 0, 0],
+            [0, 2.2, 2.6, 2.4, 0, 0],
+            [0, 2.3, 1.7, 2.1, 0, 0],
             # 무리 C
-            [0, 0, 0, 1, 2, 3],
-            [0, 1, 0, 2, 1, 2],
-            [0, 1, 0, 1, 1, 2]
+            [0, 0.0, 0, 1.6, 2.1, 3.5],
+            [0, 1.4, 0, 2.7, 1.2, 2.4],
+            [0, 1.1, 0, 1.3, 1.3, 2.1]
         ]
     )
     test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
@@ -1123,7 +1136,6 @@ if __name__ == '__main__':
     reordered_test_x = reordered_test_x.transpose()
     print(reordered_test_x)
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
     x_classes = ms.predict_classes(x=reordered_test_x)
     print(x_classes)
 
