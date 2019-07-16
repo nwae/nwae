@@ -29,10 +29,13 @@ class TrainingDataModel:
         self.x = x
         self.y = y
 
+        # We try to keep the order of x_name as it was given to us, after any kind of processing
+        self.x_name_index = np.array(range(0, self.x.shape[1], 1))
         if x_name is None:
             # If no x_name given we just use 0,1,2,3... as column names
-            x_name = np.array(range(0, self.x.shape[1], 1))
-        self.x_name = x_name
+            self.x_name = self.x_name_index.copy()
+        else:
+            self.x_name = x_name
 
         self.check_if_x_normalized = check_if_x_normalized
 
@@ -295,9 +298,9 @@ class TrainingDataModel:
                 )
 
         return TrainingDataModel(
-            x = sentence_fv,
+            x      = sentence_fv,
             x_name = np.array(fv_wordlabels),
-            y = np.array(label_id),
+            y      = np.array(label_id),
             check_if_x_normalized = True
         )
 
