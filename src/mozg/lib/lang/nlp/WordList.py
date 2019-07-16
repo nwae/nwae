@@ -11,6 +11,8 @@ import mozg.lib.lang.LangFeatures as lf
 import mozg.lib.lang.nlp.LatinEquivalentForm as lef
 import mozg.lib.lang.characters.LangCharacters as langchar
 import mozg.common.util.Log as log
+from inspect import currentframe, getframeinfo
+
 
 #
 # Any simple word list, stopwords, etc. that can be read line by line as a single word, with no other properties
@@ -58,7 +60,9 @@ class WordList:
         )
         if self.syl_split_token is None:
             self.syl_split_token = ''
-        log.Log.log('Syllable split token is [' + self.syl_split_token + ']')
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Syllable split token is [' + self.syl_split_token + ']')
 
         self.load_wordlist()
         return
@@ -82,9 +86,11 @@ class WordList:
         for i in range(1, max_length+1, 1):
             condition = self.wordlist[WordList.COL_NGRAM_LEN] == i
             self.ngrams[i] = self.wordlist[WordList.COL_WORD][condition].tolist()
-            if self.verbose >= 3:
-                log.Log.log('Ngrams[' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):')
-                log.Log.log(self.ngrams[i])
+            log.Log.debugdebug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Ngrams[' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):\n\r'
+                + str(self.ngrams[i])
+            )
 
         return
 
@@ -94,8 +100,11 @@ class WordList:
             postfix     = None,
             array_words = None,
     ):
-        if self.verbose >= 3:
-            log.Log.log('Initial wordlist length = ' + str(self.wordlist.shape[0]) + '.')
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Initial wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+            + ', appending wordlist:\n\r' + str(array_words)
+        )
         wordlist_additional = None
         if array_words is not None:
             wordlist_additional = self.load_list(
@@ -112,8 +121,10 @@ class WordList:
         self.wordlist = self.wordlist.append(wordlist_additional)
         # Remove duplicates
         self.wordlist = self.wordlist.drop_duplicates(subset=[WordList.COL_WORD])
-        if self.verbose >= 3:
-            log.Log.log('Final wordlist length = ' + str(self.wordlist.shape[0]) + '.')
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Final wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+        )
 
         self.update_ngrams()
 
@@ -134,8 +145,10 @@ class WordList:
             content = array_words
         else:
             filepath = dirpath + '/' + self.lang + postfix
-            if self.verbose >= 1:
-                log.Log.log('Loading list for [' + self.lang + ']' + '[' + filepath + ']')
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading list for [' + self.lang + ']' + '[' + filepath + ']'
+            )
 
             fu = futil.FileUtils()
             content = fu.read_text_file(filepath)
@@ -147,10 +160,13 @@ class WordList:
             # "云闪付" or "彩金", etc, which will severely reduce Bot efficiency.
             #
             if len(content) == 0:
-                raise Exception('File [' + filepath + '] is empty or non-existent!!')
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': File [' + filepath + '] is empty or non-existent!!'
+                )
 
-            if self.verbose >= 1:
-                log.Log.log('   Read ' + str(len(content)) + ' lines.')
+            log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                         + ': Read ' + str(len(content)) + ' lines.')
 
         words = []
         # Convert words to some number

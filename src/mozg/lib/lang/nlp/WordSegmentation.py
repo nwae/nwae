@@ -7,6 +7,7 @@ import re
 import mozg.lib.lang.characters.LangCharacters as lc
 import mozg.lib.lang.LangFeatures as lf
 import mozg.lib.lang.nlp.WordList as wl
+import mozg.lib.lang.nlp.SynonymList as slist
 import mozg.lib.lang.stats.LangStats as ls
 import mozg.common.util.Log as log
 # Library to convert Traditional Chinese to Simplified Chinese
@@ -352,12 +353,22 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+
     topdir = '/Users/mark.tan/git/mozg.nlp'
     lang_stats = ls.LangStats(
         dirpath_traindata   = topdir + '/nlp.data/traindata',
         dirpath_collocation = topdir + '/nlp.output/collocation.stats'
     )
     lang_stats.load_collocation_stats()
+
+    synonymlist_ro = slist.SynonymList(
+        lang                = 'cn',
+        dirpath_synonymlist = topdir + '/nlp.data/app/chats',
+        postfix_synonymlist = '.synonymlist.txt'
+    )
+    synonymlist_ro.load_synonymlist(verbose=1)
+
     ws = WordSegmentation(
         lang             = 'cn',
         dirpath_wordlist = topdir + '/nlp.data/wordlist',
@@ -366,9 +377,22 @@ if __name__ == '__main__':
         do_profiling     = True,
         verbose          = 0
     )
+    len_before = ws.lang_wordlist.wordlist.shape[0]
+    ws.add_wordlist(
+        dirpath=None,
+        postfix=None,
+        array_words=list(synonymlist_ro.synonymlist['Word'])
+    )
+    len_after = ws.lang_wordlist.wordlist.shape[0]
+    if len_after - len_before > 0:
+        print(": Warning. These words not in word list but in synonym list:")
+        words_not_synched = ws.lang_wordlist.wordlist['Word'][len_before:len_after]
+        print(words_not_synched)
 
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
-    print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=False))
+
+    text = '入钱'
+    #print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=False))
     print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=True))
 
