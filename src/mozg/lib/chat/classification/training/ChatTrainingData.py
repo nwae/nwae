@@ -259,6 +259,25 @@ class ChatTrainingData:
         log.Log.info(self.df_training_data_db.columns)
         log.Log.info(self.df_training_data_db.shape)
 
+        # Filter out certain intent types
+        condition = np.invert(
+            np.isin(
+                element=self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_TYPE],
+                test_elements = dbint.Intent.EXCLUDED_INTENT_TYPES_FOR_TRAINING
+            )
+        )
+        self.df_training_data_db = self.df_training_data_db[condition]
+        log.Log.info('After filtering out intent types ' + str(dbint.Intent.EXCLUDED_INTENT_TYPES_FOR_TRAINING))
+        log.Log.info(self.df_training_data_db[1:10])
+        log.Log.info(self.df_training_data_db.shape)
+
+        # Sort by 'intentPath' and reset index
+        self.df_training_data_db = self.df_training_data_db.sort_values(
+            [ChatTrainingData.COL_TDATA_INTENT_ID],
+            ascending=True
+        )
+        self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
+
         #
         # Add intent name to training data
         #
@@ -286,7 +305,8 @@ class ChatTrainingData:
         df_intent_id_name = pd.DataFrame(
             {
                 ChatTrainingData.COL_TDATA_INTENT_ID: self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID],
-                ChatTrainingData.COL_TDATA_INTENT:    self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT]
+                ChatTrainingData.COL_TDATA_INTENT:    self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT],
+                ChatTrainingData.COL_TDATA_INTENT_TYPE: self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_TYPE]
             })
         df_intent_id_name.drop_duplicates(inplace=True)
         # unique_intent_ids = list(set(self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_ID]))
@@ -324,25 +344,6 @@ class ChatTrainingData:
         is_text_not_empty = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_LENGTH] > 0
         self.df_training_data_db = self.df_training_data_db[is_text_not_empty]
 
-        # Filter out certain intent types
-        condition = np.invert(
-            np.isin(
-                element=self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_TYPE],
-                test_elements = dbint.Intent.EXCLUDED_INTENT_TYPES_FOR_TRAINING
-            )
-        )
-        self.df_training_data_db = self.df_training_data_db[condition]
-        log.Log.info('After filtering out intent types ' + str(dbint.Intent.EXCLUDED_INTENT_TYPES_FOR_TRAINING))
-        log.Log.info(self.df_training_data_db[1:10])
-        log.Log.info(self.df_training_data_db.shape)
-
-        # Sort by 'intentPath' and reset index
-        self.df_training_data_db = self.df_training_data_db.sort_values(
-            [ChatTrainingData.COL_TDATA_INTENT_ID],
-            ascending=True
-        )
-        self.df_training_data_db = self.df_training_data_db.reset_index(drop=True)
-
         # Now derive the training data index
         log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                           + ': Assigning numbers to training data based on intent...')
@@ -379,6 +380,9 @@ class ChatTrainingData:
             verbose    = self.verbose
         )
 
+        td_total_rows = self.df_training_data_db.shape[0]
+        count = 1
+
         for i in self.df_training_data_db.index:
             text_segmented = self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].loc[i]
             if self.resegment_all_words or (text_segmented is None) or (text_segmented == ''):
@@ -391,10 +395,12 @@ class ChatTrainingData:
                 text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(text))
 
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                  + ': No ' + str(count) + ' of ' + str(td_total_rows)
                                   + ': Training Data ID "' + str(intent_td_id)
                                   + '". Force segment all = ' + str(self.resegment_all_words)
                                   + ', or no segmented text for training data "'
                                   + str(text) + '". Segmented to "' + str(text_segmented) + '"')
+                count = count + 1
 
                 # TODO I notice this row doesn't work!!
                 self.df_training_data_db[ChatTrainingData.COL_TDATA_TEXT_SEGMENTED].at[i] = text_segmented
@@ -408,6 +414,8 @@ class ChatTrainingData:
                     )
                     continue
 
+                # FOr now don't write back to DB
+                # continue
                 try:
                     # Write this segmented text back to DB
                     res = db_int_td.insert_or_update(
