@@ -316,7 +316,7 @@ class MetricSpaceModel(threading.Thread):
                 + ': Expected x has at least 1 row got c shape ' + str(x.shape) + '".'
             )
 
-        x_classes = None
+        x_classes = []
         log.Log.debug('x:\n\r' + str(x))
 
         #
@@ -361,28 +361,38 @@ class MetricSpaceModel(threading.Thread):
                 x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-            # Get some kind of score and ranking of the predicted classes for the row
-            df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
-            df_class_score_clustered = self.get_predict_class_score(x=distance_x_clustered, y_label=self.y_clustered)
+            x_distance = np.append(distance_x_ref, distance_x_clustered)
+            y_distance = np.append(self.rfv_y, self.y_clustered)
+            log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
+            log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
-            # Combine both scores by some weights
-            df_class_score = pd.merge(
-                left     = df_class_score_ref,
-                right    = df_class_score_clustered,
-                on       = ['class'],
-                suffixes = ['_ref', '_clustered']
-            )
-            df_class_score['score_final'] = np.round(
-                0.5*df_class_score['score_ref'] + 0.5*df_class_score['score_clustered'],
-                1
-            )
+            df_class_score = self.get_predict_class_score(x=x_distance, y_label=y_distance)
+
+            # # Get some kind of score and ranking of the predicted classes for the row
+            # df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
+            # df_class_score_clustered = self.get_predict_class_score(x=distance_x_clustered, y_label=self.y_clustered)
+            #
+            # # Combine both scores by some weights
+            # df_class_score = pd.merge(
+            #     left     = df_class_score_ref,
+            #     right    = df_class_score_clustered,
+            #     on       = ['class'],
+            #     suffixes = ['_ref', '_clustered']
+            # )
+            # df_class_score['score_final'] = np.round(
+            #     0.5*df_class_score['score_ref'] + 0.5*df_class_score['score_clustered'],
+            #     1
+            # )
+
+            # Get the top class
+            x_classes.append( df_class_score['class'].loc[df_class_score.index[0]] )
             log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
 
         # Get weighted score or something
-        return df_class_score
+        return x_classes
 
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
