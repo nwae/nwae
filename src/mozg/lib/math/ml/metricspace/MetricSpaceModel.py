@@ -186,7 +186,10 @@ class MetricSpaceModel(threading.Thread):
         )
         return idf
 
-    def calc_distance_of_point_to_x_ref(
+    #
+    # Calculates the normalized distance (0 to 1 magnitude range) by knowing the theoretical max/min
+    #
+    def calc_normalized_distance_of_point_to_x_ref(
             self,
             # Point
             v,
@@ -197,8 +200,9 @@ class MetricSpaceModel(threading.Thread):
         # Create an array with the same number of rows with rfv
         v_ok = v
         if v.ndim == 1:
+            # Convert to 2 dimensions
             v_ok = np.array([v])
-            print(v_ok)
+
         vv = np.repeat(a=v_ok, repeats=x_ref.shape[0], axis=0)
         log.Log.debugdebug('vv repeat: ' + str(vv))
 
@@ -221,9 +225,15 @@ class MetricSpaceModel(threading.Thread):
         distance_x_ref = distance_x_ref.transpose()
         log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
 
+        #
+        # Normalize distance to between 0 and 1
+        #
+        distance_x_ref = distance_x_ref / MetricSpaceModel.HPS_MAX_EUCL_DIST
+        log.Log.debugdebug('distance normalized: ' + str(distance_x_ref))
+
         # Theoretical Inequality check
-        check_less_than_max = np.sum(1 * (distance_x_ref > MetricSpaceModel.HPS_MAX_EUCL_DIST))
-        check_greater_than_min = np.sum(1 * (distance_x_ref < MetricSpaceModel.HPS_MIN_EUCL_DIST))
+        check_less_than_max = np.sum(1 * (distance_x_ref > 1))
+        check_greater_than_min = np.sum(1 * (distance_x_ref < 0))
 
         if (check_less_than_max > 0) or (check_greater_than_min > 0):
             log.Log.critical(
@@ -233,6 +243,30 @@ class MetricSpaceModel(threading.Thread):
             )
 
         return distance_x_ref
+
+    def get_predict_class_score(
+            self,
+            # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
+            x,
+            y_label
+    ):
+        if type(x) is not np.ndarray:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong type "' + type(x) + '" to predict classes. Not ndarray.'
+            )
+
+        if x.ndim>1:
+            if x.shape[0] != 1:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Expected x has only 1 row got c shape ' + str(x.shape)
+                    + '". x = ' + str(x)
+                )
+            else:
+                x = x[0]
+
+        log.Log.debug('x: ' + str(x) + ', y_label ' + str(y_label))
 
     #
     # Steps to predict classes
@@ -244,18 +278,41 @@ class MetricSpaceModel(threading.Thread):
     #
     def predict_classes(
             self,
-            # ndarray type
+            # ndarray type of >= 2 dimensions
             x
     ):
-        x_classes = None
+        if type(x) is not np.ndarray:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong type "' + type(x) + '" to predict classes. Not ndarray.'
+            )
 
+        if x.ndim < 2:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected x dimension >= 2, got ' + str(x.ndim) + '".'
+            )
+
+        if x.shape[0] < 1:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected x has at least 1 row got c shape ' + str(x.shape) + '".'
+            )
+
+        x_classes = None
         log.Log.debug('x:\n\r' + str(x))
+
+        #
         # Weigh x with idf
+        #
         x_weighted = x * self.idf
         log.Log.debug('x_weighted:\n\r' + str(x_weighted))
 
         x_weighted_normalized = x_weighted.copy()
+
+        #
         # Normalize x_weighted
+        #
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
             mag = np.sum(np.multiply(v,v)**0.5)
@@ -271,7 +328,9 @@ class MetricSpaceModel(threading.Thread):
         x_distance_to_x_ref = None
         x_distance_to_x_clustered = None
 
-        # Calculate distance to RFV
+        #
+        # Calculate distance to x_ref & x_clustered
+        #
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
 
@@ -285,8 +344,9 @@ class MetricSpaceModel(threading.Thread):
                 x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-        x_distance_to_x_ref = x_distance_to_x_ref / MetricSpaceModel.HPS_MAX_EUCL_DIST
-        x_distance_to_x_clustered = x_distance_to_x_clustered / MetricSpaceModel.HPS_MAX_EUCL_DIST
+            # Get some kind of score and ranking of the predicted classes for the row
+            df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
+            df_class_score_clustered = self.get_predict_class_score(x=distance_x_clustered, y_label=self.y_clustered)
 
         log.Log.debug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
