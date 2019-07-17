@@ -35,7 +35,6 @@ import mozg.lib.math.Constants as const
 class MetricSpaceModel(threading.Thread):
 
     MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
-    SMALL_VALUE = 0.0000001
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
