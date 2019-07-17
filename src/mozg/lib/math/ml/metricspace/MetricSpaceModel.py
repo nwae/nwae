@@ -244,7 +244,10 @@ class MetricSpaceModel(threading.Thread):
 
         return distance_x_ref
 
-    def get_predict_class_score(
+    #
+    # Get all class proximity scores to a point
+    #
+    def calc_proximity_class_score_to_point(
             self,
             # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
             x,
@@ -366,7 +369,7 @@ class MetricSpaceModel(threading.Thread):
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
-            df_class_score = self.get_predict_class_score(x=x_distance, y_label=y_distance)
+            df_class_score = self.calc_proximity_class_score_to_point(x=x_distance, y_label=y_distance)
 
             # # Get some kind of score and ranking of the predicted classes for the row
             # df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
