@@ -47,8 +47,6 @@ class WordList:
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist
 
-        self.verbose = verbose
-
         self.wordlist = None
         # Break the wordlist into ngrams for faster word segmentation
         self.ngrams = {}
@@ -217,9 +215,6 @@ class WordList:
         # Need to reset indexes, otherwise some index will be missing
         df_wordlist = df_wordlist.reset_index(drop=True)
 
-        #if self.verbose >= 3:
-        #    log.Log.log(df_wordlist)
-
         return df_wordlist
 
 
@@ -232,8 +227,7 @@ if __name__ == '__main__':
         wl = WordList(
             lang             = lang,
             dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = '-wordlist.txt',
-            verbose          = 3,
+            postfix_wordlist = '-wordlist.txt'
         )
         wl.load_wordlist()
         log.Log.log('')
@@ -258,8 +252,7 @@ if __name__ == '__main__':
         sw = WordList(
             lang             = lang,
             dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = '-stopwords.txt',
-            verbose          = 3
+            postfix_wordlist = '-stopwords.txt'
         )
         sw.load_wordlist()
         log.Log.log('')

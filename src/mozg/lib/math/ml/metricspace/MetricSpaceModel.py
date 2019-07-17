@@ -25,9 +25,12 @@ import mozg.lib.math.Constants as const
 # thus the maximum Euclidean Distance in the positive section of the hypersphere is 2^0.5=1.4142
 # The formal problem statement is:
 #
-#    If given positive x_a, x_b, x_c, ... and y_a, y_b, y_c, ...
+#    If given positive real numbers x_a, x_b, x_c, ... and y_a, y_b, y_c, ...
 #    and the constraints (x_a^2 + x_b^2 + x_c^2 + ...) = (y_a^2 + y_b^2 + y_c^2 + ...) = 1
-#    then proof that (x_a - y_a)^2 + (x_b - y_b)^2 + (x_c - y_c)^2 + ... <= 2
+#    then
+#         (x_a - y_a)^2 + (x_b - y_b)^2 + (x_c - y_c)^2 + ...
+#         = 2 - 2(x_a*y_a + x_b_*y_b + x_c*y_c)
+#         <= 2
 #
 class MetricSpaceModel(threading.Thread):
 
