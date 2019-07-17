@@ -334,8 +334,8 @@ class MetricSpaceModel(threading.Thread):
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
 
-            distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.rfv_x)
-            distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.x_clustered)
+            distance_x_ref = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.rfv_x)
+            distance_x_clustered = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.x_clustered)
 
             if i == 0:
                 x_distance_to_x_ref = np.array([distance_x_ref])
