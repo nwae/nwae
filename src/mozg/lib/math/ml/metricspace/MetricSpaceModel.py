@@ -10,10 +10,8 @@ import datetime as dt
 import os
 import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.common.data.security.Auth as au
 import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 
@@ -109,6 +107,24 @@ class MetricSpaceModel(threading.Thread):
         self.x_clustered = None
         self.y_clustered = None
         self.x_name = None
+
+        # First check the existence of the files
+        prefix = self.dir_path_model + '/' + self.identifier_string
+        self.fpath_updated_file      = prefix + '.lastupdated.txt'
+        self.fpath_x_name            = prefix + '.x_name.csv'
+        self.fpath_idf               = prefix + '.idf.csv'
+        self.fpath_rfv               = prefix + '.rfv.csv'
+        self.fpath_rfv_friendly_json = prefix + '.rfv_friendly.json'
+        # Only for debugging file
+        self.fpath_rfv_friendly_txt  = prefix + '.rfv_friendly.txt'
+        self.fpath_rfv_dist          = prefix + '.rfv.distance.csv'
+        self.fpath_x_clustered       = prefix + '.x_clustered.csv'
+        # Only for debugging file
+        self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
+        # Training data for testing back only
+        self.fpath_training_data_x        = prefix + '.training_data.x.csv'
+        self.fpath_training_data_x_name   = prefix + '.training_data.x_name.csv'
+        self.fpath_training_data_y        = prefix + '.training_data.y.csv'
 
         self.bot_training_start_time = None
         self.bot_training_end_time = None
@@ -693,79 +709,70 @@ class MetricSpaceModel(threading.Thread):
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        fpath_x_name = self.dir_path_model + '/' + self.identifier_string + '.x_name.csv'
-        self.df_x_name.to_csv(path_or_buf=fpath_x_name, index=True, index_label='INDEX')
+        self.df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved x_name shape ' + str(self.df_x_name.shape) + ', filepath "' + fpath_x_name + ']'
+            + ': Saved x_name shape ' + str(self.df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
             , log_list = self.log_training
         )
 
-        fpath_idf = self.dir_path_model + '/' + self.identifier_string + '.idf.csv'
-        self.df_idf.to_csv(path_or_buf=fpath_idf, index=True, index_label='INDEX')
+        self.df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved IDF dimensions ' + str(self.df_idf.shape) + ' filepath "' + fpath_idf + '"'
+            + ': Saved IDF dimensions ' + str(self.df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
             , log_list = self.log_training
         )
 
-        fpath_rfv = self.dir_path_model + '/' + self.identifier_string + '.rfv.csv'
-        self.df_rfv.to_csv(path_or_buf=fpath_rfv, index=True, index_label='INDEX')
+        self.df_rfv.to_csv(path_or_buf=self.fpath_rfv, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + fpath_rfv + '"'
+            + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + self.fpath_rfv + '"'
             , log_list = self.log_training
         )
 
-        fpath_rfv_friendly_json = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.json'
-        # This file only for debugging
-        fpath_rfv_friendly_txt = self.dir_path_model + '/' + self.identifier_string + '.rfv_friendly.txt'
         try:
             # This file only for debugging
-            f = open(file=fpath_rfv_friendly_txt, mode='w', encoding='utf-8')
+            f = open(file=self.fpath_rfv_friendly_txt, mode='w', encoding='utf-8')
             for i in rfv_friendly.keys():
                 line = str(rfv_friendly[i])
                 f.write(str(line) + '\n\r')
             f.close()
 
-            with open(fpath_rfv_friendly_json, 'w', encoding='utf-8') as f:
+            with open(self.fpath_rfv_friendly_json, 'w', encoding='utf-8') as f:
                 json.dump(rfv_friendly, f, indent=2)
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + fpath_rfv_friendly_json + '".'
+                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + self.fpath_rfv_friendly_json + '".'
                 , log_list=self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create rfv friendly file "' + fpath_rfv_friendly_json
+                + ': Could not create rfv friendly file "' + self.fpath_rfv_friendly_json
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
 
-        fpath_dist_furthest = self.dir_path_model + '/' + self.identifier_string + '.rfv.distance.csv'
-        self.df_rfv_distance_furthest.to_csv(path_or_buf=fpath_dist_furthest, index=True, index_label='INDEX')
+        self.df_rfv_distance_furthest.to_csv(path_or_buf=self.fpath_rfv_dist, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved RFV (furthest) dimensions ' + str(self.df_rfv_distance_furthest.shape)
-            + ' filepath "' + fpath_dist_furthest + '"'
+            + ' filepath "' + self.fpath_rfv_dist + '"'
             , log_list = self.log_training
         )
 
-        fpath_x_clustered = self.dir_path_model + '/' + self.identifier_string + '.x_clustered.csv'
-        self.df_x_clustered.to_csv(path_or_buf=fpath_x_clustered, index=True, index_label='INDEX')
+        self.df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + fpath_x_clustered + '"'
+            + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
             , log_list=self.log_training
         )
 
         # This file only for debugging
-        fpath_x_clustered_friendly_txt = self.dir_path_model + '/' + self.identifier_string + '.x_clustered_friendly.txt'
         try:
             # This file only for debugging
-            f = open(file=fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
+            f = open(file=self.fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
             for i in x_clustered_friendly.keys():
                 line = str(x_clustered_friendly[i])
                 f.write(str(line) + '\n\r')
@@ -773,38 +780,66 @@ class MetricSpaceModel(threading.Thread):
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
-                + ' filepath "' + fpath_x_clustered_friendly_txt + '"'
+                + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
                 , log_list=self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_clustered friendly file "' + fpath_x_clustered_friendly_txt
+                + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
-        fpath_updated_file = self.dir_path_model + '/' + self.identifier_string + '.lastupdated.txt'
         try:
-            f = open(file=fpath_updated_file, mode='w')
+            f = open(file=self.fpath_updated_file, mode='w')
             f.write(str(dt.datetime.now()))
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved update time file "' + fpath_updated_file
+                + ': Saved update time file "' + self.fpath_updated_file
                 + '" for other processes to detect and restart.'
                 , log_list=self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create last updated file "' + fpath_updated_file
+                + ': Could not create last updated file "' + self.fpath_updated_file
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
 
+        #
+        # Write back training data to file, for testing back the model only, not needed for the model
+        #
+        df_td_x = pd.DataFrame(self.training_data.get_x())
+        df_td_x.to_csv(path_or_buf=self.fpath_training_data_x, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
+            + ' filepath "' + self.fpath_training_data_x + '"'
+            , log_list=self.log_training
+        )
+
+        df_td_x_name = pd.DataFrame(self.training_data.get_x_name())
+        df_td_x_name.to_csv(path_or_buf=self.fpath_training_data_x_name, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
+            + ' filepath "' + self.fpath_training_data_x_name + '"'
+            , log_list=self.log_training
+        )
+
+        df_td_y = pd.DataFrame(self.training_data.get_y())
+        df_td_y.to_csv(path_or_buf=self.fpath_training_data_y, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
+            + ' filepath "' + self.fpath_training_data_y + '"'
+            , log_list=self.log_training
+        )
         return
 
     def load_model_parameters_from_storage(
@@ -812,7 +847,6 @@ class MetricSpaceModel(threading.Thread):
             dir_model
     ):
         # First check the existence of the files
-        self.fpath_updated_file = dir_model + '/' + self.identifier_string + '.lastupdated.txt'
         if not os.path.isfile(self.fpath_updated_file):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Last update file "' + self.fpath_updated_file + '" not found!'
@@ -824,7 +858,6 @@ class MetricSpaceModel(threading.Thread):
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
-        self.fpath_x_name = dir_model + '/' + self.identifier_string + '.x_name.csv'
         if not os.path.isfile(self.fpath_x_name):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': x_name file "' + self.fpath_x_name + '" not found!'
@@ -834,36 +867,31 @@ class MetricSpaceModel(threading.Thread):
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
-        self.fpath_idf = dir_model + '/' + self.identifier_string + '.idf.csv'
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': IDF file "' + self.fpath_idf + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        self.fpath_rfv = dir_model + '/' + self.identifier_string + '.rfv.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV file "' + self.fpath_rfv + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        self.fpath_rfv_friendly_json = dir_model + '/' + self.identifier_string + '.rfv_friendly.json'
         if not os.path.isfile(self.fpath_rfv_friendly_json):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV friendly file "' + self.fpath_rfv_friendly_json + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        self.fpath_rfv_dist = dir_model + '/' + self.identifier_string + '.rfv.distance.csv'
-        if not os.path.isfile(self.fpath_rfv):
+        if not os.path.isfile(self.fpath_rfv_dist):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        self.fpath_x_clustered = dir_model + '/' + self.identifier_string + '.x_clustered.csv'
-        if not os.path.isfile(self.fpath_rfv):
+        if not os.path.isfile(self.fpath_x_clustered):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': x clustered file "' + self.fpath_x_clustered + '" not found!'
             log.Log.error(errmsg)
@@ -954,6 +982,29 @@ class MetricSpaceModel(threading.Thread):
                 + '\n\r' + str(self.x_clustered)
                 + '\n\ry_clustered:\n\r' + str(self.y_clustered)
             )
+
+            df_td_x = pd.read_csv(
+                filepath_or_buffer = self.fpath_training_data_x,
+                sep       = ',',
+                index_col = 'INDEX'
+            )
+            df_td_x_name = pd.read_csv(
+                filepath_or_buffer = self.fpath_training_data_x_name,
+                sep       = ',',
+                index_col = 'INDEX'
+            )
+            df_td_y = pd.read_csv(
+                filepath_or_buffer = self.fpath_training_data_y,
+                sep       = ',',
+                index_col = 'INDEX'
+            )
+
+            self.training_data = tdm.TrainingDataModel(
+                x = np.array(df_td_x.values),
+                x_name = np.array(df_td_x_name.values),
+                y = np.array(df_td_y.values)
+            )
+
             self.sanity_check()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\

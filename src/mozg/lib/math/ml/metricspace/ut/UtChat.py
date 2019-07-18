@@ -10,24 +10,30 @@ import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 class UtChat:
 
     def __init__(self):
+        self.topdir = '/Users/mark.tan/git/mozg'
+        self.botkey = 'db_mario2.accid4.botid22'
+        self.account_id = 4
+        self.bot_id = 22
+        self.bot_lang = 'cn'
+        self.db_profile = 'mario2'
 
+        self.identifier_string = 'demo_msmodel_accid4_botid22'
+        self.dir_path_model = self.topdir + '/app.data/models'
         return
 
-    def test(self):
-        topdir = '/Users/mark.tan/git/mozg'
-
+    def test_train(self):
         chat_td = ctd.ChatTrainingData(
-            use_db=True,
-            db_profile='mario2',
-            account_id=4,
-            bot_id=22,
-            lang='cn',
-            bot_key='db_mario2.accid4.botid22',
-            dirpath_traindata=None,
-            postfix_training_files=None,
-            dirpath_wordlist=topdir + '/nlp.data/wordlist',
-            dirpath_app_wordlist=topdir + '/nlp.data/app/chats',
-            dirpath_synonymlist=topdir + '/nlp.data/app/chats'
+            use_db     = True,
+            db_profile = self.db_profile,
+            account_id = self.account_id,
+            bot_id     = self.bot_id,
+            lang       = self.bot_lang,
+            bot_key    = self.botkey,
+            dirpath_traindata      = None,
+            postfix_training_files = None,
+            dirpath_wordlist     = self.topdir + '/nlp.data/wordlist',
+            dirpath_app_wordlist = self.topdir + '/nlp.data/app/chats',
+            dirpath_synonymlist  = self.topdir + '/nlp.data/app/chats'
         )
 
         td = chat_td.get_training_data_from_db()
@@ -61,21 +67,18 @@ class UtChat:
         print('TDM x_name:\n\r' + str(tdm_obj.get_x_name()))
         print('TDM y' + str(tdm_obj.get_y()))
 
-        IDENTIFIER = 'demo_msmodel_accid4_botid22'
-        DIR_PATH_MODEL = topdir + '/app.data/models'
-
         ms_model = msModel.MetricSpaceModel(
-            identifier_string=IDENTIFIER,
+            identifier_string = self.identifier_string,
             # Directory to keep all our model files
-            dir_path_model=DIR_PATH_MODEL,
+            dir_path_model    = self.dir_path_model,
             # Training data in TrainingDataModel class type
-            training_data=tdm_obj,
+            training_data     = tdm_obj,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
-            key_features_remove_quartile=0,
+            key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
-            stop_features=(),
+            stop_features = (),
             # If we will create an "IDF" based on the initial features
-            weigh_idf=True
+            weigh_idf     = True
         )
         ms_model.train(
             key_features_remove_quartile=0,
@@ -83,26 +86,29 @@ class UtChat:
             weigh_idf=True
         )
 
+    def test_predict_classes(self):
         #
         # Now read back params and predict classes
         #
-        # Predict back the training data
-        x = tdm_obj.get_x()
-        x_name = tdm_obj.get_x_name()
-        y = tdm_obj.get_y()
-
         ms_pc = msModel.MetricSpaceModel(
-            identifier_string=IDENTIFIER,
+            identifier_string = self.identifier_string,
             # Directory to keep all our model files
-            dir_path_model=DIR_PATH_MODEL,
+            dir_path_model    = self.dir_path_model,
         )
         ms_pc.load_model_parameters_from_storage(
-            dir_model=topdir + '/app.data/models'
+            dir_model = self.dir_path_model
         )
+
+        x = ms_pc.x
 
         x_classes = ms_pc.predict_classes(x=x)
         print('PREDICTED CLASSES x_classes:\n\r' + str(x_classes))
-        print('ORIGINAL CLASSES y:\n\r' + str(y))
+
+        # Convert to string type
+        y_str = np.array([])
+        for i in range(0,len(y),1):
+            y_str = np.append(y_str, str(y[i]))
+        print('ORIGINAL CLASSES y:\n\r' + str(y_str))
 
         # Compare with expected
         compare = (x_classes == y)
@@ -116,6 +122,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    obj.test()
+    # obj.test_train()
+    obj.test_predict_classes()
 
 

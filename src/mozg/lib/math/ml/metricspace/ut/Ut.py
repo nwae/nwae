@@ -199,9 +199,11 @@ class Ut:
         print(x_classes)
 
         # Compare with expected
-        print(self.y)
+        #x_classes_expected = ms.training_data.get_y()
+        x_classes_expected = self.y
+        print(x_classes_expected)
 
-        compare = (x_classes == self.y)
+        compare = (x_classes == x_classes_expected)
         print(compare)
 
 
