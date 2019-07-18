@@ -101,7 +101,8 @@ class UtChat:
         )
 
         x_classes = ms_pc.predict_classes(x=x)
-        print(x_classes)
+        print('PREDICTED CLASSES x_classes:\n\r' + str(x_classes))
+        print('ORIGINAL CLASSES y:\n\r' + str(y))
 
         # Compare with expected
         compare = (x_classes == y)
