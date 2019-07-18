@@ -99,7 +99,9 @@ class UtChat:
             dir_model = self.dir_path_model
         )
 
-        x = ms_pc.x
+        x = ms_pc.training_data.get_x()
+        x_name = ms_pc.training_data.get_x_name()
+        y = ms_pc.training_data.get_y()
 
         x_classes = ms_pc.predict_classes(x=x)
         print('PREDICTED CLASSES x_classes:\n\r' + str(x_classes))
