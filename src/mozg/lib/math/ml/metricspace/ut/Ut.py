@@ -198,6 +198,12 @@ class Ut:
         x_classes = ms.predict_classes(x=reordered_test_x)
         print(x_classes)
 
+        # Compare with expected
+        print(self.y)
+
+        compare = (x_classes == self.y)
+        print(compare)
+
 
 if __name__ == '__main__':
     obj = Ut()
