@@ -11,7 +11,7 @@ class Ut:
     ):
         self.identifier_string = 'demo_msmodel_testdata',
         self.topdir = '/Users/mark.tan/git/mozg'
-        self.dir_path_model = topdir + '/app.data/models',
+        self.dir_path_model = self.topdir + '/app.data/models',
 
         self.x_expected = np.array(
             [
@@ -203,4 +203,4 @@ if __name__ == '__main__':
     obj = Ut()
     # obj.unit_test_train()
     obj.unit_test_predict_classes()
-    
+
