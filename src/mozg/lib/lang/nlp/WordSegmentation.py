@@ -118,7 +118,7 @@ class WordSegmentation(object):
         max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_VN, max_lookforward_chars)
 
         tlen = len(text)
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Text Length: ' + str(tlen))
         # Record word separators
         matches = [False] * max_lookforward_chars
@@ -235,7 +235,7 @@ class WordSegmentation(object):
         # log.Log.log('Using ' + str(lookforward_chars) + ' lookforward characters')
 
         tlen = len(text)
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                       + ': Text Length: ' + str(tlen))
         word_sep = [False]*tlen
         curpos = 0

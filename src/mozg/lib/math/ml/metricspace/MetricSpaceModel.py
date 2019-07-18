@@ -1000,6 +1000,7 @@ def demo_chat_training():
     au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
     topdir = '/Users/mark.tan/git/mozg'
+
     chat_td = ctd.ChatTrainingData(
         use_db     = True,
         db_profile = 'mario2',
@@ -1028,9 +1029,9 @@ def demo_chat_training():
     np_label_id = np.array(list(unique_classes[np_indexes]))
     np_text_segmented = np.array(list(text_segmented[np_indexes]))
 
-    print(np_label_id[0:20])
-    print(np_text_segmented[0:20])
-    print(np_text_segmented[0])
+    print('LABELS:\n\r' + str(np_label_id[0:20]))
+    print('np TEXT SEGMENTED:\n\r' + str(np_text_segmented[0:20]))
+    print('TEXT SEGMENTED:\n\r' + str(text_segmented[np_indexes]))
 
     #
     # Finally we have our text data in the desired format
@@ -1041,14 +1042,18 @@ def demo_chat_training():
         keywords_remove_quartile = 0
     )
 
-    print(tdm_obj.get_x())
-    print(tdm_obj.get_x_name())
-    print(tdm_obj.get_y())
+    print('TDM x:\n\r' + str(tdm_obj.get_x()))
+    print('TDM x_name:\n\r' + str(tdm_obj.get_x_name()))
+    print('TDM y' + str(tdm_obj.get_y()))
+    return
+
+    IDENTIFIER = 'demo_msmodel_accid4_botid22'
+    DIR_PATH_MODEL = topdir + '/app.data/models'
 
     ms_model = MetricSpaceModel(
-        identifier_string = 'demo_msmodel_accid4_botid22',
+        identifier_string = IDENTIFIER,
         # Directory to keep all our model files
-        dir_path_model    = topdir + '/app.data/models',
+        dir_path_model    = DIR_PATH_MODEL,
         # Training data in TrainingDataModel class type
         training_data     = tdm_obj,
         # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
@@ -1063,6 +1068,27 @@ def demo_chat_training():
         stop_features = (),
         weigh_idf     = True
     )
+
+    #
+    # Now read back params and predict classes
+    #
+    # Predict back the training data
+    x = tdm_obj.get_x()
+    x_name = tdm_obj.get_x_name()
+    y = tdm_obj.get_y()
+
+    ms_pc = MetricSpaceModel(
+        identifier_string = IDENTIFIER,
+        # Directory to keep all our model files
+        dir_path_model    = DIR_PATH_MODEL,
+    )
+    ms_pc.load_model_parameters_from_storage(
+        dir_model = topdir + '/app.data/models'
+    )
+
+    x_classes = ms_pc.predict_classes(x=x)
+    print(x_classes)
+
     return
 
 
@@ -1254,8 +1280,9 @@ if __name__ == '__main__':
 
     topdir = '/Users/mark.tan/git/mozg'
     #unit_test_train()
-    unit_test_predict_classes()
-    #demo_chat_training()
-    #exit(0)
+    #unit_test_predict_classes()
+
+    demo_chat_training()
+    #demo_chat_training_predict_classes()
 
 
