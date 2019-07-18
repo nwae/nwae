@@ -9,9 +9,9 @@ class Ut:
     def __init__(
             self
     ):
-        self.identifier_string = 'demo_msmodel_testdata',
+        self.identifier_string = 'demo_msmodel_testdata'
         self.topdir = '/Users/mark.tan/git/mozg'
-        self.dir_path_model = self.topdir + '/app.data/models',
+        self.dir_path_model = self.topdir + '/app.data/models'
 
         self.x_expected = np.array(
             [
