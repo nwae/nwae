@@ -13,7 +13,7 @@ class UtChat:
 
         return
 
-    def demo_chat_training(self):
+    def test(self):
         topdir = '/Users/mark.tan/git/mozg'
 
         chat_td = ctd.ChatTrainingData(
@@ -113,6 +113,8 @@ class UtChat:
 if __name__ == '__main__':
     au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-    demo_chat_training()
+
+    obj = UtChat()
+    obj.test()
 
 
