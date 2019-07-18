@@ -1001,8 +1001,14 @@ class MetricSpaceModel(threading.Thread):
 
             self.training_data = tdm.TrainingDataModel(
                 x = np.array(df_td_x.values),
-                x_name = np.array(df_td_x_name.values),
-                y = np.array(df_td_y.values)
+                x_name = np.array(df_td_x_name.values).transpose(),
+                y = np.array(df_td_y.values).transpose()
+            )
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Training Data x read ' + str(df_td_x.shape) + ' shape'
+                + ', x_name read ' + str(df_td_x_name.shape)
+                + ', y read ' + str(df_td_y.shape)
             )
 
             self.sanity_check()
