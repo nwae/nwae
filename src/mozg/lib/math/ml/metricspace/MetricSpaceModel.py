@@ -187,7 +187,9 @@ class MetricSpaceModel(threading.Thread):
         return idf
 
     #
-    # Calculates the normalized distance (0 to 1 magnitude range) by knowing the theoretical max/min
+    # Calculates the normalized distance (0 to 1 magnitude range) of a point v (n dimension)
+    # to a set of references (n+1 dimensions or k rows of n dimensional points) by knowing
+    # the theoretical max/min of our hypersphere
     #
     def calc_normalized_distance_of_point_to_x_ref(
             self,
@@ -277,7 +279,7 @@ class MetricSpaceModel(threading.Thread):
             'class': y_label,
             'score': x_score
         })
-        # Aggregate class by max, don't make class index
+        # Aggregate class by max score, don't make class index
         df_score = df_score.groupby(by=['class'], as_index=False, axis=0).max()
 
         # Sort scores
@@ -364,13 +366,22 @@ class MetricSpaceModel(threading.Thread):
                 x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
+            # We combine all the reference points, or sub-classes of the classes. Thus each class
+            # is represented by more than one point, reference sub_classes.
             x_distance = np.append(distance_x_ref, distance_x_clustered)
             y_distance = np.append(self.rfv_y, self.y_clustered)
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
+            # Get the score to the closest sub-class.
             df_class_score = self.calc_proximity_class_score_to_point(x=x_distance, y_label=y_distance)
+            log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
 
+            #
+            # Below was the old way of calculating by getting weighted score.
+            # But I think minimum is good enough as each class is represented by the x_clustered as a few
+            # reference points or sub-classes, and getting the score to the closest one makes more sense.
+            #
             # # Get some kind of score and ranking of the predicted classes for the row
             # df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
             # df_class_score_clustered = self.get_predict_class_score(x=distance_x_clustered, y_label=self.y_clustered)
@@ -389,7 +400,7 @@ class MetricSpaceModel(threading.Thread):
 
             # Get the top class
             x_classes.append( df_class_score['class'].loc[df_class_score.index[0]] )
-            log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
+            log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
@@ -1055,7 +1066,7 @@ def demo_chat_training():
     return
 
 
-def unit_test():
+def unit_test_train():
     x_expected = np.array(
         [
             # 무리 A
@@ -1179,13 +1190,7 @@ def unit_test():
     ]
     y_clustered_expected = ['A', 'B', 'C', 'C']
 
-if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-
-    topdir = '/Users/mark.tan/git/mozg'
-    #unit_test()
-    #demo_chat_training()
-    #exit(0)
+def unit_test_predict_classes():
     ms = MetricSpaceModel(
         identifier_string = 'demo_msmodel_testdata',
         # Directory to keep all our model files
@@ -1243,5 +1248,14 @@ if __name__ == '__main__':
 
     x_classes = ms.predict_classes(x=reordered_test_x)
     print(x_classes)
+
+if __name__ == '__main__':
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+
+    topdir = '/Users/mark.tan/git/mozg'
+    #unit_test_train()
+    unit_test_predict_classes()
+    #demo_chat_training()
+    #exit(0)
 
 
