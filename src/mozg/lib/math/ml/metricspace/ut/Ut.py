@@ -204,7 +204,7 @@ class Ut:
         print(x_classes_expected)
 
         # Compare with expected
-        compare = (x_classes != y)
+        compare = (x_classes != x_classes_expected)
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
