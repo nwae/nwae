@@ -39,8 +39,6 @@ class MetricSpaceModel(threading.Thread):
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
 
-    CONVERT_DATAFRAME_INDEX_TO_STR = True
-
     def __init__(
             self,
             # Unique identifier to identify this set of trained data+other files after training
@@ -73,28 +71,9 @@ class MetricSpaceModel(threading.Thread):
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
 
-        self.df_feature_idf = None
-        # Can be multiple RFVs for each class
-        self.df_class_rfv = None
-        # The furthest point distance of training data (in the same class) to the (one or more) class RFV
-        self.df_sample_rfv_distance_furthest = None
-        # FV of all training data
-        self.df_trainingdata_fv_all = None
-        # FV of clustered training data
-        self.df_trainingdata_fv_clustered = None
-        # Feature term frequency for curiosity?
-        self.df_feature_tf = None
-
-        # Closest distance of a non-class point to a class RFV
-        self.df_sample_dist_closest_non_class = None
-        # Average distance of all non-class points to a class RFV
-        self.df_sample_dist_avg_non_class = None
-
-        self.cluster = None
-        self.cluster_bycategory = None
-        #  Classes of the classification
-        self.classes = None
-
+        #
+        # All parameter for model is encapsulated in this class
+        #
         self.model_data = modelData.ModelData(
             identifier_string = self.identifier_string,
             dir_path_model    = self.dir_path_model
@@ -327,7 +306,7 @@ class MetricSpaceModel(threading.Thread):
         #
         # Weigh x with idf
         #
-        x_weighted = x * self.idf
+        x_weighted = x * self.model_data.idf
         log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
 
         x_weighted_normalized = x_weighted.copy()
@@ -356,8 +335,8 @@ class MetricSpaceModel(threading.Thread):
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
 
-            distance_x_ref = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.rfv_x)
-            distance_x_clustered = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.x_clustered)
+            distance_x_ref = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
+            distance_x_clustered = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_clustered)
 
             if i == 0:
                 x_distance_to_x_ref = np.array([distance_x_ref])
@@ -369,7 +348,7 @@ class MetricSpaceModel(threading.Thread):
             # We combine all the reference points, or sub-classes of the classes. Thus each class
             # is represented by more than one point, reference sub_classes.
             x_distance = np.append(distance_x_ref, distance_x_clustered)
-            y_distance = np.append(self.rfv_y, self.y_clustered)
+            y_distance = np.append(self.model_data.y_ref, self.model_data.y_clustered)
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
@@ -442,7 +421,7 @@ class MetricSpaceModel(threading.Thread):
             self.model_data.x_name = self.training_data.get_x_name()
             # Unique y or classes
             # We have to list() the set(), to make it into a proper 1D vector
-            self.model_data.classes = np.array(list(set(y)))
+            self.model_data.classes_unique = np.array(list(set(y)))
 
             #
             # Here training data must be prepared in the correct format already
@@ -463,7 +442,7 @@ class MetricSpaceModel(threading.Thread):
             self.model_data.idf = None
             if weigh_idf:
                 # Sum x by class
-                self.model_data.idf = self.get_feature_weight_idf(x=x, y=y, x_name=self.x_name)
+                self.model_data.idf = self.get_feature_weight_idf(x=x, y=y, x_name=self.model_data.x_name)
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
@@ -520,7 +499,7 @@ class MetricSpaceModel(threading.Thread):
                     if rows_of_class.shape[0] > 1:
                         class_cluster = clstr.Cluster.cluster(
                             matx          = rows_of_class,
-                            feature_names = self.x_name,
+                            feature_names = self.model_data.x_name,
                             # Not more than 5 clusters per label
                             ncenters      = min(5, round(rows_of_class.shape[0] * 2/3)),
                             iterations    = 20
@@ -536,7 +515,7 @@ class MetricSpaceModel(threading.Thread):
                         np_class_cluster[ii] = v
                         print('After normalize ' + str(np_class_cluster[ii]))
 
-                    if self.x_clustered is None:
+                    if self.model_data.x_clustered is None:
                         self.model_data.x_clustered = np_class_cluster
                         self.model_data.y_clustered = np.array([cs]*self.model_data.x_clustered.shape[0])
                     else:
@@ -578,7 +557,7 @@ class MetricSpaceModel(threading.Thread):
                     reffv.RefFeatureVector.COL_COMMAND:
                         list(self.model_data.y_unique),
                     reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:
-                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
+                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.model_data.classes_unique),
                 },
                 index = self.model_data.y_unique
             )
@@ -651,6 +630,10 @@ class MetricSpaceModel(threading.Thread):
             log.Log.debug('**************** ' + str(self.model_data.y_ref))
 
             self.model_data.persist_model_to_storage()
+            # For debugging only, not required by model
+            self.model_data.persist_training_data_to_storage(
+                td = self.training_data
+            )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
@@ -662,214 +645,17 @@ class MetricSpaceModel(threading.Thread):
         return
 
     def load_model_parameters_from_storage(
-            self,
-            dir_model
+            self
     ):
-        # First check the existence of the files
-        if not os.path.isfile(self.fpath_updated_file):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Last update file "' + self.fpath_updated_file + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-        # Keep checking time stamp of this file for changes
-        self.last_updated_time_rfv = 0
-
-        #
-        # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
-        #
-        if not os.path.isfile(self.fpath_x_name):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': x_name file "' + self.fpath_x_name + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        #
-        # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
-        #
-        if not os.path.isfile(self.fpath_idf):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': IDF file "' + self.fpath_idf + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        if not os.path.isfile(self.fpath_rfv):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV file "' + self.fpath_rfv + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        if not os.path.isfile(self.fpath_rfv_friendly_json):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV friendly file "' + self.fpath_rfv_friendly_json + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        if not os.path.isfile(self.fpath_rfv_dist):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        if not os.path.isfile(self.fpath_x_clustered):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': x clustered file "' + self.fpath_x_clustered + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        self.__mutex_training.acquire()
         try:
-            df_x_name = pd.read_csv(
-                filepath_or_buffer = self.fpath_x_name,
-                sep       =',',
-                index_col = 'INDEX'
-            )
-            if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
-                # Convert Index column to string
-                df_x_name.index = df_x_name.index.astype(str)
-            self.x_name = np.array(df_x_name[df_x_name.columns[0]])
-            if self.x_name.ndim == 1:
-                self.x_name = np.array([self.x_name])
-
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': x_name Data: Read ' + str(df_x_name.shape[0]) + ' lines'
-                + '\n\r' + str(self.x_name)
-            )
-
-            df_idf = pd.read_csv(
-                filepath_or_buffer = self.fpath_idf,
-                sep       =',',
-                index_col = 'INDEX'
-            )
-            if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
-                # Convert Index column to string
-                df_idf.index = df_idf.index.astype(str)
-            self.idf = np.array(df_idf[df_idf.columns[0]])
-            if self.idf.ndim == 1:
-                self.idf = np.array([self.idf])
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': IDF Data: Read ' + str(df_idf.shape[0]) + ' lines'
-                + '\n\r' + str(self.idf)
-            )
-
-            df_rfv = pd.read_csv(
-                filepath_or_buffer = self.fpath_rfv,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-            if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
-                # Convert Index column to string
-                df_rfv.index = df_rfv.index.astype(str)
-            # Cached the numpy array
-            self.rfv_y = np.array(df_rfv.index)
-            self.rfv_x = np.array(df_rfv.values)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV x read ' + str(df_rfv.shape[0]) + ' lines: '
-                + '\n\r' + str(self.rfv_x)
-                + '\n\rRFV y' + str(self.rfv_y)
-            )
-
-            self.df_rfv_distance_furthest = pd.read_csv(
-                filepath_or_buffer = self.fpath_rfv_dist,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-            if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
-                # Convert Index column to string
-                self.df_rfv_distance_furthest.index = self.df_rfv_distance_furthest.index.astype(str)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_distance_furthest.shape[0]) + ' lines'
-                + '\n\r' + str(self.df_rfv_distance_furthest)
-            )
-
-            df_x_clustered = pd.read_csv(
-                filepath_or_buffer = self.fpath_x_clustered,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-            if MetricSpaceModel.CONVERT_DATAFRAME_INDEX_TO_STR:
-                # Convert Index column to string
-                df_x_clustered.index = df_x_clustered.index.astype(str)
-            self.y_clustered = np.array(df_x_clustered.index)
-            self.x_clustered = np.array(df_x_clustered.values)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': x clustered data: Read ' + str(df_x_clustered.shape[0]) + ' lines\n\r'
-                + '\n\r' + str(self.x_clustered)
-                + '\n\ry_clustered:\n\r' + str(self.y_clustered)
-            )
-
-            df_td_x = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_x,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-            df_td_x_name = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_x_name,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-            df_td_y = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_y,
-                sep       = ',',
-                index_col = 'INDEX'
-            )
-
-            self.training_data = tdm.TrainingDataModel(
-                x = np.array(df_td_x.values),
-                x_name = np.array(df_td_x_name.values).transpose()[0],
-                y = np.array(df_td_y.values).transpose()[0]
-            )
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Training Data x read ' + str(df_td_x.shape) + ' shape'
-                + ', x_name read ' + str(df_td_x_name.shape)
-                + '\n\r' + str(self.training_data.get_x_name())
-                + ', y read ' + str(df_td_y.shape)
-                + '\n\r' + str(self.training_data.get_y())
-            )
-
-            self.sanity_check()
+            self.__mutex_training.acquire()
+            self.model_data.load_model_parameters_from_storage()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Load RFV from file failed for identifier "' + self.identifier_string\
-                     + '". Error msg "' + str(ex) + '".'
+                     + ': Failed to load model data for identifier "' + self.identifier_string\
+                     + '". Exception message: ' + str(ex) + '.'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
         finally:
             self.__mutex_training.release()
-
-    def sanity_check(self):
-        # Check RFV is normalized
-        for i in range(0,self.rfv_x.shape[0],1):
-            cs = self.rfv_y[i]
-            rfv = self.rfv_x[i]
-            if len(rfv.shape) != 1:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': RFV vector must be 1-dimensional, got ' + str(len(rfv.shape))
-                    + '-dimensional for class ' + str(cs)
-                )
-            dist = np.sum(np.multiply(rfv,rfv))**0.5
-            if abs(dist-1) > const.Constants.SMALL_VALUE:
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Warning: RFV for command [' + str(cs) + '] not 1, ' + str(dist)
-                )
-                raise Exception('RFV error')
-
-        for i in range(0,self.x_clustered.shape[0],1):
-            cs = self.y_clustered[i]
-            fv = self.x_clustered[i]
-            dist = np.sum(np.multiply(fv,fv))**0.5
-            if abs(dist-1) > const.Constants.SMALL_VALUE:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Warning: x fv error for class "' + str(cs)\
-                         + '" at index ' + str(i) + ' not 1, ' + str(dist)
-                log.Log.critical(errmsg)
-                raise Exception(errmsg)
-        return
 
