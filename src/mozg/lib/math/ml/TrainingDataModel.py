@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au

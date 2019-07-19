@@ -5,9 +5,7 @@
 import numpy as np
 import pandas as pd
 import threading
-import json
 import datetime as dt
-import os
 import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
@@ -15,6 +13,7 @@ from inspect import currentframe, getframeinfo
 import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
+import mozg.lib.math.NumpyUtil as npUtil
 
 
 #
@@ -113,8 +112,8 @@ class MetricSpaceModel(threading.Thread):
     #
     # Given our training data x, we get the IDF of the columns x_name
     #
+    @staticmethod
     def get_feature_weight_idf(
-            self,
             x,
             y,
             x_name,
@@ -134,7 +133,7 @@ class MetricSpaceModel(threading.Thread):
         # Sum by column axis=0
         np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
         log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
             + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
             + '\n\r\tPresence sum:\n\r' + str(np_feature_presence_sum)
@@ -144,7 +143,7 @@ class MetricSpaceModel(threading.Thread):
         # Total document count
         n_documents = np_feature_presence.shape[0]
         log.Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
         )
 
@@ -155,12 +154,12 @@ class MetricSpaceModel(threading.Thread):
         # If only 1 document, all IDF will be zero, we will handle below
         if n_documents <= 1:
             log.Log.warning(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
             idf = np.array([1]*len(x.shape[1]))
         log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
         return idf
@@ -419,6 +418,13 @@ class MetricSpaceModel(threading.Thread):
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             self.model_data.x_name = self.training_data.get_x_name()
+            # Standardize to at least 2-dimensional, note this function returns a new array, thus
+            # no longer referencing the x_name in training data
+            self.model_data.x_name = npUtil.NumpyUtil.convert_dimension(
+                arr = self.model_data.x_name,
+                to_dim = 2
+            )
+
             # Unique y or classes
             # We have to list() the set(), to make it into a proper 1D vector
             self.model_data.classes_unique = np.array(list(set(y)))
@@ -442,14 +448,27 @@ class MetricSpaceModel(threading.Thread):
             self.model_data.idf = None
             if weigh_idf:
                 # Sum x by class
-                self.model_data.idf = self.get_feature_weight_idf(x=x, y=y, x_name=self.model_data.x_name)
+                self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
+                    x      = x,
+                    y      = y,
+                    x_name = self.model_data.x_name
+                )
+                # Standardize to at least 2-dimensional, note this function returns a new array, thus
+                # no longer referencing the x_name in training data
+                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
+                    arr    = self.model_data.idf,
+                    to_dim = 2
+                )
+
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
                 )
 
+                raise Exception('DEBUGGING HERE')
+
                 # This will change the x in self.training data
-                self.training_data.weigh_x(w=self.model_data.idf)
+                self.training_data.weigh_x(w=self.model_data.idf[0])
 
                 # Refetch again after weigh
                 x = self.training_data.get_x()

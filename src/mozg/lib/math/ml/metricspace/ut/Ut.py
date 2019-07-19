@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import mozg.common.util.Log as log
+from inspect import currentframe, getframeinfo
 
 
 class Ut:
@@ -148,9 +150,7 @@ class Ut:
             # Directory to keep all our model files
             dir_path_model    = self.dir_path_model,
         )
-        ms.load_model_parameters_from_storage(
-            dir_model = self.dir_path_model
-        )
+        ms.load_model_parameters_from_storage()
 
         test_x = np.array(
             [
@@ -213,6 +213,7 @@ class Ut:
 
 
 if __name__ == '__main__':
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
     obj = Ut()
     obj.unit_test_train()
     obj.unit_test_predict_classes()

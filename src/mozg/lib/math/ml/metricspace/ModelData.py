@@ -9,6 +9,7 @@ import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.Constants as const
+import mozg.lib.math.NumpyUtil as npUtil
 
 
 class ModelData:
@@ -40,7 +41,7 @@ class ModelData:
         # Order follows x_name
         # IDF np array at least 2 dimensional
         self.idf = None
-        # Represents a class of y in a single array
+        # numpy array, represents a class of y in a single array
         self.x_ref = None
         self.y_ref = None
         self.df_rfv_distance_furthest = None
@@ -80,12 +81,16 @@ class ModelData:
         self.log_training = []
 
         # Sort
+        x_name_1d = npUtil.NumpyUtil.convert_dimension(arr=self.x_name, to_dim=1)
         self.df_x_name = pd.DataFrame(data=self.x_name)
+
+        idf_1d = npUtil.NumpyUtil.convert_dimension(arr=self.idf, to_dim=1)
         self.df_idf = pd.DataFrame(data=self.idf, index=self.x_name)
+
         # We use this training data model class to get the friendly representation of the RFV
         xy = tdm.TrainingDataModel(
-            x = np.array(self.df_rfv.values),
-            y = np.array(self.df_rfv.index),
+            x      = self.x_ref,
+            y      = self.y_ref,
             x_name = np.array(self.df_rfv.columns)
         )
         rfv_friendly = xy.get_print_friendly_x()
@@ -321,6 +326,7 @@ class ModelData:
                 # Convert Index column to string
                 df_x_name.index = df_x_name.index.astype(str)
             self.x_name = np.array(df_x_name[df_x_name.columns[0]])
+            # Standardize to at least 2-dimensional
             if self.x_name.ndim == 1:
                 self.x_name = np.array([self.x_name])
 
@@ -433,8 +439,6 @@ class ModelData:
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
-        finally:
-            self.__mutex_training.release()
 
     def sanity_check(self):
         # Check RFV is normalized
