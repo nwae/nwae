@@ -116,9 +116,8 @@ class UtChat:
             # Directory to keep all our model files
             dir_path_model    = self.dir_path_model,
         )
-        ms_pc.load_model_parameters_from_storage(
-            dir_model = self.dir_path_model
-        )
+        ms_pc.load_model_parameters_from_storage()
+        ms_pc.load_training_data_from_storage()
 
         x = ms_pc.training_data.get_x()
         x_name = ms_pc.training_data.get_x_name()
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    obj.test_train()
+    # obj.test_train()
     obj.test_predict_classes()
 
 

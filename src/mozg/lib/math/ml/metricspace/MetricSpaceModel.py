@@ -673,3 +673,16 @@ class MetricSpaceModel(threading.Thread):
         finally:
             self.__mutex_training.release()
 
+    def load_training_data_from_storage(self):
+        try:
+            self.__mutex_training.acquire()
+            self.training_data = self.model_data.load_training_data_from_storage()
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Failed to load training data for identifier "' + self.identifier_string\
+                     + '". Exception message: ' + str(ex) + '.'
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
+        finally:
+            self.__mutex_training.release()
+

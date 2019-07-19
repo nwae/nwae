@@ -245,7 +245,11 @@ class ModelData:
         # Write back training data to file, for testing back the model only, not needed for the model
         #
         df_td_x = pd.DataFrame(td.get_x())
-        df_td_x.to_csv(path_or_buf=self.fpath_training_data_x, index=True, index_label='INDEX')
+        df_td_x.to_csv(
+            path_or_buf = self.fpath_training_data_x,
+            index       = True,
+            index_label = 'INDEX'
+        )
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved Training Data x with shape ' + str(df_td_x.shape)
@@ -254,7 +258,11 @@ class ModelData:
         )
 
         df_td_x_name = pd.DataFrame(td.get_x_name())
-        df_td_x_name.to_csv(path_or_buf=self.fpath_training_data_x_name, index=True, index_label='INDEX')
+        df_td_x_name.to_csv(
+            path_or_buf = self.fpath_training_data_x_name,
+            index       = True,
+            index_label = 'INDEX'
+        )
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
@@ -263,7 +271,11 @@ class ModelData:
         )
 
         df_td_y = pd.DataFrame(td.get_y())
-        df_td_y.to_csv(path_or_buf=self.fpath_training_data_y, index=True, index_label='INDEX')
+        df_td_y.to_csv(
+            path_or_buf = self.fpath_training_data_y,
+            index       = True,
+            index_label = 'INDEX'
+        )
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved Training Data y with shape ' + str(df_td_y.shape)
@@ -411,41 +423,51 @@ class ModelData:
                 + '\n\r' + str(self.x_clustered)
                 + '\n\ry_clustered:\n\r' + str(self.y_clustered)
             )
+            self.sanity_check()
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Load RFV from file failed for identifier "' + self.identifier_string\
+                     + '". Error msg "' + str(ex) + '".'
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
 
+    def load_training_data_from_storage(
+            self
+    ):
+        try:
             df_td_x = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_x,
-                sep       = ',',
-                index_col = 'INDEX'
+                filepath_or_buffer=self.fpath_training_data_x,
+                sep=',',
+                index_col='INDEX'
             )
             df_td_x_name = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_x_name,
-                sep       = ',',
-                index_col = 'INDEX'
+                filepath_or_buffer=self.fpath_training_data_x_name,
+                sep=',',
+                index_col='INDEX'
             )
             df_td_y = pd.read_csv(
-                filepath_or_buffer = self.fpath_training_data_y,
-                sep       = ',',
-                index_col = 'INDEX'
+                filepath_or_buffer=self.fpath_training_data_y,
+                sep=',',
+                index_col='INDEX'
             )
 
-            self.training_data = tdm.TrainingDataModel(
-                x = np.array(df_td_x.values),
+            td = tdm.TrainingDataModel(
+                x      = np.array(df_td_x.values),
                 x_name = np.array(df_td_x_name.values).transpose()[0],
-                y = np.array(df_td_y.values).transpose()[0]
+                y      = np.array(df_td_y.values).transpose()[0]
             )
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training Data x read ' + str(df_td_x.shape) + ' shape'
                 + ', x_name read ' + str(df_td_x_name.shape)
-                + '\n\r' + str(self.training_data.get_x_name())
+                + '\n\r' + str(td.get_x_name())
                 + ', y read ' + str(df_td_y.shape)
-                + '\n\r' + str(self.training_data.get_y())
+                + '\n\r' + str(td.get_y())
             )
-
-            self.sanity_check()
+            return td
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Load RFV from file failed for identifier "' + self.identifier_string\
+                     + ': Load training data from file failed for identifier "' + self.identifier_string\
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
