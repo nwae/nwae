@@ -203,12 +203,14 @@ class Ut:
         x_classes_expected = self.y
         print(x_classes_expected)
 
-        compare = (x_classes == x_classes_expected)
-        print(compare)
+        # Compare with expected
+        compare = (x_classes != y)
+        print(compare.tolist())
+        print('Total Errors = ' + str(np.sum(compare*1)))
 
 
 if __name__ == '__main__':
     obj = Ut()
-    # obj.unit_test_train()
+    obj.unit_test_train()
     obj.unit_test_predict_classes()
 

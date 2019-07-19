@@ -44,6 +44,13 @@ class TrainingDataModel:
         if type(self.y) is not np.ndarray:
             raise Exception('x must be np.array type, got type "' + str(type(self.y)) + '".')
 
+        # Change label to string type
+        y_str = np.array([])
+        for el in self.y:
+            el_str = str(el)
+            y_str = np.append(y_str, el_str)
+        self.y = y_str
+
         self.__remove_bad_rows()
 
         if (self.x.shape[0] != self.y.shape[0]):

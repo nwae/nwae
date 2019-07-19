@@ -108,23 +108,12 @@ class UtChat:
 
         # Convert to string type
         y_str = np.array([])
-        compare = np.array([])
-        for i in range(0,len(y),1):
-            y_str = np.append(y_str, str(y[i]))
-
-            x_str = str(x_classes[i])
-            is_dif = 0
-            if str(y[i]) != x_str:
-                is_dif = 1
-                print('Index i=' + str(i) + ' incorrect. y=' + str(y[i]) + ', x=' + str(x_str))
-            compare = np.append(compare, is_dif)
         print('ORIGINAL CLASSES y (type ' + str(type(y_str)) + ')\n\r' + str(y_str))
 
         # Compare with expected
-        # compare = (x_classes == y)
+        compare = (x_classes != y)
         print(compare.tolist())
-
-        print('Total Errors = ' + str(np.sum(compare)))
+        print('Total Errors = ' + str(np.sum(compare*1)))
 
         return
 
@@ -134,7 +123,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    # obj.test_train()
+    #obj.test_train()
     obj.test_predict_classes()
 
 
