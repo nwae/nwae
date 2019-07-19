@@ -14,6 +14,7 @@ import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
+import mozg.lib.math.ml.metricspace.ModelData as modelData
 
 
 #
@@ -94,37 +95,10 @@ class MetricSpaceModel(threading.Thread):
         #  Classes of the classification
         self.classes = None
 
-        #
-        # RFVs
-        # Original x, y, x_name in self.training_data
-        # All np array type unless stated
-        #
-        # Order follows x_name
-        self.idf = None
-        self.rfv_x = None
-        self.rfv_y = None
-        self.df_rfv_distance_furthest = None
-        self.x_clustered = None
-        self.y_clustered = None
-        self.x_name = None
-
-        # First check the existence of the files
-        prefix = self.dir_path_model + '/' + self.identifier_string
-        self.fpath_updated_file      = prefix + '.lastupdated.txt'
-        self.fpath_x_name            = prefix + '.x_name.csv'
-        self.fpath_idf               = prefix + '.idf.csv'
-        self.fpath_rfv               = prefix + '.rfv.csv'
-        self.fpath_rfv_friendly_json = prefix + '.rfv_friendly.json'
-        # Only for debugging file
-        self.fpath_rfv_friendly_txt  = prefix + '.rfv_friendly.txt'
-        self.fpath_rfv_dist          = prefix + '.rfv.distance.csv'
-        self.fpath_x_clustered       = prefix + '.x_clustered.csv'
-        # Only for debugging file
-        self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
-        # Training data for testing back only
-        self.fpath_training_data_x        = prefix + '.training_data.x.csv'
-        self.fpath_training_data_x_name   = prefix + '.training_data.x_name.csv'
-        self.fpath_training_data_y        = prefix + '.training_data.y.csv'
+        self.model_data = modelData.ModelData(
+            identifier_string = self.identifier_string,
+            dir_path_model    = self.dir_path_model
+        )
 
         self.bot_training_start_time = None
         self.bot_training_end_time = None
@@ -157,17 +131,27 @@ class MetricSpaceModel(threading.Thread):
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
+    #
+    # Given our training data x, we get the IDF of the columns x_name
+    #
     def get_feature_weight_idf(
             self,
             x,
             y,
-            x_name
+            x_name,
+            feature_presence_only_in_label_training_data = True
     ):
         df_tmp = pd.DataFrame(data=x, index=y)
+
+        # Group by the labels y, as they are not unique
         df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
         np_agg_sum = df_agg_sum.values
+
         # Get presence only by cell, then sum up by columns to get total presence by document
-        np_feature_presence = (np_agg_sum>0)*1
+        np_feature_presence = np_agg_sum
+        if feature_presence_only_in_label_training_data:
+            np_feature_presence = (np_agg_sum>0)*1
+
         # Sum by column axis=0
         np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
         log.Log.debug(
@@ -455,10 +439,10 @@ class MetricSpaceModel(threading.Thread):
 
             x = self.training_data.get_x()
             y = self.training_data.get_y()
-            self.x_name = self.training_data.get_x_name()
+            self.model_data.x_name = self.training_data.get_x_name()
             # Unique y or classes
             # We have to list() the set(), to make it into a proper 1D vector
-            self.classes = np.array(list(set(y)))
+            self.model_data.classes = np.array(list(set(y)))
 
             #
             # Here training data must be prepared in the correct format already
@@ -476,30 +460,30 @@ class MetricSpaceModel(threading.Thread):
             #   We join all text from the same intent, to get IDF
             # TODO: IDF may not be the ideal weights, design an optimal one.
             #
-            self.idf = None
+            self.model_data.idf = None
             if weigh_idf:
                 # Sum x by class
-                self.idf = self.get_feature_weight_idf(x=x, y=y, x_name=self.x_name)
+                self.model_data.idf = self.get_feature_weight_idf(x=x, y=y, x_name=self.x_name)
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tIDF values:\n\r' + str(self.idf)
+                    + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
                 )
 
                 # This will change the x in self.training data
-                self.training_data.weigh_x(w=self.idf)
+                self.training_data.weigh_x(w=self.model_data.idf)
 
                 # Refetch again after weigh
                 x = self.training_data.get_x()
                 y = self.training_data.get_y()
                 # Unique y or classes
                 # We have to list() the set(), to make it into a proper 1D vector
-                self.classes = np.array(list(set(y)))
+                self.model_data.y_unique = np.array(list(set(y)))
 
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
                     + '\n\r\ty\n\r' + str(y)
-                    + '\n\r\tx_name\n\r' + str(self.x_name)
+                    + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
                     , log_list=self.log_training
                 )
 
@@ -514,7 +498,7 @@ class MetricSpaceModel(threading.Thread):
             #    This can only be used to confirm if a detected intent is indeed the intent,
             #    can't be used as a general method to detect intent because it is intent specific.
             #
-            for cs in self.classes:
+            for cs in self.model_data.y_unique:
                 try:
                     # Extract only rows of this class
                     rows_of_class = x[y==cs]
@@ -553,13 +537,19 @@ class MetricSpaceModel(threading.Thread):
                         print('After normalize ' + str(np_class_cluster[ii]))
 
                     if self.x_clustered is None:
-                        self.x_clustered = np_class_cluster
-                        self.y_clustered = np.array([cs]*self.x_clustered.shape[0])
+                        self.model_data.x_clustered = np_class_cluster
+                        self.model_data.y_clustered = np.array([cs]*self.model_data.x_clustered.shape[0])
                     else:
                         # Append rows (thus 1st dimension at axis index 0)
-                        self.x_clustered = np.append(self.x_clustered, np_class_cluster, axis=0)
+                        self.model_data.x_clustered = np.append(
+                            self.model_data.x_clustered,
+                            np_class_cluster,
+                            axis=0)
                         # Appending to a 1D array always at axis=0
-                        self.y_clustered = np.append(self.y_clustered, [cs]*np_class_cluster.shape[0], axis=0)
+                        self.model_data.y_clustered = np.append(
+                            self.model_data.y_clustered,
+                            [cs]*np_class_cluster.shape[0],
+                            axis=0)
                 except Exception as ex:
                     log.Log.error(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -570,29 +560,33 @@ class MetricSpaceModel(threading.Thread):
 
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tCluster of x\n\r' + str(self.x_clustered)
-                + '\n\r\ty labels for cluster: ' + str(self.y_clustered)
+                + '\n\r\tCluster of x\n\r' + str(self.model_data.x_clustered)
+                + '\n\r\ty labels for cluster: ' + str(self.model_data.y_clustered)
             )
 
             #
             # RFV Derivation
             #
-            m = np.zeros((len(self.classes), len(self.x_name)))
-            # self.classes
+            m = np.zeros((len(self.model_data.y_unique), len(self.model_data.x_name)))
             self.df_rfv = pd.DataFrame(
                 m,
-                columns = self.x_name,
-                index   = self.classes
+                columns = self.model_data.x_name,
+                index   = self.model_data.y_unique
             )
             self.df_rfv_distance_furthest = pd.DataFrame(
                 {
-                    reffv.RefFeatureVector.COL_COMMAND:list(self.classes),
-                    reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:[MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
+                    reffv.RefFeatureVector.COL_COMMAND:
+                        list(self.model_data.y_unique),
+                    reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:
+                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.classes),
                 },
-                index = self.classes
+                index = self.model_data.y_unique
             )
 
-            for cs in self.classes:
+            #
+            # Derive x_ref and y_ref
+            #
+            for cs in self.model_data.y_unique:
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Doing class [' + str(cs) + ']'
@@ -652,11 +646,11 @@ class MetricSpaceModel(threading.Thread):
                     + ': Class "' + str(cs) + '". Furthest distance = '
                     + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
                 )
-            self.rfv_y = np.array(self.df_rfv.index)
-            self.rfv_x = np.array(self.df_rfv.values)
-            log.Log.debug('**************** ' + str(self.rfv_y))
+            self.model_data.y_ref = np.array(self.df_rfv.index)
+            self.model_data.x_ref = np.array(self.df_rfv.values)
+            log.Log.debug('**************** ' + str(self.model_data.y_ref))
 
-            self.persist_model_to_storage()
+            self.model_data.persist_model_to_storage()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
@@ -665,181 +659,6 @@ class MetricSpaceModel(threading.Thread):
             raise ex
         finally:
             self.__mutex_training.release()
-        return
-
-    def persist_model_to_storage(self):
-        # Sort
-        self.df_x_name = pd.DataFrame(data=self.x_name)
-        self.df_idf = pd.DataFrame(data=self.idf, index=self.x_name)
-        # We use this training data model class to get the friendly representation of the RFV
-        xy = tdm.TrainingDataModel(
-            x = np.array(self.df_rfv.values),
-            y = np.array(self.df_rfv.index),
-            x_name = np.array(self.df_rfv.columns)
-        )
-        rfv_friendly = xy.get_print_friendly_x()
-        #json_rfv_friendly = json.dumps(obj=xy.get_print_friendly_x(), ensure_ascii=False)
-        self.df_rfv = self.df_rfv.sort_index()
-        self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
-        self.df_x_clustered = pd.DataFrame(
-            data    = self.x_clustered,
-            index   = self.y_clustered,
-            columns = self.x_name
-        ).sort_index()
-        # We use this training data model class to get the friendly representation of the x_clustered
-        xy_x_clustered = tdm.TrainingDataModel(
-            x = np.array(self.x_clustered),
-            y = np.array(self.y_clustered),
-            x_name = self.x_name
-        )
-        x_clustered_friendly = xy_x_clustered.get_print_friendly_x()
-
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tx_name:\n\r' + str(self.df_x_name)
-            + '\n\r\tIDF:\n\r' + str(self.df_idf)
-            + '\n\r\tRFV:\n\r' + str(self.df_rfv)
-            + '\n\r\tRFV friendly:\n\r' + str(rfv_friendly)
-            + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
-            + '\n\r\tx clustered:\n\r' + str(self.df_x_clustered)
-            + '\n\r\tx clustered friendly:\n\r' + str(x_clustered_friendly)
-        )
-
-        #
-        # Save to file
-        # TODO: This needs to be saved to DB, not file
-        #
-        self.df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved x_name shape ' + str(self.df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
-            , log_list = self.log_training
-        )
-
-        self.df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved IDF dimensions ' + str(self.df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
-            , log_list = self.log_training
-        )
-
-        self.df_rfv.to_csv(path_or_buf=self.fpath_rfv, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + self.fpath_rfv + '"'
-            , log_list = self.log_training
-        )
-
-        try:
-            # This file only for debugging
-            f = open(file=self.fpath_rfv_friendly_txt, mode='w', encoding='utf-8')
-            for i in rfv_friendly.keys():
-                line = str(rfv_friendly[i])
-                f.write(str(line) + '\n\r')
-            f.close()
-
-            with open(self.fpath_rfv_friendly_json, 'w', encoding='utf-8') as f:
-                json.dump(rfv_friendly, f, indent=2)
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + self.fpath_rfv_friendly_json + '".'
-                , log_list=self.log_training
-            )
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create rfv friendly file "' + self.fpath_rfv_friendly_json
-                + '". ' + str(ex)
-            , log_list = self.log_training
-            )
-
-        self.df_rfv_distance_furthest.to_csv(path_or_buf=self.fpath_rfv_dist, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV (furthest) dimensions ' + str(self.df_rfv_distance_furthest.shape)
-            + ' filepath "' + self.fpath_rfv_dist + '"'
-            , log_list = self.log_training
-        )
-
-        self.df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
-            , log_list=self.log_training
-        )
-
-        # This file only for debugging
-        try:
-            # This file only for debugging
-            f = open(file=self.fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
-            for i in x_clustered_friendly.keys():
-                line = str(x_clustered_friendly[i])
-                f.write(str(line) + '\n\r')
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
-                + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
-                , log_list=self.log_training
-            )
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
-                + '". ' + str(ex)
-            , log_list = self.log_training
-            )
-
-        # Our servers look to this file to see if RFV has changed
-        # It is important to do it last (and fast), after everything is done
-        try:
-            f = open(file=self.fpath_updated_file, mode='w')
-            f.write(str(dt.datetime.now()))
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved update time file "' + self.fpath_updated_file
-                + '" for other processes to detect and restart.'
-                , log_list=self.log_training
-            )
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create last updated file "' + self.fpath_updated_file
-                + '". ' + str(ex)
-            , log_list = self.log_training
-            )
-
-        #
-        # Write back training data to file, for testing back the model only, not needed for the model
-        #
-        df_td_x = pd.DataFrame(self.training_data.get_x())
-        df_td_x.to_csv(path_or_buf=self.fpath_training_data_x, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
-            + ' filepath "' + self.fpath_training_data_x + '"'
-            , log_list=self.log_training
-        )
-
-        df_td_x_name = pd.DataFrame(self.training_data.get_x_name())
-        df_td_x_name.to_csv(path_or_buf=self.fpath_training_data_x_name, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
-            + ' filepath "' + self.fpath_training_data_x_name + '"'
-            , log_list=self.log_training
-        )
-
-        df_td_y = pd.DataFrame(self.training_data.get_y())
-        df_td_y.to_csv(path_or_buf=self.fpath_training_data_y, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
-            + ' filepath "' + self.fpath_training_data_y + '"'
-            , log_list=self.log_training
-        )
         return
 
     def load_model_parameters_from_storage(

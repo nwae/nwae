@@ -3,6 +3,7 @@ import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import numpy as np
+import pandas as pd
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 
@@ -37,20 +38,39 @@ class UtChat:
         )
 
         td = chat_td.get_training_data_from_db()
-        # Take just ten labels
-        unique_classes = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
-        text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
 
+        # Extract these columns
+        classes_id     = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
+        text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
+        classes_name   = td[ctd.ChatTrainingData.COL_TDATA_INTENT]
+
+        # Help to keep both linked
+        df_classes_id_name = pd.DataFrame({
+            'id': classes_id,
+            'name': classes_name
+        })
+
+        # For unit testing purpose, keep only 10 classes
         keep = 10
-        unique_classes_trimmed = list(set(unique_classes))[0:keep]
+        unique_classes_trimmed = list(set(classes_id))[0:keep]
         np_unique_classes_trimmed = np.array(unique_classes_trimmed)
-        np_indexes = np.isin(element=unique_classes, test_elements=np_unique_classes_trimmed)
+
+        # True/False series, filter out those x not needed for testing
+        np_indexes = np.isin(element=classes_id, test_elements=np_unique_classes_trimmed)
+
+        df_classes_id_name = df_classes_id_name[np_indexes]
+        # This dataframe becomes our map to get the name of y/classes
+        df_classes_id_name.drop_duplicates(inplace=True)
+        print('y FILTERED:\n\r' + str(np_unique_classes_trimmed))
+        print('y DF FILTERED:\n\r:' + str(df_classes_id_name))
 
         # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
-        np_label_id = np.array(list(unique_classes[np_indexes]))
+        np_label_id = np.array(list(classes_id[np_indexes]))
+        np_label_name = np.array(df_classes_id_name['name'])
         np_text_segmented = np.array(list(text_segmented[np_indexes]))
 
-        print('LABELS:\n\r' + str(np_label_id[0:20]))
+        print('LABELS ID:\n\r' + str(np_label_id[0:20]))
+        print('LABELS NAME:\n\r' + str(np_label_name[0:20]))
         print('np TEXT SEGMENTED:\n\r' + str(np_text_segmented[0:20]))
         print('TEXT SEGMENTED:\n\r' + str(text_segmented[np_indexes]))
 
@@ -58,9 +78,10 @@ class UtChat:
         # Finally we have our text data in the desired format
         #
         tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
-            label_id=np_label_id.tolist(),
-            text_segmented=np_text_segmented.tolist(),
-            keywords_remove_quartile=0
+            label_id       = np_label_id.tolist(),
+            label_name     = np_label_name.tolist(),
+            text_segmented = np_text_segmented.tolist(),
+            keywords_remove_quartile = 0
         )
 
         print('TDM x:\n\r' + str(tdm_obj.get_x()))
@@ -123,7 +144,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    #obj.test_train()
+    obj.test_train()
     obj.test_predict_classes()
 
 

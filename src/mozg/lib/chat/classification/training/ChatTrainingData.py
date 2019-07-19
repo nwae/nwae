@@ -59,6 +59,7 @@ class ChatTrainingData:
             dirpath_synonymlist,
             # Do word segmentation for all sentences, when word/synonym list changes
             resegment_all_words = False,
+            write_to_file = False,
             verbose = 0
     ):
         self.use_db = use_db
@@ -76,6 +77,8 @@ class ChatTrainingData:
         self.df_training_data = None
 
         self.resegment_all_words = resegment_all_words
+        # Write DB data to file (so that we can just use that and not always connect to DB)
+        self.write_to_file = write_to_file
         self.verbose = verbose
 
         postfix_wordlist = '-wordlist.txt'
@@ -237,8 +240,9 @@ class ChatTrainingData:
 
     def get_training_data_from_db(
             self,
-            max_lines=0,
-            verbose=0
+            max_lines     = 0,
+            verbose       = 0,
+            write_to_file = False
     ):
         #
         # Needed columns:
@@ -342,7 +346,11 @@ class ChatTrainingData:
             prev_cat_int_index = prev_cat_int_index + 1
             self.df_training_data_db[ChatTrainingData.COL_TDATA_INTENT_INDEX].at[i] = prev_cat_int_index
 
-        #self.df_training_data_db.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv', header=True, index=False)
+        if write_to_file:
+            self.df_training_data_db.to_csv(
+                path_or_buf = '/Users/mark.tan/Downloads/td.csv',
+                header      = True,
+                index       = False)
 
         # Point csv data to DB data
         self.df_training_data = self.df_training_data_db

@@ -23,11 +23,14 @@ class TrainingDataModel:
             y,
             # np array 형식으호. Имена дименций x
             x_name = None,
+            # np array 형식으호
+            y_name = None,
             check_if_x_normalized = False
     ):
         # Only positive real values
         self.x = x
         self.y = y
+        self.y_name = y_name
 
         # We try to keep the order of x_name as it was given to us, after any kind of processing
         self.x_name_index = np.array(range(0, self.x.shape[1], 1))
@@ -43,6 +46,10 @@ class TrainingDataModel:
             raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
         if type(self.y) is not np.ndarray:
             raise Exception('x must be np.array type, got type "' + str(type(self.y)) + '".')
+        if self.y_name is None:
+            self.y_name = np.array(self.y)
+        elif type(self.y_name) is not np.ndarray:
+            raise Exception('y_name must be np.array type, got type "' + str(type(self.y_name)) + '".')
 
         # Change label to string type
         y_str = np.array([])
@@ -53,10 +60,11 @@ class TrainingDataModel:
 
         self.__remove_bad_rows()
 
-        if (self.x.shape[0] != self.y.shape[0]):
+        if (self.x.shape[0] != self.y.shape[0]) and (self.y.shape[0] != self.y_name.shape[0]):
             raise Exception(
                 'Number of x training points = ' + str(self.x.shape[0])
                 + ' is not equal to number of labels = ' + str(self.y.shape[0])
+                + ' or not equal to number of label names = ' + str(self.y_name.shape[0])
             )
 
         # The x_names are names of the dimension points of x
@@ -195,6 +203,9 @@ class TrainingDataModel:
     def get_x_name(self):
         return self.x_name
 
+    def get_y_name(self):
+        return self.y_name
+
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
     # Returns sentence matrix array of combined word features
@@ -207,23 +218,27 @@ class TrainingDataModel:
             text_segmented,
             # List of labels (the "y")
             label_id,
+            # In case label id are not easily readable (e.g. ID from DB), then names for clarity
+            label_name,
             keywords_remove_quartile,
-            stopwords = (),
-            x_name_preferred_order = None,
+            stopwords = ()
     ):
         log_training = []
 
-        if ( type(label_id) not in (list, tuple) ) or ( type(text_segmented) not in (list, tuple) ):
+        if ( type(label_id) not in (list, tuple) ) \
+                or ( type(label_name) not in (list, tuple) ) \
+                or ( type(text_segmented) not in (list, tuple) ):
             raise Exception(
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Label ID and Text Segmented must be list/tuple type. Got label id type '
+                + ': Label ID/Name and Text Segmented must be list/tuple type. Got label id type '
                 + str(type(label_id)) + ', and text segmented type ' + str(type(text_segmented)) + '.'
             )
-        if len(label_id) != len(text_segmented):
+        if ( len(label_id) != len(text_segmented) ) and ( len(label_id) != len(label_name) ):
             raise Exception(
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
-                + ' and Text Segmented length = ' + str(len(text_segmented)) + ' not equal.'
+                + ', label name length = ' + str(len(label_name))
+                + ', and Text Segmented length = ' + str(len(text_segmented)) + ' must be equal.'
             )
 
         log.Log.info(
@@ -236,7 +251,8 @@ class TrainingDataModel:
         log.Log.debugdebug(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Training data text\n\r' + str(text_segmented)
-            + ', labels\n\r' + str(label_id)
+            + ', label IDs\n\r' + str(label_id)
+            + ', label names\n\r' + str(label_name)
         )
 
         #
@@ -312,108 +328,9 @@ class TrainingDataModel:
         )
 
 
-def demo_text_data():
-    topdir = '/Users/mark.tan/git/mozg.nlp'
-    chat_td = ctd.ChatTrainingData(
-        use_db     = True,
-        db_profile = 'mario2',
-        account_id = 4,
-        bot_id     = 22,
-        lang       = 'cn',
-        bot_key    = 'db_mario2.accid4.botid22',
-        dirpath_traindata      = None,
-        postfix_training_files = None,
-        dirpath_wordlist       = topdir + '/nlp.data/wordlist',
-        dirpath_app_wordlist   = topdir + '/nlp.data/app/chats',
-        dirpath_synonymlist    = topdir + '/nlp.data/app/chats'
-    )
-
-    td = chat_td.get_training_data_from_db()
-    # Take just ten labels
-    unique_classes = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
-    text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
-
-    keep = 10
-    unique_classes_trimmed = list(set(unique_classes))[0:keep]
-    np_unique_classes_trimmed = np.array(unique_classes_trimmed)
-    np_indexes = np.isin(element=unique_classes, test_elements=np_unique_classes_trimmed)
-
-    # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
-    np_label_id = np.array(list(unique_classes[np_indexes]))
-    np_text_segmented = np.array(list(text_segmented[np_indexes]))
-
-    print(np_label_id[0:20])
-    print(np_text_segmented[0:20])
-    print(np_text_segmented[0])
-
-    tdm_obj = TrainingDataModel.unify_word_features_for_text_data(
-        label_id       = np_label_id.tolist(),
-        text_segmented = np_text_segmented.tolist(),
-        keywords_remove_quartile = 0
-    )
-    np_words = tdm_obj.get_x_name()
-    fv = tdm_obj.get_x()
-
-    error_count = 0
-    total_count = fv.shape[0]
-    for i in range(0, fv.shape[0], 1):
-        v = fv[i]
-        print_indexes = v>0
-        labels_show = np_words[print_indexes]
-        v_show = v[print_indexes]
-        df = pd.DataFrame(data={'wordlabel': labels_show, 'fv': v_show})
-
-        # Compare with original text
-        txt = np_text_segmented[i]
-        txt = tcb.TextClusterBasic.filter_sentence(
-            sentence_text = txt,
-            stopwords     = ()
-        )
-        txt_arr = txt.split(sep=' ')
-        # Filter out words not in wordlabels as we might have removed some quartile
-        np_txt_arr = np.array(txt_arr)
-        np_txt_arr = np_txt_arr[np.isin(element=np_txt_arr, test_elements=np_words)]
-        txt_arr = np_txt_arr.tolist()
-        if len(txt_arr) == 0:
-            log.Log.debugdebug('Sentence "' + txt + '" became nothing after removing quartile.')
-            continue
-
-        min_freq = 0.0
-        try:
-            min_freq = np.min(v_show)
-        except Exception as ex:
-            raise Exception('Cannot get min frequency for sentence "' + str(np_text_segmented[i])
-                            + '", values ' + str(v_show) + '.')
-
-        labels_show = labels_show.tolist()
-        # Some words need to repeat more than once
-        new_labels_show = []
-        for j in range(0,df.shape[0],1):
-            char = df['wordlabel'].loc[j]
-            freq = int(df['fv'].loc[j] / min_freq)
-            for k in range(0,freq,1):
-                new_labels_show.append(char)
-
-        new_labels_show.sort()
-        txt_arr.sort()
-        if not (new_labels_show==txt_arr):
-            print(df)
-            print(new_labels_show)
-            print(txt_arr)
-            error_count = error_count + 1
-            print('WARNING!')
-        else:
-            print(str(i+1) + '. CHECK PASSED.')
-    print(str(error_count) + ' errors from ' + str(total_count) + ' tests')
-
-    # td.to_csv(path_or_buf='/Users/mark.tan/Downloads/td.csv')
-
-
 if __name__ == '__main__':
     au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-    #demo_text_data()
-    #exit(0)
 
     x = np.array(
         [

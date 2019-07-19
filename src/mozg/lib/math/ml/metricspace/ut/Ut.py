@@ -51,8 +51,11 @@ class Ut:
         #
         # Finally we have our text data in the desired format
         #
+        y_list = self.y.tolist()
+        y_list = list(y_list)
         self.tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
-            label_id       = self.y.tolist(),
+            label_id       = y_list.copy(),
+            label_name     = y_list.copy(),
             text_segmented = self.texts,
             keywords_remove_quartile = 0
         )
