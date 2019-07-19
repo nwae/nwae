@@ -1001,8 +1001,8 @@ class MetricSpaceModel(threading.Thread):
 
             self.training_data = tdm.TrainingDataModel(
                 x = np.array(df_td_x.values),
-                x_name = np.array(df_td_x_name.values),
-                y = np.array(df_td_y.values)
+                x_name = np.array(df_td_x_name.values).transpose()[0],
+                y = np.array(df_td_y.values).transpose()[0]
             )
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
