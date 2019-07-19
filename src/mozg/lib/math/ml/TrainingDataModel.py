@@ -80,6 +80,7 @@ class TrainingDataModel:
 
     def weigh_x(
             self,
+            # Expect a 1-dimensional np array
             w
     ):
         if type(w) is not np.ndarray:
@@ -132,8 +133,8 @@ class TrainingDataModel:
         )
         for i in range(0,self.x.shape[0],1):
             p = self.x[i]
-            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > 0.000001
-            if (np.sum(p) < 0.000001) or (self.check_if_x_normalized and is_not_normalized):
+            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > const.Constants.SMALL_VALUE
+            if (np.sum(p) < const.Constants.SMALL_VALUE) or (self.check_if_x_normalized and is_not_normalized):
                 indexes_to_remove.append(i)
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

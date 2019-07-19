@@ -418,16 +418,10 @@ class MetricSpaceModel(threading.Thread):
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             self.model_data.x_name = self.training_data.get_x_name()
-            # Standardize to at least 2-dimensional, note this function returns a new array, thus
-            # no longer referencing the x_name in training data
-            self.model_data.x_name = npUtil.NumpyUtil.convert_dimension(
-                arr = self.model_data.x_name,
-                to_dim = 2
-            )
 
             # Unique y or classes
             # We have to list() the set(), to make it into a proper 1D vector
-            self.model_data.classes_unique = np.array(list(set(y)))
+            self.model_data.y_unique = np.array(list(set(y)))
 
             #
             # Here training data must be prepared in the correct format already
@@ -453,8 +447,7 @@ class MetricSpaceModel(threading.Thread):
                     y      = y,
                     x_name = self.model_data.x_name
                 )
-                # Standardize to at least 2-dimensional, note this function returns a new array, thus
-                # no longer referencing the x_name in training data
+                # Standardize to at least 2-dimensional, easier when weighting x
                 self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
                     arr    = self.model_data.idf,
                     to_dim = 2
@@ -465,8 +458,6 @@ class MetricSpaceModel(threading.Thread):
                     + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
                 )
 
-                raise Exception('DEBUGGING HERE')
-
                 # This will change the x in self.training data
                 self.training_data.weigh_x(w=self.model_data.idf[0])
 
@@ -474,7 +465,8 @@ class MetricSpaceModel(threading.Thread):
                 x = self.training_data.get_x()
                 y = self.training_data.get_y()
                 # Unique y or classes
-                # We have to list() the set(), to make it into a proper 1D vector
+                # We do this again because after weighing, it will remove bad rows, which might cause some y
+                # to disappear
                 self.model_data.y_unique = np.array(list(set(y)))
 
                 log.Log.debug(
@@ -566,17 +558,18 @@ class MetricSpaceModel(threading.Thread):
             # RFV Derivation
             #
             m = np.zeros((len(self.model_data.y_unique), len(self.model_data.x_name)))
-            self.df_rfv = pd.DataFrame(
+            # Temporary only this data frame
+            df_x_ref = pd.DataFrame(
                 m,
                 columns = self.model_data.x_name,
                 index   = self.model_data.y_unique
             )
-            self.df_rfv_distance_furthest = pd.DataFrame(
+            self.model_data.df_x_ref_distance_furthest = pd.DataFrame(
                 {
                     reffv.RefFeatureVector.COL_COMMAND:
                         list(self.model_data.y_unique),
                     reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:
-                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.model_data.classes_unique),
+                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.model_data.y_unique),
                 },
                 index = self.model_data.y_unique
             )
@@ -607,7 +600,7 @@ class MetricSpaceModel(threading.Thread):
                     )
                 rfv = rfv / normalize_factor
                 # A single array will be created as a column dataframe, thus we have to name the index and not columns
-                self.df_rfv.at[cs] = rfv
+                df_x_ref.at[cs] = rfv
 
                 check_normalized = np.sum(np.multiply(rfv,rfv))**0.5
                 if abs(check_normalized-1) > const.Constants.SMALL_VALUE:
@@ -637,15 +630,17 @@ class MetricSpaceModel(threading.Thread):
                     dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
                     if dist > dist_furthest:
                         dist_furthest = dist
-                        self.df_rfv_distance_furthest.at[cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
+                        self.model_data.df_x_ref_distance_furthest.at[
+                            cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
 
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Class "' + str(cs) + '". Furthest distance = '
-                    + str(self.df_rfv_distance_furthest[reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
+                    + str(self.model_data.df_x_ref_distance_furthest[
+                              reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
                 )
-            self.model_data.y_ref = np.array(self.df_rfv.index)
-            self.model_data.x_ref = np.array(self.df_rfv.values)
+            self.model_data.y_ref = np.array(df_x_ref.index)
+            self.model_data.x_ref = np.array(df_x_ref.values)
             log.Log.debug('**************** ' + str(self.model_data.y_ref))
 
             self.model_data.persist_model_to_storage()

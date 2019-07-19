@@ -169,7 +169,7 @@ class Ut:
             ]
         )
         test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
-        model_x_name = ms.x_name
+        model_x_name = ms.model_data.x_name
         if model_x_name.ndim == 2:
             model_x_name = model_x_name[0]
         print(model_x_name)

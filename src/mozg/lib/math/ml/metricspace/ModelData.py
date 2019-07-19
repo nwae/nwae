@@ -44,14 +44,15 @@ class ModelData:
         # numpy array, represents a class of y in a single array
         self.x_ref = None
         self.y_ref = None
-        self.df_rfv_distance_furthest = None
+        # For us to easily persist to storage later, contains x_ref, y_ref, x_name
+        self.df_x_ref_distance_furthest = None
         # Represents a class of y in a few clustered arrays
         self.x_clustered = None
         self.y_clustered = None
         # x_name column names np array at least 2 dimensional
         self.x_name = None
 
-        # Unique y
+        # Unique y (or the unique classes)
         self.y_unique = None
 
         # First check the existence of the files
@@ -81,27 +82,35 @@ class ModelData:
         self.log_training = []
 
         # Sort
-        x_name_1d = npUtil.NumpyUtil.convert_dimension(arr=self.x_name, to_dim=1)
-        self.df_x_name = pd.DataFrame(data=self.x_name)
+        df_x_name = pd.DataFrame(data=self.x_name)
 
         idf_1d = npUtil.NumpyUtil.convert_dimension(arr=self.idf, to_dim=1)
-        self.df_idf = pd.DataFrame(data=self.idf, index=self.x_name)
+        df_idf = pd.DataFrame(
+            data  = npUtil.NumpyUtil.convert_dimension(arr=self.idf, to_dim=1),
+            index = self.x_name
+        )
 
         # We use this training data model class to get the friendly representation of the RFV
         xy = tdm.TrainingDataModel(
             x      = self.x_ref,
             y      = self.y_ref,
-            x_name = np.array(self.df_rfv.columns)
+            x_name = self.x_name
         )
         rfv_friendly = xy.get_print_friendly_x()
-        #json_rfv_friendly = json.dumps(obj=xy.get_print_friendly_x(), ensure_ascii=False)
-        self.df_rfv = self.df_rfv.sort_index()
-        self.df_rfv_distance_furthest = self.df_rfv_distance_furthest.sort_index()
-        self.df_x_clustered = pd.DataFrame(
+
+        df_x_ref = pd.DataFrame(
+            data    = self.x_ref,
+            index   = self.y_ref,
+            columns = self.x_name
+        ).sort_index()
+        self.df_x_ref_distance_furthest = self.df_x_ref_distance_furthest.sort_index()
+
+        df_x_clustered = pd.DataFrame(
             data    = self.x_clustered,
             index   = self.y_clustered,
             columns = self.x_name
         ).sort_index()
+
         # We use this training data model class to get the friendly representation of the x_clustered
         xy_x_clustered = tdm.TrainingDataModel(
             x = np.array(self.x_clustered),
@@ -112,12 +121,12 @@ class ModelData:
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tx_name:\n\r' + str(self.df_x_name)
-            + '\n\r\tIDF:\n\r' + str(self.df_idf)
-            + '\n\r\tRFV:\n\r' + str(self.df_rfv)
+            + '\n\r\tx_name:\n\r' + str(df_x_name)
+            + '\n\r\tIDF:\n\r' + str(df_idf)
+            + '\n\r\tRFV:\n\r' + str(df_x_ref)
             + '\n\r\tRFV friendly:\n\r' + str(rfv_friendly)
-            + '\n\r\tFurthest Distance:\n\r' + str(self.df_rfv_distance_furthest)
-            + '\n\r\tx clustered:\n\r' + str(self.df_x_clustered)
+            + '\n\r\tFurthest Distance:\n\r' + str(self.df_x_ref_distance_furthest)
+            + '\n\r\tx clustered:\n\r' + str(df_x_clustered)
             + '\n\r\tx clustered friendly:\n\r' + str(x_clustered_friendly)
         )
 
@@ -125,24 +134,24 @@ class ModelData:
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        self.df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
+        df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved x_name shape ' + str(self.df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
+            + ': Saved x_name shape ' + str(df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
             , log_list = self.log_training
         )
 
-        self.df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
+        df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved IDF dimensions ' + str(self.df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
+            + ': Saved IDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
             , log_list = self.log_training
         )
 
-        self.df_rfv.to_csv(path_or_buf=self.fpath_rfv, index=True, index_label='INDEX')
+        df_x_ref.to_csv(path_or_buf=self.fpath_rfv, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions ' + str(self.df_rfv.shape) + ' filepath "' + self.fpath_rfv + '"'
+            + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_rfv + '"'
             , log_list = self.log_training
         )
 
@@ -170,18 +179,18 @@ class ModelData:
             , log_list = self.log_training
             )
 
-        self.df_rfv_distance_furthest.to_csv(path_or_buf=self.fpath_rfv_dist, index=True, index_label='INDEX')
+        self.df_x_ref_distance_furthest.to_csv(path_or_buf=self.fpath_rfv_dist, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV (furthest) dimensions ' + str(self.df_rfv_distance_furthest.shape)
+            + ': Saved RFV (furthest) dimensions ' + str(self.df_x_ref_distance_furthest.shape)
             + ' filepath "' + self.fpath_rfv_dist + '"'
             , log_list = self.log_training
         )
 
-        self.df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
+        df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Clustered x with shape ' + str(self.df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
+            + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
             , log_list=self.log_training
         )
 
@@ -353,36 +362,36 @@ class ModelData:
                 + '\n\r' + str(self.idf)
             )
 
-            df_rfv = pd.read_csv(
+            df_x_ref = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv,
                 sep       = ',',
                 index_col = 'INDEX'
             )
             if ModelData.CONVERT_DATAFRAME_INDEX_TO_STR:
                 # Convert Index column to string
-                df_rfv.index = df_rfv.index.astype(str)
+                df_x_ref.index = df_x_ref.index.astype(str)
             # Cached the numpy array
-            self.rfv_y = np.array(df_rfv.index)
-            self.rfv_x = np.array(df_rfv.values)
+            self.y_ref = np.array(df_x_ref.index)
+            self.x_ref = np.array(df_x_ref.values)
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV x read ' + str(df_rfv.shape[0]) + ' lines: '
-                + '\n\r' + str(self.rfv_x)
-                + '\n\rRFV y' + str(self.rfv_y)
+                + ': RFV x read ' + str(df_x_ref.shape[0]) + ' lines: '
+                + '\n\r' + str(self.x_ref)
+                + '\n\rRFV y' + str(self.y_ref)
             )
 
-            self.df_rfv_distance_furthest = pd.read_csv(
+            self.df_x_ref_distance_furthest = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv_dist,
                 sep       = ',',
                 index_col = 'INDEX'
             )
             if ModelData.CONVERT_DATAFRAME_INDEX_TO_STR:
                 # Convert Index column to string
-                self.df_rfv_distance_furthest.index = self.df_rfv_distance_furthest.index.astype(str)
+                self.df_x_ref_distance_furthest.index = self.df_x_ref_distance_furthest.index.astype(str)
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_distance_furthest.shape[0]) + ' lines'
-                + '\n\r' + str(self.df_rfv_distance_furthest)
+                + ': RFV Furthest Distance Data: Read ' + str(self.df_x_ref_distance_furthest.shape[0]) + ' lines'
+                + '\n\r' + str(self.df_x_ref_distance_furthest)
             )
 
             df_x_clustered = pd.read_csv(
