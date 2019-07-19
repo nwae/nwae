@@ -221,6 +221,7 @@ class ModelData:
         try:
             f = open(file=self.fpath_updated_file, mode='w')
             f.write(str(dt.datetime.now()))
+            f.write('\n\r')
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
