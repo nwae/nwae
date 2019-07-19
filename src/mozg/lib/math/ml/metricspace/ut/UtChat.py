@@ -104,17 +104,27 @@ class UtChat:
         y = ms_pc.training_data.get_y()
 
         x_classes = ms_pc.predict_classes(x=x)
-        print('PREDICTED CLASSES x_classes:\n\r' + str(x_classes))
+        print('PREDICTED CLASSES x_classes (type ' + str(type(x_classes)) + '):\n\r' + str(x_classes))
 
         # Convert to string type
         y_str = np.array([])
+        compare = np.array([])
         for i in range(0,len(y),1):
             y_str = np.append(y_str, str(y[i]))
-        print('ORIGINAL CLASSES y:\n\r' + str(y_str))
+
+            x_str = str(x_classes[i])
+            if_dif = 0
+            if str(y[i]) != x_str:
+                is_dif = 1
+                print('Index i=' + str(i) + ' incorrect. y=' + str(y[i]) + ', x=' + str(x_str))
+            compare = np.append(compare, is_dif)
+        print('ORIGINAL CLASSES y (type ' + str(type(y_str)) + ')\n\r' + str(y_str))
 
         # Compare with expected
-        compare = (x_classes == y)
-        print(compare)
+        # compare = (x_classes == y)
+        print(compare.tolist())
+
+        print('Total Errors = ' + str(np.sum(compare)))
 
         return
 
