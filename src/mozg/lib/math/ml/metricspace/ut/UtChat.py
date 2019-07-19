@@ -113,7 +113,7 @@ class UtChat:
             y_str = np.append(y_str, str(y[i]))
 
             x_str = str(x_classes[i])
-            if_dif = 0
+            is_dif = 0
             if str(y[i]) != x_str:
                 is_dif = 1
                 print('Index i=' + str(i) + ' incorrect. y=' + str(y[i]) + ', x=' + str(x_str))
