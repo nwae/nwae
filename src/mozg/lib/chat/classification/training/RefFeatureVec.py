@@ -7,8 +7,10 @@ class RefFeatureVector:
     # Column names for distance threshold to RFV
     COL_COMMAND = 'Command'
     COL_DISTANCE_TO_RFV_FURTHEST = 'DistToRfvThreshold'
-    COL_FEATURES = 'Features'
+    COL_TEXT = 'Text'
 
 
-if __name__ == '__main__':
-    exit(0)
+def demo_1():
+    return
+
+#demo_1()
