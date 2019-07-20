@@ -60,18 +60,19 @@ class ModelData:
         self.fpath_updated_file      = prefix + '.lastupdated.txt'
         self.fpath_x_name            = prefix + '.x_name.csv'
         self.fpath_idf               = prefix + '.idf.csv'
-        self.fpath_rfv               = prefix + '.rfv.csv'
-        self.fpath_rfv_friendly_json = prefix + '.rfv_friendly.json'
+        self.fpath_x_ref             = prefix + '.x_ref.csv'
+        self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
         # Only for debugging file
-        self.fpath_rfv_friendly_txt  = prefix + '.rfv_friendly.txt'
-        self.fpath_rfv_dist          = prefix + '.rfv.distance.csv'
+        self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
+        self.fpath_x_ref_dist          = prefix + '.x_ref.distance.csv'
         self.fpath_x_clustered       = prefix + '.x_clustered.csv'
         # Only for debugging file
         self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
         # Training data for testing back only
-        self.fpath_training_data_x        = prefix + '.training_data.x.csv'
-        self.fpath_training_data_x_name   = prefix + '.training_data.x_name.csv'
-        self.fpath_training_data_y        = prefix + '.training_data.y.csv'
+        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
+        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
+        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
+        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
 
         self.log_training = []
         return
@@ -96,7 +97,7 @@ class ModelData:
             y      = self.y_ref,
             x_name = self.x_name
         )
-        rfv_friendly = xy.get_print_friendly_x()
+        x_ref_friendly = xy.get_print_friendly_x()
 
         df_x_ref = pd.DataFrame(
             data    = self.x_ref,
@@ -124,7 +125,7 @@ class ModelData:
             + '\n\r\tx_name:\n\r' + str(df_x_name)
             + '\n\r\tIDF:\n\r' + str(df_idf)
             + '\n\r\tRFV:\n\r' + str(df_x_ref)
-            + '\n\r\tRFV friendly:\n\r' + str(rfv_friendly)
+            + '\n\r\tRFV friendly:\n\r' + str(x_ref_friendly)
             + '\n\r\tFurthest Distance:\n\r' + str(self.df_x_ref_distance_furthest)
             + '\n\r\tx clustered:\n\r' + str(df_x_clustered)
             + '\n\r\tx clustered friendly:\n\r' + str(x_clustered_friendly)
@@ -148,42 +149,42 @@ class ModelData:
             , log_list = self.log_training
         )
 
-        df_x_ref.to_csv(path_or_buf=self.fpath_rfv, index=True, index_label='INDEX')
+        df_x_ref.to_csv(path_or_buf=self.fpath_x_ref, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_rfv + '"'
+            + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_x_ref + '"'
             , log_list = self.log_training
         )
 
         try:
             # This file only for debugging
-            f = open(file=self.fpath_rfv_friendly_txt, mode='w', encoding='utf-8')
-            for i in rfv_friendly.keys():
-                line = str(rfv_friendly[i])
+            f = open(file=self.fpath_x_ref_friendly_txt, mode='w', encoding='utf-8')
+            for i in x_ref_friendly.keys():
+                line = str(x_ref_friendly[i])
                 f.write(str(line) + '\n\r')
             f.close()
 
-            with open(self.fpath_rfv_friendly_json, 'w', encoding='utf-8') as f:
-                json.dump(rfv_friendly, f, indent=2)
+            with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
+                json.dump(x_ref_friendly, f, indent=2)
             f.close()
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved rfv friendly ' + str(rfv_friendly) +  ' to file "' + self.fpath_rfv_friendly_json + '".'
+                + ': Saved x_ref friendly ' + str(x_ref_friendly) +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
                 , log_list=self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create rfv friendly file "' + self.fpath_rfv_friendly_json
+                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_json
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
 
-        self.df_x_ref_distance_furthest.to_csv(path_or_buf=self.fpath_rfv_dist, index=True, index_label='INDEX')
+        self.df_x_ref_distance_furthest.to_csv(path_or_buf=self.fpath_x_ref_dist, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved RFV (furthest) dimensions ' + str(self.df_x_ref_distance_furthest.shape)
-            + ' filepath "' + self.fpath_rfv_dist + '"'
+            + ' filepath "' + self.fpath_x_ref_dist + '"'
             , log_list = self.log_training
         )
 
@@ -237,53 +238,6 @@ class ModelData:
             , log_list = self.log_training
             )
 
-    def persist_training_data_to_storage(
-            self,
-            td
-    ):
-        #
-        # Write back training data to file, for testing back the model only, not needed for the model
-        #
-        df_td_x = pd.DataFrame(td.get_x())
-        df_td_x.to_csv(
-            path_or_buf = self.fpath_training_data_x,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
-            + ' filepath "' + self.fpath_training_data_x + '"'
-            , log_list=self.log_training
-        )
-
-        df_td_x_name = pd.DataFrame(td.get_x_name())
-        df_td_x_name.to_csv(
-            path_or_buf = self.fpath_training_data_x_name,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
-            + ' filepath "' + self.fpath_training_data_x_name + '"'
-            , log_list=self.log_training
-        )
-
-        df_td_y = pd.DataFrame(td.get_y())
-        df_td_y.to_csv(
-            path_or_buf = self.fpath_training_data_y,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
-            + ' filepath "' + self.fpath_training_data_y + '"'
-            , log_list=self.log_training
-        )
-        return
-
     def load_model_parameters_from_storage(
             self
     ):
@@ -314,21 +268,21 @@ class ModelData:
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        if not os.path.isfile(self.fpath_rfv):
+        if not os.path.isfile(self.fpath_x_ref):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV file "' + self.fpath_rfv + '" not found!'
+                     + ': RFV file "' + self.fpath_x_ref + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        if not os.path.isfile(self.fpath_rfv_friendly_json):
+        if not os.path.isfile(self.fpath_x_ref_friendly_json):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV friendly file "' + self.fpath_rfv_friendly_json + '" not found!'
+                     + ': RFV friendly file "' + self.fpath_x_ref_friendly_json + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        if not os.path.isfile(self.fpath_rfv_dist):
+        if not os.path.isfile(self.fpath_x_ref_dist):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
+                     + ': RFV furthest distance file "' + self.fpath_x_ref_dist + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
@@ -376,7 +330,7 @@ class ModelData:
             )
 
             df_x_ref = pd.read_csv(
-                filepath_or_buffer = self.fpath_rfv,
+                filepath_or_buffer = self.fpath_x_ref,
                 sep       = ',',
                 index_col = 'INDEX'
             )
@@ -394,7 +348,7 @@ class ModelData:
             )
 
             self.df_x_ref_distance_furthest = pd.read_csv(
-                filepath_or_buffer = self.fpath_rfv_dist,
+                filepath_or_buffer = self.fpath_x_ref_dist,
                 sep       = ',',
                 index_col = 'INDEX'
             )
@@ -430,6 +384,80 @@ class ModelData:
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+
+    def persist_training_data_to_storage(
+            self,
+            td
+    ):
+        #
+        # Write back training data to file, for testing back the model only, not needed for the model
+        #
+        df_td_x = pd.DataFrame(
+            data    = td.get_x(),
+            columns = td.get_x_name(),
+            index   = td.get_y()
+        )
+        df_td_x.to_csv(
+            path_or_buf = self.fpath_training_data_x,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
+            + ' filepath "' + self.fpath_training_data_x + '"'
+            , log_list=self.log_training
+        )
+
+        try:
+            x_friendly = td.get_print_friendly_x()
+
+            # This file only for debugging
+            f = open(file=self.fpath_training_data_x_friendly, mode='w', encoding='utf-8')
+            for i in x_friendly.keys():
+                line = str(x_friendly[i])
+                f.write(str(line) + '\n\r')
+            f.close()
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved training data x friendly ' + str(x_friendly)
+                +  ' to file "' + self.fpath_training_data_x_friendly + '".'
+                , log_list=self.log_training
+            )
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_json
+                + '". ' + str(ex)
+            , log_list = self.log_training
+            )
+
+        df_td_x_name = pd.DataFrame(td.get_x_name())
+        df_td_x_name.to_csv(
+            path_or_buf = self.fpath_training_data_x_name,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
+            + ' filepath "' + self.fpath_training_data_x_name + '"'
+            , log_list=self.log_training
+        )
+
+        df_td_y = pd.DataFrame(td.get_y())
+        df_td_y.to_csv(
+            path_or_buf = self.fpath_training_data_y,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
+            + ' filepath "' + self.fpath_training_data_y + '"'
+            , log_list=self.log_training
+        )
+        return
 
     def load_training_data_from_storage(
             self

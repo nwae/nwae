@@ -143,7 +143,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    # obj.test_train()
-    obj.test_predict_classes()
+    obj.test_train()
+    #obj.test_predict_classes()
 
 
