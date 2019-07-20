@@ -14,6 +14,7 @@ import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.NumpyUtil as npUtil
+import mozg.common.util.Profiling as prf
 
 
 #
@@ -51,7 +52,8 @@ class MetricSpaceModel(threading.Thread):
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
             # If we will create an "IDF" based on the initial features
-            weigh_idf = False
+            weigh_idf = False,
+            do_profiling = True
     ):
         super(MetricSpaceModel, self).__init__()
 
@@ -69,6 +71,7 @@ class MetricSpaceModel(threading.Thread):
         self.key_features_remove_quartile = key_features_remove_quartile
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
+        self.do_profiling = do_profiling
 
         #
         # All parameter for model is encapsulated in this class
@@ -281,6 +284,8 @@ class MetricSpaceModel(threading.Thread):
             # ndarray type of >= 2 dimensions
             x
     ):
+        prf_start = prf.Profiling.start()
+
         if type(x) is not np.ndarray:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -394,6 +399,13 @@ class MetricSpaceModel(threading.Thread):
                 return
 
         retval = ret(match_details=match_details, predicted_classes=np.array(x_classes))
+
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_classes(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
+
         return retval
 
     #
@@ -406,6 +418,8 @@ class MetricSpaceModel(threading.Thread):
             stop_features = (),
             weigh_idf = False
     ):
+        prf_start = prf.Profiling.start()
+
         if self.training_data is None:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -654,11 +668,32 @@ class MetricSpaceModel(threading.Thread):
             self.model_data.x_ref = np.array(df_x_ref.values)
             log.Log.debug('**************** ' + str(self.model_data.y_ref))
 
+            if self.do_profiling:
+                log.Log.important(
+                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                    + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                )
+
+            prf_start = prf.Profiling.start()
             self.model_data.persist_model_to_storage()
+            if self.do_profiling:
+                log.Log.important(
+                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                    + ' PROFILING persist_model_to_storage(): '
+                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                )
+
+            prf_start = prf.Profiling.start()
             # For debugging only, not required by model
             self.model_data.persist_training_data_to_storage(
                 td = self.training_data
             )
+            if self.do_profiling:
+                log.Log.important(
+                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                    + ' PROFILING persist_training_data_to_storage(): '
+                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
@@ -667,11 +702,14 @@ class MetricSpaceModel(threading.Thread):
             raise ex
         finally:
             self.__mutex_training.release()
+
         return
 
     def load_model_parameters_from_storage(
             self
     ):
+        prf_start = prf.Profiling.start()
+
         try:
             self.__mutex_training.acquire()
             self.model_data.load_model_parameters_from_storage()
@@ -684,7 +722,17 @@ class MetricSpaceModel(threading.Thread):
         finally:
             self.__mutex_training.release()
 
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING load_model_parameters_from_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
+        return
+
     def load_training_data_from_storage(self):
+        prf_start = prf.Profiling.start()
+
         try:
             self.__mutex_training.acquire()
             self.training_data = self.model_data.load_training_data_from_storage()
@@ -697,3 +745,10 @@ class MetricSpaceModel(threading.Thread):
         finally:
             self.__mutex_training.release()
 
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING load_training_data_from_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
+        return

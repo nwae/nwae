@@ -166,10 +166,10 @@ class UtChat:
 
 if __name__ == '__main__':
     au.Auth.init_instances()
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    #obj.test_train()
+    obj.test_train()
     obj.test_predict_classes()
 
 
