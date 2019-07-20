@@ -66,8 +66,20 @@ class UtChat:
 
         # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
         np_label_id = np.array(list(classes_id[np_indexes]))
-        np_label_name = np.array(df_classes_id_name['name'])
         np_text_segmented = np.array(list(text_segmented[np_indexes]))
+
+        # Merge to get the label name
+        df_tmp_id = pd.DataFrame(data={'id': np_label_id})
+        df_tmp_id = df_tmp_id.merge(df_classes_id_name, how='left')
+        np_label_name = np.array(df_tmp_id['name'])
+
+        if np_label_id.shape != np_label_name.shape:
+            raise Exception(
+                'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
+                + str(np_label_id)
+                + 'Label Name:\n\r'
+                + str(np_label_name)
+            )
 
         print('LABELS ID:\n\r' + str(np_label_id[0:20]))
         print('LABELS NAME:\n\r' + str(np_label_name[0:20]))
@@ -143,7 +155,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    obj.test_train()
-    #obj.test_predict_classes()
+    #obj.test_train()
+    obj.test_predict_classes()
 
 

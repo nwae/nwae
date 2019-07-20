@@ -397,6 +397,7 @@ class ModelData:
             columns = td.get_x_name(),
             index   = td.get_y()
         )
+        df_td_x.sort_index(inplace=True)
         df_td_x.to_csv(
             path_or_buf = self.fpath_training_data_x,
             index       = True,
@@ -445,7 +446,10 @@ class ModelData:
             , log_list=self.log_training
         )
 
-        df_td_y = pd.DataFrame(td.get_y())
+        df_td_y = pd.DataFrame(
+            data  = td.get_y_name(),
+            index = td.get_y()
+        )
         df_td_y.to_csv(
             path_or_buf = self.fpath_training_data_y,
             index       = True,
@@ -457,6 +461,7 @@ class ModelData:
             + ' filepath "' + self.fpath_training_data_y + '"'
             , log_list=self.log_training
         )
+
         return
 
     def load_training_data_from_storage(
@@ -482,7 +487,9 @@ class ModelData:
             td = tdm.TrainingDataModel(
                 x      = np.array(df_td_x.values),
                 x_name = np.array(df_td_x_name.values).transpose()[0],
-                y      = np.array(df_td_y.values).transpose()[0]
+                # y is the index remember, the column is y_name
+                y      = np.array(df_td_y.index),
+                y_name = np.array(df_td_y.values).transpose()[0],
             )
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

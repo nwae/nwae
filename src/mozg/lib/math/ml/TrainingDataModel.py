@@ -58,6 +58,9 @@ class TrainingDataModel:
 
         self.__remove_bad_rows()
 
+        return
+
+    def __check_xy_consistency(self):
         if (self.x.shape[0] != self.y.shape[0]) and (self.y.shape[0] != self.y_name.shape[0]):
             raise Exception(
                 'Number of x training points = ' + str(self.x.shape[0])
@@ -75,7 +78,6 @@ class TrainingDataModel:
                         'Number of x dim ' + str(i_dim) + ' = ' + str(self.x.shape[i_dim])
                         + ' is not equal to number of x names dim ' + str(i_dim-1) + ' = ' + str(self.x_name.shape[i_dim-1])
                     )
-
         return
 
     def weigh_x(
@@ -145,11 +147,16 @@ class TrainingDataModel:
         if len(indexes_to_remove) > 0:
             self.x = np.delete(self.x, indexes_to_remove, axis=0)
             self.y = np.delete(self.y, indexes_to_remove, axis=0)
+            self.y_name = np.delete(self.y_name, indexes_to_remove, axis=0)
+
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Deleted indexes ' + str(indexes_to_remove)
-                + '. New x now dimension ' + str(self.x.shape) + ', y dimension ' + str(self.y.shape)
+                + '. New x now dimension ' + str(self.x.shape)
+                + ', y dimension ' + str(self.y.shape)
             )
+        self.__check_xy_consistency()
+        return
 
     #
     # x training data is usually huge, here we print non zero columns only for purposes of saving, etc.
@@ -217,7 +224,7 @@ class TrainingDataModel:
             text_segmented,
             # List of labels (the "y")
             label_id,
-            # In case label id are not easily readable (e.g. ID from DB), then names for clarity
+            # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
             label_name,
             keywords_remove_quartile,
             stopwords = ()
@@ -319,10 +326,20 @@ class TrainingDataModel:
                     'Feature vector ' + str(v) + ' not normalized!'
                 )
 
+        # Check again
+        if ( len(label_id) != len(text_segmented) ) and ( len(label_id) != len(label_name) ):
+            raise Exception(
+                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Label ID length = ' + str(len(label_id))
+                + ', label name length = ' + str(len(label_name))
+                + ', and Text Segmented length = ' + str(len(text_segmented)) + ' must be equal.'
+            )
+
         return TrainingDataModel(
             x      = sentence_fv,
             x_name = np.array(fv_wordlabels),
             y      = np.array(label_id),
+            y_name = np.array(label_name),
             check_if_x_normalized = True
         )
 
