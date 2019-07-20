@@ -328,6 +328,8 @@ class MetricSpaceModel(threading.Thread):
         x_distance_to_x_ref = None
         x_distance_to_x_clustered = None
 
+        match_details = {}
+
         #
         # Calculate distance to x_ref & x_clustered
         #
@@ -354,6 +356,8 @@ class MetricSpaceModel(threading.Thread):
             # Get the score to the closest sub-class.
             df_class_score = self.calc_proximity_class_score_to_point(x=x_distance, y_label=y_distance)
             log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
+
+            match_details[i] = df_class_score
 
             #
             # Below was the old way of calculating by getting weighted score.
@@ -383,8 +387,14 @@ class MetricSpaceModel(threading.Thread):
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
 
-        # Get weighted score or something
-        return np.array(x_classes)
+        class ret:
+            def __init__(self, match_details, predicted_classes):
+                self.match_details = match_details
+                self.predicted_classes = predicted_classes
+                return
+
+        retval = ret(match_details=match_details, predicted_classes=np.array(x_classes))
+        return retval
 
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.

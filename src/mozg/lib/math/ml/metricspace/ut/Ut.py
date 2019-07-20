@@ -198,8 +198,9 @@ class Ut:
         reordered_test_x = reordered_test_x.transpose()
         print(reordered_test_x)
 
-        x_classes = ms.predict_classes(x=reordered_test_x)
-        print(x_classes)
+        y_observed = ms.predict_classes(x=reordered_test_x)
+        print(y_observed.predicted_classes)
+        print(y_observed.match_details)
 
         # Compare with expected
         #x_classes_expected = ms.training_data.get_y()
@@ -207,7 +208,7 @@ class Ut:
         print(x_classes_expected)
 
         # Compare with expected
-        compare = (x_classes != x_classes_expected)
+        compare = (y_observed.predicted_classes != x_classes_expected)
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 

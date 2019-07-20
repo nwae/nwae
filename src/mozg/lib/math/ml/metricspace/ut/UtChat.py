@@ -135,15 +135,18 @@ class UtChat:
         x_name = ms_pc.training_data.get_x_name()
         y = ms_pc.training_data.get_y()
 
-        x_classes = ms_pc.predict_classes(x=x)
-        print('PREDICTED CLASSES x_classes (type ' + str(type(x_classes)) + '):\n\r' + str(x_classes))
+        y_observed = ms_pc.predict_classes(x=x)
+        print('PREDICTED CLASSES x_classes (type '
+              + str(type(y_observed.predicted_classes)) + '):\n\r'
+              + str(y_observed.predicted_classes)
+              )
 
         # Convert to string type
         y_str = np.array([])
         print('ORIGINAL CLASSES y (type ' + str(type(y_str)) + ')\n\r' + str(y_str))
 
         # Compare with expected
-        compare = (x_classes != y)
+        compare = (y_observed.predicted_classes != y)
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
@@ -151,7 +154,12 @@ class UtChat:
         idx = np.array(range(compare.shape[0]))
         index_errors = idx[compare==True]
         for i in index_errors:
-            print('Error on index ' + str(i) + ': Expected ' + y[i] + ', got ' + x_classes[i])
+            y_expected_val = y[i]
+            y_observed_val = y_observed.predicted_classes[i]
+            y_observed_match_details = y_observed.match_details[i]
+            print('Error at index ' + str(i)
+                  + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
+                  + ':\n\r' + str(y_observed_match_details))
 
         return
 
