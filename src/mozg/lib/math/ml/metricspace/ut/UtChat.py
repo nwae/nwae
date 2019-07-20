@@ -147,6 +147,12 @@ class UtChat:
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
+        # Get errors
+        idx = np.array(range(compare.shape[0]))
+        index_errors = idx[compare==True]
+        for i in index_errors:
+            print('Error on index ' + str(i) + ': Expected ' + y[i] + ', got ' + x_classes[i])
+
         return
 
 
@@ -155,7 +161,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     obj = UtChat()
-    obj.test_train()
+    #obj.test_train()
     obj.test_predict_classes()
 
 

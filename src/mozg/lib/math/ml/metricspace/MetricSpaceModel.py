@@ -639,6 +639,7 @@ class MetricSpaceModel(threading.Thread):
                     + str(self.model_data.df_x_ref_distance_furthest[
                               reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
                 )
+            df_x_ref.sort_index(inplace=True)
             self.model_data.y_ref = np.array(df_x_ref.index)
             self.model_data.x_ref = np.array(df_x_ref.values)
             log.Log.debug('**************** ' + str(self.model_data.y_ref))
