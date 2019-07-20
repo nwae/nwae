@@ -401,9 +401,13 @@ class MetricSpaceModel(threading.Thread):
         retval = ret(match_details=match_details, predicted_classes=np.array(x_classes))
 
         if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur / x.shape[0], 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING predict_classes(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                + ' PROFILING predict_classes(): ' + str(prf_dur)
+                + ', time per prediction = ' + str(dpp) + ' milliseconds.'
             )
 
         return retval
