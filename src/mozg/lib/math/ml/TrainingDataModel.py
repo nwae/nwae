@@ -19,6 +19,8 @@ class TrainingDataModel:
             x,
             # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
             y,
+            # REMEMBER that x_name, y_name are informative & supplementary only,
+            # major operations MUST only use x & y
             # np array 형식으호. Имена дименций x
             x_name = None,
             # np array 형식으호
