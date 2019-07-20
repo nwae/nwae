@@ -6,6 +6,7 @@ from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au
 import mozg.lib.lang.classification.TextClusterBasic as tcb
 import mozg.lib.math.Constants as const
+import mozg.lib.math.Cluster as clstr
 
 
 #
@@ -58,7 +59,10 @@ class TrainingDataModel:
             y_str = np.append(y_str, el_str)
         self.y = y_str
 
-        self.__remove_bad_rows()
+        # Weights (all 1's by default)
+        self.w = np.array([1]*self.x_name.shape[0])
+
+        self.__remove_points_not_on_hypersphere()
 
         return
 
@@ -82,6 +86,100 @@ class TrainingDataModel:
                     )
         return
 
+    @staticmethod
+    def get_clusters(
+            x,
+            y,
+            x_name
+    ):
+        #
+        # 1. Cluster training data of the same intent.
+        #    Instead of a single RFV to represent a single intent, we should have multiple.
+        # 2. Get word importance or equivalent term frequency (TF) within an intent
+        #    This can only be used to confirm if a detected intent is indeed the intent,
+        #    can't be used as a general method to detect intent because it is intent specific.
+        #
+
+        # Our return values, in the same dimensions with x, y respectively
+        x_clustered = None
+        y_clustered = None
+
+        for cs in list(set(y)):
+            try:
+                # Extract only rows of this class
+                rows_of_class = x[y == cs]
+                if rows_of_class.shape[0] == 0:
+                    continue
+
+                log.Log.debugdebug(
+                    str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + '\n\r\tRows of class "' + str(cs) + ':'
+                    + '\n\r' + str(rows_of_class)
+                )
+
+                #
+                # Cluster intent
+                #
+                # If there is only 1 row, then the cluster is the row
+                np_class_cluster = rows_of_class
+                # Otherwise we do proper clustering
+                if rows_of_class.shape[0] > 1:
+                    class_cluster = clstr.Cluster.cluster(
+                        matx          = rows_of_class,
+                        feature_names = x_name,
+                        # Not more than 5 clusters per label
+                        ncenters      = min(5, round(rows_of_class.shape[0] * 2 / 3)),
+                        iterations    = 20
+                    )
+                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+
+                # Renormalize x_clustered
+                for ii in range(0, np_class_cluster.shape[0], 1):
+                    v = np_class_cluster[ii]
+                    mag = np.sum(np.multiply(v, v)) ** 0.5
+                    print('Before normalize ' + str(np_class_cluster[ii]))
+                    v = v / mag
+                    np_class_cluster[ii] = v
+                    print('After normalize ' + str(np_class_cluster[ii]))
+
+                if x_clustered is None:
+                    x_clustered = np_class_cluster
+                    y_clustered = np.array([cs] * x_clustered.shape[0])
+                else:
+                    # Append rows (thus 1st dimension at axis index 0)
+                    x_clustered = np.append(
+                        x_clustered,
+                        np_class_cluster,
+                        axis=0)
+                    # Appending to a 1D array always at axis=0
+                    y_clustered = np.append(
+                        y_clustered,
+                        [cs] * np_class_cluster.shape[0],
+                        axis=0)
+            except Exception as ex:
+                errmsg = str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
+                log.Log.error(errmsg)
+                raise Exception(errmsg)
+
+        class retclass:
+            def __init__(self, x_cluster, y_cluster):
+                self.x_cluster = x_cluster
+                self.y_cluster = y_cluster
+
+        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered)
+
+        log.Log.debug(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
+            + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
+        )
+        return retobj
+
+    #
+    # The function of weights are just to reduce the meaningful dimensions of x (making some columns 0)
+    # This function modifies x, y, y_name, and possibly x_name (if we do column deletion)
+    #
     def weigh_x(
             self,
             # Expect a 1-dimensional np array
@@ -96,17 +194,19 @@ class TrainingDataModel:
             raise Exception('Weight w has wrong dimensions ' + str(w.shape)
                             + ', not compatible with x dim ' + str(self.x.shape) + '.')
 
+        self.w = w
+
         #
         # Weigh x by w
         #
-        x_w = np.multiply(self.x, w)
+        x_w = np.multiply(self.x, self.w)
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': x weighted by w:\n\r' + str(x_w)
         )
 
         #
-        # After weighing need to renormalize and do cleanup if necessary
+        # After weighing need to renormalize rows of x and do cleanup if necessary
         #
         for i in range(0, x_w.shape[0], 1):
             p = x_w[i]
@@ -123,13 +223,29 @@ class TrainingDataModel:
 
         self.x = x_w
 
-        # Now redo cleanup
-        self.__remove_bad_rows()
+        # Now remove points no longer lying on the hypersphere
+        self.__remove_points_not_on_hypersphere()
+
+        # #
+        # # After weighing, some dimensions may have disappeared (w[i]==0)
+        # # But don't remove the columns, it is messy as we have to change w also.
+        # #
+        # w_indexes = np.array(range(self.w.shape[0]))
+        # indexes_zero_columns = w_indexes[ (self.w<const.Constants.SMALL_VALUE) ]
+        # self.x = np.delete(self.x, indexes_zero_columns, axis=1)
+        # self.x_name = np.delete(self.x_name, indexes_zero_columns, axis=0)
+        # log.Log.debug(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Deleted zero column indexes ' + str(indexes_zero_columns)
+        #     + '. New x now dimension ' + str(self.x.shape)
+        #     + ', x_name dimension ' + str(self.x_name.shape)
+        # )
+        return
 
     #
     # Remove rows with 0's
     #
-    def __remove_bad_rows(self):
+    def __remove_points_not_on_hypersphere(self):
         indexes_to_remove = []
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -153,7 +269,7 @@ class TrainingDataModel:
 
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Deleted indexes ' + str(indexes_to_remove)
+                + ': Deleted row indexes ' + str(indexes_to_remove)
                 + '. New x now dimension ' + str(self.x.shape)
                 + ', y dimension ' + str(self.y.shape)
             )
@@ -213,6 +329,9 @@ class TrainingDataModel:
 
     def get_y_name(self):
         return self.y_name
+
+    def get_w(self):
+        return self.w
 
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.

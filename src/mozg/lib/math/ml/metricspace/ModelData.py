@@ -45,7 +45,7 @@ class ModelData:
         self.x_ref = None
         self.y_ref = None
         # For us to easily persist to storage later, contains x_ref, y_ref, x_name
-        self.df_x_ref_distance_furthest = None
+        self.df_y_ref_radius = None
         # Represents a class of y in a few clustered arrays
         self.x_clustered = None
         self.y_clustered = None
@@ -64,7 +64,7 @@ class ModelData:
         self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
         # Only for debugging file
         self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
-        self.fpath_x_ref_dist          = prefix + '.x_ref.distance.csv'
+        self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
         self.fpath_x_clustered       = prefix + '.x_clustered.csv'
         # Only for debugging file
         self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
@@ -104,7 +104,7 @@ class ModelData:
             index   = self.y_ref,
             columns = self.x_name
         ).sort_index()
-        self.df_x_ref_distance_furthest = self.df_x_ref_distance_furthest.sort_index()
+        self.df_y_ref_radius = self.df_y_ref_radius.sort_index()
 
         df_x_clustered = pd.DataFrame(
             data    = self.x_clustered,
@@ -126,7 +126,7 @@ class ModelData:
             + '\n\r\tIDF:\n\r' + str(df_idf)
             + '\n\r\tRFV:\n\r' + str(df_x_ref)
             + '\n\r\tRFV friendly:\n\r' + str(x_ref_friendly)
-            + '\n\r\tFurthest Distance:\n\r' + str(self.df_x_ref_distance_furthest)
+            + '\n\r\tRFV Radius:\n\r' + str(self.df_y_ref_radius)
             + '\n\r\tx clustered:\n\r' + str(df_x_clustered)
             + '\n\r\tx clustered friendly:\n\r' + str(x_clustered_friendly)
         )
@@ -180,11 +180,11 @@ class ModelData:
             , log_list = self.log_training
             )
 
-        self.df_x_ref_distance_furthest.to_csv(path_or_buf=self.fpath_x_ref_dist, index=True, index_label='INDEX')
+        self.df_y_ref_radius.to_csv(path_or_buf=self.fpath_y_ref_radius, index=True, index_label='INDEX')
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV (furthest) dimensions ' + str(self.df_x_ref_distance_furthest.shape)
-            + ' filepath "' + self.fpath_x_ref_dist + '"'
+            + ': Saved RFV radius with dimensions ' + str(self.df_y_ref_radius.shape)
+            + ' filepath "' + self.fpath_y_ref_radius + '"'
             , log_list = self.log_training
         )
 
@@ -280,9 +280,9 @@ class ModelData:
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
-        if not os.path.isfile(self.fpath_x_ref_dist):
+        if not os.path.isfile(self.fpath_y_ref_radius):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV furthest distance file "' + self.fpath_x_ref_dist + '" not found!'
+                     + ': RFV furthest distance file "' + self.fpath_y_ref_radius + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
@@ -347,18 +347,18 @@ class ModelData:
                 + '\n\rRFV y' + str(self.y_ref)
             )
 
-            self.df_x_ref_distance_furthest = pd.read_csv(
-                filepath_or_buffer = self.fpath_x_ref_dist,
+            self.df_y_ref_radius = pd.read_csv(
+                filepath_or_buffer = self.fpath_y_ref_radius,
                 sep       = ',',
                 index_col = 'INDEX'
             )
             if ModelData.CONVERT_DATAFRAME_INDEX_TO_STR:
                 # Convert Index column to string
-                self.df_x_ref_distance_furthest.index = self.df_x_ref_distance_furthest.index.astype(str)
+                self.df_y_ref_radius.index = self.df_y_ref_radius.index.astype(str)
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV Furthest Distance Data: Read ' + str(self.df_x_ref_distance_furthest.shape[0]) + ' lines'
-                + '\n\r' + str(self.df_x_ref_distance_furthest)
+                + ': RFV Radius Data: Read ' + str(self.df_y_ref_radius.shape[0]) + ' lines'
+                + '\n\r' + str(self.df_y_ref_radius)
             )
 
             df_x_clustered = pd.read_csv(

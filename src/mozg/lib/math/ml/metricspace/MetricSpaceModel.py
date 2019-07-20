@@ -10,7 +10,6 @@ import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.NumpyUtil as npUtil
@@ -464,7 +463,7 @@ class MetricSpaceModel(threading.Thread):
 
             #
             # Get IDF first
-            #   We join all text from the same intent, to get IDF
+            # The function of these weights are nothing more than dimension reduction
             # TODO: IDF may not be the ideal weights, design an optimal one.
             #
             self.model_data.idf = None
@@ -492,6 +491,9 @@ class MetricSpaceModel(threading.Thread):
                 # Refetch again after weigh
                 x = self.training_data.get_x()
                 y = self.training_data.get_y()
+                self.model_data.x_name = self.training_data.get_x_name()
+                self.model_data.idf = self.training_data.get_w()
+
                 # Unique y or classes
                 # We do this again because after weighing, it will remove bad rows, which might cause some y
                 # to disappear
@@ -509,78 +511,15 @@ class MetricSpaceModel(threading.Thread):
             # Get RFV for every command/intent, representative feature vectors by command type
             #
 
-            #
             # 1. Cluster training data of the same intent.
             #    Instead of a single RFV to represent a single intent, we should have multiple.
-            # 2. Get word importance or equivalent term frequency (TF) within an intent
-            #    This can only be used to confirm if a detected intent is indeed the intent,
-            #    can't be used as a general method to detect intent because it is intent specific.
-            #
-            for cs in self.model_data.y_unique:
-                try:
-                    # Extract only rows of this class
-                    rows_of_class = x[y==cs]
-                    if rows_of_class.shape[0] == 0:
-                        continue
-
-                    log.Log.debugdebug(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + '\n\r\tRows of class "' + str(cs) + ':'
-                        + '\n\r' + str(rows_of_class)
-                    )
-
-                    #
-                    # Cluster intent
-                    #
-                    # If there is only 1 row, then the cluster is the row
-                    np_class_cluster = rows_of_class
-                    # Otherwise we do proper clustering
-                    if rows_of_class.shape[0] > 1:
-                        class_cluster = clstr.Cluster.cluster(
-                            matx          = rows_of_class,
-                            feature_names = self.model_data.x_name,
-                            # Not more than 5 clusters per label
-                            ncenters      = min(5, round(rows_of_class.shape[0] * 2/3)),
-                            iterations    = 20
-                        )
-                        np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
-
-                    # Renormalize x_clustered
-                    for ii in range(0,np_class_cluster.shape[0],1):
-                        v = np_class_cluster[ii]
-                        mag = np.sum(np.multiply(v, v))**0.5
-                        print('Before normalize ' + str(np_class_cluster[ii]))
-                        v = v / mag
-                        np_class_cluster[ii] = v
-                        print('After normalize ' + str(np_class_cluster[ii]))
-
-                    if self.model_data.x_clustered is None:
-                        self.model_data.x_clustered = np_class_cluster
-                        self.model_data.y_clustered = np.array([cs]*self.model_data.x_clustered.shape[0])
-                    else:
-                        # Append rows (thus 1st dimension at axis index 0)
-                        self.model_data.x_clustered = np.append(
-                            self.model_data.x_clustered,
-                            np_class_cluster,
-                            axis=0)
-                        # Appending to a 1D array always at axis=0
-                        self.model_data.y_clustered = np.append(
-                            self.model_data.y_clustered,
-                            [cs]*np_class_cluster.shape[0],
-                            axis=0)
-                except Exception as ex:
-                    log.Log.error(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                        , log_list = self.log_training
-                    )
-                    raise(ex)
-
-            log.Log.debug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tCluster of x\n\r' + str(self.model_data.x_clustered)
-                + '\n\r\ty labels for cluster: ' + str(self.model_data.y_clustered)
+            xy_clstr = tdm.TrainingDataModel.get_clusters(
+                x      = x,
+                y      = y,
+                x_name = self.model_data.x_name
             )
+            self.model_data.x_clustered = xy_clstr.x_cluster
+            self.model_data.y_clustered = xy_clstr.y_cluster
 
             #
             # RFV Derivation
@@ -592,7 +531,7 @@ class MetricSpaceModel(threading.Thread):
                 columns = self.model_data.x_name,
                 index   = self.model_data.y_unique
             )
-            self.model_data.df_x_ref_distance_furthest = pd.DataFrame(
+            self.model_data.df_y_ref_radius = pd.DataFrame(
                 {
                     reffv.RefFeatureVector.COL_COMMAND:
                         list(self.model_data.y_unique),
@@ -658,13 +597,13 @@ class MetricSpaceModel(threading.Thread):
                     dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
                     if dist > dist_furthest:
                         dist_furthest = dist
-                        self.model_data.df_x_ref_distance_furthest.at[
+                        self.model_data.df_y_ref_radius.at[
                             cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
 
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Class "' + str(cs) + '". Furthest distance = '
-                    + str(self.model_data.df_x_ref_distance_furthest[
+                    + str(self.model_data.df_y_ref_radius[
                               reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
                 )
             df_x_ref.sort_index(inplace=True)
