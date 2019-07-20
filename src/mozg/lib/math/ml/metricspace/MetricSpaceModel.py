@@ -32,8 +32,6 @@ import mozg.common.util.Profiling as prf
 #
 class MetricSpaceModel(threading.Thread):
 
-    MINIMUM_THRESHOLD_DIST_TO_RFV = 0.5
-
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
@@ -536,7 +534,7 @@ class MetricSpaceModel(threading.Thread):
                     reffv.RefFeatureVector.COL_COMMAND:
                         list(self.model_data.y_unique),
                     reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:
-                        [MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV]*len(self.model_data.y_unique),
+                        [MetricSpaceModel.HPS_MAX_EUCL_DIST]*len(self.model_data.y_unique),
                 },
                 index = self.model_data.y_unique
             )
@@ -586,23 +584,25 @@ class MetricSpaceModel(threading.Thread):
                 # once the nearest class is found (in which no class is found then).
                 #
                 # Minimum value of threshold, don't allow 0's
-                dist_furthest = MetricSpaceModel.MINIMUM_THRESHOLD_DIST_TO_RFV
+                radius_max = -1
                 for i in range(0, class_points.shape[0], 1):
-                    log.Log.debug(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + '   Checking ' + str(i) + ':\n\r' + str(class_points[i])
-                    )
-                    fv_text = class_points[i]
-                    dist_vec = rfv - fv_text
+                    p = class_points[i]
+                    dist_vec = rfv - p
                     dist = np.sum(np.multiply(dist_vec, dist_vec)) ** 0.5
-                    if dist > dist_furthest:
-                        dist_furthest = dist
+                    log.Log.debugdebug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + '   Class ' + str(cs) + ' check point ' + str(i)
+                        + ', distance= ' + str(dist) + '. Point ' + str(class_points[i])
+                        + ' with RFV ' + str(rfv)
+                    )
+                    if dist > radius_max:
+                        radius_max = dist
                         self.model_data.df_y_ref_radius.at[
                             cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
 
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Class "' + str(cs) + '". Furthest distance = '
+                    + ': Class "' + str(cs) + '". Max Radius = '
                     + str(self.model_data.df_y_ref_radius[
                               reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
                 )
