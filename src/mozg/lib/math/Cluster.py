@@ -35,13 +35,13 @@ class Cluster:
                 np_cluster_centers,
                 np_cluster_labels,
                 df_distances_point_to_cc,
-                df_cluster_radius,
+                np_cluster_radius,
                 val_max_cluster_radius
         ):
             self.np_cluster_centers = np_cluster_centers
             self.np_cluster_labels = np_cluster_labels,
             self.df_distances_point_to_cc = df_distances_point_to_cc
-            self.df_cluster_radius = df_cluster_radius
+            self.np_cluster_radius = np_cluster_radius
             self.val_max_cluster_radius = val_max_cluster_radius
             return
 
@@ -204,7 +204,7 @@ class Cluster:
 
         np_cluster_centers= np.array(cluster_kmeans[0])
         np_cluster_labels = np.array(cluster_idx[0])
-        np_unique_cluster_labels = np.array(list(set(np_cluster_labels)))
+        np_unique_cluster_labels = np.array(range(np_cluster_centers.shape[0]))
 
         # Each row represents the points (indexes only), and columns the distance to the respective column center
         df_dist_to_cluster_centers = pd.DataFrame(
@@ -265,7 +265,7 @@ class Cluster:
             np_cluster_centers = np_cluster_centers,
             np_cluster_labels  = np_cluster_labels,
             df_distances_point_to_cc = df_dist_to_cluster_centers,
-            df_cluster_radius = df_cluster_radius,
+            np_cluster_radius = np.array(df_cluster_radius[Cluster.COL_CLUSTER_RADIUS]),
             val_max_cluster_radius = max(df_cluster_radius[Cluster.COL_CLUSTER_RADIUS])
         )
 
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     print('Cluster Centers:\n\r' + str(retval.np_cluster_centers))
     print('Cluster Labels:\n\r' + str(retval.np_cluster_labels))
     print('Cluster Point Distances to CC:\n\r' + str(retval.df_distances_point_to_cc))
-    print('Cluster Radius:\n\r' + str(retval.df_cluster_radius))
+    print('Cluster Radius:\n\r' + str(retval.np_cluster_radius))
     print('Max Cluster Radius:\n\r' + str(retval.val_max_cluster_radius))
 
     fn = ['a', 'b', 'c', 'd', 'e']
@@ -322,5 +322,5 @@ if __name__ == '__main__':
     print('Cluster Centers:\n\r' + str(retval.np_cluster_centers))
     print('Cluster Labels:\n\r' + str(retval.np_cluster_labels))
     print('Cluster Point Distances to CC:\n\r' + str(retval.df_distances_point_to_cc))
-    print('Cluster Radius:\n\r' + str(retval.df_cluster_radius))
+    print('Cluster Radius:\n\r' + str(retval.np_cluster_radius))
     print('Max Cluster Radius:\n\r' + str(retval.val_max_cluster_radius))
