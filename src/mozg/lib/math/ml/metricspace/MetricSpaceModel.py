@@ -299,7 +299,8 @@ class MetricSpaceModel(threading.Thread):
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions
-            x
+            x,
+            include_rfv = False
     ):
         prf_start = prf.Profiling.start()
 
@@ -360,13 +361,19 @@ class MetricSpaceModel(threading.Thread):
             v = x_weighted_normalized[i]
 
             # Returns absolute distance
-            distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
+            distance_x_ref = None
+            if include_rfv:
+                distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
             distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_clustered)
 
             # We combine all the reference points, or sub-classes of the classes. Thus each class
             # is represented by more than one point, reference sub_classes.
-            x_distance = np.append(distance_x_ref, distance_x_clustered)
-            y_distance = np.append(self.model_data.y_ref, self.model_data.y_clustered)
+            if include_rfv:
+                x_distance = np.append(distance_x_ref, distance_x_clustered)
+                y_distance = np.append(self.model_data.y_ref, self.model_data.y_clustered)
+            else:
+                x_distance = distance_x_clustered
+                y_distance = self.model_data.y_clustered
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
@@ -379,10 +386,12 @@ class MetricSpaceModel(threading.Thread):
 
             # For np array types, we have no choice to do this messy if/else
             if i == 0:
-                x_distance_to_x_ref = np.array([distance_x_ref])
+                if include_rfv:
+                    x_distance_to_x_ref = np.array([distance_x_ref])
                 x_distance_to_x_clustered = np.array([distance_x_clustered])
             else:
-                x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
+                if include_rfv:
+                    x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
             x_classes.append( df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]] )

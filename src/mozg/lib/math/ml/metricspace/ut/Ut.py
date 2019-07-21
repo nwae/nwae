@@ -142,7 +142,8 @@ class Ut:
         y_clustered_expected = ['A', 'B', 'C', 'C']
 
     def unit_test_predict_classes(
-            self
+            self,
+            include_rfv = False
     ):
         ms = msModel.MetricSpaceModel(
             identifier_string = self.identifier_string,
@@ -197,7 +198,10 @@ class Ut:
         reordered_test_x = reordered_test_x.transpose()
         print(reordered_test_x)
 
-        y_observed = ms.predict_classes(x=reordered_test_x)
+        y_observed = ms.predict_classes(
+            x           = reordered_test_x,
+            include_rfv = include_rfv
+        )
         print(y_observed.predicted_classes)
         print(y_observed.top_class_distance)
         print(y_observed.match_details)
@@ -221,5 +225,5 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     obj = Ut()
     #obj.unit_test_train(weigh_idf=True)
-    obj.unit_test_predict_classes()
+    obj.unit_test_predict_classes(include_rfv=False)
 

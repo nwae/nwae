@@ -120,7 +120,8 @@ class UtChat:
 
     def test_predict_classes(
             self,
-            indexes_to_test
+            indexes_to_test = None,
+            include_rfv = False
     ):
         #
         # Now read back params and predict classes
@@ -180,7 +181,7 @@ if __name__ == '__main__':
     #obj.test_train(weigh_idf=True)
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
-        indexes_to_test=None
+        include_rfv = False
     )
 
 
