@@ -43,6 +43,9 @@ class MetricSpaceModel(threading.Thread):
     TERM_DIST     = 'dist'
     TERM_DISTNORM = 'distnorm'
 
+    # Matching
+    MATCH_TOP = 10
+
     def __init__(
             self,
             # Unique identifier to identify this set of trained data+other files after training
@@ -217,7 +220,8 @@ class MetricSpaceModel(threading.Thread):
             self,
             # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
             x_distance,
-            y_label
+            y_label,
+            top = MATCH_TOP
     ):
         if ( type(x_distance) is not np.ndarray ):
             raise Exception(
@@ -254,21 +258,32 @@ class MetricSpaceModel(threading.Thread):
             log.Log.critical(errmsg)
             raise Exception(errmsg)
 
-        x_score = np.round(100 - x_distance_norm*100, 1)
+        # x_score = np.round(100 - x_distance_norm*100, 1)
 
         df_score = pd.DataFrame({
             MetricSpaceModel.TERM_CLASS: y_label,
-            MetricSpaceModel.TERM_SCORE: x_score,
+            # MetricSpaceModel.TERM_SCORE: x_score,
             MetricSpaceModel.TERM_DIST:  x_distance,
             MetricSpaceModel.TERM_DISTNORM: x_distance_norm
         })
-        # Aggregate class by max score, don't make class index
-        df_score = df_score.groupby(by=[MetricSpaceModel.TERM_CLASS], as_index=False, axis=0).max()
+        # Sort distances
+        #df_score.sort_values(by=[MetricSpaceModel.TERM_DIST], ascending=True, inplace=True)
+        #df_score = df_score[0:top]
+        #df_score.reset_index(drop=True, inplace=True)
+        #log.Log.debugdebug('DF SCORE 1:\n\r' + str(df_score))
 
-        # Sort scores
+        # Aggregate class by max score, don't make class index
+        df_score = df_score.groupby(by=[MetricSpaceModel.TERM_CLASS], as_index=False, axis=0).min()
+        log.Log.debugdebug('DF SCORE 2:\n\r' + str(df_score))
+
+        # Put score last (because we need to do groupby().min() above, which will screw up the values
+        # as score is in the reverse order with distances) and sort scores
+        np_distnorm = np.array(df_score[MetricSpaceModel.TERM_DISTNORM])
+        df_score[MetricSpaceModel.TERM_SCORE] = np.round(100 - np_distnorm*100, 1)
         df_score.sort_values(by=[MetricSpaceModel.TERM_SCORE], ascending=False, inplace=True)
         # Make sure indexes are conventional 0,1,2,...
         df_score.reset_index(drop=True, inplace=True)
+        log.Log.debugdebug('DF SCORE 3:\n\r' + str(df_score))
 
         log.Log.debugdebug('x_score:\n\r' + str(df_score))
 
@@ -478,10 +493,10 @@ class MetricSpaceModel(threading.Thread):
                 for ii in range(0, np_class_cluster.shape[0], 1):
                     v = np_class_cluster[ii]
                     mag = np.sum(np.multiply(v, v)) ** 0.5
-                    print('Before normalize ' + str(np_class_cluster[ii]))
+                    # print('Before normalize ' + str(np_class_cluster[ii]))
                     v = v / mag
                     np_class_cluster[ii] = v
-                    print('After normalize ' + str(np_class_cluster[ii]))
+                    # print('After normalize ' + str(np_class_cluster[ii]))
 
                 if x_clustered is None:
                     x_clustered = np_class_cluster

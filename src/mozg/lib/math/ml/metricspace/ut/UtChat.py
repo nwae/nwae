@@ -22,7 +22,10 @@ class UtChat:
         self.dir_path_model = self.topdir + '/app.data/models'
         return
 
-    def test_train(self):
+    def test_train(
+            self,
+            weigh_idf = True
+    ):
         chat_td = ctd.ChatTrainingData(
             use_db     = True,
             db_profile = self.db_profile,
@@ -111,15 +114,14 @@ class UtChat:
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
             # If we will create an "IDF" based on the initial features
-            weigh_idf     = True
+            weigh_idf     = weigh_idf
         )
-        ms_model.train(
-            key_features_remove_quartile=0,
-            stop_features=(),
-            weigh_idf=True
-        )
+        ms_model.train()
 
-    def test_predict_classes(self):
+    def test_predict_classes(
+            self,
+            indexes_to_test
+    ):
         #
         # Now read back params and predict classes
         #
@@ -135,18 +137,24 @@ class UtChat:
         x_name = ms_pc.training_data.get_x_name()
         y = ms_pc.training_data.get_y()
 
-        y_observed = ms_pc.predict_classes(x=x)
-        print('PREDICTED CLASSES x_classes (type '
-              + str(type(y_observed.predicted_classes)) + '):\n\r'
-              + str(y_observed.predicted_classes)
-              )
+        if indexes_to_test is None:
+            indexes_to_test = range(x.shape[0])
 
-        # Convert to string type
-        y_str = np.array([])
-        print('ORIGINAL CLASSES y (type ' + str(type(y_str)) + ')\n\r' + str(y_str))
+        y_observed = ms_pc.predict_classes(x=x[indexes_to_test])
+
+        #print('PREDICTED CLASSES x_classes (type '
+        #      + str(type(y_observed.predicted_classes)) + '):\n\r'
+        #      + str(y_observed.predicted_classes)
+        #      )
+        #print('TOP CLASS DISTANCE:\n\r' + str(y_observed.top_class_distance))
+        # print('SCORE/MATCH DETAILS:\n\r' + str(y_observed.match_details))
+        print('MSE = ' + str(y_observed.mse))
+        print('MSE normalized = ' + str(y_observed.mse_norm))
+
+        print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
 
         # Compare with expected
-        compare = (y_observed.predicted_classes != y)
+        compare = (y_observed.predicted_classes != y[indexes_to_test])
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
@@ -154,7 +162,7 @@ class UtChat:
         idx = np.array(range(compare.shape[0]))
         index_errors = idx[compare==True]
         for i in index_errors:
-            y_expected_val = y[i]
+            y_expected_val = y[indexes_to_test][i]
             y_observed_val = y_observed.predicted_classes[i]
             y_observed_match_details = y_observed.match_details[i]
             print('Error at index ' + str(i)
@@ -169,7 +177,10 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    #obj.test_train()
-    obj.test_predict_classes()
+    #obj.test_train(weigh_idf=True)
+    obj.test_predict_classes(
+        #indexes_to_test=[107,131],
+        indexes_to_test=None
+    )
 
 

@@ -218,7 +218,7 @@ class Ut:
 
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     obj = Ut()
     obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes()
