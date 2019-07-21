@@ -300,7 +300,9 @@ class MetricSpaceModel(threading.Thread):
             self,
             # ndarray type of >= 2 dimensions
             x,
-            include_rfv = False
+            include_rfv = False,
+            # This will slow down by a whopping 20ms!!
+            include_match_details = False
     ):
         prf_start = prf.Profiling.start()
 
@@ -398,7 +400,8 @@ class MetricSpaceModel(threading.Thread):
             top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
 
             # This innocent line increases the calculation time by 20 ms!!!!
-            #match_details[i] = df_class_score
+            if include_match_details:
+                match_details[i] = df_class_score
 
             # Get the top class
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))

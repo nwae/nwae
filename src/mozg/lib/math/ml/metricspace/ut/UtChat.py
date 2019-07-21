@@ -121,7 +121,8 @@ class UtChat:
     def test_predict_classes(
             self,
             indexes_to_test = None,
-            include_rfv = False
+            include_rfv = False,
+            include_match_details = False
     ):
         #
         # Now read back params and predict classes
@@ -141,7 +142,11 @@ class UtChat:
         if indexes_to_test is None:
             indexes_to_test = range(x.shape[0])
 
-        y_observed = ms_pc.predict_classes(x=x[indexes_to_test])
+        y_observed = ms_pc.predict_classes(
+            x = x[indexes_to_test],
+            include_rfv = include_rfv,
+            include_match_details = include_match_details
+        )
 
         #print('PREDICTED CLASSES x_classes (type '
         #      + str(type(y_observed.predicted_classes)) + '):\n\r'
@@ -152,7 +157,7 @@ class UtChat:
         print('MSE = ' + str(y_observed.mse))
         print('MSE normalized = ' + str(y_observed.mse_norm))
 
-        print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
+        # print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
 
         # Compare with expected
         compare = (y_observed.predicted_classes != y[indexes_to_test])
@@ -181,7 +186,8 @@ if __name__ == '__main__':
     #obj.test_train(weigh_idf=True)
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
-        include_rfv = False
+        include_rfv = False,
+        include_match_details = False
     )
 
 
