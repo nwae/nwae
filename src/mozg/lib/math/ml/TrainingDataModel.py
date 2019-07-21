@@ -6,7 +6,6 @@ from inspect import currentframe, getframeinfo
 import mozg.common.data.security.Auth as au
 import mozg.lib.lang.classification.TextClusterBasic as tcb
 import mozg.lib.math.Constants as const
-import mozg.lib.math.Cluster as clstr
 
 
 #
@@ -85,96 +84,6 @@ class TrainingDataModel:
                         + ' is not equal to number of x names dim ' + str(i_dim-1) + ' = ' + str(self.x_name.shape[i_dim-1])
                     )
         return
-
-    @staticmethod
-    def get_clusters(
-            x,
-            y,
-            x_name
-    ):
-        #
-        # 1. Cluster training data of the same intent.
-        #    Instead of a single RFV to represent a single intent, we should have multiple.
-        # 2. Get word importance or equivalent term frequency (TF) within an intent
-        #    This can only be used to confirm if a detected intent is indeed the intent,
-        #    can't be used as a general method to detect intent because it is intent specific.
-        #
-
-        # Our return values, in the same dimensions with x, y respectively
-        x_clustered = None
-        y_clustered = None
-
-        for cs in list(set(y)):
-            try:
-                # Extract only rows of this class
-                rows_of_class = x[y == cs]
-                if rows_of_class.shape[0] == 0:
-                    continue
-
-                log.Log.debugdebug(
-                    str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tRows of class "' + str(cs) + ':'
-                    + '\n\r' + str(rows_of_class)
-                )
-
-                #
-                # Cluster intent
-                #
-                # If there is only 1 row, then the cluster is the row
-                np_class_cluster = rows_of_class
-                # Otherwise we do proper clustering
-                if rows_of_class.shape[0] > 1:
-                    class_cluster = clstr.Cluster.cluster(
-                        matx          = rows_of_class,
-                        feature_names = x_name,
-                        # Not more than 5 clusters per label
-                        ncenters      = min(5, round(rows_of_class.shape[0] * 2 / 3)),
-                        iterations    = 20
-                    )
-                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
-
-                # Renormalize x_clustered
-                for ii in range(0, np_class_cluster.shape[0], 1):
-                    v = np_class_cluster[ii]
-                    mag = np.sum(np.multiply(v, v)) ** 0.5
-                    print('Before normalize ' + str(np_class_cluster[ii]))
-                    v = v / mag
-                    np_class_cluster[ii] = v
-                    print('After normalize ' + str(np_class_cluster[ii]))
-
-                if x_clustered is None:
-                    x_clustered = np_class_cluster
-                    y_clustered = np.array([cs] * x_clustered.shape[0])
-                else:
-                    # Append rows (thus 1st dimension at axis index 0)
-                    x_clustered = np.append(
-                        x_clustered,
-                        np_class_cluster,
-                        axis=0)
-                    # Appending to a 1D array always at axis=0
-                    y_clustered = np.append(
-                        y_clustered,
-                        [cs] * np_class_cluster.shape[0],
-                        axis=0)
-            except Exception as ex:
-                errmsg = str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                log.Log.error(errmsg)
-                raise Exception(errmsg)
-
-        class retclass:
-            def __init__(self, x_cluster, y_cluster):
-                self.x_cluster = x_cluster
-                self.y_cluster = y_cluster
-
-        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered)
-
-        log.Log.debug(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
-            + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
-        )
-        return retobj
 
     #
     # The function of weights are just to reduce the meaningful dimensions of x (making some columns 0)

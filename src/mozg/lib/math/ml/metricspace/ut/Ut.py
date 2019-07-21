@@ -71,7 +71,10 @@ class Ut:
 
         return
 
-    def unit_test_train(self):
+    def unit_test_train(
+            self,
+            weigh_idf = False
+    ):
         ms_model = msModel.MetricSpaceModel(
             identifier_string = self.identifier_string,
             # Directory to keep all our model files
@@ -81,15 +84,11 @@ class Ut:
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
-            stop_features=(),
-            # If we will create an "IDF" based on the initial features
-            weigh_idf=True
-        )
-        ms_model.train(
-            key_features_remove_quartile = 0,
             stop_features = (),
-            weigh_idf     = True
+            # If we will create an "IDF" based on the initial features
+            weigh_idf     = weigh_idf
         )
+        ms_model.train()
 
         # How to make sure order is the same output from TextCluster in unit tests?
         x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
@@ -216,6 +215,6 @@ class Ut:
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
     obj = Ut()
-    obj.unit_test_train()
+    obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes()
 

@@ -10,6 +10,7 @@ import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
+import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.NumpyUtil as npUtil
@@ -409,15 +410,99 @@ class MetricSpaceModel(threading.Thread):
 
         return retval
 
+    @staticmethod
+    def get_clusters(
+            x,
+            y,
+            x_name
+    ):
+        class retclass:
+            def __init__(self, x_cluster, y_cluster):
+                self.x_cluster = x_cluster
+                self.y_cluster = y_cluster
+
+        #
+        # 1. Cluster training data of the same class.
+        #    Instead of a single reference class to represent a single class, we have multiple.
+        #
+
+        # Our return values, in the same dimensions with x, y respectively
+        x_clustered = None
+        y_clustered = None
+
+        for cs in list(set(y)):
+            try:
+                # Extract only rows of this class
+                rows_of_class = x[y == cs]
+                if rows_of_class.shape[0] == 0:
+                    continue
+
+                log.Log.debugdebug(
+                    str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + '\n\r\tRows of class "' + str(cs) + ':'
+                    + '\n\r' + str(rows_of_class)
+                )
+
+                #
+                # Cluster intent
+                #
+                # If there is only 1 row, then the cluster is the row
+                np_class_cluster = rows_of_class
+                # Otherwise we do proper clustering
+                if rows_of_class.shape[0] > 1:
+                    class_cluster = clstr.Cluster.cluster(
+                        matx=rows_of_class,
+                        feature_names=x_name,
+                        # Not more than 5 clusters per label
+                        ncenters=min(5, round(rows_of_class.shape[0] * 2 / 3)),
+                        iterations=20
+                    )
+                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+
+                # Renormalize x_clustered
+                for ii in range(0, np_class_cluster.shape[0], 1):
+                    v = np_class_cluster[ii]
+                    mag = np.sum(np.multiply(v, v)) ** 0.5
+                    print('Before normalize ' + str(np_class_cluster[ii]))
+                    v = v / mag
+                    np_class_cluster[ii] = v
+                    print('After normalize ' + str(np_class_cluster[ii]))
+
+                if x_clustered is None:
+                    x_clustered = np_class_cluster
+                    y_clustered = np.array([cs] * x_clustered.shape[0])
+                else:
+                    # Append rows (thus 1st dimension at axis index 0)
+                    x_clustered = np.append(
+                        x_clustered,
+                        np_class_cluster,
+                        axis=0)
+                    # Appending to a 1D array always at axis=0
+                    y_clustered = np.append(
+                        y_clustered,
+                        [cs] * np_class_cluster.shape[0],
+                        axis=0)
+            except Exception as ex:
+                errmsg = str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
+                log.Log.error(errmsg)
+                raise Exception(errmsg)
+
+        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered)
+
+        log.Log.debug(
+            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
+            + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
+        )
+        return retobj
+
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
     #
     def train(
-            self,
-            key_features_remove_quartile = 50,
-            stop_features = (),
-            weigh_idf = False
+            self
     ):
         prf_start = prf.Profiling.start()
 
@@ -434,19 +519,11 @@ class MetricSpaceModel(threading.Thread):
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training for identifier=' + self.identifier_string
-                + '. Using key features remove quartile = ' + str(key_features_remove_quartile)
-                + ', stop features = [' + str(stop_features) + ']'
-                + ', weigh by IDF = ' + str(weigh_idf)
+                + '. Using key features remove quartile = ' + str(self.key_features_remove_quartile)
+                + ', stop features = [' + str(self.stop_features) + ']'
+                + ', weigh by IDF = ' + str(self.weigh_idf)
                 , log_list = self.log_training
             )
-
-            x = self.training_data.get_x()
-            y = self.training_data.get_y()
-            self.model_data.x_name = self.training_data.get_x_name()
-
-            # Unique y or classes
-            # We have to list() the set(), to make it into a proper 1D vector
-            self.model_data.y_unique = np.array(list(set(y)))
 
             #
             # Here training data must be prepared in the correct format already
@@ -464,13 +541,12 @@ class MetricSpaceModel(threading.Thread):
             # The function of these weights are nothing more than dimension reduction
             # TODO: IDF may not be the ideal weights, design an optimal one.
             #
-            self.model_data.idf = None
-            if weigh_idf:
+            if self.weigh_idf:
                 # Sum x by class
                 self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
-                    x      = x,
-                    y      = y,
-                    x_name = self.model_data.x_name
+                    x      = self.training_data.get_x(),
+                    y      = self.training_data.get_y(),
+                    x_name = self.training_data.get_x_name()
                 )
                 # Standardize to at least 2-dimensional, easier when weighting x
                 self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
@@ -485,25 +561,35 @@ class MetricSpaceModel(threading.Thread):
 
                 # This will change the x in self.training data
                 self.training_data.weigh_x(w=self.model_data.idf[0])
-
-                # Refetch again after weigh
-                x = self.training_data.get_x()
-                y = self.training_data.get_y()
-                self.model_data.x_name = self.training_data.get_x_name()
-                self.model_data.idf = self.training_data.get_w()
-
-                # Unique y or classes
-                # We do this again because after weighing, it will remove bad rows, which might cause some y
-                # to disappear
-                self.model_data.y_unique = np.array(list(set(y)))
-
-                log.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
-                    + '\n\r\ty\n\r' + str(y)
-                    + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
-                    , log_list=self.log_training
+            else:
+                self.model_data.idf = np.array([1]*self.training_data.get_x_name().shape[0])
+                # Standardize to at least 2-dimensional, easier when weighting x
+                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
+                    arr    = self.model_data.idf,
+                    to_dim = 2
                 )
+
+            #
+            # Initizalize model data
+            #
+            # Refetch again after weigh
+            x = self.training_data.get_x()
+            y = self.training_data.get_y()
+            self.model_data.x_name = self.training_data.get_x_name()
+            self.model_data.idf = self.training_data.get_w()
+
+            # Unique y or classes
+            # We do this again because after weighing, it will remove bad rows, which might cause some y
+            # to disappear
+            self.model_data.y_unique = np.array(list(set(y)))
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
+                + '\n\r\ty\n\r' + str(y)
+                + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
+                , log_list=self.log_training
+            )
 
             #
             # Get RFV for every command/intent, representative feature vectors by command type
@@ -511,7 +597,7 @@ class MetricSpaceModel(threading.Thread):
 
             # 1. Cluster training data of the same intent.
             #    Instead of a single RFV to represent a single intent, we should have multiple.
-            xy_clstr = tdm.TrainingDataModel.get_clusters(
+            xy_clstr = MetricSpaceModel.get_clusters(
                 x      = x,
                 y      = y,
                 x_name = self.model_data.x_name

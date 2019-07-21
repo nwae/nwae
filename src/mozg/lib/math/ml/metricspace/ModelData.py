@@ -40,7 +40,10 @@ class ModelData:
         #
         # Order follows x_name
         # IDF np array at least 2 dimensional
+        # Weights (all 1's by default)
         self.idf = None
+        # Make 2D
+        self.idf = np.array([self.idf])
         # numpy array, represents a class of y in a single array
         self.x_ref = None
         self.y_ref = None
