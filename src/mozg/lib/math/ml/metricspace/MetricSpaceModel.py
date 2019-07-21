@@ -37,6 +37,12 @@ class MetricSpaceModel(threading.Thread):
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
 
+    # Terms for dataframe, etc.
+    TERM_CLASS    = 'class'
+    TERM_SCORE    = 'score'
+    TERM_DIST     = 'dist'
+    TERM_DISTNORM = 'distnorm'
+
     def __init__(
             self,
             # Unique identifier to identify this set of trained data+other files after training
@@ -92,11 +98,7 @@ class MetricSpaceModel(threading.Thread):
         try:
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
-            self.train(
-                self.key_features_remove_quartile,
-                self.stop_features,
-                self.weigh_idf
-            )
+            self.train()
             self.bot_training_end_time = dt.datetime.now()
         except Exception as ex:
             log.Log.critical(
@@ -170,7 +172,7 @@ class MetricSpaceModel(threading.Thread):
     # to a set of references (n+1 dimensions or k rows of n dimensional points) by knowing
     # the theoretical max/min of our hypersphere
     #
-    def calc_normalized_distance_of_point_to_x_ref(
+    def calc_distance_of_point_to_x_ref(
             self,
             # Point
             v,
@@ -206,23 +208,6 @@ class MetricSpaceModel(threading.Thread):
         distance_x_ref = distance_x_ref.transpose()
         log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
 
-        #
-        # Normalize distance to between 0 and 1
-        #
-        distance_x_ref = distance_x_ref / MetricSpaceModel.HPS_MAX_EUCL_DIST
-        log.Log.debugdebug('distance normalized: ' + str(distance_x_ref))
-
-        # Theoretical Inequality check
-        check_less_than_max = np.sum(1 * (distance_x_ref > 1))
-        check_greater_than_min = np.sum(1 * (distance_x_ref < 0))
-
-        if (check_less_than_max > 0) or (check_greater_than_min > 0):
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Point ' + str(v) + ' distance to x_ref:\n\r' + str(x_ref) + ' fail theoretical inequality test.'
-                + ' Distance tensor:\n\r' + str(distance_x_ref)
-            )
-
         return distance_x_ref
 
     #
@@ -231,38 +216,58 @@ class MetricSpaceModel(threading.Thread):
     def calc_proximity_class_score_to_point(
             self,
             # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
-            x,
+            x_distance,
             y_label
     ):
-        if type(x) is not np.ndarray:
+        if ( type(x_distance) is not np.ndarray ):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Wrong type "' + type(x) + '" to predict classes. Not ndarray.'
+                + ': Wrong type "' + type(x_distance) + '" to predict classes. Not ndarray.'
             )
 
-        if x.ndim>1:
-            if x.shape[0] != 1:
+        if x_distance.ndim > 1:
+            if x_distance.shape[0] != 1:
                 raise Exception(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Expected x has only 1 row got c shape ' + str(x.shape)
-                    + '". x = ' + str(x)
+                    + ': Expected x has only 1 row got c shape ' + str(x_distance.shape)
+                    + '". x = ' + str(x_distance)
                 )
             else:
-                x = x[0]
+                x_distance = x_distance[0]
 
-        log.Log.debugdebug('x: ' + str(x) + ', y_label ' + str(y_label))
+        log.Log.debugdebug('x_distance: ' + str(x_distance) + ', y_label ' + str(y_label))
 
-        x_score = np.round(100 - x*100, 1)
+        #
+        # Normalize distance to between 0 and 1
+        #
+        x_distance_norm = x_distance / MetricSpaceModel.HPS_MAX_EUCL_DIST
+        log.Log.debugdebug('distance normalized: ' + str(x_distance_norm))
+
+        # Theoretical Inequality check
+        check_less_than_max = np.sum(1 * (x_distance_norm > 1))
+        check_greater_than_min = np.sum(1 * (x_distance_norm < 0))
+
+        if (check_less_than_max > 0) or (check_greater_than_min > 0):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Distance ' + str(x_distance) + ' fail theoretical inequality test.' \
+                     + ' Distance normalized:\n\r' + str(x_distance_norm)
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
+
+        x_score = np.round(100 - x_distance_norm*100, 1)
 
         df_score = pd.DataFrame({
-            'class': y_label,
-            'score': x_score
+            MetricSpaceModel.TERM_CLASS: y_label,
+            MetricSpaceModel.TERM_SCORE: x_score,
+            MetricSpaceModel.TERM_DIST:  x_distance,
+            MetricSpaceModel.TERM_DISTNORM: x_distance_norm
         })
         # Aggregate class by max score, don't make class index
-        df_score = df_score.groupby(by=['class'], as_index=False, axis=0).max()
+        df_score = df_score.groupby(by=[MetricSpaceModel.TERM_CLASS], as_index=False, axis=0).max()
 
         # Sort scores
-        df_score.sort_values(by=['score'], ascending=False, inplace=True)
+        df_score.sort_values(by=[MetricSpaceModel.TERM_SCORE], ascending=False, inplace=True)
+        # Make sure indexes are conventional 0,1,2,...
         df_score.reset_index(drop=True, inplace=True)
 
         log.Log.debugdebug('x_score:\n\r' + str(df_score))
@@ -302,7 +307,6 @@ class MetricSpaceModel(threading.Thread):
                 + ': Expected x has at least 1 row got c shape ' + str(x.shape) + '".'
             )
 
-        x_classes = []
         log.Log.debug('x:\n\r' + str(x))
 
         #
@@ -328,10 +332,12 @@ class MetricSpaceModel(threading.Thread):
                 x_weighted_normalized[i] = v / mag
         log.Log.debugdebug('x_weighted_normalized:\n\r' + str(x_weighted_normalized))
 
+        match_details = {}
+        x_classes = []
+        top_class_distance = []
+        # np array types
         x_distance_to_x_ref = None
         x_distance_to_x_clustered = None
-
-        match_details = {}
 
         #
         # Calculate distance to x_ref & x_clustered
@@ -339,15 +345,9 @@ class MetricSpaceModel(threading.Thread):
         for i in range(0,x_weighted_normalized.shape[0]):
             v = x_weighted_normalized[i]
 
-            distance_x_ref = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
-            distance_x_clustered = self.calc_normalized_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_clustered)
-
-            if i == 0:
-                x_distance_to_x_ref = np.array([distance_x_ref])
-                x_distance_to_x_clustered = np.array([distance_x_clustered])
-            else:
-                x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
-                x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
+            # Returns absolute distance
+            distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
+            distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_clustered)
 
             # We combine all the reference points, or sub-classes of the classes. Thus each class
             # is represented by more than one point, reference sub_classes.
@@ -356,47 +356,62 @@ class MetricSpaceModel(threading.Thread):
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
-            # Get the score to the closest sub-class.
-            df_class_score = self.calc_proximity_class_score_to_point(x=x_distance, y_label=y_distance)
+            # Get the score of point relative to all classes.
+            df_class_score = self.calc_proximity_class_score_to_point(
+                x_distance = x_distance,
+                y_label    = y_distance
+            )
             log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
+
+            # For np array types, we have no choice to do this messy if/else
+            if i == 0:
+                x_distance_to_x_ref = np.array([distance_x_ref])
+                x_distance_to_x_clustered = np.array([distance_x_clustered])
+            else:
+                x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
+                x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
+
+            x_classes.append( df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]] )
+            top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
 
             match_details[i] = df_class_score
 
-            #
-            # Below was the old way of calculating by getting weighted score.
-            # But I think minimum is good enough as each class is represented by the x_clustered as a few
-            # reference points or sub-classes, and getting the score to the closest one makes more sense.
-            #
-            # # Get some kind of score and ranking of the predicted classes for the row
-            # df_class_score_ref = self.get_predict_class_score(x=distance_x_ref, y_label=self.rfv_y)
-            # df_class_score_clustered = self.get_predict_class_score(x=distance_x_clustered, y_label=self.y_clustered)
-            #
-            # # Combine both scores by some weights
-            # df_class_score = pd.merge(
-            #     left     = df_class_score_ref,
-            #     right    = df_class_score_clustered,
-            #     on       = ['class'],
-            #     suffixes = ['_ref', '_clustered']
-            # )
-            # df_class_score['score_final'] = np.round(
-            #     0.5*df_class_score['score_ref'] + 0.5*df_class_score['score_clustered'],
-            #     1
-            # )
-
             # Get the top class
-            x_classes.append( df_class_score['class'].loc[df_class_score.index[0]] )
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
+        log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
 
-        class ret:
-            def __init__(self, match_details, predicted_classes):
-                self.match_details = match_details
+        # Mean square error MSE and MSE normalized
+        top_class_distance = np.array(top_class_distance)
+        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
+        mse_norm = mse / (MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
+
+        class retclass:
+            def __init__(
+                    self,
+                    predicted_classes,
+                    top_class_distance,
+                    match_details,
+                    mse,
+                    mse_norm
+            ):
                 self.predicted_classes = predicted_classes
+                # The top class and shortest distances (so that we can calculate sum of squared error
+                self.top_class_distance = top_class_distance
+                self.match_details = match_details
+                self.mse = mse,
+                self.mse_norm = mse_norm
                 return
 
-        retval = ret(match_details=match_details, predicted_classes=np.array(x_classes))
+        retval = retclass(
+            predicted_classes  = np.array(x_classes),
+            top_class_distance = top_class_distance,
+            match_details      = match_details,
+            mse                = mse,
+            mse_norm           = mse_norm
+        )
 
         if self.do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())

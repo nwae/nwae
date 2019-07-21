@@ -199,7 +199,12 @@ class Ut:
 
         y_observed = ms.predict_classes(x=reordered_test_x)
         print(y_observed.predicted_classes)
+        print(y_observed.top_class_distance)
         print(y_observed.match_details)
+        print('MSE = ' + str(y_observed.mse))
+        print('MSE normalized = ' + str(y_observed.mse_norm))
+
+        # Mean square error
 
         # Compare with expected
         #x_classes_expected = ms.training_data.get_y()
