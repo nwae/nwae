@@ -198,15 +198,22 @@ class Ut:
         reordered_test_x = reordered_test_x.transpose()
         print(reordered_test_x)
 
-        y_observed = ms.predict_classes(
+        predict_result = ms.predict_classes(
             x           = reordered_test_x,
             include_rfv = include_rfv
         )
-        print(y_observed.predicted_classes)
-        print(y_observed.top_class_distance)
-        print(y_observed.match_details)
-        print('MSE = ' + str(y_observed.mse))
-        print('MSE normalized = ' + str(y_observed.mse_norm))
+        y_observed = predict_result.predicted_classes
+        top_class_distance = predict_result.top_class_distance
+        match_details = predict_result.match_details
+
+        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
+        mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
+
+        print(y_observed)
+        print(top_class_distance)
+        print(match_details)
+        print('MSE = ' + str(mse))
+        print('MSE normalized = ' + str(mse_norm))
 
         # Mean square error
 
@@ -216,7 +223,7 @@ class Ut:
         print(x_classes_expected)
 
         # Compare with expected
-        compare = (y_observed.predicted_classes != x_classes_expected)
+        compare = (y_observed != x_classes_expected)
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 

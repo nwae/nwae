@@ -412,32 +412,24 @@ class MetricSpaceModel(threading.Thread):
 
         # Mean square error MSE and MSE normalized
         top_class_distance = np.array(top_class_distance)
-        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
-        mse_norm = mse / (MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
 
         class retclass:
             def __init__(
                     self,
                     predicted_classes,
                     top_class_distance,
-                    match_details,
-                    mse,
-                    mse_norm
+                    match_details
             ):
                 self.predicted_classes = predicted_classes
                 # The top class and shortest distances (so that we can calculate sum of squared error
                 self.top_class_distance = top_class_distance
                 self.match_details = match_details
-                self.mse = mse
-                self.mse_norm = mse_norm
                 return
 
         retval = retclass(
             predicted_classes  = np.array(x_classes),
             top_class_distance = top_class_distance,
             match_details      = match_details,
-            mse                = mse,
-            mse_norm           = mse_norm
         )
 
         if self.do_profiling:

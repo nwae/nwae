@@ -142,11 +142,19 @@ class UtChat:
         if indexes_to_test is None:
             indexes_to_test = range(x.shape[0])
 
-        y_observed = ms_pc.predict_classes(
+        predict_result = ms_pc.predict_classes(
             x = x[indexes_to_test],
             include_rfv = include_rfv,
             include_match_details = include_match_details
         )
+
+        # Mean square error MSE and MSE normalized
+        y_observed = predict_result.predicted_classes
+        top_class_distance = predict_result.top_class_distance
+        match_details = predict_result.match_details
+
+        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
+        mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
 
         #print('PREDICTED CLASSES x_classes (type '
         #      + str(type(y_observed.predicted_classes)) + '):\n\r'
@@ -154,13 +162,13 @@ class UtChat:
         #      )
         #print('TOP CLASS DISTANCE:\n\r' + str(y_observed.top_class_distance))
         # print('SCORE/MATCH DETAILS:\n\r' + str(y_observed.match_details))
-        print('MSE = ' + str(y_observed.mse))
-        print('MSE normalized = ' + str(y_observed.mse_norm))
+        print('MSE = ' + str(mse))
+        print('MSE normalized = ' + str(mse_norm))
 
         # print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
 
         # Compare with expected
-        compare = (y_observed.predicted_classes != y[indexes_to_test])
+        compare = (y_observed != y[indexes_to_test])
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
@@ -169,8 +177,8 @@ class UtChat:
         index_errors = idx[compare==True]
         for i in index_errors:
             y_expected_val = y[indexes_to_test][i]
-            y_observed_val = y_observed.predicted_classes[i]
-            y_observed_match_details = y_observed.match_details[i]
+            y_observed_val = y_observed[i]
+            y_observed_match_details = match_details[i]
             print('Error at index ' + str(i)
                   + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
                   + ':\n\r' + str(y_observed_match_details))
