@@ -31,6 +31,10 @@ import mozg.common.util.Profiling as prf
 #         = 2 - 2(x_a*y_a + x_b_*y_b + x_c*y_c)
 #         <= 2
 #
+# For all classes, or cluster the radius of the class/cluster is defined as the distance of the
+# "center" of the class/cluster to the furthest point. For a class the "center" may be defined
+# as the center of mass.
+#
 class MetricSpaceModel(threading.Thread):
 
     # Hypersphere max/min Euclidean Distance
@@ -46,6 +50,9 @@ class MetricSpaceModel(threading.Thread):
 
     # Matching
     MATCH_TOP = 10
+
+    # Radius min/max
+    RADIUS_MAX = 1.0
 
     def __init__(
             self,
@@ -452,9 +459,10 @@ class MetricSpaceModel(threading.Thread):
             x_name
     ):
         class retclass:
-            def __init__(self, x_cluster, y_cluster):
+            def __init__(self, x_cluster, y_cluster, y_cluster_radius):
                 self.x_cluster = x_cluster
                 self.y_cluster = y_cluster
+                self.y_cluster_radius = y_cluster_radius
 
         #
         # 1. Cluster training data of the same class.
@@ -464,7 +472,11 @@ class MetricSpaceModel(threading.Thread):
         # Our return values, in the same dimensions with x, y respectively
         x_clustered = None
         y_clustered = None
+        y_clustered_radius = None
 
+        #
+        # Loop by unique class labels
+        #
         for cs in list(set(y)):
             try:
                 # Extract only rows of this class
@@ -481,49 +493,78 @@ class MetricSpaceModel(threading.Thread):
                 #
                 # Cluster intent
                 #
-                # If there is only 1 row, then the cluster is the row
-                np_class_cluster = rows_of_class
-                # Otherwise we do proper clustering
-                if rows_of_class.shape[0] > 1:
-                    class_cluster = clstr.Cluster.cluster(
-                        matx=rows_of_class,
-                        feature_names=x_name,
-                        # Not more than 5 clusters per label
-                        ncenters=min(5, round(rows_of_class.shape[0] * 2 / 3)),
-                        iterations=20
-                    )
-                    np_class_cluster = class_cluster[clstr.Cluster.COL_CLUSTER_NDARRY]
+                # We start with 1 cluster, until the radius of the clusters satisfy our max radius condition
+                #
+                max_cluster_radius_condition_met = False
 
-                # Renormalize x_clustered
-                for ii in range(0, np_class_cluster.shape[0], 1):
-                    v = np_class_cluster[ii]
-                    mag = np.sum(np.multiply(v, v)) ** 0.5
-                    # print('Before normalize ' + str(np_class_cluster[ii]))
-                    v = v / mag
-                    np_class_cluster[ii] = v
-                    # print('After normalize ' + str(np_class_cluster[ii]))
+                # Start with 1 cluster
+                n_clusters = 1
+                while not max_cluster_radius_condition_met:
+                    np_cluster_centers = None
+                    np_cluster_radius = None
 
-                if x_clustered is None:
-                    x_clustered = np_class_cluster
-                    y_clustered = np.array([cs] * x_clustered.shape[0])
-                else:
-                    # Append rows (thus 1st dimension at axis index 0)
-                    x_clustered = np.append(
-                        x_clustered,
-                        np_class_cluster,
-                        axis=0)
-                    # Appending to a 1D array always at axis=0
-                    y_clustered = np.append(
-                        y_clustered,
-                        [cs] * np_class_cluster.shape[0],
-                        axis=0)
+                    # Do clustering to n_clusters only if it is less than the number of points
+                    if rows_of_class.shape[0] > n_clusters:
+                        cluster_result = clstr.Cluster.cluster(
+                            matx          = rows_of_class,
+                            feature_names = x_name,
+                            ncenters      = n_clusters,
+                            iterations    = 20
+                        )
+                        np_cluster_centers = cluster_result.np_cluster_centers
+                        np_cluster_labels = cluster_result.np_cluster_labels
+                        np_cluster_radius = cluster_result.np_cluster_radius
+                        # Remember this distance is calculated without a normalized cluster center, but we ignore for now
+                        val_max_cl_radius = max(np_cluster_radius)
+
+                        n_clusters += 1
+                        # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
+                        # then our condition is met
+                        max_cluster_radius_condition_met = \
+                            (rows_of_class.shape[0] <= n_clusters) \
+                            or (val_max_cl_radius <= MetricSpaceModel.RADIUS_MAX)
+
+                        if not max_cluster_radius_condition_met:
+                            continue
+                        #
+                        # Put the cluster center back on the hypersphere surface, renormalize cluster centers
+                        #
+                        for ii in range(0, np_cluster_centers.shape[0], 1):
+                            cluster_label = ii
+                            cc = np_cluster_centers[ii]
+                            mag = np.sum(np.multiply(cc, cc)) ** 0.5
+                            cc = cc / mag
+                            np_cluster_centers[ii] = cc
+                    else:
+                        np_cluster_centers = np.array(rows_of_class)
+                        val_max_cl_radius = 0
+
+                    if x_clustered is None:
+                        x_clustered = np_cluster_centers
+                        y_clustered = np.array([cs] * x_clustered.shape[0])
+                        y_clustered_radius = np_cluster_radius
+                    else:
+                        # Append rows (thus 1st dimension at axis index 0)
+                        x_clustered = np.append(
+                            x_clustered,
+                            np_cluster_centers,
+                            axis=0)
+                        # Appending to a 1D array always at axis=0
+                        y_clustered = np.append(
+                            y_clustered,
+                            [cs] * np_cluster_centers.shape[0],
+                            axis=0)
+                        y_clustered_radius = np.append(
+                            y_clustered_radius,
+                            np_cluster_radius,
+                            axis=0)
             except Exception as ex:
                 errmsg = str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                          + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
                 log.Log.error(errmsg)
                 raise Exception(errmsg)
 
-        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered)
+        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
 
         log.Log.debug(
             str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -639,6 +680,7 @@ class MetricSpaceModel(threading.Thread):
             )
             self.model_data.x_clustered = xy_clstr.x_cluster
             self.model_data.y_clustered = xy_clstr.y_cluster
+            self.model_data.y_clustered_radius = xy_clstr.y_cluster_radius
 
             #
             # RFV Derivation

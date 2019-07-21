@@ -118,7 +118,12 @@ class ModelData:
             data    = self.x_clustered,
             index   = self.y_clustered,
             columns = self.x_name
-        ).sort_index()
+        )
+
+        df_y_clustered_radius = pd.DataFrame(
+            data    = self.y_clustered_radius,
+            index   = self.y_clustered
+        )
 
         # We use this training data model class to get the friendly representation of the x_clustered
         xy_x_clustered = tdm.TrainingDataModel(
@@ -200,6 +205,14 @@ class ModelData:
         log.Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
+            , log_list=self.log_training
+        )
+
+        df_y_clustered_radius.to_csv(path_or_buf=self.fpath_y_clustered_radius, index=True, index_label='INDEX')
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved y_clustered_radius with shape ' + str(df_y_clustered_radius.shape)
+            + ' filepath "' + self.fpath_y_clustered_radius + '"'
             , log_list=self.log_training
         )
 
