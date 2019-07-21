@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import threading
 import datetime as dt
-import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
