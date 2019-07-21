@@ -42,6 +42,7 @@ class MetricSpaceModel(threading.Thread):
     TERM_SCORE    = 'score'
     TERM_DIST     = 'dist'
     TERM_DISTNORM = 'distnorm'
+    TERM_RADIUS   = 'radius'
 
     # Matching
     MATCH_TOP = 10
@@ -651,10 +652,8 @@ class MetricSpaceModel(threading.Thread):
             )
             self.model_data.df_y_ref_radius = pd.DataFrame(
                 {
-                    reffv.RefFeatureVector.COL_COMMAND:
-                        list(self.model_data.y_unique),
-                    reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST:
-                        [MetricSpaceModel.HPS_MAX_EUCL_DIST]*len(self.model_data.y_unique),
+                    MetricSpaceModel.TERM_CLASS: list(self.model_data.y_unique),
+                    MetricSpaceModel.TERM_RADIUS: [MetricSpaceModel.HPS_MAX_EUCL_DIST]*len(self.model_data.y_unique),
                 },
                 index = self.model_data.y_unique
             )
@@ -717,14 +716,12 @@ class MetricSpaceModel(threading.Thread):
                     )
                     if dist > radius_max:
                         radius_max = dist
-                        self.model_data.df_y_ref_radius.at[
-                            cs, reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST] = dist
+                        self.model_data.df_y_ref_radius[MetricSpaceModel.TERM_RADIUS].at[cs] = dist
 
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Class "' + str(cs) + '". Max Radius = '
-                    + str(self.model_data.df_y_ref_radius[
-                              reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST].loc[cs])
+                    + str(self.model_data.df_y_ref_radius[MetricSpaceModel.TERM_RADIUS].loc[cs])
                 )
             df_x_ref.sort_index(inplace=True)
             self.model_data.y_ref = np.array(df_x_ref.index)

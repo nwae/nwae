@@ -47,11 +47,13 @@ class ModelData:
         # numpy array, represents a class of y in a single array
         self.x_ref = None
         self.y_ref = None
-        # For us to easily persist to storage later, contains x_ref, y_ref, x_name
+        # Data Frame type, radius of y_ref
         self.df_y_ref_radius = None
         # Represents a class of y in a few clustered arrays
         self.x_clustered = None
         self.y_clustered = None
+        # Data Frame type. Radius of each cluster
+        self.y_clustered_radius = None
         # x_name column names np array at least 2 dimensional
         self.x_name = None
 
@@ -60,15 +62,18 @@ class ModelData:
 
         # First check the existence of the files
         prefix = self.dir_path_model + '/' + self.identifier_string
-        self.fpath_updated_file      = prefix + '.lastupdated.txt'
-        self.fpath_x_name            = prefix + '.x_name.csv'
-        self.fpath_idf               = prefix + '.idf.csv'
-        self.fpath_x_ref             = prefix + '.x_ref.csv'
+        self.fpath_updated_file        = prefix + '.lastupdated.txt'
+        self.fpath_x_name              = prefix + '.x_name.csv'
+        self.fpath_idf                 = prefix + '.idf.csv'
+        # y not recorded separately, it is in the index of this dataframe csv
+        self.fpath_x_ref               = prefix + '.x_ref.csv'
         self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
         # Only for debugging file
         self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
         self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
-        self.fpath_x_clustered       = prefix + '.x_clustered.csv'
+        # y_ref not recorded separately, it is in the index of this dataframe csv
+        self.fpath_x_clustered         = prefix + '.x_clustered.csv'
+        self.fpath_y_clustered_radius  = prefix + '.y_clustered.radius.csv'
         # Only for debugging file
         self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
         # Training data for testing back only

@@ -6,7 +6,7 @@ class RefFeatureVector:
 
     # Column names for distance threshold to RFV
     COL_COMMAND = 'Command'
-    COL_DISTANCE_TO_RFV_FURTHEST = 'DistToRfvThreshold'
+    COL_RADIUS = 'Radius'
     COL_TEXT = 'Text'
 
 
