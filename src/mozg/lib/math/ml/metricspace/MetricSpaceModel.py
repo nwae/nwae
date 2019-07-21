@@ -267,14 +267,14 @@ class MetricSpaceModel(threading.Thread):
             MetricSpaceModel.TERM_DISTNORM: x_distance_norm
         })
         # Sort distances
-        #df_score.sort_values(by=[MetricSpaceModel.TERM_DIST], ascending=True, inplace=True)
-        #df_score = df_score[0:top]
-        #df_score.reset_index(drop=True, inplace=True)
-        #log.Log.debugdebug('DF SCORE 1:\n\r' + str(df_score))
+        # df_score.sort_values(by=[MetricSpaceModel.TERM_DIST], ascending=True, inplace=True)
+        # df_score = df_score[0:top]
+        # df_score.reset_index(drop=True, inplace=True)
+        # log.Log.debugdebug('DF SCORE 1:\n\r' + str(df_score))
 
-        # Aggregate class by max score, don't make class index
+        # Aggregate class by min distance, don't make class index.
         df_score = df_score.groupby(by=[MetricSpaceModel.TERM_CLASS], as_index=False, axis=0).min()
-        log.Log.debugdebug('DF SCORE 2:\n\r' + str(df_score))
+        # log.Log.debugdebug('DF SCORE 2:\n\r' + str(df_score))
 
         # Put score last (because we need to do groupby().min() above, which will screw up the values
         # as score is in the reverse order with distances) and sort scores
@@ -283,7 +283,6 @@ class MetricSpaceModel(threading.Thread):
         df_score.sort_values(by=[MetricSpaceModel.TERM_SCORE], ascending=False, inplace=True)
         # Make sure indexes are conventional 0,1,2,...
         df_score.reset_index(drop=True, inplace=True)
-        log.Log.debugdebug('DF SCORE 3:\n\r' + str(df_score))
 
         log.Log.debugdebug('x_score:\n\r' + str(df_score))
 
@@ -389,7 +388,8 @@ class MetricSpaceModel(threading.Thread):
             x_classes.append( df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]] )
             top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
 
-            match_details[i] = df_class_score
+            # This innocent line increases the calculation time by 20 ms!!!!
+            #match_details[i] = df_class_score
 
             # Get the top class
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
