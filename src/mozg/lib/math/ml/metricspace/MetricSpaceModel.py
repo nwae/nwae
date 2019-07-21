@@ -401,7 +401,7 @@ class MetricSpaceModel(threading.Thread):
                 # The top class and shortest distances (so that we can calculate sum of squared error
                 self.top_class_distance = top_class_distance
                 self.match_details = match_details
-                self.mse = mse,
+                self.mse = mse
                 self.mse_norm = mse_norm
                 return
 

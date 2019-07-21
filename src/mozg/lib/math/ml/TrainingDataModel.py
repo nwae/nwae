@@ -15,7 +15,7 @@ class TrainingDataModel:
 
     def __init__(
             self,
-            # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해
+            # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해, Normalized data
             x,
             # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
             y,
@@ -24,8 +24,7 @@ class TrainingDataModel:
             # np array 형식으호. Имена дименций x
             x_name = None,
             # np array 형식으호
-            y_name = None,
-            check_if_x_normalized = False
+            y_name = None
     ):
         # Only positive real values
         self.x = x
@@ -39,8 +38,6 @@ class TrainingDataModel:
             self.x_name = self.x_name_index.copy()
         else:
             self.x_name = x_name
-
-        self.check_if_x_normalized = check_if_x_normalized
 
         if type(self.x) is not np.ndarray:
             raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
@@ -61,6 +58,7 @@ class TrainingDataModel:
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])
 
+        self.__check_x_normalized()
         self.__remove_points_not_on_hypersphere()
 
         return
@@ -151,6 +149,16 @@ class TrainingDataModel:
         # )
         return
 
+    def __check_x_normalized(self):
+        for i in range(0,self.x.shape[0],1):
+            p = self.x[i]
+            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > const.Constants.SMALL_VALUE
+            if is_not_normalized:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Tensor x not normalized at row ' + str(i) + '.\n\rPoint=\n\r' + str(p)
+                log.Log.error(errmsg)
+                raise Exception(errmsg)
+
     #
     # Remove rows with 0's
     #
@@ -163,7 +171,7 @@ class TrainingDataModel:
         for i in range(0,self.x.shape[0],1):
             p = self.x[i]
             is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > const.Constants.SMALL_VALUE
-            if (np.sum(p) < const.Constants.SMALL_VALUE) or (self.check_if_x_normalized and is_not_normalized):
+            if (np.sum(p) < const.Constants.SMALL_VALUE) or (is_not_normalized):
                 indexes_to_remove.append(i)
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -351,7 +359,7 @@ class TrainingDataModel:
             v = sentence_fv[i]
             if np.sum(v) == 0:
                 continue
-            if abs(1 - np.sum(np.multiply(v,v))**0.5) > 0.000001:
+            if abs(1 - np.sum(np.multiply(v,v))**0.5) > const.Constants.SMALL_VALUE:
                 raise Exception(
                     'Feature vector ' + str(v) + ' not normalized!'
                 )
@@ -369,8 +377,7 @@ class TrainingDataModel:
             x      = sentence_fv,
             x_name = np.array(fv_wordlabels),
             y      = np.array(label_id),
-            y_name = np.array(label_name),
-            check_if_x_normalized = True
+            y_name = np.array(label_name)
         )
 
 
