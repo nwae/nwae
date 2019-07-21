@@ -198,7 +198,7 @@ if __name__ == '__main__':
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,
-        include_match_details = False
+        include_match_details = True
     )
 
 
