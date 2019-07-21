@@ -178,7 +178,10 @@ class UtChat:
         for i in index_errors:
             y_expected_val = y[indexes_to_test][i]
             y_observed_val = y_observed[i]
-            y_observed_match_details = match_details[i]
+            if i in match_details.keys():
+                y_observed_match_details = match_details[i]
+            else:
+                y_observed_match_details = None
             print('Error at index ' + str(i)
                   + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
                   + ':\n\r' + str(y_observed_match_details))
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    obj.test_train(weigh_idf=True)
+    #obj.test_train(weigh_idf=True)
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,

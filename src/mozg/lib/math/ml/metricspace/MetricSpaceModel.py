@@ -52,7 +52,8 @@ class MetricSpaceModel(threading.Thread):
     MATCH_TOP = 10
 
     # Radius min/max
-    RADIUS_MAX = 1.0
+    CLUSTER_RADIUS_MAX = 0.5
+    N_CLUSTER_MAX = 5
 
     def __init__(
             self,
@@ -517,12 +518,13 @@ class MetricSpaceModel(threading.Thread):
                         # Remember this distance is calculated without a normalized cluster center, but we ignore for now
                         val_max_cl_radius = max(np_cluster_radius)
 
-                        n_clusters += 1
                         # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
                         # then our condition is met
                         max_cluster_radius_condition_met = \
-                            (rows_of_class.shape[0] <= n_clusters) \
-                            or (val_max_cl_radius <= MetricSpaceModel.RADIUS_MAX)
+                            (rows_of_class.shape[0] <= n_clusters+1) \
+                            or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
+                            or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
+                        n_clusters += 1
 
                         if not max_cluster_radius_condition_met:
                             continue
