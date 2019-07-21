@@ -191,7 +191,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    #obj.test_train(weigh_idf=True)
+    # obj.test_train(weigh_idf=True)
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,
