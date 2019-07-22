@@ -82,9 +82,10 @@ class UtChat:
         df_tmp_id = df_tmp_id.merge(df_classes_id_name, how='left')
         np_label_name = np.array(df_tmp_id['name'])
 
-        if np_label_id.shape != np_label_name.shape:
+        if (np_label_id.shape != np_label_name.shape) or (np_label_id.shape[0] != np_text_segmented.shape[0]):
             raise Exception(
-                'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + 'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
                 + str(np_label_id)
                 + 'Label Name:\n\r'
                 + str(np_label_name)
