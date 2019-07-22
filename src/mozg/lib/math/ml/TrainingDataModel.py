@@ -393,7 +393,7 @@ class TrainingDataModel:
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
                 + ', label name length = ' + str(len(label_name))
-                + ', and Text Segmented length = ' + str(len(text_segmented)) + ' must be equal.'
+                + ', and sentence FV shape/length = ' + str(sentence_fv.shape) + ' must be equal.'
             )
 
         return TrainingDataModel(
