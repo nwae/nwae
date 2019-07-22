@@ -388,7 +388,7 @@ class TrainingDataModel:
                 )
 
         # Check again
-        if ( len(label_id) != len(text_segmented) ) and ( len(label_id) != len(label_name) ):
+        if ( len(label_id) != len(text_segmented) ) or ( len(label_id) != len(label_name) ):
             raise Exception(
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
