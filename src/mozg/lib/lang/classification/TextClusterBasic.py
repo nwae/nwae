@@ -209,7 +209,7 @@ class TextClusterBasic:
         sentence_matrix_freq = np.zeros((nrow, ncol))
         # The normalized version, by proportion
         sentence_matrix_norm = np.zeros((nrow, ncol))
-
+        
         # Fill matrix
         for i in range(0, sentence_matrix.shape[0], 1):
             sent = su.StringUtils.trim( self.text[i] )
