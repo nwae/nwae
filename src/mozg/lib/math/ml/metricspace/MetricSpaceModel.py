@@ -34,6 +34,9 @@ import mozg.common.util.Profiling as prf
 # "center" of the class/cluster to the furthest point. For a class the "center" may be defined
 # as the center of mass.
 #
+# Mean Radius:
+#  Given 2 random points on a hypersphere, what is the expected Euclidean distance between them?
+#
 class MetricSpaceModel(threading.Thread):
 
     # Hypersphere max/min Euclidean Distance
