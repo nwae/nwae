@@ -24,7 +24,9 @@ class UtChat:
 
     def test_train(
             self,
-            weigh_idf = True
+            weigh_idf = True,
+            # How many of the classes to keep to test training. -1 to keep nothing and train all.
+            keep = -1
     ):
         chat_td = ctd.ChatTrainingData(
             use_db     = True,
@@ -54,7 +56,11 @@ class UtChat:
         })
 
         # For unit testing purpose, keep only 10 classes
-        keep = 10
+        unique_classes_id = list(set(classes_id))
+        if keep < 0:
+            keep = len(unique_classes_id)
+        else:
+            keep = min(keep, len(unique_classes_id))
         unique_classes_trimmed = list(set(classes_id))[0:keep]
         np_unique_classes_trimmed = np.array(unique_classes_trimmed)
 
@@ -194,7 +200,11 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    #obj.test_train(weigh_idf=True)
+    obj.test_train(
+        weigh_idf = True,
+        # keep      = 10
+    )
+    exit(0)
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,

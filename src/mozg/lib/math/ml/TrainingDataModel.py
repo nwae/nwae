@@ -40,13 +40,22 @@ class TrainingDataModel:
             self.x_name = x_name
 
         if type(self.x) is not np.ndarray:
-            raise Exception('x must be np.array type, got type "' + str(type(self.x)) + '".')
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': x must be np.array type, got type "' + str(type(self.x)) + '".'
+            )
         if type(self.y) is not np.ndarray:
-            raise Exception('x must be np.array type, got type "' + str(type(self.y)) + '".')
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': x must be np.array type, got type "' + str(type(self.y)) + '".'
+            )
         if self.y_name is None:
             self.y_name = np.array(self.y)
         elif type(self.y_name) is not np.ndarray:
-            raise Exception('y_name must be np.array type, got type "' + str(type(self.y_name)) + '".')
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': y_name must be np.array type, got type "' + str(type(self.y_name)) + '".'
+            )
 
         # Change label to string type
         y_str = np.array([])
@@ -58,7 +67,6 @@ class TrainingDataModel:
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])
 
-        self.__check_x_normalized()
         self.__remove_points_not_on_hypersphere()
 
         return
@@ -66,7 +74,8 @@ class TrainingDataModel:
     def __check_xy_consistency(self):
         if (self.x.shape[0] != self.y.shape[0]) and (self.y.shape[0] != self.y_name.shape[0]):
             raise Exception(
-                'Number of x training points = ' + str(self.x.shape[0])
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Number of x training points = ' + str(self.x.shape[0])
                 + ' is not equal to number of labels = ' + str(self.y.shape[0])
                 + ' or not equal to number of label names = ' + str(self.y_name.shape[0])
             )
@@ -78,9 +87,15 @@ class TrainingDataModel:
             for i_dim in range(1,self.x.ndim,1):
                 if self.x.shape[i_dim] != self.x_name.shape[i_dim-1]:
                     raise Exception(
-                        'Number of x dim ' + str(i_dim) + ' = ' + str(self.x.shape[i_dim])
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Number of x dim ' + str(i_dim) + ' = ' + str(self.x.shape[i_dim])
                         + ' is not equal to number of x names dim ' + str(i_dim-1) + ' = ' + str(self.x_name.shape[i_dim-1])
                     )
+
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Consistency of training data checked OK.'
+        )
         return
 
     #
@@ -93,13 +108,19 @@ class TrainingDataModel:
             w
     ):
         if type(w) is not np.ndarray:
-            raise Exception('Weight w must be of type numpy ndarray, got type "' + str(type(w)) + '".')
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                +': Weight w must be of type numpy ndarray, got type "' + str(type(w)) + '".'
+            )
 
         # Length of w must be same with length of x columns
         pass_condition = (w.ndim == 1) and (w.shape[0] == self.x.shape[1])
         if not pass_condition:
-            raise Exception('Weight w has wrong dimensions ' + str(w.shape)
-                            + ', not compatible with x dim ' + str(self.x.shape) + '.')
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                +': Weight w has wrong dimensions ' + str(w.shape)
+                + ', not compatible with x dim ' + str(self.x.shape) + '.'
+            )
 
         self.w = w
 
@@ -156,8 +177,9 @@ class TrainingDataModel:
             if is_not_normalized:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Tensor x not normalized at row ' + str(i) + '.\n\rPoint=\n\r' + str(p)
-                log.Log.error(errmsg)
-                raise Exception(errmsg)
+                log.Log.warning(errmsg)
+                # No need to raise exception, it will be removed when we check for points not on hypersphere
+                # raise Exception(errmsg)
 
     #
     # Remove rows with 0's
@@ -184,7 +206,7 @@ class TrainingDataModel:
             self.y = np.delete(self.y, indexes_to_remove, axis=0)
             self.y_name = np.delete(self.y_name, indexes_to_remove, axis=0)
 
-            log.Log.debug(
+            log.Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Deleted row indexes ' + str(indexes_to_remove)
                 + '. New x now dimension ' + str(self.x.shape)
