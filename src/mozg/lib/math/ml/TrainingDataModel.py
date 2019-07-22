@@ -67,12 +67,13 @@ class TrainingDataModel:
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])
 
+        self.__check_xy_consistency()
         self.__remove_points_not_on_hypersphere()
 
         return
 
     def __check_xy_consistency(self):
-        if (self.x.shape[0] != self.y.shape[0]) and (self.y.shape[0] != self.y_name.shape[0]):
+        if (self.x.shape[0] != self.y.shape[0]) or (self.y.shape[0] != self.y_name.shape[0]):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Number of x training points = ' + str(self.x.shape[0])
