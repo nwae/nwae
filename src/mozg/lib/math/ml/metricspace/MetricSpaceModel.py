@@ -190,22 +190,35 @@ class MetricSpaceModel(threading.Thread):
             self,
             # Point
             v,
-            x_ref
+            x_ref,
+            y_ref
     ):
         prf_start = prf.Profiling.start()
 
         log.Log.debugdebug('v: ' + str(v))
 
-        # Create an array with the same number of rows with rfv
-        v_ok = v
-        if v.ndim == 1:
-            # Convert to 2 dimensions
-            v_ok = np.array([v])
+        #
+        # Remove rows of x_ref with no common features
+        # This can almost half the time needed for calculation
+        #
+        relevant_columns = v>0
+        # Relevant columns of x_ref extracted
+        x_ref_relcols = x_ref.transpose()[relevant_columns].transpose()
+        # Relevant rows, those with sum of row > 0
+        x_ref_relrows = np.sum(x_ref_relcols, axis=1) > 0
+        x_ref_rel = x_ref[x_ref_relrows]
+        y_ref_rel = y_ref[x_ref_relrows]
 
-        vv = np.repeat(a=v_ok, repeats=x_ref.shape[0], axis=0)
+        v_ok = npUtil.NumpyUtil.convert_dimension(arr=v, to_dim=2)
+        # if v.ndim == 1:
+        #     # Convert to 2 dimensions
+        #     v_ok = np.array([v])
+
+        # Create an array with the same number of rows with rfv
+        vv = np.repeat(a=v_ok, repeats=x_ref_rel.shape[0], axis=0)
         log.Log.debugdebug('vv repeat: ' + str(vv))
 
-        dif = vv - x_ref
+        dif = vv - x_ref_rel
         log.Log.debugdebug('dif with x_ref: ' + str(dif))
 
         # Square every element in the matrix
@@ -232,7 +245,12 @@ class MetricSpaceModel(threading.Thread):
                 + ' milliseconds.'
             )
 
-        return distance_x_ref
+        class retclass:
+            def __init__(self, distance_x_rel, y_rel):
+                self.distance_x_rel = distance_x_ref
+                self.y_rel = y_rel
+
+        return retclass(distance_x_rel=distance_x_ref, y_rel=y_ref_rel)
 
     #
     # Get all class proximity scores to a point
@@ -397,18 +415,25 @@ class MetricSpaceModel(threading.Thread):
 
             # Returns absolute distance
             distance_x_ref = None
+            y_ref_rel = None
             if include_rfv:
-                distance_x_ref = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_ref)
-            distance_x_clustered = self.calc_distance_of_point_to_x_ref(v=v, x_ref=self.model_data.x_clustered)
+                retobj = self.calc_distance_of_point_to_x_ref(
+                    v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref)
+                distance_x_ref = retobj.distance_x_rel
+                y_ref_rel = retobj.y_rel
+            retobj = self.calc_distance_of_point_to_x_ref(
+                v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered)
+            distance_x_clustered = retobj.distance_x_rel
+            y_clustered_rel = retobj.y_rel
 
             # We combine all the reference points, or sub-classes of the classes. Thus each class
             # is represented by more than one point, reference sub_classes.
             if include_rfv:
                 x_distance = np.append(distance_x_ref, distance_x_clustered)
-                y_distance = np.append(self.model_data.y_ref, self.model_data.y_clustered)
+                y_distance = np.append(y_ref_rel, y_clustered_rel)
             else:
                 x_distance = distance_x_clustered
-                y_distance = self.model_data.y_clustered
+                y_distance = y_clustered_rel
             log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
             log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
@@ -440,7 +465,7 @@ class MetricSpaceModel(threading.Thread):
 
             # Get the top class
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
-            log.Log.info('Class for index ' + str(i) + ': ' + str(top_classes_label))
+            log.Log.debugdebug('Class for index ' + str(i) + ': ' + str(top_classes_label))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))

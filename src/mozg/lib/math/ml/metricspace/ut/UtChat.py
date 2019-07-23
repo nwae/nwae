@@ -7,6 +7,7 @@ import pandas as pd
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.NumpyUtil as npUtil
+import mozg.common.util.Profiling as prf
 
 
 class UtChat:
@@ -131,7 +132,8 @@ class UtChat:
             indexes_to_test = None,
             include_rfv = False,
             include_match_details = False,
-            top = 5
+            top = 5,
+            do_profiling = False
     ):
         #
         # Now read back params and predict classes
@@ -140,6 +142,7 @@ class UtChat:
             identifier_string = self.identifier_string,
             # Directory to keep all our model files
             dir_path_model    = self.dir_path_model,
+            do_profiling      = False
         )
         ms_pc.load_model_parameters_from_storage()
         ms_pc.load_training_data_from_storage()
@@ -151,6 +154,9 @@ class UtChat:
         if indexes_to_test is None:
             indexes_to_test = range(x.shape[0])
 
+        prf_start = prf.Profiling.start()
+        count_correct = 0
+        count_all = 0
         for i in indexes_to_test:
             predict_result = ms_pc.predict_classes(
                 x = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
@@ -172,7 +178,18 @@ class UtChat:
             compare_top_x = (y[i] in y_observed)
             msg = 'Expected ' + str(y[i]) + ', got ' + str(y_observed)
             msg += '. Top match ' + str(compare_top) + ', Top X match ' + str(compare_top_x)
+
+            count_all += 1
+            count_correct += 1*(compare_top==True)
             print(msg)
+            if i>100:
+                break
+        prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+        log.Log.important(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ' PROFILING ' + str(count_all) + ' calculations: ' + str(round(1000*prf_dur,0))
+            + ', or ' + str(round(1000*prf_dur/count_all,0)) + ' milliseconds per calculation'
+        )
 
         # mse = np.sum(np.multiply(top_class_distance, top_class_distance))
         # mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
