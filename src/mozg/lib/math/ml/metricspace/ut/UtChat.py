@@ -177,7 +177,7 @@ class UtChat:
                 y_observed_top.append(item[0])
             compare_top = (y_observed_top != y[i])
             compare_top_x = (y[i] in y_observed)
-            msg = 'Expected ' + str(y[i]) + ', got ' + str(y_observed)
+            msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
             msg += '. Top match ' + str(compare_top) + ', Top X match ' + str(compare_top_x)
 
             count_all += 1
