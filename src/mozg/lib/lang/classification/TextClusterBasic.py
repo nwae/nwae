@@ -187,14 +187,10 @@ class TextClusterBasic:
         # 3. Model the sentences into a feature vector, using word frequency, relative positions, etc. as features
         #
         # Using the keywords set in this class, we create a profile template
-        #if verbose >= 1:
-        #    print(self.keywords_for_fv)
         no_keywords = len(self.keywords_for_fv)
 
         model_fv = fv.FeatureVector()
         model_fv.set_freq_feature_vector_template(list_symbols=self.keywords_for_fv)
-        #if verbose >= 1:
-        #    print(model_fv.fv_template)
 
         #
         # 4. Link top keywords to sentences in a matrix, used as features in feature vector
@@ -209,6 +205,11 @@ class TextClusterBasic:
         sentence_matrix_freq = np.zeros((nrow, ncol))
         # The normalized version, by proportion
         sentence_matrix_norm = np.zeros((nrow, ncol))
+
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentence matrix initialized with zeros, shape ' + str(sentence_matrix.shape) + '.'
+        )
         
         # Fill matrix
         for i in range(0, sentence_matrix.shape[0], 1):
@@ -224,9 +225,6 @@ class TextClusterBasic:
             sentence_matrix_freq[i] = list(df_fv['Frequency'])
             sentence_matrix_norm[i] = list(df_fv['FrequencyNormalized'])
             log.Log.debugdebug('Sentence ' + str(i) + ': [' + sent + ']')
-            #log.Log.info(df_fv)
-            #log.Log.info(sentence_matrix[i])
-            #log.Log.info(sentence_matrix_norm[i])
 
         #
         # By default, we should use the TF form.
@@ -236,8 +234,11 @@ class TextClusterBasic:
         elif freq_measure == 'frequency':
             sentence_matrix = sentence_matrix_freq
 
-        log.Log.debug(str(self.__class__) + ' Sentence matrix (type=' + str(type(sentence_matrix)) + '):')
-        log.Log.debug(sentence_matrix)
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ' Sentence matrix (type=' + str(type(sentence_matrix)) + '):'
+        )
+        log.Log.debugdebug(sentence_matrix)
 
         #
         # Weigh by IDF Matrix if given
@@ -246,25 +247,33 @@ class TextClusterBasic:
             dim_sentence_matrix = sentence_matrix.shape
             dim_idf_matrix = idf_matrix.shape
             if dim_idf_matrix[0]!=dim_sentence_matrix[1]:
-                raise Exception('IDF Matrix Dimensions must be (N,1) where N=number of columns in sentence matrix. ' +
-                                'Sentence Matrix Dimension = ' + str(dim_sentence_matrix) + '. ' +
-                                'IDF Matrix Dimension = ' + str(dim_idf_matrix))
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': IDF Matrix Dimensions must be (N,1) where N=number of columns in sentence matrix. '
+                    + 'Sentence Matrix Dimension = ' + str(dim_sentence_matrix) + '. '
+                    + 'IDF Matrix Dimension = ' + str(dim_idf_matrix)
+                )
             # This is not matrix multiplication, but should be
             sentence_matrix = np.multiply(sentence_matrix, np.transpose(idf_matrix))
             # Normalize back if initially using a normalized measure
             if freq_measure == 'normalized':
                 for j in range(0, sentence_matrix.shape[0], 1):
-                    log.Log.debug('For sentence ' + str(j))
-                    log.Log.debug(sentence_matrix[j])
+                    log.Log.debugdebug('For sentence ' + str(j) + '\n\r' + str(sentence_matrix[j]))
 
                     normalize_factor = np.sum(np.multiply(sentence_matrix[j], sentence_matrix[j])) ** 0.5
 
-                    #log.Log.log('Normalize factor = ' + str(normalize_factor))
                     if normalize_factor > 0:
                         sentence_matrix[j] = sentence_matrix[j] / normalize_factor
 
-            log.Log.debug(str(self.__class__) + ' After IDF weights, sentence matrix:')
-            log.Log.debug(sentence_matrix)
+            log.Log.debugdebug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ' After IDF weights, sentence matrix:\n\r' +  str(sentence_matrix)
+            )
+
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentence matrix after applying IDF, shape ' + str(sentence_matrix.shape) + '.'
+        )
 
         # # Convert to dataframe with names
         # df_sentence_matrix = pd.DataFrame(data=sentence_matrix, columns=self.keywords_for_fv)
@@ -278,8 +287,7 @@ class TextClusterBasic:
         # else:
         #     self.sentence_matrix = np.array(df_sentence_matrix.values).reshape(dm[0], dm[1])
         self.sentence_matrix = sentence_matrix
-        log.Log.info('Sentence Matrix')
-        log.Log.info(self.sentence_matrix)
+        log.Log.debugdebug('Sentence Matrix:\n\r' + str(self.sentence_matrix))
         return
 
     #
@@ -292,21 +300,27 @@ class TextClusterBasic:
         total_columns_or_words = self.sentence_matrix.shape[1]
 
         word_presence_matrix = (self.sentence_matrix>0)*1
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                      + ': Word presence = ' + str(word_presence_matrix))
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Word presence = ' + str(word_presence_matrix)
+        )
 
         # Sum columns
         # If using outdated np.matrix, this keyword_presense will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
         keyword_presence = np.sum(word_presence_matrix, axis=0)
         # Make sure idf is not infinity
         keyword_presence[keyword_presence==0] = 1
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                      + ': Keyword presence = ' + str(keyword_presence))
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Keyword presence = ' + str(keyword_presence)
+        )
 
         # Total document count
         n_documents = self.sentence_matrix.shape[0]
-        log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ': Total unique documents/intents to calculate IDF = ' + str(n_documents))
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
+        )
 
         # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
         idf = np.log(n_documents / keyword_presence)
@@ -315,15 +329,20 @@ class TextClusterBasic:
         if n_documents <= 1:
             # If there is only a single document, there is no IDF as log(1)=0 and all values will be 0, so just set all to 1
             df_idf = pd.DataFrame({'Word': self.keywords_for_fv, 'IDF': 1})
-            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1: '
-                            + str(df_idf))
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1: '
+                + str(df_idf))
         else:
             try:
-                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + ': Using Keywords: ' + str(self.keywords_for_fv))
-                log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + ': Using IDF type ' + str(type(idf)) + ': ' + str(idf))
+                log.Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Using Keywords: ' + str(self.keywords_for_fv)
+                )
+                log.Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Using IDF type ' + str(type(idf)) + ': ' + str(idf)
+                )
                 # To make sure idf is in a single array, we convert to values as it could be a single row narray or matrix
                 if idf.shape[0] == total_columns_or_words:
                     df_idf = pd.DataFrame({'Word':self.keywords_for_fv, 'IDF':idf.tolist()})
@@ -337,12 +356,13 @@ class TextClusterBasic:
 
         self.df_idf = df_idf
         # Make sure to transpose to get a column matrix
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                      + ': IDF data frame: ' + str(self.df_idf))
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': IDF data frame: ' + str(self.df_idf)
+        )
         self.idf_matrix = np.array( df_idf['IDF'].values ).reshape(df_idf.shape[0],1)
 
-        log.Log.info(str(self.__class__) + 'IDF Matrix as follows:')
-        log.Log.info(self.idf_matrix)
+        log.Log.info(str(self.__class__) + 'IDF Matrix as follows:\n\r' + str(self.idf_matrix))
         return
 
     #
