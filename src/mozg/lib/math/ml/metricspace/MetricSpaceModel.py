@@ -293,6 +293,7 @@ class MetricSpaceModel(threading.Thread):
         df_score[MetricSpaceModel.TERM_SCORE] = np.round(100 - np_distnorm*100, 1)
         df_score.sort_values(by=[MetricSpaceModel.TERM_SCORE], ascending=False, inplace=True)
         # Make sure indexes are conventional 0,1,2,...
+        df_score = df_score[0:min(top,df_score.shape[0])]
         df_score.reset_index(drop=True, inplace=True)
 
         log.Log.debugdebug('x_score:\n\r' + str(df_score))
@@ -313,7 +314,8 @@ class MetricSpaceModel(threading.Thread):
             x,
             include_rfv = False,
             # This will slow down by a whopping 20ms!!
-            include_match_details = False
+            include_match_details = False,
+            top = MATCH_TOP
     ):
         prf_start = prf.Profiling.start()
 
@@ -393,7 +395,8 @@ class MetricSpaceModel(threading.Thread):
             # Get the score of point relative to all classes.
             df_class_score = self.calc_proximity_class_score_to_point(
                 x_distance = x_distance,
-                y_label    = y_distance
+                y_label    = y_distance,
+                top        = top
             )
             log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
 
@@ -407,7 +410,8 @@ class MetricSpaceModel(threading.Thread):
                     x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-            x_classes.append( df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]] )
+            top_class_label = df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]]
+            x_classes.append( top_class_label )
             top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
 
             # This innocent line increases the calculation time by 20 ms!!!!
@@ -416,6 +420,7 @@ class MetricSpaceModel(threading.Thread):
 
             # Get the top class
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
+            log.Log.info('Class for index ' + str(i) + ': ' + str(top_class_label))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
