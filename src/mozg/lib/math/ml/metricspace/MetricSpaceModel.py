@@ -192,6 +192,8 @@ class MetricSpaceModel(threading.Thread):
             v,
             x_ref
     ):
+        prf_start = prf.Profiling.start()
+
         log.Log.debugdebug('v: ' + str(v))
 
         # Create an array with the same number of rows with rfv
@@ -222,6 +224,14 @@ class MetricSpaceModel(threading.Thread):
         distance_x_ref = distance_x_ref.transpose()
         log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
 
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING calc_distance_of_point_to_x_ref(): ' + str(round(1000*prf_dur,0))
+                + ' milliseconds.'
+            )
+
         return distance_x_ref
 
     #
@@ -234,6 +244,8 @@ class MetricSpaceModel(threading.Thread):
             y_label,
             top = MATCH_TOP
     ):
+        prf_start = prf.Profiling.start()
+
         if ( type(x_distance) is not np.ndarray ):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -297,6 +309,14 @@ class MetricSpaceModel(threading.Thread):
         df_score.reset_index(drop=True, inplace=True)
 
         log.Log.debugdebug('x_score:\n\r' + str(df_score))
+
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING calc_proximity_class_score_to_point(): ' + str(round(1000*prf_dur,0))
+                + ' milliseconds.'
+            )
 
         return df_score
 

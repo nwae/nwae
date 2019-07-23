@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import mozg.lib.math.NumpyUtil as npUtil
 
 
 class UtChat:
@@ -150,68 +151,66 @@ class UtChat:
         if indexes_to_test is None:
             indexes_to_test = range(x.shape[0])
 
-        predict_result = ms_pc.predict_classes(
-            x = x[indexes_to_test],
-            include_rfv = include_rfv,
-            include_match_details = include_match_details,
-            top = 5
-        )
+        for i in indexes_to_test:
+            predict_result = ms_pc.predict_classes(
+                x = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
+                include_rfv = include_rfv,
+                include_match_details = include_match_details,
+                top = top
+            )
 
-        # Mean square error MSE and MSE normalized
-        y_observed = predict_result.predicted_classes
-        # Just the top predicted ones
-        y_observed_top = []
-        for item in y_observed:
-            y_observed_top.append(item[0])
-        top_class_distance = predict_result.top_class_distance
-        match_details = predict_result.match_details
+            # Mean square error MSE and MSE normalized
+            y_observed = predict_result.predicted_classes
+            top_class_distance = predict_result.top_class_distance
+            match_details = predict_result.match_details
 
-        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
-        mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
+            # Just the top predicted ones
+            y_observed_top = []
+            for item in y_observed:
+                y_observed_top.append(item[0])
+            compare_top = (y_observed_top != y[i])
+            compare_top_x = (y[i] in y_observed)
+            msg = 'Expected ' + str(y[i]) + ', got ' + str(y_observed)
+            msg += '. Top match ' + str(compare_top) + ', Top X match ' + str(compare_top_x)
+            print(msg)
 
-        #print('PREDICTED CLASSES x_classes (type '
-        #      + str(type(y_observed.predicted_classes)) + '):\n\r'
-        #      + str(y_observed.predicted_classes)
-        #      )
-        #print('TOP CLASS DISTANCE:\n\r' + str(y_observed.top_class_distance))
-        # print('SCORE/MATCH DETAILS:\n\r' + str(y_observed.match_details))
-        print('MSE = ' + str(mse))
-        print('MSE normalized = ' + str(mse_norm))
+        # mse = np.sum(np.multiply(top_class_distance, top_class_distance))
+        # mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
+        #
+        # print('MSE = ' + str(mse))
+        # print('MSE normalized = ' + str(mse_norm))
+        #
+        # # Compare with expected
+        # compare_top = (y_observed_top != y[indexes_to_test])
+        # compare_top_x = {}
+        #
+        # for t in range(1,top+1,1):
+        #     compare_top_x[t] = np.array([True] * len(y_observed))
+        #     for i in range(len(y_observed)):
+        #         matches_i = y_observed[i]
+        #         if y[i] in matches_i[0:t]:
+        #             compare_top_x[t][i] = False
+        #     print(compare_top_x[t])
+        #     print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
+        #
+        # print(compare_top.tolist())
+        # print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
 
-        # print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
-
-        # Compare with expected
-        compare_top = (y_observed_top != y[indexes_to_test])
-        compare_top_x = {}
-
-        for t in range(1,top+1,1):
-            compare_top_x[t] = np.array([True] * len(y_observed))
-            for i in range(len(y_observed)):
-                matches_i = y_observed[i]
-                if y[i] in matches_i[0:t]:
-                    compare_top_x[t][i] = False
-            print(compare_top_x[t])
-            print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
-
-        print(compare_top.tolist())
-        print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
-
-        return
-        # Get errors
-        idx = np.array(range(compare_top_x.shape[0]))
-        index_errors = idx[compare_top_x==True]
-        for i in index_errors:
-            y_expected_val = y[indexes_to_test][i]
-            y_observed_val = y_observed[i]
-            if i in match_details.keys():
-                y_observed_match_details = match_details[i]
-            else:
-                y_observed_match_details = None
-            print('Error at index ' + str(i)
-                  + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
-                  + ':\n\r' + str(y_observed_match_details))
-
-        return
+        # # Get errors
+        # idx = np.array(range(compare_top_x.shape[0]))
+        # index_errors = idx[compare_top_x==True]
+        # for i in index_errors:
+        #     y_expected_val = y[indexes_to_test][i]
+        #     y_observed_val = y_observed[i]
+        #     if i in match_details.keys():
+        #         y_observed_match_details = match_details[i]
+        #     else:
+        #         y_observed_match_details = None
+        #     print('Error at index ' + str(i)
+        #           + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
+        #           + ':\n\r' + str(y_observed_match_details))
+        #
+        # return
 
 
 if __name__ == '__main__':
