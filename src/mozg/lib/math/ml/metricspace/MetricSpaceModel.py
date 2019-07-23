@@ -19,8 +19,8 @@ import mozg.common.util.Profiling as prf
 #
 # MetricSpace Machine Learning Model
 #
-# The model treat all points as lying on the hypersphere (normalized measure),
-# thus the maximum Euclidean Distance in the positive section of the hypersphere is 2^0.5=1.4142
+# The model treat all points as lying on the hypersphere (normalized),
+# thus the maximum distance (if euclidean) in the positive section of the hypersphere is 2^0.5=1.4142
 # The formal problem statement is:
 #
 #    If given positive real numbers x_a, x_b, x_c, ... and y_a, y_b, y_c, ...
