@@ -78,6 +78,7 @@ class TextClusterBasic:
     def __init__(self, text, stopwords):
         self.text_original = text
         self.text = self.__filter_text(text_array=text)
+
         # Since we use automated IDF already, stopwords are not really needed anymore
         self.stopwords = stopwords
 
@@ -96,8 +97,8 @@ class TextClusterBasic:
             if type(w) is not str:
                 log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + 'Warning line, not string [' + str(w) + ']')
-            else:
-                new_array.append(su.StringUtils.trim(w.lower()))
+            w = str(w)
+            new_array.append(su.StringUtils.trim(w.lower()))
         return new_array
 
     #
@@ -206,7 +207,7 @@ class TextClusterBasic:
         # The normalized version, by proportion
         sentence_matrix_norm = np.zeros((nrow, ncol))
 
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Sentence matrix initialized with zeros, shape ' + str(sentence_matrix.shape) + '.'
         )
@@ -270,7 +271,7 @@ class TextClusterBasic:
                 + ' After IDF weights, sentence matrix:\n\r' +  str(sentence_matrix)
             )
 
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Sentence matrix after applying IDF, shape ' + str(sentence_matrix.shape) + '.'
         )
