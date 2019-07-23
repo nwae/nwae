@@ -207,11 +207,6 @@ class TextClusterBasic:
         # The normalized version, by proportion
         sentence_matrix_norm = np.zeros((nrow, ncol))
 
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Sentence matrix initialized with zeros, shape ' + str(sentence_matrix.shape) + '.'
-        )
-        
         # Fill matrix
         for i in range(0, sentence_matrix.shape[0], 1):
             sent = su.StringUtils.trim( self.text[i] )
