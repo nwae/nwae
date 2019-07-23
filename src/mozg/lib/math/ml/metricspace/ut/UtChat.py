@@ -155,7 +155,8 @@ class UtChat:
             indexes_to_test = range(x.shape[0])
 
         prf_start = prf.Profiling.start()
-        count_correct = 0
+        count_correct_top = 0
+        count_correct_top_x = 0
         count_all = 0
         for i in indexes_to_test:
             predict_result = ms_pc.predict_classes(
@@ -180,10 +181,12 @@ class UtChat:
             msg += '. Top match ' + str(compare_top) + ', Top X match ' + str(compare_top_x)
 
             count_all += 1
-            count_correct += 1*(compare_top==True)
+            count_correct_top += 1*(compare_top)
+            count_correct_top_x += 1*(compare_top_x)
             print(msg)
-            if i>100:
-                break
+
+        print('Top 1 correct = ' + str(count_correct_top) + ' (of ' + str(count_all) + ')')
+        print('Top ' + str(top) + ' correct = ' + str(count_correct_top_x) + ' (of ' + str(count_all) + ')')
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
