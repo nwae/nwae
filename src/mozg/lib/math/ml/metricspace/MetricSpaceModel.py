@@ -410,8 +410,8 @@ class MetricSpaceModel(threading.Thread):
                     x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
                 x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
 
-            top_class_label = df_class_score[MetricSpaceModel.TERM_CLASS].loc[df_class_score.index[0]]
-            x_classes.append( top_class_label )
+            top_classes_label = list(df_class_score[MetricSpaceModel.TERM_CLASS])
+            x_classes.append( top_classes_label )
             top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
 
             # This innocent line increases the calculation time by 20 ms!!!!
@@ -420,7 +420,7 @@ class MetricSpaceModel(threading.Thread):
 
             # Get the top class
             log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
-            log.Log.info('Class for index ' + str(i) + ': ' + str(top_class_label))
+            log.Log.info('Class for index ' + str(i) + ': ' + str(top_classes_label))
 
         log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
         log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))

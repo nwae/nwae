@@ -205,6 +205,10 @@ class Ut:
             include_match_details = include_match_details
         )
         y_observed = predict_result.predicted_classes
+        # Just the top predicted ones
+        y_observed_top = []
+        for item in y_observed:
+            y_observed_top.append(item[0])
         top_class_distance = predict_result.top_class_distance
         match_details = predict_result.match_details
 
@@ -225,7 +229,7 @@ class Ut:
         print(x_classes_expected)
 
         # Compare with expected
-        compare = (y_observed != x_classes_expected)
+        compare = (y_observed_top != x_classes_expected)
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 

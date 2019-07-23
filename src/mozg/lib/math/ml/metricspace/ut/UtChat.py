@@ -157,6 +157,10 @@ class UtChat:
 
         # Mean square error MSE and MSE normalized
         y_observed = predict_result.predicted_classes
+        # Just the top predicted ones
+        y_observed_top = []
+        for item in y_observed:
+            y_observed_top.append(item[0])
         top_class_distance = predict_result.top_class_distance
         match_details = predict_result.match_details
 
@@ -175,7 +179,7 @@ class UtChat:
         # print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
 
         # Compare with expected
-        compare = (y_observed != y[indexes_to_test])
+        compare = (y_observed_top != y[indexes_to_test])
         print(compare.tolist())
         print('Total Errors = ' + str(np.sum(compare*1)))
 
@@ -213,7 +217,7 @@ if __name__ == '__main__':
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,
-        include_match_details = True
+        include_match_details = False
     )
 
 
