@@ -129,7 +129,8 @@ class UtChat:
             self,
             indexes_to_test = None,
             include_rfv = False,
-            include_match_details = False
+            include_match_details = False,
+            top = 5
     ):
         #
         # Now read back params and predict classes
@@ -152,7 +153,8 @@ class UtChat:
         predict_result = ms_pc.predict_classes(
             x = x[indexes_to_test],
             include_rfv = include_rfv,
-            include_match_details = include_match_details
+            include_match_details = include_match_details,
+            top = 5
         )
 
         # Mean square error MSE and MSE normalized
@@ -179,13 +181,19 @@ class UtChat:
         # print('ORIGINAL CLASSES y:\n\r' + str(y[indexes_to_test]))
 
         # Compare with expected
-        compare = (y_observed_top != y[indexes_to_test])
-        print(compare.tolist())
-        print('Total Errors = ' + str(np.sum(compare*1)))
+        compare_top = (y_observed_top != y[indexes_to_test])
+        compare_top_x = np.array([True]*len(y_observed))
+        for i in range(len(y_observed)):
+            if y[i] in y_observed[i]:
+                compare_top_x[i] = False
+        print(compare_top.tolist())
+        print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
+        print(compare_top_x)
+        print('Total Errors (compare top #' + str(top) + ') = ' + str(np.sum(compare_top_x*1)))
 
         # Get errors
-        idx = np.array(range(compare.shape[0]))
-        index_errors = idx[compare==True]
+        idx = np.array(range(compare_top_x.shape[0]))
+        index_errors = idx[compare_top_x==True]
         for i in index_errors:
             y_expected_val = y[indexes_to_test][i]
             y_observed_val = y_observed[i]
@@ -217,7 +225,8 @@ if __name__ == '__main__':
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,
-        include_match_details = False
+        include_match_details = False,
+        top = 5
     )
 
 

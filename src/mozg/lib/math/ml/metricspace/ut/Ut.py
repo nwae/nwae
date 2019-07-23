@@ -144,7 +144,8 @@ class Ut:
     def unit_test_predict_classes(
             self,
             include_rfv = False,
-            include_match_details = False
+            include_match_details = False,
+            top = 5
     ):
         ms = msModel.MetricSpaceModel(
             identifier_string = self.identifier_string,
@@ -202,7 +203,8 @@ class Ut:
         predict_result = ms.predict_classes(
             x           = reordered_test_x,
             include_rfv = include_rfv,
-            include_match_details = include_match_details
+            include_match_details = include_match_details,
+            top = top
         )
         y_observed = predict_result.predicted_classes
         # Just the top predicted ones
@@ -229,9 +231,16 @@ class Ut:
         print(x_classes_expected)
 
         # Compare with expected
-        compare = (y_observed_top != x_classes_expected)
-        print(compare.tolist())
-        print('Total Errors = ' + str(np.sum(compare*1)))
+        # Compare with expected
+        compare_top = (y_observed_top != x_classes_expected)
+        compare_top_x = np.array([True]*len(y_observed))
+        for i in range(len(y_observed)):
+            if x_classes_expected[i] in y_observed[i]:
+                compare_top_x[i] = False
+        print(compare_top.tolist())
+        print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
+        print(compare_top_x)
+        print('Total Errors (compare top #' + str(top) + ') = ' + str(np.sum(compare_top_x*1)))
 
 
 if __name__ == '__main__':
@@ -240,6 +249,7 @@ if __name__ == '__main__':
     obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes(
         include_rfv = False,
-        include_match_details = False
+        include_match_details = False,
+        top = 2
     )
 
