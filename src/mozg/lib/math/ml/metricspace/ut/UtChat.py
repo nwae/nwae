@@ -201,11 +201,15 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    obj.test_train(
-        weigh_idf = True,
-        # keep      = 10
-    )
-    exit(0)
+    do_training = False
+
+    if do_training:
+        obj.test_train(
+            weigh_idf = True,
+            # keep      = 10
+        )
+        exit(0)
+
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
         include_rfv = False,

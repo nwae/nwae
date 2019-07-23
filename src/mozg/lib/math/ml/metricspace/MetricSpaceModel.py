@@ -259,8 +259,8 @@ class MetricSpaceModel(threading.Thread):
         log.Log.debugdebug('distance normalized: ' + str(x_distance_norm))
 
         # Theoretical Inequality check
-        check_less_than_max = np.sum(1 * (x_distance_norm > 1))
-        check_greater_than_min = np.sum(1 * (x_distance_norm < 0))
+        check_less_than_max = np.sum(1 * (x_distance_norm > 1+const.Constants.SMALL_VALUE))
+        check_greater_than_min = np.sum(1 * (x_distance_norm < 0-const.Constants.SMALL_VALUE))
 
         if (check_less_than_max > 0) or (check_greater_than_min > 0):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
