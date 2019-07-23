@@ -182,15 +182,21 @@ class UtChat:
 
         # Compare with expected
         compare_top = (y_observed_top != y[indexes_to_test])
-        compare_top_x = np.array([True]*len(y_observed))
-        for i in range(len(y_observed)):
-            if y[i] in y_observed[i]:
-                compare_top_x[i] = False
+        compare_top_x = {}
+
+        for t in range(1,top+1,1):
+            compare_top_x[t] = np.array([True] * len(y_observed))
+            for i in range(len(y_observed)):
+                matches_i = y_observed[i]
+                if y[i] in matches_i[0:t]:
+                    compare_top_x[t][i] = False
+            print(compare_top_x[t])
+            print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
+
         print(compare_top.tolist())
         print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
-        print(compare_top_x)
-        print('Total Errors (compare top #' + str(top) + ') = ' + str(np.sum(compare_top_x*1)))
 
+        return
         # Get errors
         idx = np.array(range(compare_top_x.shape[0]))
         index_errors = idx[compare_top_x==True]
