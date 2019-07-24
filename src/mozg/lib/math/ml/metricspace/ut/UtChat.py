@@ -155,8 +155,7 @@ class UtChat:
             indexes_to_test = range(x.shape[0])
 
         prf_start = prf.Profiling.start()
-        count_correct_top = 0
-        count_correct_top_x = 0
+        count_correct_top = [0]*top
         count_all = 0
         for i in indexes_to_test:
             predict_result = ms_pc.predict_classes(
@@ -166,29 +165,28 @@ class UtChat:
                 top = top
             )
 
-            # Mean square error MSE and MSE normalized
-            y_observed = predict_result.predicted_classes
+            # Just the first row
+            y_observed = predict_result.predicted_classes[0]
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
-            # Just the top predicted ones
-            y_observed_top = y_observed[0]
-            for item in y_observed[0]:
-                y_observed_top = np.append(y_observed_top, np.array([item[0]]), axis=0)
-            compare_top_1 = (y_observed_top[0] == y[i])
-            compare_top_x = (y[i] in y_observed)
-            msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
-            msg += '. Top match ' + str(compare_top_1) + ', Top X match ' + str(compare_top_x)
-
             count_all += 1
-            count_correct_top += 1*(compare_top_1)
-            count_correct_top_x += 1*(compare_top_x)
+            ok = [0]*top
+            for top_i in range(top):
+                # Just the top_i predicted ones
+                ok[top_i] = (y[i] in y_observed[0:(top_i+1)])
+                count_correct_top[top_i] += 1*(ok[top_i])
+
+            msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
+            msg += '. Top match ' + str(ok[0]) + ', Top ' + str(top) + ' match ' + str(ok[top-1])
             log.Log.info(msg)
-            if i>100:
+            if i > 100:
                 break
 
-        log.Log.info('Top 1 correct = ' + str(count_correct_top) + ' (of ' + str(count_all) + ')')
-        log.Log.info('Top ' + str(top) + ' correct = ' + str(count_correct_top_x) + ' (of ' + str(count_all) + ')')
+        for top_i in range(top):
+            log.Log.info('Top ' + str(top_i+1) + ' correct = '
+                         + str(count_correct_top[top-1]) + ' (of ' + str(count_all) + ')')
+
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
@@ -196,6 +194,7 @@ class UtChat:
             + ', or ' + str(round(1000*prf_dur/count_all,0)) + ' milliseconds per calculation'
         )
 
+        # Mean square error MSE and MSE normalized
         # mse = np.sum(np.multiply(top_class_distance, top_class_distance))
         # mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
         #
