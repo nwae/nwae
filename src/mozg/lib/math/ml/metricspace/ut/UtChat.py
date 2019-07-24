@@ -177,8 +177,9 @@ class UtChat:
                 # Just the top_i predicted ones
                 ok[top_i] = (y[i] in y_observed[0:(top_i+1)])
                 count_correct_top[top_i] += 1*(ok[top_i])
-                if y[i] == y_observed[top_i]:
-                    match_in_top = top_i+1
+                if len(y) >= top_i + 1:
+                    if y[i] == y_observed[top_i]:
+                        match_in_top = top_i+1
 
             msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
             msg += '. Top match position #' + str(match_in_top) + ''
