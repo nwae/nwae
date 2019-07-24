@@ -183,10 +183,10 @@ class UtChat:
             count_all += 1
             count_correct_top += 1*(compare_top)
             count_correct_top_x += 1*(compare_top_x)
-            print(msg)
+            log.Log.info(msg)
 
-        print('Top 1 correct = ' + str(count_correct_top) + ' (of ' + str(count_all) + ')')
-        print('Top ' + str(top) + ' correct = ' + str(count_correct_top_x) + ' (of ' + str(count_all) + ')')
+        log.Log.info('Top 1 correct = ' + str(count_correct_top) + ' (of ' + str(count_all) + ')')
+        log.Log.info('Top ' + str(top) + ' correct = ' + str(count_correct_top_x) + ' (of ' + str(count_all) + ')')
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
