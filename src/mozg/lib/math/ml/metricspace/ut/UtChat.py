@@ -172,18 +172,20 @@ class UtChat:
             match_details = predict_result.match_details
 
             # Just the top predicted ones
-            y_observed_top = []
-            for item in y_observed:
-                y_observed_top.append(item[0])
-            compare_top = (y_observed_top != y[i])
+            y_observed_top = y_observed[0]
+            for item in y_observed[0]:
+                y_observed_top = np.append(y_observed_top, np.array([item[0]]), axis=0)
+            compare_top_1 = (y_observed_top[0] == y[i])
             compare_top_x = (y[i] in y_observed)
             msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
-            msg += '. Top match ' + str(compare_top) + ', Top X match ' + str(compare_top_x)
+            msg += '. Top match ' + str(compare_top_1) + ', Top X match ' + str(compare_top_x)
 
             count_all += 1
-            count_correct_top += 1*(compare_top)
+            count_correct_top += 1*(compare_top_1)
             count_correct_top_x += 1*(compare_top_x)
             log.Log.info(msg)
+            if i>100:
+                break
 
         log.Log.info('Top 1 correct = ' + str(count_correct_top) + ' (of ' + str(count_all) + ')')
         log.Log.info('Top ' + str(top) + ' correct = ' + str(count_correct_top_x) + ' (of ' + str(count_all) + ')')
