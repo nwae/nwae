@@ -172,20 +172,21 @@ class UtChat:
 
             count_all += 1
             ok = [0]*top
+            match_in_top = 0
             for top_i in range(top):
                 # Just the top_i predicted ones
                 ok[top_i] = (y[i] in y_observed[0:(top_i+1)])
                 count_correct_top[top_i] += 1*(ok[top_i])
+                if y[i] == y_observed[top_i]:
+                    match_in_top = top_i+1
 
             msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
-            msg += '. Top match ' + str(ok[0]) + ', Top ' + str(top) + ' match ' + str(ok[top-1])
+            msg += '. Top match position #' + str(match_in_top) + ''
             log.Log.info(msg)
-            if i > 100:
-                break
 
         for top_i in range(top):
             log.Log.info('Top ' + str(top_i+1) + ' correct = '
-                         + str(count_correct_top[top-1]) + ' (of ' + str(count_all) + ')')
+                         + str(count_correct_top[top_i]) + ' (of ' + str(count_all) + ')')
 
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
