@@ -205,6 +205,8 @@ class Ut:
         # Just the top predicted ones
         all_y_observed_top = []
         all_y_observed = []
+        mse = 0
+        mse_norm = 0
 
         print('Predict classes for x:\n\r' + str(reordered_test_x))
 
@@ -222,6 +224,13 @@ class Ut:
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
+            print('Point v ' + str(v) + '\n\rTop Class Distance: ' + str(top_class_distance))
+
+            metric = top_class_distance
+            metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
+            mse += metric ** 2
+            mse_norm += metric_norm ** 2
+
         # Compare with expected
         compare_top = (np.array(all_y_observed_top) != x_classes_expected)
         compare_top_x = {}
@@ -235,6 +244,9 @@ class Ut:
             print(compare_top_x[t])
             print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
 
+        print('mse = ' + str(mse))
+        print('mse_norm = ' + str(mse_norm))
+
         predict_result = ms.predict_classes(
                 x           = reordered_test_x,
                 include_rfv = include_rfv,
@@ -244,6 +256,8 @@ class Ut:
         print(predict_result.predicted_classes)
         print(predict_result.top_class_distance)
         print(predict_result.match_details)
+        print(predict_result.mse)
+        print(predict_result.mse_norm)
         return
 
         predict_result = ms.predict_classes(

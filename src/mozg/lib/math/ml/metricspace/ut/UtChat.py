@@ -157,6 +157,9 @@ class UtChat:
         prf_start = prf.Profiling.start()
         count_correct_top = [0]*top
         count_all = 0
+        mse = 0
+        mse_norm = 0
+
         for i in indexes_to_test:
             predict_result = ms_pc.predict_class(
                 x           = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
@@ -182,6 +185,11 @@ class UtChat:
                 if y[i] == y_observed[top_i]:
                     match_in_top = top_i+1
 
+            metric = top_class_distance
+            metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
+            mse += metric ** 2
+            mse_norm += metric_norm ** 2
+
             msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
             msg += '. Top match position #' + str(match_in_top) + ''
             log.Log.info(msg)
@@ -189,6 +197,9 @@ class UtChat:
         for top_i in range(top):
             log.Log.info('Top ' + str(top_i+1) + ' correct = '
                          + str(count_correct_top[top_i]) + ' (of ' + str(count_all) + ')')
+
+        log.Log.info('MSE = ' + str(mse))
+        log.Log.info('MSE Normalized = ' + str(mse_norm))
 
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
