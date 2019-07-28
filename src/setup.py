@@ -3,7 +3,9 @@ from setuptools import setup
 setup(
     name='mozg',
     version='0.1.0',
-    packages=['mozg.lib'],
+    packages=[
+        'mozg.lib.math', 'mozg.lib.math.ml', 'mozg.lib.math.ml.metricspace'
+    ],
     package_dir={'': 'src'},
     url='',
     license='',

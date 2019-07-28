@@ -4,3 +4,9 @@ src/mozg.egg-info/SOURCES.txt
 src/mozg.egg-info/dependency_links.txt
 src/mozg.egg-info/top_level.txt
 src/mozg/lib/__init__.py
+src/mozg/lib/math/Cluster.py
+src/mozg/lib/math/Constants.py
+src/mozg/lib/math/NumpyUtil.py
+src/mozg/lib/math/ml/TrainingDataModel.py
+src/mozg/lib/math/ml/metricspace/MetricSpaceModel.py
+src/mozg/lib/math/ml/metricspace/ModelData.py
