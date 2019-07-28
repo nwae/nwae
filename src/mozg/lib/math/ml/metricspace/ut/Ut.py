@@ -4,6 +4,7 @@ import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
+import mozg.lib.math.NumpyUtil as npUtil
 
 
 class Ut:
@@ -200,6 +201,51 @@ class Ut:
         reordered_test_x = reordered_test_x.transpose()
         print(reordered_test_x)
 
+        x_classes_expected = self.y
+        # Just the top predicted ones
+        all_y_observed_top = []
+        all_y_observed = []
+
+        print('Predict classes for x:\n\r' + str(reordered_test_x))
+
+        for i in range(reordered_test_x.shape[0]):
+            v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
+            predict_result = ms.predict_class(
+                x           = v,
+                include_rfv = include_rfv,
+                include_match_details = include_match_details,
+                top = top
+            )
+            y_observed = predict_result.predicted_classes
+            all_y_observed_top.append(y_observed[0])
+            all_y_observed.append(y_observed)
+            top_class_distance = predict_result.top_class_distance
+            match_details = predict_result.match_details
+
+        # Compare with expected
+        compare_top = (np.array(all_y_observed_top) != x_classes_expected)
+        compare_top_x = {}
+
+        for t in range(1, top + 1, 1):
+            compare_top_x[t] = np.array([True] * len(all_y_observed))
+            for i in range(len(all_y_observed)):
+                matches_i = all_y_observed[i]
+                if x_classes_expected[i] in matches_i[0:t]:
+                    compare_top_x[t][i] = False
+            print(compare_top_x[t])
+            print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
+
+        predict_result = ms.predict_classes(
+                x           = reordered_test_x,
+                include_rfv = include_rfv,
+                include_match_details = include_match_details,
+                top = top
+            )
+        print(predict_result.predicted_classes)
+        print(predict_result.top_class_distance)
+        print(predict_result.match_details)
+        return
+
         predict_result = ms.predict_classes(
             x           = reordered_test_x,
             include_rfv = include_rfv,
@@ -247,7 +293,7 @@ class Ut:
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     obj = Ut()
-    obj.unit_test_train(weigh_idf=True)
+    #obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes(
         include_rfv = False,
         include_match_details = False,

@@ -195,14 +195,16 @@ class MetricSpaceModel(threading.Thread):
     ):
         prf_start = prf.Profiling.start()
 
-        log.Log.debugdebug('v: ' + str(v))
+        log.Log.debugdebug('Evaluate distance between v: ' + str(v) + ' and\n\r' + str(x_ref))
 
         #
         # Remove rows of x_ref with no common features
         # This can almost half the time needed for calculation
         #
         relevant_columns = v>0
+        relevant_columns = npUtil.NumpyUtil.convert_dimension(arr=relevant_columns, to_dim=1)
         # Relevant columns of x_ref extracted
+        log.Log.debugdebug('Relevant columns:\n\r' + str(relevant_columns))
         x_ref_relcols = x_ref.transpose()[relevant_columns].transpose()
         # Relevant rows, those with sum of row > 0
         x_ref_relrows = np.sum(x_ref_relcols, axis=1) > 0
@@ -375,6 +377,90 @@ class MetricSpaceModel(threading.Thread):
                 + ': Expected x has at least 1 row got c shape ' + str(x.shape) + '".'
             )
 
+        log.Log.debugdebug('x:\n\r' + str(x))
+
+        match_details = {}
+        x_classes = []
+        top_class_distance = []
+
+        #
+        # Calculate distance to x_ref & x_clustered for all the points in the array passed in
+        #
+        for i in range(x.shape[0]):
+            v = npUtil.NumpyUtil.convert_dimension(arr=x[i], to_dim=2)
+            predict_result = self.predict_class(
+                x           = v,
+                include_rfv = include_rfv,
+                include_match_details = include_match_details
+            )
+            x_classes.append(list(predict_result.predicted_classes))
+            top_class_distance.append(predict_result.top_class_distance)
+            if include_match_details:
+                match_details[i] = predict_result.match_details
+
+        # Mean square error MSE and MSE normalized
+        top_class_distance = np.array(top_class_distance)
+
+        class retclass:
+            def __init__(
+                    self,
+                    predicted_classes,
+                    top_class_distance,
+                    match_details
+            ):
+                self.predicted_classes = predicted_classes
+                # The top class and shortest distances (so that we can calculate sum of squared error
+                self.top_class_distance = top_class_distance
+                self.match_details = match_details
+                return
+
+        retval = retclass(
+            predicted_classes  = x_classes,
+            top_class_distance = top_class_distance,
+            match_details      = match_details,
+        )
+
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_classes(): ' + str(prf_dur)
+                + ', time per prediction = ' + str(dpp) + ' milliseconds.'
+            )
+
+        return retval
+
+    def predict_class(
+            self,
+            # ndarray type of >= 2 dimensions, single point/row array
+            x,
+            include_rfv = False,
+            # This will slow down by a whopping 20ms!!
+            include_match_details = False,
+            top = MATCH_TOP
+    ):
+        prf_start = prf.Profiling.start()
+
+        if type(x) is not np.ndarray:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong type "' + type(x) + '" to predict classes. Not ndarray.'
+            )
+
+        if x.ndim < 2:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected x dimension >= 2, got ' + str(x.ndim) + '".'
+            )
+
+        if x.shape[0] != 1:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected x has 1 row got c shape ' + str(x.shape) + '".'
+            )
+
         log.Log.debug('x:\n\r' + str(x))
 
         #
@@ -383,92 +469,64 @@ class MetricSpaceModel(threading.Thread):
         x_weighted = x * self.model_data.idf
         log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
 
-        x_weighted_normalized = x_weighted.copy()
+        v = x_weighted.copy()
 
         #
         # Normalize x_weighted
         #
-        for i in range(0,x_weighted_normalized.shape[0]):
-            v = x_weighted_normalized[i]
-            mag = np.sum(np.multiply(v,v)**0.5)
-            #
-            # In the case of 0 magnitude, we put the point right in the center of the hypersphere at 0
-            #
-            if mag < const.Constants.SMALL_VALUE:
-                x_weighted_normalized[i] = np.multiply(v, 0)
-            else:
-                x_weighted_normalized[i] = v / mag
-        log.Log.debugdebug('x_weighted_normalized:\n\r' + str(x_weighted_normalized))
-
-        match_details = {}
-        x_classes = []
-        top_class_distance = []
-        # np array types
-        x_distance_to_x_ref = None
-        x_distance_to_x_clustered = None
+        mag = np.sum(np.multiply(v,v)**0.5)
+        #
+        # In the case of 0 magnitude, we put the point right in the center of the hypersphere at 0
+        #
+        if mag < const.Constants.SMALL_VALUE:
+            v = np.multiply(v, 0)
+        else:
+            v = v / mag
+        log.Log.debugdebug('v normalized:\n\r' + str(v))
 
         #
-        # Calculate distance to x_ref & x_clustered
+        # Calculate distance to x_ref & x_clustered for all the points in the array passed in
         #
-        for i in range(0,x_weighted_normalized.shape[0]):
-            v = x_weighted_normalized[i]
-
-            # Returns absolute distance
-            distance_x_ref = None
-            y_ref_rel = None
-            if include_rfv:
-                retobj = self.calc_distance_of_point_to_x_ref(
-                    v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref)
-                distance_x_ref = retobj.distance_x_rel
-                y_ref_rel = retobj.y_rel
+        # Returns absolute distance
+        distance_x_ref = None
+        y_ref_rel = None
+        if include_rfv:
             retobj = self.calc_distance_of_point_to_x_ref(
-                v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered)
-            distance_x_clustered = retobj.distance_x_rel
-            y_clustered_rel = retobj.y_rel
+                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref)
+            distance_x_ref = retobj.distance_x_rel
+            y_ref_rel = retobj.y_rel
+        retobj = self.calc_distance_of_point_to_x_ref(
+            v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered)
+        distance_x_clustered = retobj.distance_x_rel
+        y_clustered_rel = retobj.y_rel
 
-            # We combine all the reference points, or sub-classes of the classes. Thus each class
-            # is represented by more than one point, reference sub_classes.
-            if include_rfv:
-                x_distance = np.append(distance_x_ref, distance_x_clustered)
-                y_distance = np.append(y_ref_rel, y_clustered_rel)
-            else:
-                x_distance = distance_x_clustered
-                y_distance = y_clustered_rel
-            log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
-            log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
+        # We combine all the reference points, or sub-classes of the classes. Thus each class
+        # is represented by more than one point, reference sub_classes.
+        if include_rfv:
+            x_distance = np.append(distance_x_ref, distance_x_clustered)
+            y_distance = np.append(y_ref_rel, y_clustered_rel)
+        else:
+            x_distance = distance_x_clustered
+            y_distance = y_clustered_rel
+        log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
+        log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
-            # Get the score of point relative to all classes.
-            df_class_score = self.calc_proximity_class_score_to_point(
-                x_distance = x_distance,
-                y_label    = y_distance,
-                top        = top
-            )
-            log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
+        # Get the score of point relative to all classes.
+        df_class_score = self.calc_proximity_class_score_to_point(
+            x_distance = x_distance,
+            y_label    = y_distance,
+            top        = top
+        )
+        log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
 
-            # For np array types, we have no choice to do this messy if/else
-            if i == 0:
-                if include_rfv:
-                    x_distance_to_x_ref = np.array([distance_x_ref])
-                x_distance_to_x_clustered = np.array([distance_x_clustered])
-            else:
-                if include_rfv:
-                    x_distance_to_x_ref = np.append(x_distance_to_x_ref, np.array([distance_x_ref]), axis=0)
-                x_distance_to_x_clustered = np.append(x_distance_to_x_clustered, np.array([distance_x_clustered]), axis=0)
+        top_classes_label = list(df_class_score[MetricSpaceModel.TERM_CLASS])
+        top_class_distance = df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]]
 
-            top_classes_label = list(df_class_score[MetricSpaceModel.TERM_CLASS])
-            x_classes.append( top_classes_label )
-            top_class_distance.append( df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]] )
-
-            # This innocent line increases the calculation time by 20 ms!!!!
-            if include_match_details:
-                match_details[i] = df_class_score
-
-            # Get the top class
-            log.Log.debugdebug('x_classes:\n\r' + str(x_classes))
-            log.Log.debugdebug('Class for index ' + str(i) + ': ' + str(top_classes_label))
-
-        log.Log.debugdebug('distance to rfv:\n\r' + str(x_distance_to_x_ref))
-        log.Log.debugdebug('distance to x_clustered:\n\r' + str(x_distance_to_x_clustered))
+        # Get the top class
+        log.Log.debugdebug('x_classes:\n\r' + str(top_classes_label))
+        log.Log.debugdebug('Class for point:\n\r' + str(top_classes_label))
+        log.Log.debugdebug('distance to rfv:\n\r' + str(distance_x_ref))
+        log.Log.debugdebug('distance to x_clustered:\n\r' + str(distance_x_clustered))
         log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
 
         # Mean square error MSE and MSE normalized
@@ -488,9 +546,9 @@ class MetricSpaceModel(threading.Thread):
                 return
 
         retval = retclass(
-            predicted_classes  = np.array(x_classes),
+            predicted_classes  = np.array(top_classes_label),
             top_class_distance = top_class_distance,
-            match_details      = match_details,
+            match_details      = df_class_score,
         )
 
         if self.do_profiling:

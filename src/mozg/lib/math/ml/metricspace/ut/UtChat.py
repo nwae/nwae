@@ -158,15 +158,15 @@ class UtChat:
         count_correct_top = [0]*top
         count_all = 0
         for i in indexes_to_test:
-            predict_result = ms_pc.predict_classes(
-                x = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
+            predict_result = ms_pc.predict_class(
+                x           = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
                 include_rfv = include_rfv,
                 include_match_details = include_match_details,
                 top = top
             )
 
             # Just the first row
-            y_observed = predict_result.predicted_classes[0]
+            y_observed = predict_result.predicted_classes
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
