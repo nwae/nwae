@@ -1,0 +1,6 @@
+README.md
+src/mozg.egg-info/PKG-INFO
+src/mozg.egg-info/SOURCES.txt
+src/mozg.egg-info/dependency_links.txt
+src/mozg.egg-info/top_level.txt
+src/mozg/lib/__init__.py
