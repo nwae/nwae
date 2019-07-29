@@ -173,7 +173,7 @@ class PredictClass:
         log.Log.debug(fv_text_1d)
 
         v = npUtil.NumpyUtil.convert_dimension(arr=fv_text_1d, to_dim=2)
-        log.Log.debugdebug('v = ' + str(v))
+        log.Log.debugdebug('v dims ' + str(v.shape))
         predict_result = self.model.predict_class(
             x           = v
         )
