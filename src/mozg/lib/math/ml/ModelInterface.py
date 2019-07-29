@@ -8,6 +8,11 @@ class ModelInterface:
     def __init__(self):
         return
 
+    def get_model_features(
+            self
+    ):
+        return None
+
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions

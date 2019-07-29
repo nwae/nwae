@@ -96,7 +96,7 @@ class SynonymList:
         return df_synonyms
 
     # Replace with root words, thus normalizing the text
-    def normalize_text(self, text_segmented, verbose):
+    def normalize_text(self, text_segmented):
         #
         # Replace words with root words
         #

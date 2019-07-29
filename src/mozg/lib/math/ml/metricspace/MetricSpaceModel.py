@@ -135,6 +135,11 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
     ):
         return self.model_data.is_model_ready()
 
+    def get_model_features(
+            self
+    ):
+        return self.model_data.y_clustered
+
     #
     # Given our training data x, we get the IDF of the columns x_name
     #
