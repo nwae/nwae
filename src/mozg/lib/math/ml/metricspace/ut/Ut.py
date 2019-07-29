@@ -153,7 +153,7 @@ class Ut:
             # Directory to keep all our model files
             dir_path_model    = self.dir_path_model,
         )
-        ms.load_model_parameters_from_storage()
+        ms.load_model_parameters()
 
         test_x = np.array(
             [
@@ -171,7 +171,7 @@ class Ut:
                 [0, 1.1, 0, 1.3, 1.3, 2.1]
             ]
         )
-        test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+        test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
         model_x_name = ms.model_data.x_name
         if model_x_name.ndim == 2:
             model_x_name = model_x_name[0]
@@ -180,7 +180,11 @@ class Ut:
         # Reorder by model x_name
         df_x_name = pd.DataFrame(data={'word': model_x_name, 'target_order': range(0, len(model_x_name), 1)})
         df_test_x_name = pd.DataFrame(data={'word': test_x_name, 'original_order': range(0, len(test_x_name), 1)})
-        df_x_name = df_x_name.merge(df_test_x_name)
+        # print('**** Target Order: ' + str(model_x_name))
+        # print('**** Original order: ' + str(test_x_name))
+        # Left join to ensure the order follows target order and target symbols
+        df_x_name = df_x_name.merge(df_test_x_name, how='left')
+        # print('**** Merged Order: ' + str(df_x_name))
         # Then order by original order
         df_x_name = df_x_name.sort_values(by=['target_order'], ascending=True)
         # Then the order we need to reorder is the target_order column
@@ -307,7 +311,7 @@ class Ut:
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     obj = Ut()
-    obj.unit_test_train(weigh_idf=True)
+    #obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes(
         include_rfv = False,
         include_match_details = False,

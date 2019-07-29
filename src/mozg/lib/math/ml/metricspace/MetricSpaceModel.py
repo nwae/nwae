@@ -12,6 +12,7 @@ from inspect import currentframe, getframeinfo
 import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
+import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.common.util.Profiling as prf
 
@@ -37,7 +38,7 @@ import mozg.common.util.Profiling as prf
 # Mean Radius:
 #  Given 2 random points on a hypersphere, what is the expected Euclidean distance between them?
 #
-class MetricSpaceModel(threading.Thread):
+class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
@@ -931,7 +932,7 @@ class MetricSpaceModel(threading.Thread):
 
         return
 
-    def load_model_parameters_from_storage(
+    def load_model_parameters(
             self
     ):
         prf_start = prf.Profiling.start()

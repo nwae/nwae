@@ -144,7 +144,7 @@ class UtChat:
             dir_path_model    = self.dir_path_model,
             do_profiling      = False
         )
-        ms_pc.load_model_parameters_from_storage()
+        ms_pc.load_model_parameters()
         ms_pc.load_training_data_from_storage()
 
         x = ms_pc.training_data.get_x()
