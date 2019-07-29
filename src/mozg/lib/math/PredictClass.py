@@ -9,6 +9,8 @@ import mozg.common.util.StringUtils as su
 import mozg.lib.lang.model.FeatureVector as fv
 import mozg.lib.lang.nlp.WordSegmentation as ws
 import mozg.lib.lang.nlp.SynonymList as sl
+import mozg.lib.math.NumpyUtil as npUtil
+import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 
 
 #
@@ -144,16 +146,6 @@ class PredictClass:
         #
         # Convert sentence to a mathematical object (feature vector)
         #
-        log.Log.debugdebug('#')
-        log.Log.debugdebug('# FEATURE VECTOR & NORMALIZATION')
-        log.Log.debugdebug('#')
-
-        if self.do_profiling:
-            a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                         + 'ChatID="' + str(chatid) + '", Feature="' + str(v_feature_segmented) + '"'
-                         + ' PROFILING Intent (FV & Normalization) Start: ' + str(a))
-
         model_fv = fv.FeatureVector()
         model_fv.set_freq_feature_vector_template(list_symbols=features_model)
 
@@ -178,31 +170,44 @@ class PredictClass:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
             )
-        fv_text_normalized_1d = np.array(df_fv['FrequencyNormalized'].values, ndmin=1)
-        if fv_text_normalized_1d.ndim != 1:
-            raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Expected a 1D vector, got ' + str(fv_text_normalized_1d.ndim) + 'D!'
-            )
         log.Log.debug(fv_text_1d)
-        log.Log.debug(fv_text_normalized_1d)
 
-        if self.do_profiling:
-            b = prf.Profiling.stop()
-            log.Log.info(
-                '.' + space_profiling
-                + ' ChatID="' + str(chatid) + '", Txt="' + str(v_feature_segmented) + '".'
-                + ' PROFILING Intent (FV & Normalization): ' + prf.Profiling.get_time_dif_str(a, b)
-            )
-
-        v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
+        v = npUtil.NumpyUtil.convert_dimension(arr=fv_text_1d, to_dim=2)
+        log.Log.debugdebug('v = ' + str(v))
         predict_result = self.model.predict_class(
             x           = v
         )
         y_observed = predict_result.predicted_classes
-        all_y_observed_top.append(y_observed[0])
-        all_y_observed.append(y_observed)
         top_class_distance = predict_result.top_class_distance
         match_details = predict_result.match_details
 
-        print('Point v ' + str(v) + '\n\rTop Class Distance: ' + str(top_class_distance))
+        print('Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
+              + ', Top Class Distance: ' + str(top_class_distance))
+
+
+if __name__ == '__main__':
+    #
+    # Now read back params and predict classes
+    #
+    topdir = '/Users/mark.tan/git/mozg'
+    ms_pc = msModel.MetricSpaceModel(
+        identifier_string = 'demo_msmodel_accid4_botid22',
+        # Directory to keep all our model files
+        dir_path_model    = topdir + '/app.data/models',
+        do_profiling      = True
+    )
+    ms_pc.load_model_parameters()
+
+    pc = PredictClass(
+        model_interface      = ms_pc,
+        lang                 = 'cn',
+        dirpath_synonymlist  = topdir + '/nlp.data/app/chats',
+        dir_wordlist         = topdir + '/nlp.data/wordlist',
+        postfix_wordlist     = '-wordlist.txt',
+        dir_wordlist_app     = topdir + '/nlp.data/app/chats',
+        postfix_wordlist_app = '.wordlist.app.txt',
+        do_profiling         = True
+    )
+
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    pc.predict_class_text_features(inputtext="存款")
