@@ -21,8 +21,17 @@ class ModelInterface:
     ):
         return
 
-    def train(self):
+    def train(
+            self
+    ):
         return
 
-    def load_model_parameters(self):
+    def load_model_parameters(
+            self
+    ):
         return
+
+    def is_model_ready(
+            self
+    ):
+        return True

@@ -33,6 +33,9 @@ class ModelData:
         # Unique classes from y
         self.classes_unique = None
 
+        # Model is loaded or not
+        self.model_loaded = False
+
         #
         # RFVs
         # Original x, y, x_name in self.training_data
@@ -84,6 +87,9 @@ class ModelData:
 
         self.log_training = []
         return
+
+    def is_model_ready(self):
+        return self.model_loaded
 
     def persist_model_to_storage(
             self
@@ -399,6 +405,8 @@ class ModelData:
                 + '\n\ry_clustered:\n\r' + str(self.y_clustered)
             )
             self.sanity_check()
+
+            self.model_loaded = True
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Load RFV from file failed for identifier "' + self.identifier_string\

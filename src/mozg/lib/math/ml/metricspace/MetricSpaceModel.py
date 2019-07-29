@@ -54,7 +54,10 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
     # Matching
     MATCH_TOP = 10
 
+    #
     # Radius min/max
+    # TODO For certain classes, all points are different, and this min cluster will not work
+    #
     CLUSTER_RADIUS_MAX = 0.5
     N_CLUSTER_MAX = 5
 
@@ -126,6 +129,11 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
 
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
+
+    def is_model_ready(
+            self
+    ):
+        return self.model_data.is_model_ready()
 
     #
     # Given our training data x, we get the IDF of the columns x_name
