@@ -216,7 +216,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    do_training = True
+    do_training = False
 
     if do_training:
         obj.test_train(
