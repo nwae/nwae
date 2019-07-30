@@ -142,6 +142,7 @@ class PredictClass:
         space_profiling = '      '
 
         features_model = list(self.model.get_model_features())
+        log.Log.debugdebug('Using model features:\n\r' + str(features_model))
 
         #
         # Convert sentence to a mathematical object (feature vector)
@@ -156,10 +157,10 @@ class PredictClass:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ': Exception occurred calculating FV for "' + str(v_feature_segmented) \
                      + '": Exception "' + str(ex) \
-                     + '. Using FV Template ' + str(model_fv.get_fv_template()) \
-                     + ', FV Weights ' + str(model_fv.get_fv_weights())
+                     + '\n\rUsing FV Template:\n\r' + str(model_fv.get_fv_template()) \
+                     + ', FV Weights:\n\r' + str(model_fv.get_fv_weights())
             log.Log.critical(errmsg)
-            raise Exception(ex)
+            raise Exception(errmsg)
 
         # This creates a single row matrix that needs to be transposed before matrix multiplications
         # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector

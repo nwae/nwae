@@ -138,7 +138,7 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
     def get_model_features(
             self
     ):
-        return self.model_data.y_clustered
+        return npUtil.NumpyUtil.convert_dimension(arr=self.model_data.x_name, to_dim=1)
 
     #
     # Given our training data x, we get the IDF of the columns x_name
