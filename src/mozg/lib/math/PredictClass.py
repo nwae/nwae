@@ -139,7 +139,6 @@ class PredictClass:
             count = count + 1
 
         starttime_predict_class = prf.Profiling.start()
-        space_profiling = '      '
 
         features_model = list(self.model.get_model_features())
         log.Log.debugdebug('Using model features:\n\r' + str(features_model))
@@ -184,6 +183,14 @@ class PredictClass:
 
         print('Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
               + ', Top Class Distance: ' + str(top_class_distance))
+
+        if self.do_profiling:
+            log.Log.info(
+                'Chat ID="' + str(chatid) + '", Txt="' + str(v_feature_segmented) + '"'
+                + ' PROFILING predict class: '
+                + prf.Profiling.get_time_dif_str(starttime_predict_class, prf.Profiling.stop())
+            )
+        return predict_result
 
 
 if __name__ == '__main__':
