@@ -1,7 +1,0 @@
-2019-01-19 09:26:13: BOT API SERVER STARTUP. Using the following parameters..
-2019-01-19 09:26:13: {'topdir': '/Users/mark.tan/git/mozg.nlp', 'port': 5000, 'debug': '0', 'verbose': '1'}
-2019-01-19 09:26:13: Initializing Bot for cn.fun88.
-2019-01-19 09:26:13: Loading list for [cn][/Users/mark.tan/git/mozg.nlp/nlp.data/app/chats/cn.synonymlist.txt]
-2019-01-19 09:26:13: Read 5 lines.
-2019-01-19 09:36:24: Using the following parameters..
-2019-01-19 09:36:24: {'topdir': '/Users/mark.tan/git/mozg.nlp', 'debug': '0'}

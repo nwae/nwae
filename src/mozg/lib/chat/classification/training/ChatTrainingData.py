@@ -14,7 +14,7 @@ import mozg.common.data.IntentCategory as dbintcat
 import mozg.common.data.Intent as dbint
 import mozg.common.data.IntentTraining as dbinttrn
 import mozg.common.data.ViewBotTrainingData as viewBotTd
-import ie.app.ConfigFile as cf
+import mozg.ConfigFile as cf
 import mozg.common.data.security.Auth as au
 from inspect import currentframe, getframeinfo
 
@@ -526,6 +526,7 @@ if __name__ == '__main__':
 
     # DB Stuff initializations
     au.Auth.init_instances()
+    cf.ConfigFile.init_config(topdir='/Users/mark.tan/git/mozg')
 
     botkey = dbbot.Bot.get_bot_key(
         db_profile = cf.ConfigFile.DB_PROFILE,

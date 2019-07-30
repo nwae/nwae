@@ -8,6 +8,7 @@ import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.common.util.Profiling as prf
+import mozg.ConfigFile as cf
 
 
 class UtChat:
@@ -208,52 +209,14 @@ class UtChat:
             + ', or ' + str(round(1000*prf_dur/count_all,0)) + ' milliseconds per calculation'
         )
 
-        # Mean square error MSE and MSE normalized
-        # mse = np.sum(np.multiply(top_class_distance, top_class_distance))
-        # mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
-        #
-        # print('MSE = ' + str(mse))
-        # print('MSE normalized = ' + str(mse_norm))
-        #
-        # # Compare with expected
-        # compare_top = (y_observed_top != y[indexes_to_test])
-        # compare_top_x = {}
-        #
-        # for t in range(1,top+1,1):
-        #     compare_top_x[t] = np.array([True] * len(y_observed))
-        #     for i in range(len(y_observed)):
-        #         matches_i = y_observed[i]
-        #         if y[i] in matches_i[0:t]:
-        #             compare_top_x[t][i] = False
-        #     print(compare_top_x[t])
-        #     print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
-        #
-        # print(compare_top.tolist())
-        # print('Total Errors (compare top #1) = ' + str(np.sum(compare_top*1)))
-
-        # # Get errors
-        # idx = np.array(range(compare_top_x.shape[0]))
-        # index_errors = idx[compare_top_x==True]
-        # for i in index_errors:
-        #     y_expected_val = y[indexes_to_test][i]
-        #     y_observed_val = y_observed[i]
-        #     if i in match_details.keys():
-        #         y_observed_match_details = match_details[i]
-        #     else:
-        #         y_observed_match_details = None
-        #     print('Error at index ' + str(i)
-        #           + ' Expected ' + str(y_expected_val) + ', Observed ' + str(y_observed_val)
-        #           + ':\n\r' + str(y_observed_match_details))
-        #
-        # return
-
 
 if __name__ == '__main__':
+    cf.ConfigFile.init_config(topdir='/Users/mark.tan/git/mozg')
     au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    do_training = False
+    do_training = True
 
     if do_training:
         obj.test_train(
