@@ -18,6 +18,8 @@ import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 #
 class PredictClass:
 
+    MATCH_TOP = 10
+
     def __init__(
             self,
             # This is the model with standard model interface that implements the basic methods
@@ -79,6 +81,8 @@ class PredictClass:
     def predict_class_text_features(
             self,
             inputtext,
+            top = MATCH_TOP,
+            include_match_details = False,
             chatid = None
     ):
         starttime_prf = prf.Profiling.start()
@@ -111,7 +115,9 @@ class PredictClass:
 
         return self.predict_class(
             v_feature_segmented = text_normalized,
-            chatid              = chatid
+            chatid              = chatid,
+            top                 = top,
+            include_match_details = include_match_details
         )
 
 
@@ -119,6 +125,8 @@ class PredictClass:
             self,
             # This is the point given in feature format, instead of standard array format
             v_feature_segmented,
+            top = MATCH_TOP,
+            include_match_details = False,
             chatid = None
     ):
         self.count_intent_calls = self.count_intent_calls + 1
@@ -175,7 +183,9 @@ class PredictClass:
         v = npUtil.NumpyUtil.convert_dimension(arr=fv_text_1d, to_dim=2)
         log.Log.debugdebug('v dims ' + str(v.shape))
         predict_result = self.model.predict_class(
-            x           = v
+            x             = v,
+            top           = top,
+            include_match_details = include_match_details
         )
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
@@ -218,4 +228,5 @@ if __name__ == '__main__':
     )
 
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
-    pc.predict_class_text_features(inputtext="存款")
+    res = pc.predict_class_text_features(inputtext="存款", include_match_details=True)
+    print(res.match_details)
