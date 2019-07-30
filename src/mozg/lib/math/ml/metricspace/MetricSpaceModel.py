@@ -44,16 +44,6 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
 
-    # Terms for dataframe, etc.
-    TERM_CLASS    = 'class'
-    TERM_SCORE    = 'score'
-    TERM_DIST     = 'dist'
-    TERM_DISTNORM = 'distnorm'
-    TERM_RADIUS   = 'radius'
-
-    # Matching
-    MATCH_TOP = 10
-
     #
     # Radius min/max
     # TODO For certain classes, all points are different, and this min cluster will not work
@@ -276,7 +266,7 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
             # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
             x_distance,
             y_label,
-            top = MATCH_TOP
+            top = modelIf.ModelInterface.MATCH_TOP
     ):
         prf_start = prf.Profiling.start()
 
@@ -369,7 +359,7 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
             include_rfv = False,
             # This will slow down by a whopping 20ms!!
             include_match_details = False,
-            top = MATCH_TOP
+            top = modelIf.ModelInterface.MATCH_TOP
     ):
         prf_start = prf.Profiling.start()
 
@@ -465,7 +455,7 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
             include_rfv = False,
             # This will slow down by a whopping 20ms!!
             include_match_details = False,
-            top = MATCH_TOP
+            top = modelIf.ModelInterface.MATCH_TOP
     ):
         prf_start = prf.Profiling.start()
 

@@ -10,7 +10,7 @@ import mozg.lib.lang.model.FeatureVector as fv
 import mozg.lib.lang.nlp.WordSegmentation as ws
 import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.lib.math.NumpyUtil as npUtil
-import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import mozg.lib.math.ml.ModelInterface as modelIf
 
 
 #
@@ -18,6 +18,15 @@ import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 #
 class PredictClass:
 
+    #
+    # This is to decide how many top answers to keep.
+    # If this value is say 70%, and our top scores are 70, 60, 40, 20, then
+    # 70% * 70 is 49, thus only scores 70, 60 will be kept as it is higher than 49
+    #
+    CONSTANT_PERCENT_WITHIN_TOP_SCORE = 0.6
+    MAX_QUESTION_LENGTH = 100
+
+    # Default match top X
     MATCH_TOP = 10
 
     def __init__(
@@ -82,6 +91,7 @@ class PredictClass:
             self,
             inputtext,
             top = MATCH_TOP,
+            match_pct_within_top_score=CONSTANT_PERCENT_WITHIN_TOP_SCORE,
             include_match_details = False,
             chatid = None
     ):
@@ -115,8 +125,9 @@ class PredictClass:
 
         return self.predict_class(
             v_feature_segmented = text_normalized,
-            chatid              = chatid,
+            id                  = chatid,
             top                 = top,
+            match_pct_within_top_score = match_pct_within_top_score,
             include_match_details = include_match_details
         )
 
@@ -126,8 +137,10 @@ class PredictClass:
             # This is the point given in feature format, instead of standard array format
             v_feature_segmented,
             top = MATCH_TOP,
+            match_pct_within_top_score = CONSTANT_PERCENT_WITHIN_TOP_SCORE,
             include_match_details = False,
-            chatid = None
+            # Any relevant ID for logging purpose only
+            id = None
     ):
         self.count_intent_calls = self.count_intent_calls + 1
 
@@ -187,16 +200,33 @@ class PredictClass:
             top           = top,
             include_match_details = include_match_details
         )
+
+        #
+        # Choose which scores to keep.
+        #
+        if include_match_details:
+            df_match = predict_result.match_details
+            top_score = float(df_match[modelIf.ModelInterface.TERM_SCORE].loc[df_match.index[0]])
+            df_match_keep = df_match[
+                df_match[modelIf.ModelInterface.TERM_SCORE] >= top_score*match_pct_within_top_score
+            ]
+            df_match_keep = df_match_keep.reset_index(drop=True)
+            # Overwrite data frame
+            predict_result.match_details = df_match_keep
+
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
-        match_details = predict_result.match_details
 
-        print('Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
-              + ', Top Class Distance: ' + str(top_class_distance))
+        log.Log.info(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ': Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
+            + ', Top Class Distance: ' + str(top_class_distance)
+        )
 
         if self.do_profiling:
             log.Log.info(
-                'Chat ID="' + str(chatid) + '", Txt="' + str(v_feature_segmented) + '"'
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': ID="' + str(id) + '", Txt="' + str(v_feature_segmented) + '"'
                 + ' PROFILING predict class: '
                 + prf.Profiling.get_time_dif_str(starttime_predict_class, prf.Profiling.stop())
             )
@@ -208,6 +238,7 @@ if __name__ == '__main__':
     # Now read back params and predict classes
     #
     topdir = '/Users/mark.tan/git/mozg'
+    import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
     ms_pc = msModel.MetricSpaceModel(
         identifier_string = 'demo_msmodel_accid4_botid22',
         # Directory to keep all our model files
@@ -227,6 +258,21 @@ if __name__ == '__main__':
         do_profiling         = True
     )
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
-    res = pc.predict_class_text_features(inputtext="存款", include_match_details=True)
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    # Return all results in the top 5
+    res = pc.predict_class_text_features(
+        inputtext="存款",
+        match_pct_within_top_score = 0,
+        include_match_details      = True,
+        top = 5
+    )
+    print(res.match_details)
+
+    # Return only those results with score at least 70% of top score
+    res = pc.predict_class_text_features(
+        inputtext="存款",
+        match_pct_within_top_score = 0.7,
+        include_match_details      = True,
+        top = 5
+    )
     print(res.match_details)

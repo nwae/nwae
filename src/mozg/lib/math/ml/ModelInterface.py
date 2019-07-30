@@ -5,6 +5,16 @@
 #
 class ModelInterface:
 
+    # Terms for dataframe, etc.
+    TERM_CLASS    = 'class'
+    TERM_SCORE    = 'score'
+    TERM_DIST     = 'dist'
+    TERM_DISTNORM = 'distnorm'
+    TERM_RADIUS   = 'radius'
+
+    # Matching
+    MATCH_TOP = 10
+
     def __init__(self):
         return
 
