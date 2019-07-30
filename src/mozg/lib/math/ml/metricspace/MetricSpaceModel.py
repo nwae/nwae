@@ -38,7 +38,7 @@ import mozg.common.util.Profiling as prf
 # Mean Radius:
 #  Given 2 random points on a hypersphere, what is the expected Euclidean distance between them?
 #
-class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
+class MetricSpaceModel(modelIf.ModelInterface):
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
@@ -67,7 +67,9 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
             weigh_idf = False,
             do_profiling = True
     ):
-        super(MetricSpaceModel, self).__init__()
+        super(MetricSpaceModel, self).__init__(
+            identifier_string = identifier_string
+        )
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
@@ -101,6 +103,9 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
 
         return
 
+    #
+    # Model interface override
+    #
     def run(self):
         self.__mutex_training.acquire()
         try:
@@ -120,15 +125,29 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
+    #
+    # Model interface override
+    #
     def is_model_ready(
             self
     ):
         return self.model_data.is_model_ready()
 
+    #
+    # Model interface override
+    #
     def get_model_features(
             self
     ):
         return npUtil.NumpyUtil.convert_dimension(arr=self.model_data.x_name, to_dim=1)
+
+    #
+    # Model interface override
+    #
+    def check_if_model_updated(
+            self
+    ):
+        return self.model_data.check_if_model_updated()
 
     #
     # Given our training data x, we get the IDF of the columns x_name
@@ -345,6 +364,8 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
         return df_score
 
     #
+    # Model interface override
+    #
     # Steps to predict classes
     #
     #  1. Weight by IDF and normalize input x
@@ -448,6 +469,9 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
 
         return retval
 
+    #
+    # Model interface override
+    #
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
@@ -702,6 +726,8 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
         return retobj
 
     #
+    # Model interface override
+    #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
     # TODO: Currently uses static IDF weights.
     #
@@ -935,6 +961,9 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
 
         return
 
+    #
+    # Model interface override
+    #
     def load_model_parameters(
             self
     ):
@@ -982,3 +1011,4 @@ class MetricSpaceModel(threading.Thread, modelIf.ModelInterface):
                 + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
             )
         return
+

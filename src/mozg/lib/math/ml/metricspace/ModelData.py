@@ -5,6 +5,7 @@ import pandas as pd
 import json
 import datetime as dt
 import os
+import threading
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
@@ -35,6 +36,8 @@ class ModelData:
 
         # Model is loaded or not
         self.model_loaded = False
+        self.model_updated_time = None
+        self.__model_mutex = threading.Lock()
 
         #
         # RFVs
@@ -90,6 +93,33 @@ class ModelData:
 
     def is_model_ready(self):
         return self.model_loaded
+
+    def check_if_model_updated(self):
+        updated_time = os.path.getmtime(self.fpath_updated_file)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model identifier "' + str(self.identifier_string)
+            + '" last updated time ' + str(self.model_updated_time)
+            + ', updated "' + str(updated_time) + '".'
+        )
+        if (updated_time > self.model_updated_time):
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Model update time for identifier "' + str(self.identifier_string) + '" - "'
+                + str(dt.datetime.fromtimestamp(updated_time)) + '" is newer than "'
+                + str(dt.datetime.fromtimestamp(self.model_updated_time))
+                + '". Reloading model...'
+            )
+            try:
+                self.__model_mutex.acquire()
+                # Reset model flags to not ready
+                self.model_loaded = False
+                self.model_updated_time = updated_time
+            finally:
+                self.__model_mutex.release()
+            return True
+        else:
+            return False
 
     def persist_model_to_storage(
             self
@@ -407,6 +437,7 @@ class ModelData:
             self.sanity_check()
 
             self.model_loaded = True
+            self.model_updated_time = os.path.getmtime(self.fpath_updated_file)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Load RFV from file failed for identifier "' + self.identifier_string\
@@ -497,6 +528,8 @@ class ModelData:
             self
     ):
         try:
+            self.__model_mutex.acquire()
+
             df_td_x = pd.read_csv(
                 filepath_or_buffer=self.fpath_training_data_x,
                 sep=',',
@@ -535,6 +568,8 @@ class ModelData:
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+        finally:
+            self.__model_mutex.release()
 
     def sanity_check(self):
         # Check RFV is normalized

@@ -87,6 +87,9 @@ class PredictClass:
         self.count_intent_calls = 0
         return
 
+    #
+    # A helper class to predict class given text sentence instead of a nice array
+    #
     def predict_class_text_features(
             self,
             inputtext,
@@ -123,7 +126,7 @@ class PredictClass:
                 + prf.Profiling.get_time_dif_str(starttime_prf, prf.Profiling.stop())
             )
 
-        return self.predict_class(
+        return self.predict_class_features(
             v_feature_segmented = text_normalized,
             id                  = chatid,
             top                 = top,
@@ -131,8 +134,10 @@ class PredictClass:
             include_match_details = include_match_details
         )
 
-
-    def predict_class(
+    #
+    # A helper class to predict class given features instead of a nice array
+    #
+    def predict_class_features(
             self,
             # This is the point given in feature format, instead of standard array format
             v_feature_segmented,
