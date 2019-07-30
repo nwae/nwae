@@ -188,6 +188,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         )
 
         # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
+        # TODO RuntimeWarning: divide by zero encountered in true_divide
         idf = np.log(n_documents / np_feature_presence_sum)
         # Replace infinity with 1 count or log(n_documents)
         idf[idf==np.inf] = np.log(n_documents)
