@@ -42,6 +42,13 @@ class Trainer(threading.Thread):
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': Wrong training data type "' + str(type(self.training_data)) + '".'
             )
+        else:
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Trainer for "' + self.identifier_string
+                + '", model name "' + str(self.model_name)
+                + '" training data type "' + str(type(self.training_data)) + '" initialized.'
+            )
 
         self.__mutex_training = threading.Lock()
         return
@@ -73,6 +80,10 @@ class Trainer(threading.Thread):
         try:
             tdm_object = self.training_data
             if type(self.training_data) is pd.DataFrame:
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Convert pandas DataFrame type to TrainingDataModel type...'
+                )
                 tdm_object = self.convert_to_training_data_model_type(
                     td = self.training_data
                 )
@@ -100,13 +111,21 @@ class Trainer(threading.Thread):
     def convert_to_training_data_model_type(
             self,
             td,
-            # How many lines to keep from training data, 0 keep all. Used for mainly testing purpose.
-            keep = 0
+            # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
+            keep = -1
     ):
         # Extract these columns
         classes_id     = td[Trainer.COL_TDATA_INTENT_ID]
         text_segmented = td[Trainer.COL_TDATA_TEXT_SEGMENTED]
         classes_name   = td[Trainer.COL_TDATA_INTENT]
+
+        lg.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Columns: ' + str(td.columns)
+            + '\n\rClasses ID:\n\r' + str(classes_id)
+            + '\n\rText Segmented:\n\r' + str(text_segmented)
+            + '\n\rClasses name:\n\r' + str(classes_name)
+        )
 
         # Help to keep both linked
         df_classes_id_name = pd.DataFrame({
@@ -116,7 +135,7 @@ class Trainer(threading.Thread):
 
         # For unit testing purpose, keep only 10 classes
         unique_classes_id = list(set(classes_id))
-        if keep < 0:
+        if keep <= 0:
             keep = len(unique_classes_id)
         else:
             keep = min(keep, len(unique_classes_id))
