@@ -4,29 +4,44 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 import mozg.lib.math.ml.TrainingDataModel as tdm
+import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import threading
 import mozg.common.util.Log as lg
 from inspect import currentframe, getframeinfo
 
 
+#
+# Helper class to train data using given model
+#
 class Trainer(threading.Thread):
 
-    TD_TYPE_NORMAL = 'normal'
-    TD_TYPE_TEXT = 'text'
+    MODEL_NAME_DEFAULT = 'default'
+
+    COL_TDATA_INTENT = 'Intent'
+    COL_TDATA_INTENT_ID = 'Intent ID'
+    COL_TDATA_TEXT_SEGMENTED = 'TextSegmented'
 
     def __init__(
             self,
             identifier_string,
-            model_interface,
+            # Where to keep training data model files
+            dir_path_model,
+            # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
-            training_data_type = TD_TYPE_NORMAL
+            model_name = MODEL_NAME_DEFAULT
     ):
         super(Trainer, self).__init__()
 
         self.identifier_string = identifier_string
-        self.model_interface = model_interface
+        self.dir_path_model = dir_path_model
         self.training_data = training_data
-        self.training_data_type = training_data_type
+        self.model_name = model_name
+
+        if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Wrong training data type "' + str(type(self.training_data)) + '".'
+            )
 
         self.__mutex_training = threading.Lock()
         return
@@ -36,53 +51,62 @@ class Trainer(threading.Thread):
             self.__mutex_training.acquire()
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
-            self.train(
-                self.keywords_remove_quartile,
-                self.stopwords,
-                self.weigh_idf
-            )
+
+            self.train()
+
             self.bot_training_end_time = dt.datetime.now()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
-            log.Log.critical(errmsg)
+            lg.Log.critical(errmsg)
             raise Exception(errmsg)
         finally:
             self.is_training_done = True
             self.__mutex_training.release()
 
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Training Identifier ' + str(self.identifier_string) + '" trained successfully.')
-
-    def train(
-            self,
-            # Object type TrainingDataModel
-            tdm_object,
-            model_interface
-    ):
-        ms_model = msModel.MetricSpaceModel(
-            identifier_string = self.identifier_string,
-            # Directory to keep all our model files
-            dir_path_model    = self.dir_path_model,
-            # Training data in TrainingDataModel class type
-            training_data     = tdm_obj,
-            # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
-            key_features_remove_quartile = 0,
-            # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
-            stop_features = (),
-            # If we will create an "IDF" based on the initial features
-            weigh_idf     = weigh_idf
+        lg.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
         )
-        ms_model.train()
 
-    def train_text_data(
+    def train(self):
+        try:
+            tdm_object = self.training_data
+            if type(self.training_data) is pd.DataFrame:
+                tdm_object = self.convert_to_training_data_model_type(
+                    td = self.training_data
+                )
+
+            ms_model = msModel.MetricSpaceModel(
+                identifier_string = self.identifier_string,
+                # Directory to keep all our model files
+                dir_path_model    = self.dir_path_model,
+                # Training data in TrainingDataModel class type
+                training_data     = tdm_object,
+                # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
+                key_features_remove_quartile = 0,
+                # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
+                stop_features = (),
+                # If we will create an "IDF" based on the initial features
+                weigh_idf     = True
+            )
+            ms_model.train()
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Training exception: ' + str(ex) + '.'
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
+
+    def convert_to_training_data_model_type(
             self,
-            td
+            td,
+            # How many lines to keep from training data, 0 keep all. Used for mainly testing purpose.
+            keep = 0
     ):
         # Extract these columns
-        classes_id     = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
-        text_segmented = td[ctd.ChatTrainingData.COL_TDATA_TEXT_SEGMENTED]
-        classes_name   = td[ctd.ChatTrainingData.COL_TDATA_INTENT]
+        classes_id     = td[Trainer.COL_TDATA_INTENT_ID]
+        text_segmented = td[Trainer.COL_TDATA_TEXT_SEGMENTED]
+        classes_name   = td[Trainer.COL_TDATA_INTENT]
 
         # Help to keep both linked
         df_classes_id_name = pd.DataFrame({
@@ -105,8 +129,9 @@ class Trainer(threading.Thread):
         df_classes_id_name = df_classes_id_name[np_indexes]
         # This dataframe becomes our map to get the name of y/classes
         df_classes_id_name.drop_duplicates(inplace=True)
-        print('y FILTERED:\n\r' + str(np_unique_classes_trimmed))
-        print('y DF FILTERED:\n\r:' + str(df_classes_id_name))
+
+        lg.Log.debugdebug('y FILTERED:\n\r' + str(np_unique_classes_trimmed))
+        lg.Log.debugdebug('y DF FILTERED:\n\r:' + str(df_classes_id_name))
 
         # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
         np_label_id = np.array(list(classes_id[np_indexes]))
@@ -144,4 +169,6 @@ class Trainer(threading.Thread):
         lg.Log.debugdebug('TDM x:\n\r' + str(tdm_obj.get_x()))
         lg.Log.debugdebug('TDM x_name:\n\r' + str(tdm_obj.get_x_name()))
         lg.Log.debugdebug('TDM y' + str(tdm_obj.get_y()))
+
+        return tdm_obj
 

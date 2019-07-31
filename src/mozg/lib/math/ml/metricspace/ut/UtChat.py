@@ -4,6 +4,7 @@ from inspect import currentframe, getframeinfo
 import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import numpy as np
 import pandas as pd
+import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.NumpyUtil as npUtil
@@ -46,6 +47,15 @@ class UtChat:
         )
 
         td = chat_td.get_training_data_from_db()
+
+        trainer_obj = trainer.Trainer(
+            identifier_string = self.identifier_string,
+            dir_path_model    = self.dir_path_model,
+            training_data     = td
+        )
+
+        trainer_obj.train()
+        return
 
         # Extract these columns
         classes_id     = td[ctd.ChatTrainingData.COL_TDATA_INTENT_ID]
@@ -216,7 +226,7 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    do_training = False
+    do_training = True
 
     if do_training:
         obj.test_train(

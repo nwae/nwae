@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.common.util.Log as log
@@ -76,21 +77,14 @@ class Ut:
             self,
             weigh_idf = False
     ):
-        ms_model = msModel.MetricSpaceModel(
+        trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
-            # Directory to keep all our model files
             dir_path_model    = self.dir_path_model,
-            # Training data in TrainingDataModel class type
-            training_data     = self.tdm_obj,
-            # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
-            key_features_remove_quartile = 0,
-            # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
-            stop_features = (),
-            # If we will create an "IDF" based on the initial features
-            weigh_idf     = weigh_idf
+            training_data     = self.tdm_obj
         )
-        ms_model.train()
 
+        trainer_obj.train()
+        
         # How to make sure order is the same output from TextCluster in unit tests?
         x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
 
