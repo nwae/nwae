@@ -84,7 +84,7 @@ class Ut:
         )
 
         trainer_obj.train()
-        
+
         # How to make sure order is the same output from TextCluster in unit tests?
         x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
 
