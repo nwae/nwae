@@ -1,11 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import mozg.common.data.security.Auth as au
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.chat.classification.training.ChatTrainingData as ctd
-import numpy as np
-import pandas as pd
 import mozg.lib.math.ml.Trainer as trainer
-import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.common.util.Profiling as prf
