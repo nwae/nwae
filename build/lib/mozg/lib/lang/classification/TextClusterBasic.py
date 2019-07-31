@@ -33,43 +33,57 @@ class TextClusterBasic:
             stopwords,
             sep = ' '
     ):
-        all_words_split = sentence_text.split(sep)
-        # Remove empty string ''
-        all_words_split = [ x for x in all_words_split if x!='' ]
+        try:
+            if sentence_text == '':
+                return ''
 
-        # Remove numbers, or just fullstop/commas
-        df_tmp = pd.DataFrame({'Word':all_words_split})
-        is_number = df_tmp['Word'].str.match(pat='^[0-9.,]+$', case=False)
-        df_tmp = df_tmp[~is_number]
+            all_words_split = sentence_text.split(sep)
+            # Remove empty string ''
+            all_words_split = [ x for x in all_words_split if x!='' ]
 
-        sentence_txt_prefiltered = list(df_tmp['Word'])
-        new_sentence = ''
-        for word in sentence_txt_prefiltered:
-            word = word.lower()
-            # Ignore empty string
-            if word == '':
-                continue
+            if len(all_words_split) == 0:
+                return ''
 
-            # Remove word/sentence separators, punctuations
-            if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
-                    or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
-                    or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
-                continue
-            # Clean up punctuations at the end of a word
-            word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
+            # Remove numbers, or just fullstop/commas
+            df_tmp = pd.DataFrame({'Word':all_words_split})
+            is_number = df_tmp['Word'].str.match(pat='^[0-9.,]+$', case=False)
+            df_tmp = df_tmp[~is_number]
 
-            #
-            # Remove stopwords, quite an important step to improve clustering accuracy.
-            # TODO: Once we have an efficient keyword extraction algorithm, we won't need stopwords anymore.
-            #
-            if (word in stopwords):
-                log.Log.debug('Stopword [' + word + '] ignored..')
-                continue
-            new_sentence = new_sentence + word + ' '
+            sentence_txt_prefiltered = list(df_tmp['Word'])
+            new_sentence = ''
+            for word in sentence_txt_prefiltered:
+                word = word.lower()
+                # Ignore empty string
+                if word == '':
+                    continue
 
-        # Remove last space
-        new_sentence = new_sentence[0:(len(new_sentence)-1)]
-        return new_sentence
+                # Remove word/sentence separators, punctuations
+                if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
+                        or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
+                        or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
+                    continue
+                # Clean up punctuations at the end of a word
+                word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
+
+                #
+                # Remove stopwords, quite an important step to improve clustering accuracy.
+                # TODO: Once we have an efficient keyword extraction algorithm, we won't need stopwords anymore.
+                #
+                if (word in stopwords):
+                    log.Log.debug('Stopword [' + word + '] ignored..')
+                    continue
+                new_sentence = new_sentence + word + ' '
+
+            # Remove last space
+            new_sentence = new_sentence[0:(len(new_sentence)-1)]
+            return new_sentence
+        except Exception as ex:
+            errmsg = str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Error filtering sentence "' + str(sentence_text)\
+                     + '", stopwords ' + str(stopwords) + ', using separator "' + str(sep) + '".'\
+                     + ' Got exception ' + str(ex) + '.'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
 
     #
     # Initialize with a list of text, assumed to be already word separated by space.

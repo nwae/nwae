@@ -51,6 +51,9 @@ class Trainer(threading.Thread):
             )
 
         self.__mutex_training = threading.Lock()
+        self.bot_training_start_time = None
+        self.bot_training_end_time = None
+        self.is_training_done = False
         return
 
     def run(self):

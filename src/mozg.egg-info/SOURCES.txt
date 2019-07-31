@@ -19,6 +19,7 @@ src/mozg/lib/math/Constants.py
 src/mozg/lib/math/NumpyUtil.py
 src/mozg/lib/math/PredictClass.py
 src/mozg/lib/math/ml/ModelInterface.py
+src/mozg/lib/math/ml/Trainer.py
 src/mozg/lib/math/ml/TrainingDataModel.py
 src/mozg/lib/math/ml/metricspace/MetricSpaceModel.py
 src/mozg/lib/math/ml/metricspace/ModelData.py
