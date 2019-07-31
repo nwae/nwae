@@ -34,21 +34,9 @@ class Trainer(threading.Thread):
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
+        # Can be None type when class initiated
         self.training_data = training_data
         self.model_name = model_name
-
-        if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
-            raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Wrong training data type "' + str(type(self.training_data)) + '".'
-            )
-        else:
-            lg.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Trainer for "' + self.identifier_string
-                + '", model name "' + str(self.model_name)
-                + '" training data type "' + str(type(self.training_data)) + '" initialized.'
-            )
 
         self.__mutex_training = threading.Lock()
         self.bot_training_start_time = None
@@ -80,6 +68,19 @@ class Trainer(threading.Thread):
         )
 
     def train(self):
+        if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Wrong training data type "' + str(type(self.training_data)) + '".'
+            )
+        else:
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Training started for "' + self.identifier_string
+                + '", model name "' + str(self.model_name)
+                + '" training data type "' + str(type(self.training_data)) + '" initialized.'
+            )
+
         try:
             tdm_object = self.training_data
             if type(self.training_data) is pd.DataFrame:
