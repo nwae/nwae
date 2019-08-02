@@ -20,7 +20,16 @@ import mozg.common.util.Profiling as prf
 #
 # MetricSpace Machine Learning Model
 #
-# The model treat all points as lying on the hypersphere (normalized),
+# TODO Convert to a set of linear layers to speed things up
+# TODO Training must be incremental (or if not incremental, must be fast < 20s)
+# TODO Model must also work for other data types like image/video
+#
+# Model Description:
+#
+# Points can be on any dimensional space, however in this model, we project it all on a hypersphere
+# via normalization.
+# Thus this model is only suitable for directional sensitive data like human text sentences,
+#
 # thus the maximum distance (if euclidean) in the positive section of the hypersphere is 2^0.5=1.4142
 # The formal problem statement is:
 #
