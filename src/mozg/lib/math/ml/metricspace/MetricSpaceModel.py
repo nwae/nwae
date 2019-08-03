@@ -215,79 +215,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
         return idf
 
     #
-    # Calculates the normalized distance (0 to 1 magnitude range) of a point v (n dimension)
-    # to a set of references (n+1 dimensions or k rows of n dimensional points) by knowing
-    # the theoretical max/min of our hypersphere
-    #
-    def calc_distance_of_point_to_x_ref(
-            self,
-            # Point
-            v,
-            x_ref,
-            y_ref
-    ):
-        prf_start = prf.Profiling.start()
-
-        log.Log.debugdebug('Evaluate distance between v: ' + str(v) + ' and\n\r' + str(x_ref))
-
-        #
-        # Remove rows of x_ref with no common features
-        # This can almost half the time needed for calculation
-        #
-        relevant_columns = v>0
-        relevant_columns = npUtil.NumpyUtil.convert_dimension(arr=relevant_columns, to_dim=1)
-        # Relevant columns of x_ref extracted
-        log.Log.debugdebug('Relevant columns:\n\r' + str(relevant_columns))
-        x_ref_relcols = x_ref.transpose()[relevant_columns].transpose()
-        # Relevant rows, those with sum of row > 0
-        x_ref_relrows = np.sum(x_ref_relcols, axis=1) > 0
-        x_ref_rel = x_ref[x_ref_relrows]
-        y_ref_rel = y_ref[x_ref_relrows]
-
-        v_ok = npUtil.NumpyUtil.convert_dimension(arr=v, to_dim=2)
-        # if v.ndim == 1:
-        #     # Convert to 2 dimensions
-        #     v_ok = np.array([v])
-
-        # Create an array with the same number of rows with rfv
-        vv = np.repeat(a=v_ok, repeats=x_ref_rel.shape[0], axis=0)
-        log.Log.debugdebug('vv repeat: ' + str(vv))
-
-        dif = vv - x_ref_rel
-        log.Log.debugdebug('dif with x_ref: ' + str(dif))
-
-        # Square every element in the matrix
-        dif2 = np.power(dif, 2)
-        log.Log.debugdebug('dif squared: ' + str(dif2))
-
-        # Sum every row to create a single column matrix
-        dif2_sum = dif2.sum(axis=1)
-        log.Log.debugdebug('dif aggregated sum: ' + str(dif2_sum))
-
-        # Take the square root of every element in the single column matrix as distance
-        distance_x_ref = np.power(dif2_sum, 0.5)
-        log.Log.debugdebug('distance to x_ref: ' + str(distance_x_ref))
-
-        # Convert to a single row matrix
-        distance_x_ref = distance_x_ref.transpose()
-        log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
-
-        if self.do_profiling:
-            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
-            log.Log.important(
-                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING calc_distance_of_point_to_x_ref(): ' + str(round(1000*prf_dur,0))
-                + ' milliseconds.'
-            )
-
-        class retclass:
-            def __init__(self, distance_x_rel, y_rel):
-                self.distance_x_rel = distance_x_ref
-                self.y_rel = y_rel
-
-        return retclass(distance_x_rel=distance_x_ref, y_rel=y_ref_rel)
-
-    #
     # Get all class proximity scores to a point
     #
     def calc_proximity_class_score_to_point(
@@ -541,12 +468,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
         distance_x_ref = None
         y_ref_rel = None
         if include_rfv:
-            retobj = self.calc_distance_of_point_to_x_ref(
-                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref)
+            retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
+                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref, do_profiling=self.do_profiling)
             distance_x_ref = retobj.distance_x_rel
             y_ref_rel = retobj.y_rel
-        retobj = self.calc_distance_of_point_to_x_ref(
-            v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered)
+        retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
+            v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered, do_profiling=self.do_profiling)
         distance_x_clustered = retobj.distance_x_rel
         y_clustered_rel = retobj.y_rel
 

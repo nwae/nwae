@@ -258,49 +258,6 @@ class Ut:
         print(predict_result.mse_norm)
         return
 
-        predict_result = ms.predict_classes(
-            x           = reordered_test_x,
-            include_rfv = include_rfv,
-            include_match_details = include_match_details,
-            top = top
-        )
-        y_observed = predict_result.predicted_classes
-        # Just the top predicted ones
-        y_observed_top = []
-        for item in y_observed:
-            y_observed_top.append(item[0])
-        top_class_distance = predict_result.top_class_distance
-        match_details = predict_result.match_details
-
-        mse = np.sum(np.multiply(top_class_distance, top_class_distance))
-        mse_norm = mse / (msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST ** 2)
-
-        print(y_observed)
-        print(top_class_distance)
-        print(match_details)
-        print('MSE = ' + str(mse))
-        print('MSE normalized = ' + str(mse_norm))
-
-        # Mean square error
-
-        # Compare with expected
-        #x_classes_expected = ms.training_data.get_y()
-        x_classes_expected = self.y
-        print(x_classes_expected)
-
-        # Compare with expected
-        compare_top = (y_observed_top != x_classes_expected)
-        compare_top_x = {}
-
-        for t in range(1,top+1,1):
-            compare_top_x[t] = np.array([True] * len(y_observed))
-            for i in range(len(y_observed)):
-                matches_i = y_observed[i]
-                if x_classes_expected[i] in matches_i[0:t]:
-                    compare_top_x[t][i] = False
-            print(compare_top_x[t])
-            print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
-
 
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
