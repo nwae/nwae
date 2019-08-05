@@ -54,6 +54,9 @@ class Example:
         test_loss, test_acc = network.evaluate(test_images, test_labels)
         print('Test accuracy: ', test_acc)
 
+        prd = network.predict_classes(x=test_images[0:10])
+        print(prd)
+
         return
 
 
