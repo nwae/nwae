@@ -4,6 +4,7 @@ from keras.datasets import mnist
 from keras import models
 from keras import layers
 from keras.utils import to_categorical
+import mozg.common.util.ObjectPersistence as objper
 
 
 class Image_Bw:
@@ -11,7 +12,19 @@ class Image_Bw:
     def __init__(self):
         return
 
-    def test(self):
+    def load_network(
+            self
+    ):
+        b = ObjectPersistence.deserialize_object_from_file(
+            obj_file_path=obj_file_path,
+            lock_file_path=lock_file_path,
+            verbose=3
+        )
+
+    def train(
+            self,
+            network_file_path
+    ):
         (train_images, train_labels),(test_images, test_labels) = mnist.load_data()
 
         print('Data type train images "' + str(type(train_images)) + '" shape ' + str(train_images.shape)
@@ -51,6 +64,12 @@ class Image_Bw:
             train_images, train_labels, epochs=5, batch_size=128
         )
 
+        objper.ObjectPersistence.serialize_object_to_file(
+            obj = network,
+            obj_file_path  = network_file_path,
+            lock_file_path = None
+        )
+
         test_loss, test_acc = network.evaluate(test_images, test_labels)
         print('Test accuracy: ', test_acc)
 
@@ -62,4 +81,4 @@ class Image_Bw:
 
 if __name__ == '__main__':
     obj = Image_Bw()
-    obj.test()
+    obj.train(network_file_path='/Users/mark.tan/git/mozg/app.data/general/example.kr.network')
