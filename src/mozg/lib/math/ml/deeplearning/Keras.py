@@ -6,10 +6,6 @@ from keras.datasets import mnist
 from keras import models
 from keras import layers
 from keras.utils import to_categorical
-import numpy as np
-import pandas as pd
-import threading
-import datetime as dt
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
@@ -43,6 +39,9 @@ class Keras(modelIf.ModelInterface):
                     + '", got type "' + str(type(self.training_data))
                     + '" instead from object ' + str(self.training_data) + '.'
                 )
+
+        self.filepath_model = self.dir_path_model + '/' + self.identifier_string + '.model'
+        self.network = None
 
         self.do_profiling = do_profiling
         return
@@ -86,26 +85,35 @@ class Keras(modelIf.ModelInterface):
             self.training_data.get_x(), train_labels, epochs=5, batch_size=128
         )
 
+        self.network = network
         self.persist_training_data_to_storage(network=network)
         return
+
+    def load_model_parameters(
+            self
+    ):
+        self.network = objper.ObjectPersistence.deserialize_object_from_file(
+            obj_file_path = self.filepath_model
+        )
 
     def persist_training_data_to_storage(
             self,
             network
     ):
-        filepath = self.dir_path_model + '/' + self.identifier_string + '.model'
         objper.ObjectPersistence.serialize_object_to_file(
             obj = network,
-            obj_file_path  = filepath,
+            obj_file_path  = self.filepath_model,
             lock_file_path = None
         )
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-            + ': Saved network to file "' + filepath + '".'
+            + ': Saved network to file "' + self.filepath_model + '".'
         )
 
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+
+    do_train = True
 
     # Test data from MNIST
     print('Loading test data from MNIST..')
@@ -120,23 +128,41 @@ if __name__ == '__main__':
 
     print('Total pixels = ' + str(n_pixels))
 
-    train_images = train_images.reshape((n_samples, n_pixels))
-    train_images = train_images.astype('float32') / 255
+    train_images_2d = train_images.reshape((n_samples, n_pixels))
+    train_images_2d = train_images_2d.astype('float32') / 255
 
-    print('Using x with shape ' + str(train_images.shape) + ', and y with shape ' + str(train_labels.shape))
+    print('Using x with shape ' + str(train_images_2d.shape) + ', and y with shape ' + str(train_labels.shape))
 
-    td = tdm.TrainingDataModel(
-        x = train_images,
-        y = train_labels,
-        is_map_points_to_hypersphere = False
-    )
+    if do_train:
+        td = tdm.TrainingDataModel(
+            x = train_images_2d,
+            y = train_labels,
+            is_map_points_to_hypersphere = False
+        )
+
+        kr = Keras(
+            identifier_string = 'keras_image_bw_example',
+            dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models',
+            training_data     = td
+        )
+        print('Training started...')
+        kr.train()
+        print('Training done.')
 
     kr = Keras(
         identifier_string = 'keras_image_bw_example',
-        dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models',
-        training_data     = td
+        dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models'
     )
-    print('Training started...')
-    kr.train()
-    print('Training done.')
+    kr.load_model_parameters()
+
+    test_images_2d = test_images.reshape((10000, 28 * 28))
+    test_images_2d = test_images_2d.astype('float32') / 255
+    test_labels_cat = to_categorical(test_labels)
+
+    test_loss, test_acc = kr.network.evaluate(test_images_2d, test_labels_cat)
+    print('Test accuracy: ', test_acc)
+
+    prd = kr.network.predict_classes(x=test_images_2d[0:10])
+    print(prd)
+
     exit(0)
