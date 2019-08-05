@@ -50,25 +50,27 @@ class Keras(modelIf.ModelInterface):
     def train(
             self
     ):
-        (train_images, train_labels),(test_images, test_labels) = mnist.load_data()
-
         log.Log.info(
-            'Data type train images "' + str(type(train_images)) + '" shape ' + str(train_images.shape)
-            + ', train labels "' + str(type(train_labels)) + '", shape ' + str(train_labels.shape)
+            'Training for data, x shape '  + str(self.training_data.get_x().shape)
+            + ', train labels with shape ' + str(self.training_data.get_y().shape)
         )
 
         network = models.Sequential()
         network.add(
             layers.Dense(
-                units=512,
-                activation = 'relu',
-                input_shape = (28*28,)
+                units       = 512,
+                activation  = 'relu',
+                input_shape = (self.training_data.get_x().shape[1],)
             )
         )
+
+        n_labels = len(list(set(self.training_data.get_y().tolist())))
+        log.Log.info('Total unique labels = ' + str(n_labels) + '.')
+
         network.add(
             layers.Dense(
-                units=10,
-                activation='softmax'
+                units      = n_labels,
+                activation = 'softmax'
             )
         )
 
@@ -78,17 +80,10 @@ class Keras(modelIf.ModelInterface):
             metrics   = ['accuracy']
         )
 
-        train_images = train_images.reshape((60000, 28*28))
-        train_images = train_images.astype('float32') / 255
-
-        test_images = test_images.reshape((10000, 28*28))
-        test_images = test_images.astype('float32') / 255
-
-        train_labels = to_categorical(train_labels)
-        test_labels = to_categorical(test_labels)
+        train_labels = to_categorical(self.training_data.get_y())
 
         network.fit(
-            train_images, train_labels, epochs=5, batch_size=128
+            self.training_data.get_x(), train_labels, epochs=5, batch_size=128
         )
 
         self.persist_training_data_to_storage(network=network)
@@ -98,13 +93,49 @@ class Keras(modelIf.ModelInterface):
             self,
             network
     ):
+        filepath = self.dir_path_model + '/' + self.identifier_string + '.model'
         objper.ObjectPersistence.serialize_object_to_file(
             obj = network,
-            obj_file_path  = self.dir_path_model,
+            obj_file_path  = filepath,
             lock_file_path = None
+        )
+        log.Log.info(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ': Saved network to file "' + filepath + '".'
         )
 
 if __name__ == '__main__':
-    kr = Keras(
-        identifier_string = ''
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+
+    # Test data from MNIST
+    print('Loading test data from MNIST..')
+    (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
+
+    n_samples = train_images.shape[0]
+    n_pixels = 1
+    i = 1
+    while i < train_images.ndim:
+        n_pixels *= train_images.shape[i]
+        i += 1
+
+    print('Total pixels = ' + str(n_pixels))
+
+    train_images = train_images.reshape((n_samples, n_pixels))
+    train_images = train_images.astype('float32') / 255
+
+    print('Using x with shape ' + str(train_images.shape) + ', and y with shape ' + str(train_labels.shape))
+
+    td = tdm.TrainingDataModel(
+        x = train_images,
+        y = train_labels,
     )
+
+    kr = Keras(
+        identifier_string = 'keras_image_bw_example',
+        dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models',
+        training_data     = td
+    )
+    print('Training started...')
+    kr.train()
+    print('Training done.')
+    exit(0)
