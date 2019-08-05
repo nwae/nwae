@@ -10,6 +10,16 @@ class NumpyUtil:
         return
 
     @staticmethod
+    def get_point_pixel_count(x):
+        n_pixels = 1
+        i = 1
+        # Ignore 1st dimension (index=0) which is the point index
+        while i < x.ndim:
+            n_pixels *= x.shape[i]
+            i += 1
+        return n_pixels
+
+    @staticmethod
     def convert_dimension(
             arr,
             to_dim

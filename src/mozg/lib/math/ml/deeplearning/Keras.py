@@ -11,6 +11,8 @@ import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.common.util.ObjectPersistence as objper
+import mozg.lib.math.NumpyUtil as npUtil
+import matplotlib.pyplot as plt
 
 
 class Keras(modelIf.ModelInterface):
@@ -32,19 +34,35 @@ class Keras(modelIf.ModelInterface):
         self.dir_path_model = dir_path_model
         self.training_data = training_data
         if self.training_data is not None:
-            if type(self.training_data) is not tdm.TrainingDataModel:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Training data must be of type "' + str(tdm.TrainingDataModel.__class__)
-                    + '", got type "' + str(type(self.training_data))
-                    + '" instead from object ' + str(self.training_data) + '.'
-                )
+            self.__check_training_data()
 
         self.filepath_model = self.dir_path_model + '/' + self.identifier_string + '.model'
         self.network = None
 
         self.do_profiling = do_profiling
+
+        # Testing only
+        (self.mnist_train_images, self.mnist_train_labels), (self.mnist_test_images, self.mnist_test_labels) =\
+            (None, None), (None, None)
+        self.mnist_train_images_2d = None
+        self.mnist_test_images_2d = None
         return
+
+    def set_training_data(
+            self,
+            td
+    ):
+        self.training_data = td
+        self.__check_training_data()
+
+    def __check_training_data(self):
+        if type(self.training_data) is not tdm.TrainingDataModel:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Training data must be of type "' + str(tdm.TrainingDataModel.__class__)
+                + '", got type "' + str(type(self.training_data))
+                + '" instead from object ' + str(self.training_data) + '.'
+            )
 
     def train(
             self
@@ -111,77 +129,60 @@ class Keras(modelIf.ModelInterface):
         )
 
     def load_mnist_example_data(self):
-        (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
+        # Test data from MNIST
+        log.Log.info('Loading test data from MNIST..')
+        (self.mnist_train_images, self.mnist_train_labels), (self.mnist_test_images, self.mnist_test_labels) =\
+            mnist.load_data()
 
-        n_samples = train_images.shape[0]
-        n_pixels = 1
-        i = 1
+        n_samples = self.mnist_train_images.shape[0]
+        n_pixels = npUtil.NumpyUtil.get_point_pixel_count(self.mnist_train_images)
+        log.Log.debugdebug('Train images, total pixels = ' + str(n_pixels))
+        self.mnist_train_images_2d = self.mnist_train_images.reshape((n_samples, n_pixels))
+        self.mnist_train_images_2d = self.mnist_train_images_2d.astype('float32') / 255
 
-        while i < train_images.ndim:
-            n_pixels *= train_images.shape[i]
-            i += 1
+        n_samples = self.mnist_test_images.shape[0]
+        n_pixels = npUtil.NumpyUtil.get_point_pixel_count(self.mnist_test_images)
+        log.Log.debugdebug('Test images, total pixels = ' + str(n_pixels))
+        self.mnist_test_images_2d = self.mnist_test_images.reshape((n_samples, n_pixels))
+        self.mnist_test_images_2d = self.mnist_test_images_2d.astype('float32') / 255
 
-        print('Total pixels = ' + str(n_pixels))
-
-        train_images_2d = train_images.reshape((n_samples, n_pixels))
-        train_images_2d = train_images_2d.astype('float32') / 255
-
-        print('Using x with shape ' + str(train_images_2d.shape) + ', and y with shape ' + str(train_labels.shape))
+        return
 
 
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
-    do_train = True
+    kr = Keras(
+        identifier_string='keras_image_bw_example',
+        dir_path_model='/Users/mark.tan/git/mozg/app.data/models'
+    )
+    kr.load_mnist_example_data()
 
-    # Test data from MNIST
-    print('Loading test data from MNIST..')
-    (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
-
-    n_samples = train_images.shape[0]
-    n_pixels = 1
-    i = 1
-    while i < train_images.ndim:
-        n_pixels *= train_images.shape[i]
-        i += 1
-
-    print('Total pixels = ' + str(n_pixels))
-
-    train_images_2d = train_images.reshape((n_samples, n_pixels))
-    train_images_2d = train_images_2d.astype('float32') / 255
-
-    print('Using x with shape ' + str(train_images_2d.shape) + ', and y with shape ' + str(train_labels.shape))
+    do_train = False
 
     if do_train:
         td = tdm.TrainingDataModel(
-            x = train_images_2d,
-            y = train_labels,
+            x = kr.mnist_train_images_2d,
+            y = kr.mnist_train_labels,
             is_map_points_to_hypersphere = False
         )
+        kr.set_training_data(td = td)
 
-        kr = Keras(
-            identifier_string = 'keras_image_bw_example',
-            dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models',
-            training_data     = td
-        )
         print('Training started...')
         kr.train()
         print('Training done.')
 
-    kr = Keras(
-        identifier_string = 'keras_image_bw_example',
-        dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models'
-    )
     kr.load_model_parameters()
+    test_labels_cat = to_categorical(kr.mnist_test_labels)
 
-    test_images_2d = test_images.reshape((10000, 28 * 28))
-    test_images_2d = test_images_2d.astype('float32') / 255
-    test_labels_cat = to_categorical(test_labels)
-
-    test_loss, test_acc = kr.network.evaluate(test_images_2d, test_labels_cat)
+    test_loss, test_acc = kr.network.evaluate(kr.mnist_test_images_2d, test_labels_cat)
     print('Test accuracy: ', test_acc)
 
-    prd = kr.network.predict_classes(x=test_images_2d[0:10])
+    prd = kr.network.predict_classes(x=kr.mnist_train_images_2d[0:10])
     print(prd)
+
+    for i in range(10):
+        plt.imshow(kr.mnist_train_images[i], cmap=plt.cm.binary)
+        plt.show()
 
     exit(0)
