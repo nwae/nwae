@@ -6,7 +6,7 @@ from keras import layers
 from keras.utils import to_categorical
 
 
-class Example:
+class Image_Bw:
 
     def __init__(self):
         return
@@ -61,5 +61,5 @@ class Example:
 
 
 if __name__ == '__main__':
-    obj = Example()
+    obj = Image_Bw()
     obj.test()
