@@ -36,7 +36,7 @@ class Keras(modelIf.ModelInterface):
         if self.training_data is not None:
             self.__check_training_data()
 
-        self.filepath_model = self.dir_path_model + '/' + self.identifier_string + '.model'
+        self.filepath_model = self.dir_path_model + '/' + self.identifier_string + '.keras.model'
         self.network = None
 
         self.do_profiling = do_profiling
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     )
     kr.load_mnist_example_data()
 
-    do_train = False
+    do_train = True
 
     if do_train:
         td = tdm.TrainingDataModel(

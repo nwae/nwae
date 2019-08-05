@@ -27,6 +27,7 @@ class UtChat:
 
     def test_train(
             self,
+            model_name = trainer.Trainer.MODEL_NAME_DEFAULT,
             weigh_idf = True,
             # How many of the classes to keep to test training. -1 to keep nothing and train all.
             keep = -1
@@ -50,7 +51,8 @@ class UtChat:
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
             dir_path_model    = self.dir_path_model,
-            training_data     = td
+            training_data     = td,
+            model_name        = model_name
         )
 
         trainer_obj.train()
@@ -149,7 +151,7 @@ if __name__ == '__main__':
     if do_training:
         obj.test_train(
             weigh_idf = True,
-            # keep      = 10
+            model_name = trainer.Trainer.MODEL_NAME_DEFAULT
         )
         exit(0)
 
