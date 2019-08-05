@@ -24,7 +24,8 @@ class TrainingDataModel:
             # np array 형식으호. Имена дименций x
             x_name = None,
             # np array 형식으호
-            y_name = None
+            y_name = None,
+            is_map_points_to_hypersphere = True
     ):
         # Only positive real values
         self.x = x
@@ -57,6 +58,7 @@ class TrainingDataModel:
                 + ': y_name must be np.array type, got type "' + str(type(self.y_name)) + '".'
             )
 
+        # TODO This is super slow, need to do something else faster
         # Change label to string type
         y_str = np.array([])
         for el in self.y:
@@ -68,7 +70,8 @@ class TrainingDataModel:
         self.w = np.array([1]*self.x_name.shape[0])
 
         self.__check_xy_consistency()
-        self.__remove_points_not_on_hypersphere()
+        if is_map_points_to_hypersphere:
+            self.__remove_points_not_on_hypersphere()
 
         return
 

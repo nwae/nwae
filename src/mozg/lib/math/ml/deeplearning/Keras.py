@@ -128,6 +128,7 @@ if __name__ == '__main__':
     td = tdm.TrainingDataModel(
         x = train_images,
         y = train_labels,
+        is_map_points_to_hypersphere = False
     )
 
     kr = Keras(
