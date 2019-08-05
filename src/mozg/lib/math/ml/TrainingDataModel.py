@@ -25,7 +25,8 @@ class TrainingDataModel:
             x_name = None,
             # np array 형식으호
             y_name = None,
-            is_map_points_to_hypersphere = True
+            is_map_points_to_hypersphere = True,
+            is_convert_y_label_to_str_type = True
     ):
         # Only positive real values
         self.x = x
@@ -60,11 +61,8 @@ class TrainingDataModel:
 
         # TODO This is super slow, need to do something else faster
         # Change label to string type
-        y_str = np.array([])
-        for el in self.y:
-            el_str = str(el)
-            y_str = np.append(y_str, el_str)
-        self.y = y_str
+        if is_convert_y_label_to_str_type:
+            self.y = self.y.astype('str')
 
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])

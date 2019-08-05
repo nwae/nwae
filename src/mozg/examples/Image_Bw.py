@@ -5,6 +5,7 @@ from keras import models
 from keras import layers
 from keras.utils import to_categorical
 import mozg.common.util.ObjectPersistence as objper
+import mozg.lib.math.ml.deeplearning.Keras as keras
 
 
 class Image_Bw:

@@ -110,6 +110,25 @@ class Keras(modelIf.ModelInterface):
             + ': Saved network to file "' + self.filepath_model + '".'
         )
 
+    def load_mnist_example_data(self):
+        (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
+
+        n_samples = train_images.shape[0]
+        n_pixels = 1
+        i = 1
+
+        while i < train_images.ndim:
+            n_pixels *= train_images.shape[i]
+            i += 1
+
+        print('Total pixels = ' + str(n_pixels))
+
+        train_images_2d = train_images.reshape((n_samples, n_pixels))
+        train_images_2d = train_images_2d.astype('float32') / 255
+
+        print('Using x with shape ' + str(train_images_2d.shape) + ', and y with shape ' + str(train_labels.shape))
+
+
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
