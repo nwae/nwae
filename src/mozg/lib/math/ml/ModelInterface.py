@@ -111,3 +111,13 @@ class ModelInterface(threading.Thread):
             self
     ):
         return False
+
+    def persist_training_data_to_storage(
+            self
+    ):
+        return
+
+    def load_training_data_from_storage(
+            self
+    ):
+        return

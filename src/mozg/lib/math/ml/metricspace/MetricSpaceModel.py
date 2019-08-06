@@ -878,9 +878,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
             prf_start = prf.Profiling.start()
             # For debugging only, not required by model
-            self.model_data.persist_training_data_to_storage(
-                td = self.training_data
-            )
+            self.persist_training_data_to_storage()
             if self.do_profiling:
                 log.Log.important(
                     str(self.__class__) + str(getframeinfo(currentframe()).lineno)
@@ -926,7 +924,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
             )
         return
 
-    def load_training_data_from_storage(self):
+    def persist_training_data_to_storage(
+            self
+    ):
+        # For debugging only, not required by model
+        self.model_data.persist_training_data_to_storage(
+            td = self.training_data
+        )
+        return
+
+    def load_training_data_from_storage(
+            self
+    ):
         prf_start = prf.Profiling.start()
 
         try:
