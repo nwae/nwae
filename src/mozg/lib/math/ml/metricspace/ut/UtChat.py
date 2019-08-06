@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     obj = UtChat()
     model_name = trainer.Trainer.MODEL_NAME_DEFAULT
-    # model_name = trainer.Trainer.MODEL_NAME_KERAS
+    #model_name = trainer.Trainer.MODEL_NAME_KERAS
     do_training = False
 
     if do_training:
@@ -168,6 +168,7 @@ if __name__ == '__main__':
 
     obj.test_predict_classes(
         #indexes_to_test=[107,131],
+        model_name  = model_name,
         include_rfv = False,
         include_match_details = False,
         top = 5
