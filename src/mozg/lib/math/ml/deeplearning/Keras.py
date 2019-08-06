@@ -64,6 +64,20 @@ class Keras(modelIf.ModelInterface):
                 + '" instead from object ' + str(self.training_data) + '.'
             )
 
+    def predict_class(
+            self,
+            # ndarray type of >= 2 dimensions, single point/row array
+            x
+    ):
+        return kr.network.predict_classes(x=x[0])
+
+    def predict_classes(
+            self,
+            # ndarray type of >= 2 dimensions
+            x
+    ):
+        return kr.network.predict_classes(x=x)
+
     def train(
             self
     ):

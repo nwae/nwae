@@ -81,7 +81,8 @@ class ModelInterface(threading.Thread):
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions
-            x):
+            x
+    ):
         return
 
     def predict_class(

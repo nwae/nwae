@@ -6,6 +6,7 @@ from inspect import currentframe, getframeinfo
 import mozg.lib.chat.classification.training.ChatTrainingData as ctd
 import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import mozg.lib.math.ml.deeplearning.Keras as krModel
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.common.util.Profiling as prf
 import mozg.ConfigFile as cf
@@ -60,6 +61,7 @@ class UtChat:
 
     def test_predict_classes(
             self,
+            model_name = trainer.Trainer.MODEL_NAME_DEFAULT,
             indexes_to_test = None,
             include_rfv = False,
             include_match_details = False,
@@ -69,18 +71,25 @@ class UtChat:
         #
         # Now read back params and predict classes
         #
-        ms_pc = msModel.MetricSpaceModel(
-            identifier_string = self.identifier_string,
-            # Directory to keep all our model files
-            dir_path_model    = self.dir_path_model,
-            do_profiling      = False
-        )
-        ms_pc.load_model_parameters()
-        ms_pc.load_training_data_from_storage()
+        model = None
+        if model_name == trainer.Trainer.MODEL_NAME_KERAS:
+            model = krModel.Keras(
+                identifier_string = self.identifier_string,
+                dir_path_model    = self.dir_path_model,
+                do_profiling      = False
+            )
+        else:
+            model = msModel.MetricSpaceModel(
+                identifier_string = self.identifier_string,
+                # Directory to keep all our model files
+                dir_path_model    = self.dir_path_model,
+                do_profiling      = False
+            )
+            model.load_model_parameters()
+            model.load_training_data_from_storage()
 
-        x = ms_pc.training_data.get_x()
-        x_name = ms_pc.training_data.get_x_name()
-        y = ms_pc.training_data.get_y()
+        x = model.training_data.get_x()
+        y = model.training_data.get_y()
 
         if indexes_to_test is None:
             indexes_to_test = range(x.shape[0])
@@ -92,7 +101,7 @@ class UtChat:
         mse_norm = 0
 
         for i in indexes_to_test:
-            predict_result = ms_pc.predict_class(
+            predict_result = model.predict_class(
                 x           = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
                 include_rfv = include_rfv,
                 include_match_details = include_match_details,
@@ -146,12 +155,14 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    do_training = True
+    model_name = trainer.Trainer.MODEL_NAME_DEFAULT
+    # model_name = trainer.Trainer.MODEL_NAME_KERAS
+    do_training = False
 
     if do_training:
         obj.test_train(
             weigh_idf = True,
-            model_name = trainer.Trainer.MODEL_NAME_KERAS
+            model_name = model_name
         )
         exit(0)
 
