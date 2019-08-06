@@ -68,25 +68,33 @@ class Keras(modelIf.ModelInterface):
             self
     ):
         log.Log.info(
-            'Training for data, x shape '  + str(self.training_data.get_x().shape)
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ': Training for data, x shape '  + str(self.training_data.get_x().shape)
             + ', train labels with shape ' + str(self.training_data.get_y().shape)
         )
+
+        x = self.training_data.get_x().copy()
+        y = self.training_data.get_y().copy()
+        train_labels_categorical = to_categorical(y)
 
         network = models.Sequential()
         network.add(
             layers.Dense(
                 units       = 512,
                 activation  = 'relu',
-                input_shape = (self.training_data.get_x().shape[1],)
+                input_shape = (x.shape[1],)
             )
         )
 
-        n_labels = len(list(set(self.training_data.get_y().tolist())))
-        log.Log.info('Total unique labels = ' + str(n_labels) + '.')
+        n_labels = len(list(set(y.tolist())))
+        log.Log.info(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + 'Total unique labels = ' + str(n_labels) + '.'
+        )
 
         network.add(
             layers.Dense(
-                units      = n_labels,
+                units      = train_labels_categorical.shape[1],
                 activation = 'softmax'
             )
         )
@@ -97,10 +105,14 @@ class Keras(modelIf.ModelInterface):
             metrics   = ['accuracy']
         )
 
-        train_labels = to_categorical(self.training_data.get_y())
+        log.Log.info(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ': Categorical Train label shape "' + str(train_labels_categorical.shape)
+            + '":\n\r' + str(train_labels_categorical)
+        )
 
         network.fit(
-            self.training_data.get_x(), train_labels, epochs=5, batch_size=128
+            x, train_labels_categorical, epochs=5, batch_size=128
         )
 
         self.network = network

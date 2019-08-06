@@ -146,12 +146,12 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    do_training = False
+    do_training = True
 
     if do_training:
         obj.test_train(
             weigh_idf = True,
-            model_name = trainer.Trainer.MODEL_NAME_DEFAULT
+            model_name = trainer.Trainer.MODEL_NAME_KERAS
         )
         exit(0)
 
