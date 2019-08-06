@@ -157,7 +157,7 @@ if __name__ == '__main__':
     obj = UtChat()
     model_name = trainer.Trainer.MODEL_NAME_DEFAULT
     #model_name = trainer.Trainer.MODEL_NAME_KERAS
-    do_training = True
+    do_training = False
 
     if do_training:
         obj.test_train(
