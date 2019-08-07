@@ -80,7 +80,10 @@ class Keras(modelIf.ModelInterface):
             # ndarray type of >= 2 dimensions
             x
     ):
-        return kr.network.predict_classes(x=x)
+        p = self.network.predict_classes(x=x)
+        return Keras.predict_class_retclass(
+            predicted_classes = p
+        )
 
     def train(
             self
@@ -213,8 +216,8 @@ if __name__ == '__main__':
     test_loss, test_acc = kr.network.evaluate(kr.mnist_test_images_2d, test_labels_cat)
     print('Test accuracy: ', test_acc)
 
-    prd = kr.network.predict_classes(x=kr.mnist_train_images_2d[0:10])
-    print(prd)
+    prd = kr.predict_classes(x=kr.mnist_train_images_2d[0:10])
+    print(prd.predicted_classes)
 
     for i in range(10):
         plt.imshow(kr.mnist_train_images[i], cmap=plt.cm.binary)
