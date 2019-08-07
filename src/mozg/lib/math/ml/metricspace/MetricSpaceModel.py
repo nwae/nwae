@@ -77,7 +77,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = True
     ):
         super(MetricSpaceModel, self).__init__(
-            identifier_string = identifier_string
+            identifier_string = identifier_string,
+            dir_path_model    = dir_path_model
         )
 
         self.identifier_string = identifier_string
@@ -867,24 +868,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
                 )
 
-            prf_start = prf.Profiling.start()
-            self.model_data.persist_model_to_storage()
-            if self.do_profiling:
-                log.Log.important(
-                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ' PROFILING persist_model_to_storage(): '
-                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-                )
-
-            prf_start = prf.Profiling.start()
-            # For debugging only, not required by model
-            self.persist_training_data_to_storage()
-            if self.do_profiling:
-                log.Log.important(
-                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ' PROFILING persist_training_data_to_storage(): '
-                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-                )
+            self.persist_model_to_storage()
+            self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
@@ -894,6 +879,19 @@ class MetricSpaceModel(modelIf.ModelInterface):
         finally:
             self.__mutex_training.release()
 
+        return
+
+    def persist_model_to_storage(
+            self
+    ):
+        prf_start = prf.Profiling.start()
+        self.model_data.persist_model_to_storage()
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING persist_model_to_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
         return
 
     #
@@ -925,12 +923,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
         return
 
     def persist_training_data_to_storage(
-            self
+            self,
+            td
     ):
+        prf_start = prf.Profiling.start()
         # For debugging only, not required by model
-        self.model_data.persist_training_data_to_storage(
-            td = self.training_data
-        )
+        self.model_data.persist_training_data_to_storage(td=self.training_data)
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING persist_training_data_to_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
         return
 
     def load_training_data_from_storage(

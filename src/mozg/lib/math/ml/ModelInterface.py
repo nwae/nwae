@@ -4,6 +4,9 @@ import threading
 import time
 import mozg.common.util.Log as log
 from inspect import currentframe, getframeinfo
+import pandas as pd
+import numpy as np
+import mozg.lib.math.ml.TrainingDataModel as tdm
 
 
 #
@@ -23,15 +26,24 @@ class ModelInterface(threading.Thread):
 
     def __init__(
             self,
-            identifier_string
+            identifier_string,
+            dir_path_model
     ):
         super(ModelInterface, self).__init__()
 
         self.identifier_string = identifier_string
+        self.dir_path_model = dir_path_model
 
         self.stoprequest = threading.Event()
 
         self.__mutex_load_model = threading.Lock()
+
+        # Training data for testing back only
+        prefix = self.dir_path_model + '/' + self.identifier_string
+        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
+        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
+        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
+
         return
 
     def join(self, timeout=None):
@@ -97,6 +109,11 @@ class ModelInterface(threading.Thread):
     ):
         return
 
+    def persist_model_to_storage(
+            self
+    ):
+        return
+
     def load_model_parameters(
             self
     ):
@@ -113,11 +130,96 @@ class ModelInterface(threading.Thread):
         return False
 
     def persist_training_data_to_storage(
-            self
+            self,
+            td
     ):
+        #
+        # Write back training data to file, for testing back the model only, not needed for the model
+        #
+        df_td_x = pd.DataFrame(
+            data    = td.get_x(),
+            columns = td.get_x_name(),
+            index   = td.get_y()
+        )
+        df_td_x.sort_index(inplace=True)
+        df_td_x.to_csv(
+            path_or_buf = self.fpath_training_data_x,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
+            + ' filepath "' + self.fpath_training_data_x + '"'
+        )
+
+        df_td_x_name = pd.DataFrame(td.get_x_name())
+        df_td_x_name.to_csv(
+            path_or_buf = self.fpath_training_data_x_name,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
+            + ' filepath "' + self.fpath_training_data_x_name + '"'
+        )
+
+        df_td_y = pd.DataFrame(
+            data  = td.get_y_name(),
+            index = td.get_y()
+        )
+        df_td_y.to_csv(
+            path_or_buf = self.fpath_training_data_y,
+            index       = True,
+            index_label = 'INDEX'
+        )
+        log.Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
+            + ' filepath "' + self.fpath_training_data_y + '"'
+        )
         return
 
     def load_training_data_from_storage(
             self
     ):
-        return
+        try:
+            df_td_x = pd.read_csv(
+                filepath_or_buffer=self.fpath_training_data_x,
+                sep=',',
+                index_col='INDEX'
+            )
+            df_td_x_name = pd.read_csv(
+                filepath_or_buffer=self.fpath_training_data_x_name,
+                sep=',',
+                index_col='INDEX'
+            )
+            df_td_y = pd.read_csv(
+                filepath_or_buffer=self.fpath_training_data_y,
+                sep=',',
+                index_col='INDEX'
+            )
+
+            td = tdm.TrainingDataModel(
+                x      = np.array(df_td_x.values),
+                x_name = np.array(df_td_x_name.values).transpose()[0],
+                # y is the index remember, the column is y_name
+                y      = np.array(df_td_y.index),
+                y_name = np.array(df_td_y.values).transpose()[0],
+            )
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Training Data x read ' + str(df_td_x.shape) + ' shape'
+                + ', x_name read ' + str(df_td_x_name.shape)
+                + '\n\r' + str(td.get_x_name())
+                + ', y read ' + str(df_td_y.shape)
+                + '\n\r' + str(td.get_y())
+            )
+            return td
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Load training data from file failed for identifier "' + self.identifier_string\
+                     + '". Error msg "' + str(ex) + '".'
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)

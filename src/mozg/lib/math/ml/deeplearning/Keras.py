@@ -28,7 +28,8 @@ class Keras(modelIf.ModelInterface):
             do_profiling = True
     ):
         super(Keras,self).__init__(
-            identifier_string = identifier_string
+            identifier_string = identifier_string,
+            dir_path_model    = dir_path_model
         )
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
@@ -130,7 +131,8 @@ class Keras(modelIf.ModelInterface):
         )
 
         self.network = network
-        self.persist_training_data_to_storage(network=network)
+        self.persist_model_to_storage(network=network)
+        self.persist_training_data_to_storage(td=self.training_data)
         return
 
     def load_model_parameters(
@@ -140,9 +142,9 @@ class Keras(modelIf.ModelInterface):
             obj_file_path = self.filepath_model
         )
 
-    def persist_training_data_to_storage(
+    def persist_model_to_storage(
             self,
-            network
+            network = None
     ):
         objper.ObjectPersistence.serialize_object_to_file(
             obj = network,
@@ -153,6 +155,10 @@ class Keras(modelIf.ModelInterface):
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Saved network to file "' + self.filepath_model + '".'
         )
+        self.persist_training_data_to_storage(
+            td = self.training_data
+        )
+        return
 
     def load_mnist_example_data(self):
         # Test data from MNIST
