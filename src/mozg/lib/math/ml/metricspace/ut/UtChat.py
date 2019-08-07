@@ -110,15 +110,18 @@ class UtChat:
                     include_match_details = include_match_details,
                     top = top
                 )
+                y_observed = predict_result.predicted_classes
             else:
                 predict_result = model.predict_class(
                     x = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2)
                 )
+                y_observed_raw = predict_result.predicted_classes
+                y_observed = []
+                for item in y_observed_raw:
+                    y_observed.append(str(item))
 
             # Just the first row
-            y_observed = predict_result.predicted_classes
             top_class_distance = predict_result.top_class_distance
-            match_details = predict_result.match_details
 
             count_all += 1
             ok = [0]*top
