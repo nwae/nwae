@@ -70,7 +70,7 @@ class Keras(modelIf.ModelInterface):
             # ndarray type of >= 2 dimensions, single point/row array
             x
     ):
-        return kr.network.predict_classes(x=x[0])
+        return self.network.predict_classes(x=x)
 
     def predict_classes(
             self,

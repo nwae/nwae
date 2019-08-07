@@ -103,12 +103,17 @@ class UtChat:
         mse_norm = 0
 
         for i in indexes_to_test:
-            predict_result = model.predict_class(
-                x           = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
-                include_rfv = include_rfv,
-                include_match_details = include_match_details,
-                top = top
-            )
+            if model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
+                predict_result = model.predict_class(
+                    x           = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2),
+                    include_rfv = include_rfv,
+                    include_match_details = include_match_details,
+                    top = top
+                )
+            else:
+                predict_result = model.predict_class(
+                    x = npUtil.NumpyUtil.convert_dimension(arr=x[i],to_dim=2)
+                )
 
             # Just the first row
             y_observed = predict_result.predicted_classes
