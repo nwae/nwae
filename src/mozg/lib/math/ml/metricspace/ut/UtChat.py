@@ -156,7 +156,7 @@ class UtChat:
         log.Log.important(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ' PROFILING ' + str(count_all) + ' calculations: ' + str(round(1000*prf_dur,0))
-            + ', or ' + str(round(1000*prf_dur/count_all,0)) + ' milliseconds per calculation'
+            + ', or ' + str(round(1000*prf_dur/count_all,2)) + ' milliseconds per calculation'
         )
 
 
@@ -166,8 +166,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    model_name = trainer.Trainer.MODEL_NAME_DEFAULT
-    #model_name = trainer.Trainer.MODEL_NAME_KERAS
+    #model_name = trainer.Trainer.MODEL_NAME_DEFAULT
+    model_name = trainer.Trainer.MODEL_NAME_KERAS
     do_training = False
 
     if do_training:
