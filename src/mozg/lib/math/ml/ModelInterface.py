@@ -39,6 +39,7 @@ class ModelInterface(threading.Thread):
         self.__mutex_load_model = threading.Lock()
 
         # Training data for testing back only
+        self.training_data = None
         prefix = self.dir_path_model + '/' + self.identifier_string
         self.fpath_training_data_x          = prefix + '.training_data.x.csv'
         self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
@@ -216,7 +217,7 @@ class ModelInterface(threading.Thread):
                 + ', y read ' + str(df_td_y.shape)
                 + '\n\r' + str(td.get_y())
             )
-            return td
+            self.training_data = td
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Load training data from file failed for identifier "' + self.identifier_string\

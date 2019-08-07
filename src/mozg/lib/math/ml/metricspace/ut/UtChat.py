@@ -78,6 +78,8 @@ class UtChat:
                 dir_path_model    = self.dir_path_model,
                 do_profiling      = False
             )
+            model.load_model_parameters()
+            model.load_training_data_from_storage()
         else:
             model = msModel.MetricSpaceModel(
                 identifier_string = self.identifier_string,
@@ -155,8 +157,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    model_name = trainer.Trainer.MODEL_NAME_DEFAULT
-    #model_name = trainer.Trainer.MODEL_NAME_KERAS
+    #model_name = trainer.Trainer.MODEL_NAME_DEFAULT
+    model_name = trainer.Trainer.MODEL_NAME_KERAS
     do_training = False
 
     if do_training:
