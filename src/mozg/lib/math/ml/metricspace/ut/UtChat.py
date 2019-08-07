@@ -132,10 +132,11 @@ class UtChat:
                 if y[i] == y_observed[top_i]:
                     match_in_top = top_i+1
 
-            metric = top_class_distance
-            metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
-            mse += metric ** 2
-            mse_norm += metric_norm ** 2
+            if top_class_distance is not None:
+                metric = top_class_distance
+                metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
+                mse += metric ** 2
+                mse_norm += metric_norm ** 2
 
             msg = str(i) + '. Expected ' + str(y[i]) + ', got ' + str(y_observed)
             msg += '. Top match position #' + str(match_in_top) + ''
@@ -162,8 +163,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     obj = UtChat()
-    #model_name = trainer.Trainer.MODEL_NAME_DEFAULT
-    model_name = trainer.Trainer.MODEL_NAME_KERAS
+    model_name = trainer.Trainer.MODEL_NAME_DEFAULT
+    #model_name = trainer.Trainer.MODEL_NAME_KERAS
     do_training = False
 
     if do_training:

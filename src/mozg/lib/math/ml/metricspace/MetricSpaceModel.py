@@ -510,20 +510,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Mean square error MSE and MSE normalized
         top_class_distance = np.array(top_class_distance)
 
-        class retclass:
-            def __init__(
-                    self,
-                    predicted_classes,
-                    top_class_distance,
-                    match_details
-            ):
-                self.predicted_classes = predicted_classes
-                # The top class and shortest distances (so that we can calculate sum of squared error
-                self.top_class_distance = top_class_distance
-                self.match_details = match_details
-                return
-
-        retval = retclass(
+        retval = MetricSpaceModel.predict_class_retclass(
             predicted_classes  = np.array(top_classes_label),
             top_class_distance = top_class_distance,
             match_details      = df_class_score,

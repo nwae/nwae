@@ -24,6 +24,19 @@ class ModelInterface(threading.Thread):
     # Matching
     MATCH_TOP = 10
 
+    class predict_class_retclass:
+        def __init__(
+                self,
+                predicted_classes,
+                top_class_distance = None,
+                match_details = None
+        ):
+            self.predicted_classes = predicted_classes
+            # The top class and shortest distances (so that we can calculate sum of squared error
+            self.top_class_distance = top_class_distance
+            self.match_details = match_details
+            return
+
     def __init__(
             self,
             identifier_string,
