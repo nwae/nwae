@@ -19,7 +19,7 @@ class ModelData:
     # Sometimes when our dataframe index is in non-string format, they pose an inconsistency
     # and causes problems, so we standardize all index to string type
     #
-    CONVERT_DATAFRAME_INDEX_TO_STR = True
+    CONVERT_DATAFRAME_INDEX_TO_STR = False
 
     def __init__(
             self,
@@ -525,7 +525,8 @@ class ModelData:
         return
 
     def load_training_data_from_storage(
-            self
+            self,
+            is_convert_y_label_to_str_type = False
     ):
         try:
             self.__model_mutex.acquire()
@@ -552,6 +553,7 @@ class ModelData:
                 # y is the index remember, the column is y_name
                 y      = np.array(df_td_y.index),
                 y_name = np.array(df_td_y.values).transpose()[0],
+                is_convert_y_label_to_str_type = is_convert_y_label_to_str_type
             )
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

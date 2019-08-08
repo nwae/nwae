@@ -125,6 +125,8 @@ class ConfigFile:
             ConfigFile.init_config(
                 topdir = pv['topdir']
             )
+
+            lg.Log.LOGLEVEL = float(pv['loglevel'])
         except Exception as ex:
             errmsg = str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error reading app config file "' + str(config_file)\

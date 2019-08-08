@@ -32,6 +32,9 @@ class TrainingDataModel:
         self.y = y
         self.y_name = y_name
 
+        self.is_map_points_to_hypersphere = is_map_points_to_hypersphere
+        self.is_convert_y_label_to_str_type = is_convert_y_label_to_str_type
+
         # We try to keep the order of x_name as it was given to us, after any kind of processing
         self.x_name_index = np.array(range(0, self.x.shape[1], 1))
         if x_name is None:
@@ -60,14 +63,14 @@ class TrainingDataModel:
 
         # TODO This is super slow, need to do something else faster
         # Change label to string type
-        if is_convert_y_label_to_str_type:
+        if self.is_convert_y_label_to_str_type:
             self.y = self.y.astype('str')
 
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])
 
         self.__check_xy_consistency()
-        if is_map_points_to_hypersphere:
+        if self.is_map_points_to_hypersphere:
             self.__remove_points_not_on_hypersphere()
 
         return
@@ -153,7 +156,8 @@ class TrainingDataModel:
         self.x = x_w
 
         # Now remove points no longer lying on the hypersphere
-        self.__remove_points_not_on_hypersphere()
+        if self.is_map_points_to_hypersphere:
+            self.__remove_points_not_on_hypersphere()
 
         # #
         # # After weighing, some dimensions may have disappeared (w[i]==0)
@@ -238,15 +242,17 @@ class TrainingDataModel:
             min_v = 0.0
             try:
                 min_v = np.min(v_show)
+                v_show = v_show / min_v
             except Exception as ex:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Cannot get min val for x index ' + str(i)\
+                         + ', point ' + str(v)\
                          + ' , nonzero x_name ' + str(x_name_show)\
                          + ', nonzero values ' + str(v_show) + '.'
-                raise Exception(errmsg)
+                # raise Exception(errmsg)
 
             if min_value_as_one:
-                v_show = np.round(v_show / min_v, 1)
+                v_show = np.round(v_show, 1)
 
             # Column names mean nothing because we convert to values list
             #x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
@@ -288,7 +294,8 @@ class TrainingDataModel:
             # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
             label_name,
             keywords_remove_quartile,
-            stopwords = ()
+            stopwords = (),
+            is_convert_y_label_to_str_type = True
     ):
         log_training = []
 
@@ -400,7 +407,8 @@ class TrainingDataModel:
             x      = sentence_fv,
             x_name = np.array(fv_wordlabels),
             y      = np.array(label_id),
-            y_name = np.array(label_name)
+            y_name = np.array(label_name),
+            is_convert_y_label_to_str_type = is_convert_y_label_to_str_type
         )
 
 
@@ -426,14 +434,18 @@ if __name__ == '__main__':
         ]
     )
     y = np.array(
-        ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'C']
+        [1, 1, 1, 2, 2, 2, 3, 3, 3, 3]
     )
     x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
     obj = TrainingDataModel(
         x = x,
         y = y,
-        x_name = x_name
+        x_name = x_name,
+        is_map_points_to_hypersphere = False,
+        is_convert_y_label_to_str_type = False
     )
+    print(obj.get_x())
+    print(obj.get_y())
     x_friendly = obj.get_print_friendly_x()
     print(x_friendly)
     for k in x_friendly.keys():

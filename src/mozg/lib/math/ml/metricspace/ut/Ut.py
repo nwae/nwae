@@ -3,6 +3,7 @@ import pandas as pd
 import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import mozg.lib.math.ml.deeplearning.Keras as krModel
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.NumpyUtil as npUtil
@@ -12,9 +13,12 @@ import mozg.ConfigFile as cf
 class Ut:
 
     def __init__(
-            self
+            self,
+            identifier_string,
+            model_name
     ):
-        self.identifier_string = 'demo_msmodel_testdata'
+        self.identifier_string = identifier_string
+        self.model_name = model_name
 
         self.x_expected = np.array(
             [
@@ -48,7 +52,7 @@ class Ut:
         ]
 
         self.y = np.array(
-            ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C']
+            [1, 1, 1, 2, 2, 2, 3, 3, 3]
         )
         self.x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
         #
@@ -60,7 +64,8 @@ class Ut:
             label_id       = y_list.copy(),
             label_name     = y_list.copy(),
             text_segmented = self.texts,
-            keywords_remove_quartile = 0
+            keywords_remove_quartile = 0,
+            is_convert_y_label_to_str_type = False
         )
 
         self.x_friendly = self.tdm_obj.get_print_friendly_x()
@@ -78,6 +83,7 @@ class Ut:
     ):
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
+            model_name        = self.model_name,
             dir_path_model    = cf.ConfigFile.DIR_MODELS,
             training_data     = self.tdm_obj
         )
@@ -133,7 +139,7 @@ class Ut:
             [0., 0., 0., 0.86323874, 0.5009569, 0.],
             [0., 0., 0., 0.70710678, 0.70710678, 0.]
         ]
-        y_clustered_expected = ['A', 'B', 'C', 'C']
+        y_clustered_expected = [1, 2, 3, 3]
 
     def unit_test_predict_classes(
             self,
@@ -141,12 +147,22 @@ class Ut:
             include_match_details = False,
             top = 5
     ):
-        ms = msModel.MetricSpaceModel(
-            identifier_string = self.identifier_string,
-            # Directory to keep all our model files
-            dir_path_model    = cf.ConfigFile.DIR_MODELS,
-        )
-        ms.load_model_parameters()
+        print('Test predict classes using model "' + str(self.model_name) + '".')
+        if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
+            ms = msModel.MetricSpaceModel(
+                identifier_string = self.identifier_string,
+                # Directory to keep all our model files
+                dir_path_model    = cf.ConfigFile.DIR_MODELS,
+            )
+            ms.load_model_parameters()
+        elif self.model_name == trainer.Trainer.MODEL_NAME_KERAS:
+            ms = krModel.Keras(
+                identifier_string = self.identifier_string,
+                dir_path_model    = cf.ConfigFile.DIR_MODELS
+            )
+            ms.load_model_parameters()
+        else:
+            raise Exception('Unknown model name "' + str(self.model_name) + '".')
 
         test_x = np.array(
             [
@@ -221,7 +237,9 @@ class Ut:
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
-            print('Point v ' + str(v) + '\n\rTop Class Distance: ' + str(top_class_distance))
+            print('Point v ' + str(v) + ', predicted ' + str(y_observed)
+                  + '\n\rTop Class Distance: ' + str(top_class_distance)
+                  + '\n\r, Match Details:\n\r' + str(match_details))
 
             metric = top_class_distance
             metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
@@ -261,11 +279,18 @@ class Ut:
 if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
 
-    obj = Ut()
-    obj.unit_test_train(weigh_idf=True)
-    obj.unit_test_predict_classes(
-        include_rfv = False,
-        include_match_details = False,
-        top = 2
-    )
+    for model_name in [
+            trainer.Trainer.MODEL_NAME_DEFAULT
+            #trainer.Trainer.MODEL_NAME_KERAS,
+    ]:
+        obj = Ut(
+            identifier_string = 'demo_ut1_' + model_name,
+            model_name        = model_name
+        )
+        obj.unit_test_train(weigh_idf=True)
+        obj.unit_test_predict_classes(
+            include_rfv = False,
+            include_match_details = False,
+            top = 2
+        )
 
