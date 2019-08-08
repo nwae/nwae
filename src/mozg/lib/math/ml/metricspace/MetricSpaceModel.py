@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# !!! Will work only on Python 3 and above
-
 import numpy as np
 import pandas as pd
 import threading
