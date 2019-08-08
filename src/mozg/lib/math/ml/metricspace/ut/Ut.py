@@ -64,8 +64,7 @@ class Ut:
             label_id       = y_list.copy(),
             label_name     = y_list.copy(),
             text_segmented = self.texts,
-            keywords_remove_quartile = 0,
-            is_convert_y_label_to_str_type = False
+            keywords_remove_quartile = 0
         )
 
         self.x_friendly = self.tdm_obj.get_print_friendly_x()
@@ -221,7 +220,7 @@ class Ut:
         mse = 0
         mse_norm = 0
 
-        print('Predict classes for x:\n\r' + str(reordered_test_x))
+        log.Log.info('Predict classes for x:\n\r' + str(reordered_test_x))
 
         for i in range(reordered_test_x.shape[0]):
             v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
@@ -237,7 +236,7 @@ class Ut:
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
-            print('Point v ' + str(v) + ', predicted ' + str(y_observed)
+            log.Log.info('Point v ' + str(v) + ', predicted ' + str(y_observed)
                   + '\n\rTop Class Distance: ' + str(top_class_distance)
                   + '\n\r, Match Details:\n\r' + str(match_details))
 
@@ -256,11 +255,11 @@ class Ut:
                 matches_i = all_y_observed[i]
                 if x_classes_expected[i] in matches_i[0:t]:
                     compare_top_x[t][i] = False
-            print(compare_top_x[t])
-            print('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
+            log.Log.info(compare_top_x[t])
+            log.Log.info('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
 
-        print('mse = ' + str(mse))
-        print('mse_norm = ' + str(mse_norm))
+        log.Log.info('mse = ' + str(mse))
+        log.Log.info('mse_norm = ' + str(mse_norm))
 
         predict_result = ms.predict_classes(
                 x           = reordered_test_x,
@@ -268,16 +267,19 @@ class Ut:
                 include_match_details = include_match_details,
                 top = top
             )
-        print(predict_result.predicted_classes)
-        print(predict_result.top_class_distance)
-        print(predict_result.match_details)
-        print(predict_result.mse)
-        print(predict_result.mse_norm)
+        log.Log.info('Predicted Classes:\n\r' + str(predict_result.predicted_classes))
+        log.Log.info('Top class distance:\n\r' + str(predict_result.top_class_distance))
+        log.Log.info('Match Details:\n\r' + str(predict_result.match_details))
+        log.Log.info('MSE = ' + str(predict_result.mse))
+        log.Log.info('MSE Normalized = ' + str(predict_result.mse_norm))
         return
 
 
 if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
+
+    # Overwrite config file log level
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
             trainer.Trainer.MODEL_NAME_DEFAULT

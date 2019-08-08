@@ -74,7 +74,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             stop_features = (),
             # If we will create an "IDF" based on the initial features
             weigh_idf = False,
-            do_profiling = True
+            do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
             identifier_string = identifier_string,

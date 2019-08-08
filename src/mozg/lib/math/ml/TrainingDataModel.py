@@ -25,6 +25,7 @@ class TrainingDataModel:
             x_name = None,
             # np array 형식으호
             y_name = None,
+            # Will normalize points passed in to the hypershere
             is_map_points_to_hypersphere = True,
             # Should only do this in desperation, otherwise we should always deal with numbers only
             is_convert_y_label_to_str_type = False
@@ -73,6 +74,7 @@ class TrainingDataModel:
 
         self.__check_xy_consistency()
         if self.is_map_points_to_hypersphere:
+            self.x = npUtil.NumpyUtil.normalize(x=self.x)
             self.__remove_points_not_on_hypersphere()
 
         return
@@ -440,8 +442,6 @@ if __name__ == '__main__':
     x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
 
     map_to_hypersphere = True
-    if map_to_hypersphere:
-        x = npUtil.NumpyUtil.normalize(x=x)
 
     obj = TrainingDataModel(
         x = x,

@@ -20,6 +20,7 @@ class ConfigFile:
     #
 
     TOP_DIR = None
+    DO_PROFILING = None
 
     #######################################################################
     # Models Stuff
@@ -88,7 +89,7 @@ class ConfigFile:
         pv = {
             'topdir': None,
             'debug': '0',
-            'do_profiling': '1',
+            'do_profiling': '0',
             'loglevel': lg.Log.LOG_LEVEL_INFO
         }
         try:
@@ -113,20 +114,21 @@ class ConfigFile:
                         pv[param] = value
 
             lg.Log.important(
-                str(ConfigFile.__name__) + str(getframeinfo(currentframe()).lineno)
+                str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Read from app config file "' + str(config_file)
                 + ', file lines:\n\r' + str(linelist) + ', properties\n\r' + str(pv)
-                + '\n\r, port override = ' + str(port) + '.'
             )
 
-            #
-            # !!!MOST IMPORTANT, top directory, otherwise all other config/NLP/training/etc. files we won't be able to find
-            #
             ConfigFile.init_config(
                 topdir = pv['topdir']
             )
 
             lg.Log.LOGLEVEL = float(pv['loglevel'])
+            if pv['debug'] == '1':
+                lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+
+            if pv['do_profiling'] == '1':
+                ConfigFile.DO_PROFILING = True
         except Exception as ex:
             errmsg = str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error reading app config file "' + str(config_file)\
@@ -145,6 +147,8 @@ class ConfigFile:
                      + ': Fatal error initializing config, "' + str(topdir) + '" is not a directory!'
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
+
+        ConfigFile.DO_PROFILING = False
 
         #######################################################################
         # Models Stuff
