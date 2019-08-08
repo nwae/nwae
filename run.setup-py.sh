@@ -15,3 +15,5 @@ $PIP uninstall mozg
 # Install back
 $PIP install dist/mozg-0.1.0-py3-none-any.whl
 
+# Copy over to another project
+cp dist/*.whl ../mozg.nlp/wheels
