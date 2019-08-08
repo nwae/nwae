@@ -8,12 +8,12 @@ setup(
         'mozg.lib.math.ml',
         'mozg.lib.math.ml.metricspace',
         'mozg.lib.math.ml.deeplearning',
-        #'mozg.lib.lang',
-        #'mozg.lib.lang.characters',
-        #'mozg.lib.lang.classification',
-        #'mozg.lib.lang.model',
-        #'mozg.lib.lang.nlp',
-        #'mozg.lib.lang.stats'
+        'mozg.lib.lang',
+        'mozg.lib.lang.characters',
+        'mozg.lib.lang.classification',
+        'mozg.lib.lang.model',
+        'mozg.lib.lang.nlp',
+        'mozg.lib.lang.stats'
     ],
     package_dir={'': 'src'},
     url='',
