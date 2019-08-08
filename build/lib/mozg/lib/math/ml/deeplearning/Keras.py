@@ -65,6 +65,12 @@ class Keras(modelIf.ModelInterface):
                 + '" instead from object ' + str(self.training_data) + '.'
             )
 
+    def get_model_features(
+            self
+    ):
+        return None
+        #raise Exception('How to find the number of columns in the network?')
+
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
