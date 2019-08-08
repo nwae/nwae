@@ -5,8 +5,9 @@ setup(
     version='0.1.0',
     packages=[
         'mozg.lib.math',
-        'mozg.lib.math.ml'
-        # 'mozg.lib.math.ml.metricspace',
+        'mozg.lib.math.ml',
+        'mozg.lib.math.ml.metricspace',
+        'mozg.lib.math.ml.deeplearning',
         #'mozg.lib.lang',
         #'mozg.lib.lang.characters',
         #'mozg.lib.lang.classification',
