@@ -20,7 +20,16 @@ import mozg.common.util.Profiling as prf
 #
 # MetricSpace Machine Learning Model
 #
-# The model treat all points as lying on the hypersphere (normalized),
+# TODO Convert to a set of linear layers to speed things up
+# TODO Training must be incremental (or if not incremental, must be fast < 20s)
+# TODO Model must also work for other data types like image/video
+#
+# Model Description:
+#
+# Points can be on any dimensional space, however in this model, we project it all on a hypersphere
+# via normalization.
+# Thus this model is only suitable for directional sensitive data like human text sentences,
+#
 # thus the maximum distance (if euclidean) in the positive section of the hypersphere is 2^0.5=1.4142
 # The formal problem statement is:
 #
@@ -68,7 +77,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = True
     ):
         super(MetricSpaceModel, self).__init__(
-            identifier_string = identifier_string
+            identifier_string = identifier_string,
+            dir_path_model    = dir_path_model
         )
 
         self.identifier_string = identifier_string
@@ -204,79 +214,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
         return idf
-
-    #
-    # Calculates the normalized distance (0 to 1 magnitude range) of a point v (n dimension)
-    # to a set of references (n+1 dimensions or k rows of n dimensional points) by knowing
-    # the theoretical max/min of our hypersphere
-    #
-    def calc_distance_of_point_to_x_ref(
-            self,
-            # Point
-            v,
-            x_ref,
-            y_ref
-    ):
-        prf_start = prf.Profiling.start()
-
-        log.Log.debugdebug('Evaluate distance between v: ' + str(v) + ' and\n\r' + str(x_ref))
-
-        #
-        # Remove rows of x_ref with no common features
-        # This can almost half the time needed for calculation
-        #
-        relevant_columns = v>0
-        relevant_columns = npUtil.NumpyUtil.convert_dimension(arr=relevant_columns, to_dim=1)
-        # Relevant columns of x_ref extracted
-        log.Log.debugdebug('Relevant columns:\n\r' + str(relevant_columns))
-        x_ref_relcols = x_ref.transpose()[relevant_columns].transpose()
-        # Relevant rows, those with sum of row > 0
-        x_ref_relrows = np.sum(x_ref_relcols, axis=1) > 0
-        x_ref_rel = x_ref[x_ref_relrows]
-        y_ref_rel = y_ref[x_ref_relrows]
-
-        v_ok = npUtil.NumpyUtil.convert_dimension(arr=v, to_dim=2)
-        # if v.ndim == 1:
-        #     # Convert to 2 dimensions
-        #     v_ok = np.array([v])
-
-        # Create an array with the same number of rows with rfv
-        vv = np.repeat(a=v_ok, repeats=x_ref_rel.shape[0], axis=0)
-        log.Log.debugdebug('vv repeat: ' + str(vv))
-
-        dif = vv - x_ref_rel
-        log.Log.debugdebug('dif with x_ref: ' + str(dif))
-
-        # Square every element in the matrix
-        dif2 = np.power(dif, 2)
-        log.Log.debugdebug('dif squared: ' + str(dif2))
-
-        # Sum every row to create a single column matrix
-        dif2_sum = dif2.sum(axis=1)
-        log.Log.debugdebug('dif aggregated sum: ' + str(dif2_sum))
-
-        # Take the square root of every element in the single column matrix as distance
-        distance_x_ref = np.power(dif2_sum, 0.5)
-        log.Log.debugdebug('distance to x_ref: ' + str(distance_x_ref))
-
-        # Convert to a single row matrix
-        distance_x_ref = distance_x_ref.transpose()
-        log.Log.debugdebug('distance transposed: ' + str(distance_x_ref))
-
-        if self.do_profiling:
-            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
-            log.Log.important(
-                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING calc_distance_of_point_to_x_ref(): ' + str(round(1000*prf_dur,0))
-                + ' milliseconds.'
-            )
-
-        class retclass:
-            def __init__(self, distance_x_rel, y_rel):
-                self.distance_x_rel = distance_x_ref
-                self.y_rel = y_rel
-
-        return retclass(distance_x_rel=distance_x_ref, y_rel=y_ref_rel)
 
     #
     # Get all class proximity scores to a point
@@ -532,12 +469,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
         distance_x_ref = None
         y_ref_rel = None
         if include_rfv:
-            retobj = self.calc_distance_of_point_to_x_ref(
-                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref)
+            retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
+                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref, do_profiling=self.do_profiling)
             distance_x_ref = retobj.distance_x_rel
             y_ref_rel = retobj.y_rel
-        retobj = self.calc_distance_of_point_to_x_ref(
-            v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered)
+        retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
+            v=v, x_ref=self.model_data.x_clustered, y_ref=self.model_data.y_clustered, do_profiling=self.do_profiling)
         distance_x_clustered = retobj.distance_x_rel
         y_clustered_rel = retobj.y_rel
 
@@ -573,20 +510,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Mean square error MSE and MSE normalized
         top_class_distance = np.array(top_class_distance)
 
-        class retclass:
-            def __init__(
-                    self,
-                    predicted_classes,
-                    top_class_distance,
-                    match_details
-            ):
-                self.predicted_classes = predicted_classes
-                # The top class and shortest distances (so that we can calculate sum of squared error
-                self.top_class_distance = top_class_distance
-                self.match_details = match_details
-                return
-
-        retval = retclass(
+        retval = MetricSpaceModel.predict_class_retclass(
             predicted_classes  = np.array(top_classes_label),
             top_class_distance = top_class_distance,
             match_details      = df_class_score,
@@ -931,26 +855,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
                 )
 
-            prf_start = prf.Profiling.start()
-            self.model_data.persist_model_to_storage()
-            if self.do_profiling:
-                log.Log.important(
-                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ' PROFILING persist_model_to_storage(): '
-                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-                )
-
-            prf_start = prf.Profiling.start()
-            # For debugging only, not required by model
-            self.model_data.persist_training_data_to_storage(
-                td = self.training_data
-            )
-            if self.do_profiling:
-                log.Log.important(
-                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ' PROFILING persist_training_data_to_storage(): '
-                    + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-                )
+            self.persist_model_to_storage()
+            self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
@@ -960,6 +866,19 @@ class MetricSpaceModel(modelIf.ModelInterface):
         finally:
             self.__mutex_training.release()
 
+        return
+
+    def persist_model_to_storage(
+            self
+    ):
+        prf_start = prf.Profiling.start()
+        self.model_data.persist_model_to_storage()
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING persist_model_to_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
         return
 
     #
@@ -990,7 +909,24 @@ class MetricSpaceModel(modelIf.ModelInterface):
             )
         return
 
-    def load_training_data_from_storage(self):
+    def persist_training_data_to_storage(
+            self,
+            td
+    ):
+        prf_start = prf.Profiling.start()
+        # For debugging only, not required by model
+        self.model_data.persist_training_data_to_storage(td=self.training_data)
+        if self.do_profiling:
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING persist_training_data_to_storage(): '
+                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+            )
+        return
+
+    def load_training_data_from_storage(
+            self
+    ):
         prf_start = prf.Profiling.start()
 
         try:
