@@ -7,14 +7,14 @@ import pandas as pd
 import threading
 import datetime as dt
 import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
 import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.lib.math.NumpyUtil as npUtil
-import mozg.common.util.Profiling as prf
+import mozg.utils.Profiling as prf
 
 
 #

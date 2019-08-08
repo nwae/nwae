@@ -2,7 +2,7 @@
 
 import threading
 import time
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import pandas as pd
 import numpy as np

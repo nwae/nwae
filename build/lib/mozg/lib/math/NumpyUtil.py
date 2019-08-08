@@ -1,7 +1,7 @@
 import numpy as np
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.common.util.Profiling as prf
+import mozg.utils.Profiling as prf
 
 
 class NumpyUtil:

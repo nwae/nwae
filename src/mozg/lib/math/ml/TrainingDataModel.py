@@ -5,6 +5,7 @@ import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.lang.classification.TextClusterBasic as tcb
 import mozg.lib.math.Constants as const
+import mozg.lib.math.NumpyUtil as npUtil
 
 
 #
@@ -25,7 +26,8 @@ class TrainingDataModel:
             # np array 형식으호
             y_name = None,
             is_map_points_to_hypersphere = True,
-            is_convert_y_label_to_str_type = True
+            # Should only do this in desperation, otherwise we should always deal with numbers only
+            is_convert_y_label_to_str_type = False
     ):
         # Only positive real values
         self.x = x
@@ -178,8 +180,7 @@ class TrainingDataModel:
     def __check_x_normalized(self):
         for i in range(0,self.x.shape[0],1):
             p = self.x[i]
-            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > const.Constants.SMALL_VALUE
-            if is_not_normalized:
+            if not npUtil.NumpyUtil.is_normalized(x=p):
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                          + ': Tensor x not normalized at row ' + str(i) + '.\n\rPoint=\n\r' + str(p)
                 log.Log.warning(errmsg)
@@ -197,8 +198,8 @@ class TrainingDataModel:
         )
         for i in range(0,self.x.shape[0],1):
             p = self.x[i]
-            is_not_normalized = abs((np.sum(np.multiply(p,p))**0.5) - 1) > const.Constants.SMALL_VALUE
-            if (np.sum(p) < const.Constants.SMALL_VALUE) or (is_not_normalized):
+            is_normalized = npUtil.NumpyUtil.is_normalized(x=p)
+            if (np.sum(p) < const.Constants.SMALL_VALUE) or (not is_normalized):
                 indexes_to_remove.append(i)
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -295,7 +296,7 @@ class TrainingDataModel:
             label_name,
             keywords_remove_quartile,
             stopwords = (),
-            is_convert_y_label_to_str_type = True
+            is_convert_y_label_to_str_type = False
     ):
         log_training = []
 
@@ -437,11 +438,16 @@ if __name__ == '__main__':
         [1, 1, 1, 2, 2, 2, 3, 3, 3, 3]
     )
     x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+
+    map_to_hypersphere = True
+    if map_to_hypersphere:
+        x = npUtil.NumpyUtil.normalize(x=x)
+
     obj = TrainingDataModel(
         x = x,
         y = y,
         x_name = x_name,
-        is_map_points_to_hypersphere = False,
+        is_map_points_to_hypersphere = map_to_hypersphere,
         is_convert_y_label_to_str_type = False
     )
     print(obj.get_x())

@@ -2,6 +2,7 @@ import numpy as np
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.utils.Profiling as prf
+import mozg.lib.math.Constants as const
 
 
 class NumpyUtil:
@@ -9,6 +10,9 @@ class NumpyUtil:
     def __init__(self):
         return
 
+    #
+    # Multiplies the dimensions (not including the first)
+    #
     @staticmethod
     def get_point_pixel_count(x):
         n_pixels = 1
@@ -19,6 +23,9 @@ class NumpyUtil:
             i += 1
         return n_pixels
 
+    #
+    # Converts to desired numpy array dimension, usually to higher dimension.
+    #
     @staticmethod
     def convert_dimension(
             arr,
@@ -137,9 +144,41 @@ class NumpyUtil:
             y_rel          = y_ref_rel
         )
 
+    @staticmethod
+    def normalize(
+            x,
+            rnd = None
+    ):
+        # Make sure it is float, because if x is integer dtype, then a lot of numbers will be rounded to 0
+        y = np.empty(shape=x.shape, dtype=float)
+        for i in range(x.shape[0]):
+            v = x[i]
+            try:
+                mag = np.sum(np.multiply(v, v)) ** 0.5
+                log.Log.debugdebug('Magnitude for ' + str(v) + ' is ' + str(mag))
+                if mag == 0:
+                    continue
+                y[i] = v / mag
+                log.Log.debugdebug('Normalized as: ' + str(y[i]) + '=' + str(v/mag))
+                if not NumpyUtil.is_normalized(x=y[i]):
+                    raise Exception('Failed normalized test.')
+            except Exception as ex:
+                errmsg = str(NumpyUtil.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Exception normalizing vector ' + str(v) + '. Exception message ' + str(ex) + '.'
+                log.Log.error(errmsg)
+
+        if rnd is not None:
+            y = np.round(y, decimals=rnd)
+        return y
+
+    @staticmethod
+    def is_normalized(
+            x
+    ):
+        return (abs((np.sum(np.multiply(x, x)) ** 0.5) - 1) < const.Constants.SMALL_VALUE)
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
     arr = np.array(range(10))
     print(NumpyUtil.convert_dimension(arr=arr, to_dim=1))
     print(NumpyUtil.convert_dimension(arr=arr, to_dim=2))
@@ -149,3 +188,11 @@ if __name__ == '__main__':
     print(NumpyUtil.convert_dimension(arr=arr3, to_dim=3))
     print(NumpyUtil.convert_dimension(arr=arr3, to_dim=2))
     print(NumpyUtil.convert_dimension(arr=arr3, to_dim=1))
+
+    print(NumpyUtil.normalize(np.array([
+        [1,2,3,4,5],
+        [5,3,2,6,7],
+        [1,1,1,1,1],
+        [0,0,0,0,0]
+    ]),
+    rnd=5))

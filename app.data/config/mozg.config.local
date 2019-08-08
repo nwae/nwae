@@ -3,7 +3,7 @@ topdir=/Users/mark.tan/git/mozg
 # Where to store model files
 modeldir=app.data/models
 # See mozg.utils.Log.py for log level details
-loglevel=3.0
+loglevel=2.5
 # All logs go to stdout
 debug=1
 # Profile math code
