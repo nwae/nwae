@@ -180,7 +180,9 @@ class Ut:
             ]
         )
         test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
-        model_x_name = ms.model_data.x_name
+        model_x_name = ms.get_model_features()
+        if model_x_name is None:
+            model_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
         if model_x_name.ndim == 2:
             model_x_name = model_x_name[0]
         print(model_x_name)
@@ -224,12 +226,17 @@ class Ut:
 
         for i in range(reordered_test_x.shape[0]):
             v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
-            predict_result = ms.predict_class(
-                x           = v,
-                include_rfv = include_rfv,
-                include_match_details = include_match_details,
-                top = top
-            )
+            if self.model_name == trainer.Trainer.MODEL_NAME_KERAS:
+                predict_result = ms.predict_class(
+                    x=v
+                )
+            else:
+                predict_result = ms.predict_class(
+                    x           = v,
+                    include_rfv = include_rfv,
+                    include_match_details = include_match_details,
+                    top = top
+                )
             y_observed = predict_result.predicted_classes
             all_y_observed_top.append(y_observed[0])
             all_y_observed.append(y_observed)
@@ -240,10 +247,11 @@ class Ut:
                   + '\n\rTop Class Distance: ' + str(top_class_distance)
                   + '\n\r, Match Details:\n\r' + str(match_details))
 
-            metric = top_class_distance
-            metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
-            mse += metric ** 2
-            mse_norm += metric_norm ** 2
+            if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
+                metric = top_class_distance
+                metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
+                mse += metric ** 2
+                mse_norm += metric_norm ** 2
 
         # Compare with expected
         compare_top = (np.array(all_y_observed_top) != x_classes_expected)
@@ -261,17 +269,18 @@ class Ut:
         log.Log.info('mse = ' + str(mse))
         log.Log.info('mse_norm = ' + str(mse_norm))
 
-        predict_result = ms.predict_classes(
-                x           = reordered_test_x,
-                include_rfv = include_rfv,
-                include_match_details = include_match_details,
-                top = top
-            )
-        log.Log.info('Predicted Classes:\n\r' + str(predict_result.predicted_classes))
-        log.Log.info('Top class distance:\n\r' + str(predict_result.top_class_distance))
-        log.Log.info('Match Details:\n\r' + str(predict_result.match_details))
-        log.Log.info('MSE = ' + str(predict_result.mse))
-        log.Log.info('MSE Normalized = ' + str(predict_result.mse_norm))
+        if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
+            predict_result = ms.predict_classes(
+                    x           = reordered_test_x,
+                    include_rfv = include_rfv,
+                    include_match_details = include_match_details,
+                    top = top
+                )
+            log.Log.info('Predicted Classes:\n\r' + str(predict_result.predicted_classes))
+            log.Log.info('Top class distance:\n\r' + str(predict_result.top_class_distance))
+            log.Log.info('Match Details:\n\r' + str(predict_result.match_details))
+            log.Log.info('MSE = ' + str(predict_result.mse))
+            log.Log.info('MSE Normalized = ' + str(predict_result.mse_norm))
         return
 
 
