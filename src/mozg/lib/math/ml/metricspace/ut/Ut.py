@@ -3,9 +3,10 @@ import pandas as pd
 import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.NumpyUtil as npUtil
+import mozg.ConfigFile as cf
 
 
 class Ut:
@@ -14,8 +15,6 @@ class Ut:
             self
     ):
         self.identifier_string = 'demo_msmodel_testdata'
-        self.topdir = '/Users/mark.tan/git/mozg'
-        self.dir_path_model = self.topdir + '/app.data/models'
 
         self.x_expected = np.array(
             [
@@ -79,7 +78,7 @@ class Ut:
     ):
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
-            dir_path_model    = self.dir_path_model,
+            dir_path_model    = cf.ConfigFile.DIR_MODELS,
             training_data     = self.tdm_obj
         )
 
@@ -145,7 +144,7 @@ class Ut:
         ms = msModel.MetricSpaceModel(
             identifier_string = self.identifier_string,
             # Directory to keep all our model files
-            dir_path_model    = self.dir_path_model,
+            dir_path_model    = cf.ConfigFile.DIR_MODELS,
         )
         ms.load_model_parameters()
 
@@ -260,7 +259,8 @@ class Ut:
 
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    cf.ConfigFile.get_cmdline_params_and_init_config()
+
     obj = Ut()
     obj.unit_test_train(weigh_idf=True)
     obj.unit_test_predict_classes(

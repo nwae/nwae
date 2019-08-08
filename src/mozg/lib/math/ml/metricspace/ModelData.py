@@ -7,7 +7,7 @@ import datetime as dt
 import os
 import threading
 import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.Constants as const
 import mozg.lib.math.NumpyUtil as npUtil

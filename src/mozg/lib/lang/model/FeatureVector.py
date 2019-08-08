@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 import collections as col
-import mozg.common.util.Log as lg
+import mozg.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 

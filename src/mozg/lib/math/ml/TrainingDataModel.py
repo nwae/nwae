@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.common.data.security.Auth as au
 import mozg.lib.lang.classification.TextClusterBasic as tcb
 import mozg.lib.math.Constants as const
 
@@ -406,7 +405,6 @@ class TrainingDataModel:
 
 
 if __name__ == '__main__':
-    au.Auth.init_instances()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     x = np.array(

@@ -7,10 +7,10 @@ from keras import models
 from keras import layers
 from keras.utils import to_categorical
 import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.ml.ModelInterface as modelIf
-import mozg.common.util.ObjectPersistence as objper
+import mozg.utils.ObjectPersistence as objper
 import mozg.lib.math.NumpyUtil as npUtil
 import matplotlib.pyplot as plt
 

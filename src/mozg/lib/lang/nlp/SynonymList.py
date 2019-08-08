@@ -5,13 +5,11 @@
 
 import re
 import pandas as pd
-import mozg.common.util.FileUtils as futil
-import mozg.common.util.StringUtils as su
-import mozg.lib.lang.characters.LangCharacters
-import mozg.lib.lang.LangFeatures
+import mozg.utils.FileUtils as futil
+import mozg.utils.StringUtils as su
 import mozg.lib.lang.nlp.LatinEquivalentForm as lef
 import mozg.lib.lang.characters.LangCharacters as langchar
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 
 
 class SynonymList:
@@ -117,7 +115,7 @@ class SynonymList:
         return text_normalized
 
 
-def demo_1():
+if __name__ == '__main__':
     dirpath_synonymlist = '/Users/mark.tan/Documents/dev/ie/nlp.data/app/chats'
 
     for lang in ['cn', 'th']:
@@ -127,5 +125,3 @@ def demo_1():
         sl.load_synonymlist(verbose=0)
         print(sl.synonymlist)
 
-
-#demo_1()

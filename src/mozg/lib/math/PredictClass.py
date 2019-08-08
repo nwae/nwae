@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import time
-import mozg.common.util.Profiling as prf
-import mozg.common.util.StringUtils as su
+import mozg.utils.Profiling as prf
+import mozg.utils.StringUtils as su
 import mozg.lib.lang.model.FeatureVector as fv
 import mozg.lib.lang.nlp.WordSegmentation as ws
 import mozg.lib.lang.nlp.SynonymList as sl

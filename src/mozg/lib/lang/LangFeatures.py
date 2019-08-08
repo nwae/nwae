@@ -4,7 +4,6 @@
 # !!! Will work only on Python 3 and above
 
 import pandas as pd
-import mozg.lib.lang.characters.LangCharacters
 
 
 #

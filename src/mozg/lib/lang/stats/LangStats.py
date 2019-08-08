@@ -11,8 +11,8 @@ import pandas as pd
 import collections
 import mozg.lib.lang.LangFeatures as langfeatures
 import mozg.lib.lang.characters.LangCharacters as langcharacters
-import mozg.common.util.FileUtils as futil
-import mozg.common.util.StringUtils as sutil
+import mozg.utils.FileUtils as futil
+import mozg.utils.StringUtils as sutil
 
 #
 # Study unigram stats & unigram boundary conditional probabilities

@@ -5,12 +5,12 @@
 
 import re
 import pandas as pd
-import mozg.common.util.FileUtils as futil
-import mozg.common.util.StringUtils as sutil
+import mozg.utils.FileUtils as futil
+import mozg.utils.StringUtils as sutil
 import mozg.lib.lang.LangFeatures as lf
 import mozg.lib.lang.nlp.LatinEquivalentForm as lef
 import mozg.lib.lang.characters.LangCharacters as langchar
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 
 

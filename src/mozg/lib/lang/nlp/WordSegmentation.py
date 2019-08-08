@@ -9,10 +9,10 @@ import mozg.lib.lang.LangFeatures as lf
 import mozg.lib.lang.nlp.WordList as wl
 import mozg.lib.lang.nlp.SynonymList as slist
 import mozg.lib.lang.stats.LangStats as ls
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
-import mozg.common.util.Profiling as prf
+import mozg.utils.Profiling as prf
 from inspect import currentframe, getframeinfo
 
 

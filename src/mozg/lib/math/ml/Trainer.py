@@ -7,7 +7,7 @@ import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.ml.deeplearning.Keras as krModel
 import threading
-import mozg.common.util.Log as lg
+import mozg.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 

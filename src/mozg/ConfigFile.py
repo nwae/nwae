@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import mozg.common.util.StringUtils as su
-import mozg.common.util.Log as lg
+import sys
+import mozg.utils.StringUtils as su
+import mozg.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 
@@ -18,23 +19,14 @@ class ConfigFile:
     # because Python in realtime will make the variable available after __init_config().
     #
 
-    #######################################################################
-    # DB Stuff (not dependent on topdir)
-    #######################################################################
-    # DB
-    USE_DB = None
-    # This is the database to connect to, that might contain all account info
-    DB_PROFILE = None
+    TOP_DIR = None
 
     #######################################################################
-    # Intent Server Stuff
+    # Models Stuff
     #######################################################################
-    PORT                     = None
-    RUNMODE_STAGING          = None
-    BOT_IDS_TO_STARTUP       = None
-    ACCEPT_TRAINING_REQUESTS = None
-    MINIMAL_SERVER           = None
-    DO_PROFILING             = None
+
+    # Where to store model files
+    DIR_MODELS     = None
 
     #######################################################################
     # NLP Stuff
@@ -60,43 +52,31 @@ class ConfigFile:
     # Language Stats - Collocation
     DIR_NLP_LANGUAGE_STATS_COLLOCATION = None
 
-    #######################################################################
-    # Chat Analysis Stuff
-    #######################################################################
+    @staticmethod
+    def get_cmdline_params_and_init_config():
+        # Default values
+        pv = {
+            'configfile': None
+        }
+        args = sys.argv
 
-    # Chat Data
-    DIR_CHATDATA = None
+        for arg in args:
+            arg_split = arg.split('=')
+            if len(arg_split) == 2:
+                param = arg_split[0].lower()
+                value = arg_split[1]
+                if param in list(pv.keys()):
+                    pv[param] = value
 
-    # Chat Clustering
-    DIR_CHATCLUSTERING_OUTPUT = None
+        if (pv['configfile'] is None):
+            raise (Exception('"configfile" param not found on command line!'))
 
-    #######################################################################
-    # Intent Server Config Stuff
-    #######################################################################
-
-    # Intent Training (Contains also, all intents, answers, training data)
-    DIR_INTENT_TRAINDATA    = None
-    DIR_INTENT_TRAIN_LOGS   = None
-    POSTFIX_INTENT_ANSWER_TRDATA_FILE = None
-    POSTFIX_INTENT_TRAINING_FILES     = None
-
-    # Intent Testing
-    DIR_INTENTTEST_TESTDATA = None
-
-    # Intent RFV
-    DIR_RFV_INTENTS = None
-
-    #######################################################################
-    # Intent Server
-    #######################################################################
-    DIR_INTENTSERVER = None
-    FILEPATH_INTENTSERVER_LOG = None
-
-    #######################################################################
-    # General
-    #######################################################################
-    DIR_GENERAL_APP = None
-    FILEPATH_GENERAL_LOG = None
+        #
+        # !!!MOST IMPORTANT, top directory, otherwise all other config/NLP/training/etc. files we won't be able to find
+        #
+        ConfigFile.init_from_app_config_file(
+            config_file=pv['configfile']
+        )
 
     @staticmethod
     def init_from_app_config_file(
@@ -107,11 +87,6 @@ class ConfigFile:
         # Default values
         pv = {
             'topdir': None,
-            'runmode_staging': '0',
-            'bot_ids': '',
-            'port': 5000,
-            'training': '0',
-            'minimal': '0',
             'debug': '0',
             'do_profiling': '1',
             'loglevel': lg.Log.LOG_LEVEL_INFO
@@ -150,46 +125,6 @@ class ConfigFile:
             ConfigFile.init_config(
                 topdir = pv['topdir']
             )
-
-            # If using DB, need to know which Account
-            ConfigFile.BOT_IDS_TO_STARTUP = pv['bot_ids']
-
-            if int(pv['runmode_staging']) == 0:
-                ConfigFile.RUNMODE_STAGING = False
-            else:
-                ConfigFile.RUNMODE_STAGING = True
-
-            # Minimal RAM
-            ConfigFile.MINIMAL_SERVER = False
-            if pv['minimal'] == '1':
-                ConfigFile.MINIMAL_SERVER = True
-
-            # Can accept training?
-            ConfigFile.ACCEPT_TRAINING_REQUESTS = False
-            if pv['training'] == '1':
-                ConfigFile.ACCEPT_TRAINING_REQUESTS = True
-
-            # Logs
-            lg.Log.set_path(ConfigFile.FILEPATH_INTENTSERVER_LOG)
-            lg.Log.LOGLEVEL = float(pv['loglevel'])
-            if pv['debug'] == '1':
-                lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-            lg.Log.critical(
-                str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': DB PROFILE ' + ConfigFile.DB_PROFILE
-                + '** mozg config using the following parameters..'
-                + str(pv) + '.'
-            )
-
-            if port is not None:
-                ConfigFile.PORT = int(port)
-            else:
-                ConfigFile.PORT = int(pv['port'])
-
-            if int(pv['do_profiling']) == 0:
-                ConfigFile.DO_PROFILING = False
-            else:
-                ConfigFile.DO_PROFILING = True
         except Exception as ex:
             errmsg = str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error reading app config file "' + str(config_file)\
@@ -210,22 +145,11 @@ class ConfigFile:
             raise Exception(errmsg)
 
         #######################################################################
-        # DB Stuff (not dependent on topdir)
+        # Models Stuff
         #######################################################################
-        # DB
-        ConfigFile.USE_DB = True
-        # This is the database to connect to, that might contain all account info
-        ConfigFile.DB_PROFILE = 'mario2'
 
-        #######################################################################
-        # Intent Server Stuff
-        #######################################################################
-        ConfigFile.PORT = 5000
-        ConfigFile.RUNMODE_STAGING = False
-        ConfigFile.BOT_IDS_TO_STARTUP = ''
-        ConfigFile.ACCEPT_TRAINING_REQUESTS = False
-        ConfigFile.MINIMAL_SERVER = False
-        ConfigFile.DO_PROFILING = True
+        # Where to store model files
+        ConfigFile.DIR_MODELS = ConfigFile.TOP_DIR + '/app.data/models'
 
         #######################################################################
         # NLP Stuff
@@ -250,41 +174,3 @@ class ConfigFile:
 
         # Language Stats - Collocation
         ConfigFile.DIR_NLP_LANGUAGE_STATS_COLLOCATION = ConfigFile.TOP_DIR + '/nlp.output/collocation.stats'
-
-        #######################################################################
-        # Chat Analysis Stuff
-        #######################################################################
-
-        # Chat Data
-        ConfigFile.DIR_CHATDATA = ConfigFile.TOP_DIR + '/app.data/chatdata'
-
-        # Chat Clustering
-        ConfigFile.DIR_CHATCLUSTERING_OUTPUT = ConfigFile.TOP_DIR + '/app.data/chat.clustering'
-
-        #######################################################################
-        # Intent Server Config Stuff
-        #######################################################################
-
-        # Intent Training (Contains also, all intents, answers, training data)
-        ConfigFile.DIR_INTENT_TRAINDATA = ConfigFile.TOP_DIR + '/app.data/intent/traindata'
-        ConfigFile.DIR_INTENT_TRAIN_LOGS = ConfigFile.DIR_INTENT_TRAINDATA + '/logs'
-        ConfigFile.POSTFIX_INTENT_ANSWER_TRDATA_FILE = 'chatbot.intent-answer-trdata'
-        ConfigFile.POSTFIX_INTENT_TRAINING_FILES = 'chatbot.trainingdata'
-
-        # Intent Testing
-        ConfigFile.DIR_INTENTTEST_TESTDATA = ConfigFile.TOP_DIR + '/app.data/intent/test/'
-
-        # Intent RFV
-        ConfigFile.DIR_RFV_INTENTS = ConfigFile.TOP_DIR + '/app.data/intent/rfv'
-
-        #######################################################################
-        # Intent Server
-        #######################################################################
-        ConfigFile.DIR_INTENTSERVER = ConfigFile.TOP_DIR + '/app.data/server'
-        ConfigFile.FILEPATH_INTENTSERVER_LOG = ConfigFile.DIR_INTENTSERVER + '/intentserver.log'
-
-        #######################################################################
-        # General
-        #######################################################################
-        ConfigFile.DIR_GENERAL_APP = ConfigFile.TOP_DIR + '/app.data/general'
-        ConfigFile.FILEPATH_GENERAL_LOG = ConfigFile.DIR_GENERAL_APP + '/intent.general.log'
