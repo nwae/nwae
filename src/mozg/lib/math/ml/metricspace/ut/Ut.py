@@ -11,6 +11,78 @@ import mozg.ConfigFile as cf
 
 
 class Ut:
+    DATA_X = np.array(
+        [
+            # 무리 1
+            [1, 2, 1, 1, 0, 0],
+            [2, 1, 2, 1, 0, 0],
+            [1, 1, 1, 1, 0, 0],
+            # 무리 2
+            [0, 1, 2, 1, 0, 0],
+            [0, 2, 2, 2, 0, 0],
+            [0, 2, 1, 2, 0, 0],
+            # 무리 3
+            [0, 0, 0, 1, 2, 3],
+            [0, 1, 0, 2, 1, 2],
+            [0, 1, 0, 1, 1, 2],
+            # 무리 4 (mix)
+            [1, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 2],
+            [2, 0, 0, 0, 0, 1],
+            [0, 1, 1, 1, 1, 0],
+            [0, 1, 2, 1, 1, 0],
+            [0, 1, 1, 2, 1, 0]
+        ]
+    )
+    DATA_TEXTS = [
+        # 1
+        '하나 두 두 셋 넷',
+        '하나 하나 두 셋 셋 넷',
+        '하나 두 셋 넷',
+        # 2
+        '두 셋 셋 넷',
+        '두 두 셋 셋 넷 넷',
+        '두 두 셋 넷 넷',
+        # 3
+        '넷 다섯 다섯 여섯 여섯 여섯',
+        '두 넷 넷 다섯 다섯 여섯 여섯',
+        '두 넷 다섯 여섯 여섯',
+        # 4
+        '하나 여섯',
+        '하나 여섯 여섯',
+        '하나 하나 여섯',
+        '두 셋 넷 다섯',
+        '두 셋 셋 넷 다섯',
+        '두 셋 넷 넷 다섯'
+    ]
+    DATA_Y = np.array(
+        [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4]
+    )
+    DATA_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+
+    #
+    # To test against trained models
+    #
+    DATA_TEST_X = np.array(
+        [
+            # 무리 1
+            [1.2, 2.0, 1.1, 1.0, 0, 0],
+            [2.1, 1.0, 2.4, 1.0, 0, 0],
+            [1.5, 1.0, 1.3, 1.0, 0, 0],
+            # 무리 2
+            [0, 1.1, 2.5, 1.5, 0, 0],
+            [0, 2.2, 2.6, 2.4, 0, 0],
+            [0, 2.3, 1.7, 2.1, 0, 0],
+            # 무리 3
+            [0, 0.0, 0, 1.6, 2.1, 3.5],
+            [0, 1.4, 0, 2.7, 1.2, 2.4],
+            [0, 1.1, 0, 1.3, 1.3, 2.1],
+            # 무리 4
+            [1.1, 0.0, 0.0, 0.0, 0.0, 1.5],
+            [0.0, 1.4, 0.9, 1.7, 1.2, 0.0]
+        ]
+    )
+    DATA_TEST_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
 
     def __init__(
             self,
@@ -20,41 +92,11 @@ class Ut:
         self.identifier_string = identifier_string
         self.model_name = model_name
 
-        self.x_expected = np.array(
-            [
-                # 무리 A
-                [1, 2, 1, 1, 0, 0],
-                [2, 1, 2, 1, 0, 0],
-                [1, 1, 1, 1, 0, 0],
-                # 무리 B
-                [0, 1, 2, 1, 0, 0],
-                [0, 2, 2, 2, 0, 0],
-                [0, 2, 1, 2, 0, 0],
-                # 무리 C
-                [0, 0, 0, 1, 2, 3],
-                [0, 1, 0, 2, 1, 2],
-                [0, 1, 0, 1, 1, 2]
-            ]
-        )
-        self.texts = [
-            # 'A'
-            '하나 두 두 셋 넷',
-            '하나 하나 두 셋 셋 넷',
-            '하나 두 셋 넷',
-            # 'B'
-            '두 셋 셋 넷',
-            '두 두 셋 셋 넷 넷',
-            '두 두 셋 넷 넷',
-            # 'C'
-            '넷 다섯 다섯 여섯 여섯 여섯',
-            '두 넷 넷 다섯 다섯 여섯 여섯',
-            '두 넷 다섯 여섯 여섯',
-        ]
+        self.x_expected = Ut.DATA_X
+        self.texts = Ut.DATA_TEXTS
 
-        self.y = np.array(
-            [1, 1, 1, 2, 2, 2, 3, 3, 3]
-        )
-        self.x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+        self.y = Ut.DATA_Y
+        self.x_name = Ut.DATA_X_NAME
         #
         # Finally we have our text data in the desired format
         #
@@ -146,7 +188,10 @@ class Ut:
             include_match_details = False,
             top = 5
     ):
-        print('Test predict classes using model "' + str(self.model_name) + '".')
+        log.Log.info(
+            'Test predict classes using model "' + str(self.model_name) + '".'
+        )
+
         if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
             ms = msModel.MetricSpaceModel(
                 identifier_string = self.identifier_string,
@@ -163,29 +208,15 @@ class Ut:
         else:
             raise Exception('Unknown model name "' + str(self.model_name) + '".')
 
-        test_x = np.array(
-            [
-                # 무리 A
-                [1.2, 2.0, 1.1, 1.0, 0, 0],
-                [2.1, 1.0, 2.4, 1.0, 0, 0],
-                [1.5, 1.0, 1.3, 1.0, 0, 0],
-                # 무리 B
-                [0, 1.1, 2.5, 1.5, 0, 0],
-                [0, 2.2, 2.6, 2.4, 0, 0],
-                [0, 2.3, 1.7, 2.1, 0, 0],
-                # 무리 C
-                [0, 0.0, 0, 1.6, 2.1, 3.5],
-                [0, 1.4, 0, 2.7, 1.2, 2.4],
-                [0, 1.1, 0, 1.3, 1.3, 2.1]
-            ]
-        )
-        test_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
+        test_x = Ut.DATA_TEST_X
+        test_x_name = Ut.DATA_TEST_X_NAME
         model_x_name = ms.get_model_features()
         if model_x_name is None:
-            model_x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+            model_x_name = Ut.DATA_X_NAME
+
         if model_x_name.ndim == 2:
             model_x_name = model_x_name[0]
-        print(model_x_name)
+        log.Log.info('Model x_name: ' + str(model_x_name))
 
         # Reorder by model x_name
         df_x_name = pd.DataFrame(data={'word': model_x_name, 'target_order': range(0, len(model_x_name), 1)})
@@ -199,21 +230,21 @@ class Ut:
         df_x_name = df_x_name.sort_values(by=['target_order'], ascending=True)
         # Then the order we need to reorder is the target_order column
         reorder = np.array(df_x_name['original_order'])
-        print(df_x_name)
-        print(reorder)
-        print(test_x)
+        log.Log.debugdebug(df_x_name)
+        log.Log.debugdebug(reorder)
+        log.Log.debugdebug(test_x)
 
         test_x_transpose = test_x.transpose()
-        print(test_x_transpose)
+        log.Log.debugdebug(test_x_transpose)
 
         reordered_test_x = np.zeros(shape=test_x_transpose.shape)
-        print(reordered_test_x)
+        log.Log.debugdebug(reordered_test_x)
 
         for i in range(0, reordered_test_x.shape[0], 1):
             reordered_test_x[i] = test_x_transpose[reorder[i]]
 
         reordered_test_x = reordered_test_x.transpose()
-        print(reordered_test_x)
+        log.Log.debugdebug(reordered_test_x)
 
         x_classes_expected = self.y
         # Just the top predicted ones
