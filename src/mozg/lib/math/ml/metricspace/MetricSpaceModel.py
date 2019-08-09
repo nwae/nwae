@@ -76,12 +76,14 @@ class MetricSpaceModel(modelIf.ModelInterface):
     ):
         super(MetricSpaceModel, self).__init__(
             identifier_string = identifier_string,
-            dir_path_model    = dir_path_model
+            dir_path_model    = dir_path_model,
+            training_data     = training_data
         )
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+
         if self.training_data is not None:
             if type(self.training_data) is not tdm.TrainingDataModel:
                 raise Exception(
@@ -906,44 +908,3 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
             )
         return
-
-    def persist_training_data_to_storage(
-            self,
-            td
-    ):
-        prf_start = prf.Profiling.start()
-        # For debugging only, not required by model
-        self.model_data.persist_training_data_to_storage(td=self.training_data)
-        if self.do_profiling:
-            log.Log.important(
-                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING persist_training_data_to_storage(): '
-                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-            )
-        return
-
-    def load_training_data_from_storage(
-            self
-    ):
-        prf_start = prf.Profiling.start()
-
-        try:
-            self.__mutex_training.acquire()
-            self.training_data = self.model_data.load_training_data_from_storage()
-        except Exception as ex:
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Failed to load training data for identifier "' + self.identifier_string\
-                     + '". Exception message: ' + str(ex) + '.'
-            log.Log.critical(errmsg)
-            raise Exception(errmsg)
-        finally:
-            self.__mutex_training.release()
-
-        if self.do_profiling:
-            log.Log.important(
-                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING load_training_data_from_storage(): '
-                + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
-            )
-        return
-

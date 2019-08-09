@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import numpy as np
 import pandas as pd
 import threading
@@ -8,9 +9,7 @@ import datetime as dt
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.Cluster as clstr
 import mozg.lib.math.Constants as const
-import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.utils.Profiling as prf
@@ -80,6 +79,8 @@ class Legacy:
             dir_path_model,
             # Training data in TrainingDataModel class type
             training_data = None,
+            # No loading of heavy things like training data
+            minimal = False,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
@@ -105,6 +106,7 @@ class Legacy:
                     + '" instead from object ' + str(self.training_data) + '.'
                 )
 
+        self.minimal = minimal
         self.key_features_remove_quartile = key_features_remove_quartile
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
@@ -223,7 +225,7 @@ class Legacy:
     def is_model_ready(
             self
     ):
-        return self.model_data.is_model_ready()
+        return self.model_loaded
 
     #
     # Model interface override
@@ -231,7 +233,7 @@ class Legacy:
     def get_model_features(
             self
     ):
-        return npUtil.NumpyUtil.convert_dimension(arr=self.model_data.x_name, to_dim=1)
+        return npUtil.NumpyUtil.convert_dimension(arr=self.trai.x_name, to_dim=1)
 
     #
     # Model interface override
@@ -633,129 +635,6 @@ class Legacy:
             )
 
         return retval
-
-    @staticmethod
-    def get_clusters(
-            x,
-            y,
-            x_name
-    ):
-        class retclass:
-            def __init__(self, x_cluster, y_cluster, y_cluster_radius):
-                self.x_cluster = x_cluster
-                self.y_cluster = y_cluster
-                self.y_cluster_radius = y_cluster_radius
-
-        #
-        # 1. Cluster training data of the same class.
-        #    Instead of a single reference class to represent a single class, we have multiple.
-        #
-
-        # Our return values, in the same dimensions with x, y respectively
-        x_clustered = None
-        y_clustered = None
-        y_clustered_radius = None
-
-        #
-        # Loop by unique class labels
-        #
-        for cs in list(set(y)):
-            try:
-                # Extract only rows of this class
-                rows_of_class = x[y == cs]
-                if rows_of_class.shape[0] == 0:
-                    continue
-
-                log.Log.debugdebug(
-                    str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tRows of class "' + str(cs) + ':'
-                    + '\n\r' + str(rows_of_class)
-                )
-
-                #
-                # Cluster intent
-                #
-                # We start with 1 cluster, until the radius of the clusters satisfy our max radius condition
-                #
-                max_cluster_radius_condition_met = False
-
-                # Start with 1 cluster
-                n_clusters = 1
-                while not max_cluster_radius_condition_met:
-                    np_cluster_centers = None
-                    np_cluster_radius = None
-
-                    # Do clustering to n_clusters only if it is less than the number of points
-                    if rows_of_class.shape[0] > n_clusters:
-                        cluster_result = clstr.Cluster.cluster(
-                            matx          = rows_of_class,
-                            feature_names = x_name,
-                            ncenters      = n_clusters,
-                            iterations    = 20
-                        )
-                        np_cluster_centers = cluster_result.np_cluster_centers
-                        np_cluster_labels = cluster_result.np_cluster_labels
-                        np_cluster_radius = cluster_result.np_cluster_radius
-                        # Remember this distance is calculated without a normalized cluster center, but we ignore for now
-                        val_max_cl_radius = max(np_cluster_radius)
-
-                        # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
-                        # then our condition is met
-                        max_cluster_radius_condition_met = \
-                            (rows_of_class.shape[0] <= n_clusters+1) \
-                            or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
-                            or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
-                        n_clusters += 1
-
-                        if not max_cluster_radius_condition_met:
-                            continue
-                        #
-                        # Put the cluster center back on the hypersphere surface, renormalize cluster centers
-                        #
-                        for ii in range(0, np_cluster_centers.shape[0], 1):
-                            cluster_label = ii
-                            cc = np_cluster_centers[ii]
-                            mag = np.sum(np.multiply(cc, cc)) ** 0.5
-                            cc = cc / mag
-                            np_cluster_centers[ii] = cc
-                    else:
-                        np_cluster_centers = np.array(rows_of_class)
-                        val_max_cl_radius = 0
-
-                    if x_clustered is None:
-                        x_clustered = np_cluster_centers
-                        y_clustered = np.array([cs] * x_clustered.shape[0])
-                        y_clustered_radius = np_cluster_radius
-                    else:
-                        # Append rows (thus 1st dimension at axis index 0)
-                        x_clustered = np.append(
-                            x_clustered,
-                            np_cluster_centers,
-                            axis=0)
-                        # Appending to a 1D array always at axis=0
-                        y_clustered = np.append(
-                            y_clustered,
-                            [cs] * np_cluster_centers.shape[0],
-                            axis=0)
-                        y_clustered_radius = np.append(
-                            y_clustered_radius,
-                            np_cluster_radius,
-                            axis=0)
-            except Exception as ex:
-                errmsg = str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                         + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                log.Log.error(errmsg)
-                raise Exception(errmsg)
-
-        retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
-
-        log.Log.debug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
-            + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
-        )
-        return retobj
-
     #
     # Model interface override
     #
@@ -988,6 +867,44 @@ class Legacy:
         return
 
     #
+    # When we index FV of all training data, we keep in the format 'intentId-1', 'intentId-2,...
+    # So we just filter off the '-\d+'
+    #
+    @staticmethod
+    def retrieve_intent_from_training_data_index(
+            index_list,
+            convert_to_type = 'str'
+    ):
+        for i in range(0,len(index_list),1):
+            v = str(index_list[i])
+            v = re.sub(
+                pattern = '[-]\d+.*',
+                repl    = '',
+                string  = v
+            )
+            if convert_to_type == 'int':
+                index_list[i] = int(v)
+            else:
+                index_list[i] = v
+        return index_list
+
+    def get_command_index_from_training_data_index(self):
+        # This is very slow, we do it first! Cache it!
+        convert_to_type = 'str'
+        if not Legacy.CONVERT_COMMAND_INDEX_TO_STR:
+            convert_to_type = 'int'
+
+        # We derive the intent id or command from the strings '888-1', '888-2',...
+        # by removing the ending '-1', '-2', ...
+        # This will speed up filtering of training data later by command.
+        index_command = \
+            Legacy.retrieve_intent_from_training_data_index(
+                index_list      = list(self.df_fv_training_data_ro.index),
+                convert_to_type = convert_to_type
+            )
+        return index_command
+
+    #
     # Model interface override
     #
     def load_model_parameters(
@@ -1004,7 +921,7 @@ class Legacy:
                 sep       =',',
                 index_col = 'INDEX'
             )
-            if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+            if Legacy.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_idf_ro.index = self.df_idf_ro.index.astype(str)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -1015,7 +932,7 @@ class Legacy:
                 sep       = ',',
                 index_col = 'INDEX'
             )
-            if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+            if Legacy.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_rfv_ro.index = self.df_rfv_ro.index.astype(str)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -1031,7 +948,7 @@ class Legacy:
                 sep       = ',',
                 index_col = 'INDEX'
             )
-            if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+            if Legacy.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_rfv_dist_furthest_ro.index = self.df_rfv_dist_furthest_ro.index.astype(str)
             log.Log.important(
@@ -1051,7 +968,7 @@ class Legacy:
                     sep       = ',',
                     index_col = 'INDEX'
                 )
-                if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+                if Legacy.CONVERT_COMMAND_INDEX_TO_STR:
                     # Convert Index column to string
                     self.df_fv_training_data_ro.index = self.df_fv_training_data_ro.index.astype(str)
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

@@ -40,12 +40,14 @@ class ModelInterface(threading.Thread):
     def __init__(
             self,
             identifier_string,
-            dir_path_model
+            dir_path_model,
+            training_data
     ):
         super(ModelInterface, self).__init__()
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
+        self.training_data = training_data
 
         self.stoprequest = threading.Event()
 
@@ -55,6 +57,7 @@ class ModelInterface(threading.Thread):
         self.training_data = None
         prefix = self.dir_path_model + '/' + self.identifier_string
         self.fpath_training_data_x          = prefix + '.training_data.x.csv'
+        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
         self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
         self.fpath_training_data_y          = prefix + '.training_data.y.csv'
 
@@ -166,6 +169,26 @@ class ModelInterface(threading.Thread):
             + ': Saved Training Data x with shape ' + str(df_td_x.shape)
             + ' filepath "' + self.fpath_training_data_x + '"'
         )
+
+        try:
+            x_friendly = td.get_print_friendly_x()
+
+            # This file only for debugging
+            f = open(file=self.fpath_training_data_x_friendly, mode='w', encoding='utf-8')
+            for i in x_friendly.keys():
+                line = str(x_friendly[i])
+                f.write(str(line) + '\n\r')
+            f.close()
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved training data x friendly to file "' + self.fpath_training_data_x_friendly + '".'
+            )
+        except Exception as ex:
+            log.Log.error(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create x_ref friendly file "' + self.fpath_training_data_x_friendly
+                + '". ' + str(ex)
+            )
 
         df_td_x_name = pd.DataFrame(td.get_x_name())
         df_td_x_name.to_csv(
