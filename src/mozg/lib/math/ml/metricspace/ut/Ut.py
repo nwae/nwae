@@ -322,8 +322,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
-            trainer.Trainer.MODEL_NAME_DEFAULT
-            #trainer.Trainer.MODEL_NAME_KERAS,
+            #trainer.Trainer.MODEL_NAME_DEFAULT
+            trainer.Trainer.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1_' + model_name,

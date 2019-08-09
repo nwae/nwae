@@ -29,7 +29,8 @@ class Keras(modelIf.ModelInterface):
     ):
         super(Keras,self).__init__(
             identifier_string = identifier_string,
-            dir_path_model    = dir_path_model
+            dir_path_model    = dir_path_model,
+            training_data     = training_data
         )
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
