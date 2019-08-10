@@ -29,7 +29,8 @@ class Keras(modelIf.ModelInterface):
     ):
         super(Keras,self).__init__(
             identifier_string = identifier_string,
-            dir_path_model    = dir_path_model
+            dir_path_model    = dir_path_model,
+            training_data     = training_data
         )
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
@@ -116,7 +117,7 @@ class Keras(modelIf.ModelInterface):
         n_labels = len(list(set(y.tolist())))
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-            + 'Total unique labels = ' + str(n_labels) + '.'
+            + ': Total unique labels = ' + str(n_labels) + '.'
         )
 
         network.add(
@@ -132,9 +133,12 @@ class Keras(modelIf.ModelInterface):
             metrics   = ['accuracy']
         )
 
+        # Log model summary
+        network.summary(print_fn=log.Log.info)
+
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-            + ': Categorical Train label shape "' + str(train_labels_categorical.shape)
+            + 'Categorical Train label shape "' + str(train_labels_categorical.shape)
             + '":\n\r' + str(train_labels_categorical)
         )
 
