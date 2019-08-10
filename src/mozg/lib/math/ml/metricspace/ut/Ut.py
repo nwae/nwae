@@ -8,6 +8,7 @@ import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.ConfigFile as cf
+import mozg.utils.Profiling as prf
 
 
 class Ut:
@@ -252,8 +253,10 @@ class Ut:
         all_y_observed = []
         mse = 0
         mse_norm = 0
+        count_all = reordered_test_x.shape[0]
 
         log.Log.info('Predict classes for x:\n\r' + str(reordered_test_x))
+        prf_start = prf.Profiling.start()
 
         for i in range(reordered_test_x.shape[0]):
             v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
@@ -274,9 +277,12 @@ class Ut:
             top_class_distance = predict_result.top_class_distance
             match_details = predict_result.match_details
 
-            log.Log.info('Point v ' + str(v) + ', predicted ' + str(y_observed)
-                  + '\n\rTop Class Distance: ' + str(top_class_distance)
-                  + '\n\r, Match Details:\n\r' + str(match_details))
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Point v ' + str(v) + ', predicted ' + str(y_observed)
+                + ', Top Class Distance: ' + str(top_class_distance)
+                + ', Match Details: ' + str(match_details)
+            )
 
             if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
                 metric = top_class_distance
@@ -284,8 +290,14 @@ class Ut:
                 mse += metric ** 2
                 mse_norm += metric_norm ** 2
 
+        prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+        log.Log.important(
+            str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+            + ' PROFILING ' + str(count_all) + ' calculations: ' + str(round(1000*prf_dur,0))
+            + ', or ' + str(round(1000*prf_dur/count_all,2)) + ' milliseconds per calculation'
+        )
+
         # Compare with expected
-        compare_top = (np.array(all_y_observed_top) != x_classes_expected)
         compare_top_x = {}
 
         for t in range(1, top + 1, 1):
@@ -322,16 +334,16 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
-            #trainer.Trainer.MODEL_NAME_DEFAULT
-            trainer.Trainer.MODEL_NAME_KERAS,
+            trainer.Trainer.MODEL_NAME_DEFAULT
+            #trainer.Trainer.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1_' + model_name,
             model_name        = model_name
         )
-        obj.unit_test_train(weigh_idf=True)
+        #obj.unit_test_train(weigh_idf=True)
         obj.unit_test_predict_classes(
-            include_rfv = False,
+            include_rfv = True,
             include_match_details = False,
             top = 2
         )
