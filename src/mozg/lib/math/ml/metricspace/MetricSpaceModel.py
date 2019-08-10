@@ -47,6 +47,8 @@ import mozg.utils.Profiling as prf
 #
 class MetricSpaceModel(modelIf.ModelInterface):
 
+    MODEL_NAME = 'hypersphere_metricspace'
+
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
@@ -75,6 +77,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
+            model_name        = MetricSpaceModel.MODEL_NAME,
             identifier_string = identifier_string,
             dir_path_model    = dir_path_model,
             training_data     = training_data
@@ -101,6 +104,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # All parameter for model is encapsulated in this class
         #
         self.model_data = modelData.ModelData(
+            model_name        = MetricSpaceModel.MODEL_NAME,
             identifier_string = self.identifier_string,
             dir_path_model    = self.dir_path_model
         )

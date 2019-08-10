@@ -338,12 +338,12 @@ if __name__ == '__main__':
             #trainer.Trainer.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
-            identifier_string = 'demo_ut1_' + model_name,
+            identifier_string = 'demo_ut1',
             model_name        = model_name
         )
-        #obj.unit_test_train(weigh_idf=True)
+        obj.unit_test_train(weigh_idf=True)
         obj.unit_test_predict_classes(
-            include_rfv = True,
+            include_rfv = False,
             include_match_details = False,
             top = 2
         )

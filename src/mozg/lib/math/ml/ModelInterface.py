@@ -39,12 +39,14 @@ class ModelInterface(threading.Thread):
 
     def __init__(
             self,
+            model_name,
             identifier_string,
             dir_path_model,
             training_data
     ):
         super(ModelInterface, self).__init__()
 
+        self.model_name = model_name
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
@@ -55,13 +57,21 @@ class ModelInterface(threading.Thread):
 
         # Training data for testing back only
         self.training_data = None
-        prefix = self.dir_path_model + '/' + self.identifier_string
+        prefix = ModelInterface.get_model_file_prefix(
+            dir_path_model    = self.dir_path_model,
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string
+        )
         self.fpath_training_data_x          = prefix + '.training_data.x.csv'
         self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
         self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
         self.fpath_training_data_y          = prefix + '.training_data.y.csv'
 
         return
+
+    @staticmethod
+    def get_model_file_prefix(dir_path_model, model_name, identifier_string):
+        return dir_path_model + '/' + model_name + '.' + identifier_string
 
     def join(self, timeout=None):
         log.Log.critical(

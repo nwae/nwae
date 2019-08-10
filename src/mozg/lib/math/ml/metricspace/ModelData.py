@@ -7,6 +7,7 @@ import datetime as dt
 import os
 import threading
 import mozg.lib.math.ml.TrainingDataModel as tdm
+import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.Constants as const
@@ -23,11 +24,13 @@ class ModelData:
 
     def __init__(
             self,
+            model_name,
             # Unique identifier to identify this set of trained data+other files after training
             identifier_string,
             # Directory to keep all our model files
             dir_path_model,
     ):
+        self.model_name = model_name
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
 
@@ -67,7 +70,11 @@ class ModelData:
         self.y_unique = None
 
         # First check the existence of the files
-        prefix = self.dir_path_model + '/' + self.identifier_string
+        prefix = modelIf.ModelInterface.get_model_file_prefix(
+            dir_path_model    = self.dir_path_model,
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string
+        )
         self.fpath_updated_file        = prefix + '.lastupdated.txt'
         self.fpath_x_name              = prefix + '.x_name.csv'
         self.fpath_idf                 = prefix + '.idf.csv'
