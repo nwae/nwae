@@ -473,6 +473,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Filtered
         x_clustered_filtered = self.model_data.x_clustered
         y_clustered_filtered = self.model_data.y_clustered
+        #
+        # By using RFV first, we will achieve better speed, as this serves to filter the clustered data.
+        # However, accuracy will suffer a little
+        #
         if include_rfv:
             retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
                 v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref, do_profiling=self.do_profiling)
