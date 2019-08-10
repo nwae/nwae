@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 
 class Keras(modelIf.ModelInterface):
 
+    MODEL_NAME = 'keras_nn'
+
     def __init__(
             self,
             # Unique identifier to identify this set of trained data+other files after training
@@ -28,6 +30,7 @@ class Keras(modelIf.ModelInterface):
             do_profiling = True
     ):
         super(Keras,self).__init__(
+            model_name        = Keras.MODEL_NAME,
             identifier_string = identifier_string,
             dir_path_model    = dir_path_model,
             training_data     = training_data
@@ -38,7 +41,11 @@ class Keras(modelIf.ModelInterface):
         if self.training_data is not None:
             self.__check_training_data()
 
-        self.filepath_model = self.dir_path_model + '/' + self.identifier_string + '.keras.model'
+        self.filepath_model = modelIf.ModelInterface.get_model_file_prefix(
+            dir_path_model    = self.dir_path_model,
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string
+        )
         self.network = None
 
         self.do_profiling = do_profiling

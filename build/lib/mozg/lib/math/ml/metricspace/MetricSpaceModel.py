@@ -47,6 +47,8 @@ import mozg.utils.Profiling as prf
 #
 class MetricSpaceModel(modelIf.ModelInterface):
 
+    MODEL_NAME = 'hypersphere_metricspace'
+
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
     HPS_MIN_EUCL_DIST = 0
@@ -75,6 +77,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
+            model_name        = MetricSpaceModel.MODEL_NAME,
             identifier_string = identifier_string,
             dir_path_model    = dir_path_model,
             training_data     = training_data
@@ -101,6 +104,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # All parameter for model is encapsulated in this class
         #
         self.model_data = modelData.ModelData(
+            model_name        = MetricSpaceModel.MODEL_NAME,
             identifier_string = self.identifier_string,
             dir_path_model    = self.dir_path_model
         )
@@ -208,7 +212,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
-            idf = np.array([1]*len(x.shape[1]))
+            idf = np.array([1]*x.shape[1])
         log.Log.debug(
             str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
@@ -473,6 +477,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Filtered
         x_clustered_filtered = self.model_data.x_clustered
         y_clustered_filtered = self.model_data.y_clustered
+        #
+        # By using RFV first, we will achieve better speed, as this serves to filter the clustered data.
+        # However, accuracy will suffer a little
+        #
         if include_rfv:
             retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
                 v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref, do_profiling=self.do_profiling)
