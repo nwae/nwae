@@ -208,7 +208,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
-            idf = np.array([1]*len(x.shape[1]))
+            idf = np.array([1]*x.shape[1])
         log.Log.debug(
             str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
