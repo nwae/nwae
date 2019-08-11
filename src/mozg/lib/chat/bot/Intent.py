@@ -17,11 +17,10 @@ import mozg.lib.math.NumpyUtil as npUtil
 
 
 #
-# Wrap LeBot here, and put state management
 # THREAD SAFE CLASS
 #   Make sure there is no class variable that is modified during function calls.
 #
-class IntentWrapper:
+class Intent:
 
     #
     # This is to decide how many top answers to keep.
@@ -157,14 +156,14 @@ class IntentWrapper:
         if self.do_profiling:
             start_func = prf.Profiling.start()
 
-        if len(inputtext) > IntentWrapper.MAX_QUESTION_LENGTH:
+        if len(inputtext) > Intent.MAX_QUESTION_LENGTH:
             log.Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Warning. ChatID [' + str(chatid) + '] message exceeds '
-                + str(IntentWrapper.MAX_QUESTION_LENGTH)
+                + str(Intent.MAX_QUESTION_LENGTH)
                 + ' in length. Truncating..'
             )
-            inputtext = inputtext[0:IntentWrapper.MAX_QUESTION_LENGTH]
+            inputtext = inputtext[0:Intent.MAX_QUESTION_LENGTH]
 
         a = None
         if self.do_profiling:
@@ -282,7 +281,7 @@ if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
-    obj = IntentWrapper(
+    obj = Intent(
         model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
         identifier_string = 'botkey_db_mario.production.accountid_4.botid_22.lang_cn',
         dir_path_model    = '/Users/mark.tan/git/mozg.nlp/app.data/intent/models',
