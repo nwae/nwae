@@ -125,29 +125,6 @@ class IntentWrapper:
             log.Log.log(words_not_synched)
         return
 
-    def get_word_segmentation(
-            self,
-            txt,
-            reply_format='text'
-    ):
-        txt_split = self.wseg.segment_words(text=su.StringUtils.trim(txt))
-
-        answer = txt_split
-        if reply_format == 'json':
-            answer = {
-                'txt': txt_split
-            }
-
-            try:
-                answer = json.dumps(obj=answer, ensure_ascii=False).encode(encoding=IntentWrapper.JSON_ENCODING)
-            except Exception as ex:
-                raise Exception(
-                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ': Unable to dump to JSON format for [' + str(answer) + ']' + str(ex)
-                )
-
-        return answer
-
     #
     # Returns the closest top X of the matches, where X <= top
     # THREAD SAFE
