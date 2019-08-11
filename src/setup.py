@@ -13,9 +13,7 @@ setup(
         'mozg.lib.lang.classification',
         'mozg.lib.lang.model',
         'mozg.lib.lang.nlp',
-        'mozg.lib.lang.stats',
-        'mozg.lib.chat',
-        'mozg.lib.chat.bot'
+        'mozg.lib.lang.stats'
     ],
     package_dir={'': 'src'},
     url='',
