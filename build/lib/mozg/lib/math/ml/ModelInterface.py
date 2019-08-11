@@ -15,14 +15,32 @@ import mozg.lib.math.ml.TrainingDataModel as tdm
 class ModelInterface(threading.Thread):
 
     # Terms for dataframe, etc.
-    TERM_CLASS    = 'class'
-    TERM_SCORE    = 'score'
-    TERM_DIST     = 'dist'
-    TERM_DISTNORM = 'distnorm'
-    TERM_RADIUS   = 'radius'
+    TERM_CLASS      = 'class'
+    TERM_SCORE      = 'score'
+    TERM_CONFIDENCE = 'confidence'
+    TERM_DIST       = 'dist'
+    TERM_DISTNORM   = 'distnorm'
+    TERM_RADIUS     = 'radius'
 
     # Matching
     MATCH_TOP = 10
+
+    # From rescoring training data (using SEARCH_TOPX_RFV=5), we find that
+    #    5% quartile score  = 55
+    #    25% quartile score = 65
+    #    50% quartile score = 70
+    #    75% quartile score = 75
+    #    95% quartile score = 85
+    # Using the above information, we set
+    CONFIDENCE_LEVEL_5_SCORE = 75
+    CONFIDENCE_LEVEL_4_SCORE = 65
+    CONFIDENCE_LEVEL_3_SCORE = 55
+    # For confidence level 0-2, we run the bot against non-related data and we found
+    #    99% quartile score = 32
+    #    95% quartile score = 30
+    #    75% quartile score = 20
+    CONFIDENCE_LEVEL_2_SCORE = 40   # Means <1% of non-related data will go above it
+    CONFIDENCE_LEVEL_1_SCORE = 20   # This means 25% of non-related data will go above it
 
     class predict_class_retclass:
         def __init__(

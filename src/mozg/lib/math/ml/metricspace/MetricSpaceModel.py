@@ -287,8 +287,20 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Put score last (because we need to do groupby().min() above, which will screw up the values
         # as score is in the reverse order with distances) and sort scores
         np_distnorm = np.array(df_score[MetricSpaceModel.TERM_DISTNORM])
-        df_score[MetricSpaceModel.TERM_SCORE] = np.round(100 - np_distnorm*100, 1)
+        score_vec = np.round(100 - np_distnorm*100, 1)
+        df_score[MetricSpaceModel.TERM_SCORE] = score_vec
+        # Maximum confidence level is 5, minimum 0
+        score_confidence_level_vec = \
+            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_1_SCORE) * 1 + \
+            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_2_SCORE) * 1 + \
+            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_3_SCORE) * 1 + \
+            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_4_SCORE) * 1 + \
+            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_5_SCORE) * 1
+        df_score[MetricSpaceModel.TERM_CONFIDENCE] = score_confidence_level_vec
+
+        # Finally sort by Score
         df_score.sort_values(by=[MetricSpaceModel.TERM_SCORE], ascending=False, inplace=True)
+
         # Make sure indexes are conventional 0,1,2,...
         df_score = df_score[0:min(top,df_score.shape[0])]
         df_score.reset_index(drop=True, inplace=True)
