@@ -32,8 +32,9 @@ class PredictClass:
 
     def __init__(
             self,
-            # This is the model with standard model interface that implements the basic methods
-            model_interface,
+            model_name,
+            identifier_string,
+            dir_path_model,
             lang,
             dirpath_synonymlist,
             postfix_synonymlist,
@@ -43,7 +44,10 @@ class PredictClass:
             postfix_wordlist_app,
             do_profiling = True
     ):
-        self.model = model_interface
+        self.model_name = model_name
+        self.identifier_string = identifier_string
+        self.dir_path_model = dir_path_model
+
         self.lang = lang
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
@@ -86,6 +90,14 @@ class PredictClass:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ": Warning. These words not in word list but in synonym list:\n\r" + str(words_not_synched)
             )
+
+        self.model = modelHelper.ModelHelper.get_model(
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string,
+            dir_path_model    = self.dir_path_model,
+            training_data     = None
+        )
+        self.model.load_model_parameters()
 
         self.count_intent_calls = 0
         return
@@ -246,19 +258,10 @@ if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
-    #
-    # Now read back params and predict classes
-    #
-    model_obj = modelHelper.ModelHelper.get_model(
-        model_name        = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
+    pc = PredictClass(
+        model_name           = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
         identifier_string = 'botkey_db_mario.production.accountid_4.botid_22.lang_cn',
         dir_path_model    = '/Users/mark.tan/git/mozg.nlp/app.data/intent/models',
-        training_data     = None
-    )
-    model_obj.load_model_parameters()
-
-    pc = PredictClass(
-        model_interface      = model_obj,
         lang                 = 'cn',
         dirpath_synonymlist  = cf.ConfigFile.DIR_SYNONYMLIST,
         postfix_synonymlist  = cf.ConfigFile.POSTFIX_SYNONYMLIST,
