@@ -4,7 +4,6 @@ import mozg.lib.math.ml.ModelHelper as modelHelper
 import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import mozg.lib.math.ml.deeplearning.Keras as krModel
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 import mozg.lib.math.NumpyUtil as npUtil

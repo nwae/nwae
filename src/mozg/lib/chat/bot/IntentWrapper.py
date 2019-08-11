@@ -2,10 +2,12 @@
 
 # !!! Will work only on Python 3 and above
 
-import mozg.lib.math.ml.ModelInterface as modelIf
+import mozg.lib.math.ml.ModelHelper as modelHelper
+import mozg.lib.lang.model.FeatureVector as fv
 import mozg.lib.chat.bot.IntentEngine as intEng
 import mozg.utils.StringUtils as su
 import mozg.lib.lang.nlp.WordSegmentation as ws
+import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.utils.Log as log
 import threading
 import json
@@ -41,6 +43,7 @@ class IntentWrapper:
             self,
             model_name,
             identifier_string,
+            dir_path_model,
             lang,
             dir_synonymlist,
             dir_wordlist,
@@ -56,6 +59,8 @@ class IntentWrapper:
         #
         self.model_name = model_name
         self.identifier_string = identifier_string
+        self.dir_path_model = dir_path_model
+
         self.lang = su.StringUtils.trim(lang.lower())
         self.dir_synonymlist = su.StringUtils.trim(dir_synonymlist)
         self.dir_wordlist = dir_wordlist
@@ -78,17 +83,11 @@ class IntentWrapper:
     # Only during initialization we modify class variables, after this, no other writes should happen.
     #
     def init(self):
-
-        # Initialize AI/NLP Bot Engine
-        self.lebot = intEng.IntentEngine(
-            lang    = self.lang,
-            bot_key = self.bot_key,
-            dir_rfv_commands    = self.dir_rfv_commands,
-            dirpath_synonymlist = self.dir_synonymlist,
-            reduce_features = False,
-            do_profiling = self.do_profiling,
-            minimal      = self.minimal,
-            verbose      = self.verbose
+        self.model = modelHelper.ModelHelper.get_model(
+            model_name=self.model_name,
+            identifier_string=self.identifier_string,
+            dir_path_model=self.dir_path_model,
+            training_data=None
         )
         self.lebot.do_background_load()
 
@@ -96,8 +95,7 @@ class IntentWrapper:
             lang = self.lang,
             dirpath_wordlist = self.dir_wordlist,
             postfix_wordlist = self.postfix_wordlist,
-            do_profiling = self.do_profiling,
-            verbose      = self.verbose
+            do_profiling = self.do_profiling
         )
         # Add application wordlist
         self.wseg.add_wordlist(
@@ -105,12 +103,19 @@ class IntentWrapper:
             postfix=self.postfix_wordlist_app
         )
 
+        self.synonymlist = sl.SynonymList(
+            lang                = self.lang,
+            dirpath_synonymlist = self.dir_synonymlist,
+            postfix_synonymlist = '.synonymlist.txt'
+        )
+        self.synonymlist.load_synonymlist()
+
         # Add synonym list to wordlist (just in case they are not synched)
         len_before = self.wseg.lang_wordlist.wordlist.shape[0]
         self.wseg.add_wordlist(
             dirpath     = None,
             postfix     = None,
-            array_words = list(self.lebot.synonymlist_ro.synonymlist['Word'])
+            array_words = list(self.synonymlist.synonymlist['Word'])
         )
         len_after = self.wseg.lang_wordlist.wordlist.shape[0]
         if len_after - len_before > 0:
@@ -179,51 +184,7 @@ class IntentWrapper:
             chatid = None,
             not_necessary_to_use_training_data_samples = True
     ):
-        start_func = None
-        if self.do_profiling:
-            start_func = prf.Profiling.start()
-            log.Log.debug(
-                '.  '
-                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
-                + ' PROFILING GET TEXT CLASS Start (Reduced Features = ' + str(reduced_features)
-                + '): ' + str(start_func)
-            )
-
-        if len(inputtext) > IntentWrapper.MAX_QUESTION_LENGTH:
-            log.Log.warning(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Warning. ChatID [' + str(chatid) + '] message exceeds '
-                + str(IntentWrapper.MAX_QUESTION_LENGTH)
-                + ' in length. Truncating..'
-            )
-            inputtext = inputtext[0:IntentWrapper.MAX_QUESTION_LENGTH]
-
-        a = None
-        if self.do_profiling:
-            a = prf.Profiling.start()
-            log.Log.debug(
-                '.    '
-                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
-                + ' PROFILING Word Segmentation Start: ' + str(a)
-            )
-        # Segment words first
-        chatstr_segmented = su.StringUtils.trim(inputtext)
-        if do_segment_inputtext:
-            chatstr_segmented = self.wseg.segment_words(text=su.StringUtils.trim(inputtext))
-        if self.do_profiling:
-            b = prf.Profiling.stop()
-            log.Log.info(
-                '.    '
-                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
-                + ' PROFILING Word Segmentation End: ' + str(prf.Profiling.get_time_dif_str(start=a, stop=b))
-            )
-
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Segmented Text: [' + chatstr_segmented + ']'
-        )
-
-        intent_engine = self.lebot
+        intent_engine = self.model
 
         df_intent = intent_engine.get_text_class(
             text_segmented            = chatstr_segmented,
@@ -262,6 +223,134 @@ class IntentWrapper:
             )
 
         return df_intent_keep
+
+    def convert_text_to_math_object(
+            self,
+            inputtext,
+            chatid = None
+    ):
+        start_func = None
+        if self.do_profiling:
+            start_func = prf.Profiling.start()
+
+        if len(inputtext) > IntentWrapper.MAX_QUESTION_LENGTH:
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Warning. ChatID [' + str(chatid) + '] message exceeds '
+                + str(IntentWrapper.MAX_QUESTION_LENGTH)
+                + ' in length. Truncating..'
+            )
+            inputtext = inputtext[0:IntentWrapper.MAX_QUESTION_LENGTH]
+
+        a = None
+        if self.do_profiling:
+            a = prf.Profiling.start()
+
+        # Segment words first
+        text_segmented = self.wseg.segment_words(text=su.StringUtils.trim(inputtext))
+        if self.do_profiling:
+            b = prf.Profiling.stop()
+            log.Log.info(
+                '.    '
+                + '[Identifier=' + str(self.identifier_string)
+                + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
+                + ' PROFILING Word Segmentation End: '
+                + str(prf.Profiling.get_time_dif_str(start=a, stop=b))
+            )
+
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Segmented Text: [' + text_segmented + ']'
+        )
+
+        #
+        # This routine is thread safe, no writes to class variables, just read.
+        #
+        if self.do_profiling:
+            start_func = prf.Profiling.start()
+
+        space_profiling = '      '
+
+        #
+        # Replace words with root words
+        # This step uses synonyms and replaces say 存钱, 入钱, 入款, all with the standard 存款
+        # This will reduce training data without needing to put all versions of the same thing.
+        #
+        if self.do_profiling:
+            a = prf.Profiling.start()
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Identifier "' + str(self.identifier_string)
+                + '", ChatID "' + str(chatid) + '", Txt "' + str(text_segmented) + '"]'
+                + ' PROFILING Intent (replace root words) Start: ' + str(a)
+            )
+
+        text_normalized = self.synonymlist.normalize_text(text_segmented=text_segmented)
+        text_normalized = text_normalized.lower()
+        log.Log.debugdebug('#')
+        log.Log.debugdebug('# TEXT NORMALIZATION')
+        log.Log.debugdebug('#')
+        log.Log.debugdebug('Text [' + text_segmented + '] normalized to [' + text_normalized + ']')
+        if self.do_profiling:
+            b = prf.Profiling.stop()
+            log.Log.info(
+                '.' + space_profiling
+                + '[Identifier "' + str(self.identifier_string)
+                + '", ChatID "' + str(chatid) + '", Txt "' + str(text_segmented) + '"]'
+                + ' PROFILING Intent (replace root words): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
+
+        keywords_all = list(self.model.get_model_features())
+        log.Log.debugdebug('Keywords all: ' + str(keywords_all))
+
+        #
+        # Convert sentence to a mathematical object (feature vector)
+        #
+        log.Log.debugdebug('#')
+        log.Log.debugdebug('# FEATURE VECTOR & NORMALIZATION')
+        log.Log.debugdebug('#')
+
+        if self.do_profiling:
+            a = prf.Profiling.start()
+
+        model_fv = fv.FeatureVector()
+        model_fv.set_freq_feature_vector_template(list_symbols=keywords_all)
+
+        # Get feature vector of text
+        try:
+            df_fv = model_fv.get_freq_feature_vector(text=text_normalized)
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Exception occurred calculating FV for "' + str(text_normalized)\
+                     + '": Exception "' + str(ex)\
+                     + '. Using FV Template ' + str(model_fv.get_fv_template())\
+                     + ', FV Weights ' + str(model_fv.get_fv_weights()) \
+                     + ', identifier "' + str(self.identifier_string) + '".'
+            log.Log.critical(errmsg)
+            raise Exception(ex)
+
+        # This creates a single row matrix that needs to be transposed before matrix multiplications
+        # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
+        # For now we make it 1D first
+        fv_text_1d = np.array(df_fv['Frequency'].values, ndmin=1)
+        if fv_text_1d.ndim != 1:
+            raise Exception(str(self.__class__) + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!')
+        fv_text_normalized_1d = np.array(df_fv['FrequencyNormalized'].values, ndmin=1)
+        if fv_text_normalized_1d.ndim != 1:
+            raise Exception(str(self.__class__) + ': Expected a 1D vector, got ' + str(fv_text_normalized_1d.ndim) + 'D!')
+        log.Log.debug(fv_text_1d)
+        log.Log.debug(fv_text_normalized_1d)
+
+        if self.do_profiling:
+            b = prf.Profiling.stop()
+            log.Log.info(
+                '.' + space_profiling
+                + '[Identifier "' + str(self.identifier_string)
+                + '", ChatID "' + str(chatid) + '", Txt "' + str(text_segmented) + '"]'
+                + ' PROFILING Intent (FV & Normalization): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
+
+        return fv_text_1d
 
     #
     # Forms a JSON response from get_text_class() result
@@ -403,8 +492,12 @@ class IntentWrapper:
             top     = intEng.IntentEngine.SEARCH_TOPX_RFV,
             verbose = 0
     ):
-        if self.lebot is None or self.wseg == None:
-            raise Exception('CRMBot not initialized!!')
+        if self.model is None or self.wseg == None:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Model not initialized!! Model ' + str(self.model)
+                + ', Word Segmentation ' + str(self.wseg)
+            )
 
         while (1):
             chatstr = input("Enter question: ")
@@ -432,4 +525,7 @@ class IntentWrapper:
             print(json.loads(answer, encoding=IntentWrapper.JSON_ENCODING))
 
         return
+
+
+if __name__ == '__main__':
 
