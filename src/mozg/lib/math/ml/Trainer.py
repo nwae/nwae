@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import datetime as dt
+import mozg.lib.math.ml.ModelHelper as modelHelper
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
 import mozg.lib.math.ml.deeplearning.Keras as krModel
@@ -16,9 +17,6 @@ from inspect import currentframe, getframeinfo
 #
 class Trainer(threading.Thread):
 
-    MODEL_NAME_DEFAULT = 'default'
-    MODEL_NAME_KERAS = 'keras'
-
     COL_TDATA_INTENT = 'Intent'
     COL_TDATA_INTENT_ID = 'Intent ID'
     COL_TDATA_TEXT_SEGMENTED = 'TextSegmented'
@@ -30,7 +28,7 @@ class Trainer(threading.Thread):
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
-            model_name = MODEL_NAME_DEFAULT
+            model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
     ):
         super(Trainer, self).__init__()
 
@@ -94,28 +92,13 @@ class Trainer(threading.Thread):
                     td = self.training_data
                 )
 
-            if self.model_name == Trainer.MODEL_NAME_KERAS:
-                kr_model = krModel.Keras(
-                    identifier_string = self.identifier_string,
-                    dir_path_model    = self.dir_path_model,
-                    training_data     = tdm_object
-                )
-                kr_model.train()
-            else:
-                ms_model = msModel.MetricSpaceModel(
-                    identifier_string = self.identifier_string,
-                    # Directory to keep all our model files
-                    dir_path_model    = self.dir_path_model,
-                    # Training data in TrainingDataModel class type
-                    training_data     = tdm_object,
-                    # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
-                    key_features_remove_quartile = 0,
-                    # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
-                    stop_features = (),
-                    # If we will create an "IDF" based on the initial features
-                    weigh_idf     = True
-                )
-                ms_model.train()
+            model_obj = modelHelper.ModelHelper.get_model(
+                model_name = self.model_name,
+                identifier_string = self.identifier_string,
+                dir_path_model    = self.dir_path_model,
+                training_data     = tdm_object
+            )
+            model_obj.train()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception: ' + str(ex) + '.'

@@ -73,7 +73,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
             # If we will create an "IDF" based on the initial features
-            weigh_idf = False,
+            weigh_idf = True,
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(

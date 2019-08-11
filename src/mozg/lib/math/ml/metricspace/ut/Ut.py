@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import mozg.lib.math.ml.ModelHelper as modelHelper
 import mozg.lib.math.ml.Trainer as trainer
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
@@ -193,25 +194,17 @@ class Ut:
             'Test predict classes using model "' + str(self.model_name) + '".'
         )
 
-        if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
-            ms = msModel.MetricSpaceModel(
-                identifier_string = self.identifier_string,
-                # Directory to keep all our model files
-                dir_path_model    = cf.ConfigFile.DIR_MODELS,
-            )
-            ms.load_model_parameters()
-        elif self.model_name == trainer.Trainer.MODEL_NAME_KERAS:
-            ms = krModel.Keras(
-                identifier_string = self.identifier_string,
-                dir_path_model    = cf.ConfigFile.DIR_MODELS
-            )
-            ms.load_model_parameters()
-        else:
-            raise Exception('Unknown model name "' + str(self.model_name) + '".')
+        model_obj = modelHelper.ModelHelper.get_model(
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string,
+            dir_path_model    = cf.ConfigFile.DIR_MODELS,
+            training_data     = None
+        )
+        model_obj.load_model_parameters()
 
         test_x = Ut.DATA_TEST_X
         test_x_name = Ut.DATA_TEST_X_NAME
-        model_x_name = ms.get_model_features()
+        model_x_name = model_obj.get_model_features()
         if model_x_name is None:
             model_x_name = Ut.DATA_X_NAME
 
@@ -260,16 +253,16 @@ class Ut:
 
         for i in range(reordered_test_x.shape[0]):
             v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
-            if self.model_name == trainer.Trainer.MODEL_NAME_KERAS:
-                predict_result = ms.predict_class(
-                    x=v
-                )
-            else:
-                predict_result = ms.predict_class(
+            if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
+                predict_result = model_obj.predict_class(
                     x           = v,
                     include_rfv = include_rfv,
                     include_match_details = include_match_details,
                     top = top
+                )
+            else:
+                predict_result = model_obj.predict_class(
+                    x           = v
                 )
             y_observed = predict_result.predicted_classes
             all_y_observed_top.append(y_observed[0])
@@ -284,7 +277,7 @@ class Ut:
                 + ', Match Details: ' + str(match_details)
             )
 
-            if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
+            if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
                 metric = top_class_distance
                 metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
                 mse += metric ** 2
@@ -312,8 +305,8 @@ class Ut:
         log.Log.info('mse = ' + str(mse))
         log.Log.info('mse_norm = ' + str(mse_norm))
 
-        if self.model_name == trainer.Trainer.MODEL_NAME_DEFAULT:
-            predict_result = ms.predict_classes(
+        if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
+            predict_result = model_obj.predict_classes(
                     x           = reordered_test_x,
                     include_rfv = include_rfv,
                     include_match_details = include_match_details,
@@ -334,8 +327,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
-            trainer.Trainer.MODEL_NAME_DEFAULT
-            #trainer.Trainer.MODEL_NAME_KERAS,
+            modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
+            # modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1',
