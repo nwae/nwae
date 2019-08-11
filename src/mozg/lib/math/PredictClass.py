@@ -42,7 +42,7 @@ class PredictClass:
             postfix_wordlist,
             dir_wordlist_app,
             postfix_wordlist_app,
-            do_profiling = True
+            do_profiling = False
     ):
         self.model_name = model_name
         self.identifier_string = identifier_string
