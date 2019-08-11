@@ -9,7 +9,6 @@ import mozg.lib.lang.nlp.WordSegmentation as ws
 import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.utils.Log as log
 import threading
-import json
 import numpy as np
 import mozg.utils.Profiling as prf
 from inspect import currentframe, getframeinfo
