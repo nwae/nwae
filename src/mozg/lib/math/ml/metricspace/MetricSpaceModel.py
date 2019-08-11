@@ -24,11 +24,10 @@ import mozg.utils.Profiling as prf
 #
 # Model Description:
 #
-# Points can be on any dimensional space, however in this model, we project it all on a hypersphere
-# via normalization.
-# Thus this model is only suitable for directional sensitive data like human text sentences,
+# Points can be on any dimensional space, however in this model, we project it all on a hypersphere.
+# Thus this model is only suitable for directionally sensitive data, and not too dependent on magnitude.
 #
-# thus the maximum distance (if euclidean) in the positive section of the hypersphere is 2^0.5=1.4142
+# The maximum distance (if euclidean) in the positive section of the hypersphere is 2^0.5=1.4142
 # The formal problem statement is:
 #
 #    If given positive real numbers x_a, x_b, x_c, ... and y_a, y_b, y_c, ...
@@ -37,6 +36,8 @@ import mozg.utils.Profiling as prf
 #         (x_a - y_a)^2 + (x_b - y_b)^2 + (x_c - y_c)^2 + ...
 #         = 2 - 2(x_a*y_a + x_b_*y_b + x_c*y_c)
 #         <= 2
+#
+# However we may choose a different metric to speed up calculation, perhaps a linear one.
 #
 # For all classes, or cluster the radius of the class/cluster is defined as the distance of the
 # "center" of the class/cluster to the furthest point. For a class the "center" may be defined
@@ -164,7 +165,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
         return self.model_data.check_if_model_updated()
 
     #
-    # Given our training data x, we get the IDF of the columns x_name
+    # Given our training data x, we get the IDF of the columns x_name.
+    # TODO Generalize this into a NN Layer instead
     #
     @staticmethod
     def get_feature_weight_idf(
@@ -431,7 +433,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # ndarray type of >= 2 dimensions, single point/row array
             x,
             include_rfv = False,
-            # This will slow down by a whopping 20ms!!
             include_match_details = False,
             top = modelIf.ModelInterface.MATCH_TOP
     ):
@@ -491,11 +492,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
         y_clustered_filtered = self.model_data.y_clustered
         #
         # By using RFV first, we will achieve better speed, as this serves to filter the clustered data.
-        # However, accuracy will suffer a little
+        # However, accuracy will suffer
         #
         if include_rfv:
             retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
-                v=v, x_ref=self.model_data.x_ref, y_ref=self.model_data.y_ref, do_profiling=self.do_profiling)
+                v     = v,
+                x_ref = self.model_data.x_ref,
+                y_ref = self.model_data.y_ref,
+                do_profiling = self.do_profiling
+            )
             distance_x_ref = retobj.distance_x_rel
             y_ref_rel = retobj.y_rel
 
