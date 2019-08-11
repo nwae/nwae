@@ -11,6 +11,7 @@ import mozg.lib.lang.nlp.WordSegmentation as ws
 import mozg.lib.lang.nlp.SynonymList as sl
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.lib.math.ml.ModelInterface as modelIf
+import mozg.lib.math.ml.ModelHelper as modelHelper
 
 
 #
@@ -35,6 +36,7 @@ class PredictClass:
             model_interface,
             lang,
             dirpath_synonymlist,
+            postfix_synonymlist,
             dir_wordlist,
             postfix_wordlist,
             dir_wordlist_app,
@@ -44,6 +46,7 @@ class PredictClass:
         self.model = model_interface
         self.lang = lang
         self.dirpath_synonymlist = dirpath_synonymlist
+        self.postfix_synonymlist = postfix_synonymlist
         self.dir_wordlist = dir_wordlist
         self.postfix_wordlist = postfix_wordlist
         self.dir_wordlist_app = dir_wordlist_app
@@ -53,20 +56,20 @@ class PredictClass:
         self.synonymlist = sl.SynonymList(
             lang                = self.lang,
             dirpath_synonymlist = self.dirpath_synonymlist,
-            postfix_synonymlist = '.synonymlist.txt'
+            postfix_synonymlist = self.postfix_synonymlist
         )
         self.synonymlist.load_synonymlist()
 
         self.wseg = ws.WordSegmentation(
-            lang = self.lang,
+            lang             = self.lang,
             dirpath_wordlist = self.dir_wordlist,
             postfix_wordlist = self.postfix_wordlist,
-            do_profiling = self.do_profiling
+            do_profiling     = self.do_profiling
         )
         # Add application wordlist
         self.wseg.add_wordlist(
-            dirpath=self.dir_wordlist_app,
-            postfix=self.postfix_wordlist_app
+            dirpath = self.dir_wordlist_app,
+            postfix = self.postfix_wordlist_app
         )
 
         # Add synonym list to wordlist (just in case they are not synched)
@@ -196,7 +199,7 @@ class PredictClass:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
             )
-        log.Log.debug(fv_text_1d)
+        log.Log.debugdebug(fv_text_1d)
 
         v = npUtil.NumpyUtil.convert_dimension(arr=fv_text_1d, to_dim=2)
         log.Log.debugdebug('v dims ' + str(v.shape))
@@ -239,31 +242,33 @@ class PredictClass:
 
 
 if __name__ == '__main__':
+    import mozg.ConfigFile as cf
+    cf.ConfigFile.get_cmdline_params_and_init_config()
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+
     #
     # Now read back params and predict classes
     #
-    topdir = '/Users/mark.tan/git/mozg'
-    import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-    ms_pc = msModel.MetricSpaceModel(
-        identifier_string = 'demo_msmodel_accid4_botid22',
-        # Directory to keep all our model files
-        dir_path_model    = topdir + '/app.data/models',
-        do_profiling      = True
+    model_obj = modelHelper.ModelHelper.get_model(
+        model_name        = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
+        identifier_string = 'botkey_db_mario.production.accountid_4.botid_22.lang_cn',
+        dir_path_model    = '/Users/mark.tan/git/mozg.nlp/app.data/intent/models',
+        training_data     = None
     )
-    ms_pc.load_model_parameters()
+    model_obj.load_model_parameters()
 
     pc = PredictClass(
-        model_interface      = ms_pc,
+        model_interface      = model_obj,
         lang                 = 'cn',
-        dirpath_synonymlist  = topdir + '/nlp.data/app/chats',
-        dir_wordlist         = topdir + '/nlp.data/wordlist',
-        postfix_wordlist     = '-wordlist.txt',
-        dir_wordlist_app     = topdir + '/nlp.data/app/chats',
-        postfix_wordlist_app = '.wordlist.app.txt',
+        dirpath_synonymlist  = cf.ConfigFile.DIR_SYNONYMLIST,
+        postfix_synonymlist  = cf.ConfigFile.POSTFIX_SYNONYMLIST,
+        dir_wordlist         = cf.ConfigFile.DIR_WORDLIST,
+        postfix_wordlist     = cf.ConfigFile.POSTFIX_WORDLIST,
+        dir_wordlist_app     = cf.ConfigFile.DIR_APP_WORDLIST,
+        postfix_wordlist_app = cf.ConfigFile.POSTFIX_APP_WORDLIST,
         do_profiling         = True
     )
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     # Return all results in the top 5
     res = pc.predict_class_text_features(
         inputtext="存款",
