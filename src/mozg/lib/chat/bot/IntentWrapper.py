@@ -2,16 +2,15 @@
 
 # !!! Will work only on Python 3 and above
 
-import ie.lib.chat.bot.IntentEngineTest as intEng
-import mozg.common.util.StringUtils as su
-import ie.lib.lang.nlp.WordSegmentation as ws
-import mozg.common.util.Log as log
+import mozg.lib.math.ml.ModelInterface as modelIf
+import mozg.lib.chat.bot.IntentEngine as intEng
+import mozg.utils.StringUtils as su
+import mozg.lib.lang.nlp.WordSegmentation as ws
+import mozg.utils.Log as log
 import threading
 import json
 import numpy as np
-import time
-import mozg.common.util.Profiling as prf
-import mozg.common.util.DbCache as dbcache
+import mozg.utils.Profiling as prf
 from inspect import currentframe, getframeinfo
 
 
@@ -40,53 +39,36 @@ class IntentWrapper:
 
     def __init__(
             self,
-            use_db,
-            db_profile,
-            account_id,
-            bot_id,
-            # TODO lang and bot_key to be removed
+            model_name,
+            identifier_string,
             lang,
-            # We do not specify here whether this is bot id or bot name or account-campaign-botname, etc.
-            bot_key,
-            dir_rfv_commands,
             dir_synonymlist,
             dir_wordlist,
             postfix_wordlist,
             dir_wordlist_app,
             postfix_wordlist_app,
             do_profiling = False,
-            minimal = False,
-            min_score_threshold = intEng.IntentEngine.DEFAULT_SCORE_MIN_THRESHOLD,
-            verbose = 0
+            min_score_threshold = intEng.IntentEngine.DEFAULT_SCORE_MIN_THRESHOLD
     ):
         #
         # All class variables are constants only to ensure thread safety
         # except for the intent cache
         #
-        self.use_db = use_db
-        self.db_profile = db_profile
-        self.account_id = account_id
-        self.bot_id = bot_id
-
+        self.model_name = model_name
+        self.identifier_string = identifier_string
         self.lang = su.StringUtils.trim(lang.lower())
-        self.bot_key = su.StringUtils.trim(bot_key.lower())
-        self.dir_rfv_commands = su.StringUtils.trim(dir_rfv_commands)
         self.dir_synonymlist = su.StringUtils.trim(dir_synonymlist)
-
         self.dir_wordlist = dir_wordlist
         self.postfix_wordlist = postfix_wordlist
         self.dir_wordlist_app = dir_wordlist_app
         self.postfix_wordlist_app = postfix_wordlist_app
 
         self.do_profiling = do_profiling
-        self.minimal = minimal
         self.min_score_threshold = min_score_threshold
 
-        self.lebot = None
-        #self.lebot_reduced = None
+        self.math_engine = None
         self.wseg = None
         self.bot_reply = None
-        self.verbose = verbose
 
         # Thread safe mutex, not used
         self.mutex = threading.Lock()
@@ -132,16 +114,22 @@ class IntentWrapper:
         )
         len_after = self.wseg.lang_wordlist.wordlist.shape[0]
         if len_after - len_before > 0:
-            log.Log.log(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ": Warning. These words not in word list but in synonym list:")
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ": These words not in word list but in synonym list:"
+            )
             words_not_synched = self.wseg.lang_wordlist.wordlist['Word'][len_before:len_after]
             log.Log.log(words_not_synched)
 
-        self.db_cache = dbcache.DbCache.get_singleton(
+        self.db_cache = dbcache.DbIntentCache.get_singleton(
             db_profile      = self.db_profile,
             account_id      = self.account_id,
             bot_id          = self.bot_id,
-            bot_lang        = self.lang
+            bot_lang        = self.lang,
+            cache_intent_name    = True,
+            cache_intent_answers = False,
+            cache_intent_regex   = False,
+            cache_expiry_time_secs = 5*60
         )
 
         return
@@ -171,7 +159,10 @@ class IntentWrapper:
             try:
                 answer = json.dumps(obj=answer, ensure_ascii=False).encode(encoding=IntentWrapper.JSON_ENCODING)
             except Exception as ex:
-                raise Exception(str(self.__class__) + ' Unable to dump to JSON format for [' + str(answer) + ']' + str(ex))
+                raise Exception(
+                    str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                    + ': Unable to dump to JSON format for [' + str(answer) + ']' + str(ex)
+                )
 
         return answer
 
@@ -191,41 +182,46 @@ class IntentWrapper:
         start_func = None
         if self.do_profiling:
             start_func = prf.Profiling.start()
-            if self.verbose >= 2:
-                log.Log.log('.  '
-                            + '[ChatID=' + str(chatid) + ', Txt=' + inputtext + ']'
-                            + ' PROFILING GET TEXT CLASS Start (Reduced Features = ' + str(reduced_features)
-                            + '): ' + str(start_func))
+            log.Log.debug(
+                '.  '
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
+                + ' PROFILING GET TEXT CLASS Start (Reduced Features = ' + str(reduced_features)
+                + '): ' + str(start_func)
+            )
 
         if len(inputtext) > IntentWrapper.MAX_QUESTION_LENGTH:
-            if self.verbose >= 2:
-                log.Log.log(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Warning. ChatID [' + str(chatid) + '] message exceeds ' +
-                            str(IntentWrapper.MAX_QUESTION_LENGTH) +
-                            ' in length. Truncating..')
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Warning. ChatID [' + str(chatid) + '] message exceeds '
+                + str(IntentWrapper.MAX_QUESTION_LENGTH)
+                + ' in length. Truncating..'
+            )
             inputtext = inputtext[0:IntentWrapper.MAX_QUESTION_LENGTH]
 
         a = None
         if self.do_profiling:
             a = prf.Profiling.start()
-            if self.verbose >= 2:
-                log.Log.log('.    '
-                            + '[ChatID=' + str(chatid) + ', Txt=' + inputtext + ']'
-                            + ' PROFILING Word Segmentation Start: ' + str(a))
+            log.Log.debug(
+                '.    '
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
+                + ' PROFILING Word Segmentation Start: ' + str(a)
+            )
         # Segment words first
         chatstr_segmented = su.StringUtils.trim(inputtext)
         if do_segment_inputtext:
             chatstr_segmented = self.wseg.segment_words(text=su.StringUtils.trim(inputtext))
         if self.do_profiling:
             b = prf.Profiling.stop()
-            if self.verbose >= 2:
-                log.Log.log('.    '
-                            + '[ChatID=' + str(chatid) + ', Txt=' + inputtext + ']'
-                            + ' PROFILING Word Segmentation End: ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
+            log.Log.info(
+                '.    '
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
+                + ' PROFILING Word Segmentation End: ' + str(prf.Profiling.get_time_dif_str(start=a, stop=b))
+            )
 
-        if self.verbose > 3:
-            log.Log.log(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Segmented Text: [' + chatstr_segmented + ']')
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Segmented Text: [' + chatstr_segmented + ']'
+        )
 
         intent_engine = self.lebot
 
@@ -258,10 +254,12 @@ class IntentWrapper:
 
         if self.do_profiling:
             end_func = prf.Profiling.stop()
-            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + '.  ' + '[ChatID=' + str(chatid) + ', Txt=' + chatstr_segmented + ']'
-                             + ' PROFILING GET TEXT CLASS End (Reduced Features = ' + str(reduced_features)
-                             + '): ' + prf.Profiling.get_time_dif_str(start=start_func, stop=end_func))
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(inputtext) + ']'
+                + ' PROFILING GET TEXT CLASS End (Reduced Features = ' + str(reduced_features)
+                + '): ' + str(prf.Profiling.get_time_dif_str(start=start_func, stop=end_func))
+            )
 
         return df_intent_keep
 
@@ -282,9 +280,11 @@ class IntentWrapper:
         start_func = None
         if self.do_profiling:
             start_func = prf.Profiling.start()
-            log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + '.  ' + '[ChatID=' + str(chatid) + ']'
-                          + 'PROFILING Intent JSON Start: ' + str(start_func))
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ']'
+                + 'PROFILING Intent JSON Start: ' + str(start_func)
+            )
 
         answer_json = {'matches':{}}
 
@@ -298,11 +298,12 @@ class IntentWrapper:
         a = None
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        +'.    '
-                        + '[ChatID=' + str(chatid) + ']'
-                        + ' PROFILING Intent JSON (Loop all '
-                        + str(df_intent.shape[0]) + ' intents) Start: ' + str(a))
+            log.Log.debug(
+                '.    '
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ']'
+                + ' PROFILING Intent JSON (Loop all '
+                + str(df_intent.shape[0]) + ' intents) Start: ' + str(a)
+            )
 
         indexes_intent = df_intent.index.tolist()
         for i in range(0, len(indexes_intent), 1):
@@ -320,18 +321,27 @@ class IntentWrapper:
                 aa = None
                 if self.do_profiling:
                     aa = prf.Profiling.start()
-                    log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                                  + '.      ' + '[ChatID=' + str(chatid) + ']'
-                                  + 'PROFILING Intent JSON (Get DB/Cache Intent Name for ' + str(intent_name)
-                                  + ') Start: ' + str(aa))
+                    log.Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ']'
+                        + 'PROFILING Intent JSON (Get DB/Cache Intent Name for ' + str(intent_name)
+                        + ') Start: ' + str(aa)
+                    )
 
                 # Only go to DB if not in cache or already expired
                 fetch_from_db = False
                 # Key is the Intent ID
-                intent_name = self.db_cache.get_intent_name(
-                    intent_id           = intent_class,
-                    use_only_cache_data = use_only_cache_data
-                )
+                try:
+                    intent_name = self.db_cache.get_intent_name(
+                        intent_id           = intent_class,
+                        use_only_cache_data = use_only_cache_data
+                    )
+                except Exception as ex:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Could not get intent name for intent ID ' + str(intent_class)\
+                             + '. Got exception ' + str(ex)
+                    log.Log.error(errmsg)
+                    intent_name = str(intent_class)
 
                 if self.do_profiling:
                     bb = prf.Profiling.stop()
@@ -358,23 +368,30 @@ class IntentWrapper:
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.log(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + '.    ' + '[ChatID=' + str(chatid) + ']'
-                        + ' PROFILING Intent JSON (loop all ' + str(df_intent.shape[0]) +
-                        ' intents) End: ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '[Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ']'
+                + ' PROFILING Intent JSON (loop all ' + str(df_intent.shape[0])
+                + ' intents) End: ' + str(prf.Profiling.get_time_dif_str(start=a, stop=b))
+            )
 
         json_reply = None
         try:
             json_reply = json.dumps(obj=answer_json, ensure_ascii=False).encode(encoding=IntentWrapper.JSON_ENCODING)
         except Exception as ex:
-            raise Exception(str(self.__class__) + ' Unable to dump to JSON format for [' + str(answer_json) + ']' + str(ex))
+            raise Exception(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' Unable to dump to JSON format for [' + str(answer_json) + ']' + str(ex)
+            )
 
         if self.do_profiling:
             end_func = prf.Profiling.stop()
-            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + '.  ' + '[ChatID=' + str(chatid) + ']'
-                        + ' PROFILING Intent JSON End: '
-                        + prf.Profiling.get_time_dif_str(start=start_func, stop=end_func))
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': [Botkey=' + str(self.bot_key) + ', ChatID=' + str(chatid) + ']'
+                + ' PROFILING Intent JSON End: '
+                + str(prf.Profiling.get_time_dif_str(start=start_func, stop=end_func))
+            )
 
         return json_reply
 

@@ -7,18 +7,14 @@ import numpy as np
 import pandas as pd
 import threading
 import time
-import json
 import datetime as dt
 import mozg.lib.chat.bot.IntentEngineThread as intEngThread
 import mozg.lib.chat.classification.training.ChatTraining as chatTr
 import mozg.lib.lang.model.FeatureVector as fv
-import mozg.lib.chat.classification.training.RefFeatureVec as reffv
 import mozg.lib.lang.nlp.SynonymList as sl
-import mozg.common.util.Profiling as prf
-import mozg.common.util.Log as log
+import mozg.utils.Profiling as prf
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.ml.metricspace.MetricSpaceModel as msmodel
-import mozg.lib.math.ml.TrainingDataModel as tdmodel
 
 
 #
@@ -50,10 +46,10 @@ class IntentEngine:
 
     # Column names for intent detection data frame
     COL_TEXT_NORMALIZED = 'TextNormalized'
-    COL_COMMAND = reffv.RefFeatureVector.COL_COMMAND
+    COL_COMMAND = 'Command'
     COL_DISTANCE_TO_RFV = 'DistToRfv'
     COL_DISTANCE_CLOSEST_SAMPLE = 'DistToSampleClosest'
-    COL_DISTANCE_FURTHEST = reffv.RefFeatureVector.COL_DISTANCE_TO_RFV_FURTHEST
+    COL_DISTANCE_FURTHEST = 'Radius'
     COL_MATCH = 'Match'
     COL_SCORE = 'Score'
     COL_SCORE_CONFIDENCE_LEVEL = 'ScoreConfLevel'
@@ -109,28 +105,15 @@ class IntentEngine:
         #
         # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
         #
-        self.fpath_x_name = self.dir_rfv_commands + '/' + self.bot_key + '.x_name.csv'
-        if not os.path.isfile(self.fpath_x_name):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': x_name file "' + self.fpath_idf + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-        self.df_x_name_ro = None
-        self.np_x_name_ro = None
-
-        #
-        # We explicitly put a '_ro' postfix to indicate read only, and should never be changed during the program
-        #
-        self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.idf.csv'
+        self.fpath_idf = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.words.idf.csv'
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': IDF file "' + self.fpath_idf + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
         self.df_idf_ro = None
-        self.np_idf_ro = None
 
-        self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.rfv.csv'
+        self.fpath_rfv = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV file "' + self.fpath_rfv + '" not found!'
@@ -138,17 +121,9 @@ class IntentEngine:
             raise Exception(errmsg)
         self.df_rfv_ro = None
         # This is the cached data frame version of the RFV in numpy array form
-        self.np_rfv_array_ro = None
+        self.df_rfv_np_array_ro = None
 
-        self.fpath_rfv_friendly_json = self.dir_rfv_commands + '/' + self.bot_key + '.rfv_friendly.json'
-        if not os.path.isfile(self.fpath_rfv_friendly_json):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV friendly file "' + self.fpath_rfv_friendly_json + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-        self.rfv_friendly_json = None
-
-        self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.rfv.distance.csv'
+        self.fpath_rfv_dist = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.commands.rfv.distance.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV furthest distance file "' + self.fpath_rfv_dist + '" not found!'
@@ -156,16 +131,15 @@ class IntentEngine:
             raise Exception(errmsg)
         self.df_rfv_dist_furthest_ro = None
 
-        self.fpath_x_clustered = self.dir_rfv_commands + '/' + self.bot_key + '.x_clustered.csv'
+        self.fpath_fv_all = self.dir_rfv_commands + '/' + self.bot_key + '.' + 'chatbot.fv.all.csv'
         if not os.path.isfile(self.fpath_rfv):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': x clustered file "' + self.fpath_x_clustered + '" not found!'
+                     + ': Training Data file "' + self.fpath_fv_all + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
         # Used to zoom into an intent/command group and compare against exact training data in that group
-        self.df_x_clustered_ro = None
-        self.np_x_clustered_ro = None
-        self.index_x_clustered_ro = None
+        self.df_fv_training_data_ro = None
+        self.index_command_fv_training_data_ro = None
 
         # Used to finally confirm if it is indeed the intent by matching top keywords in the intent category
         # self.df_intent_tf_ro = None
@@ -173,7 +147,7 @@ class IntentEngine:
         self.hash_df_rfv_ro = None
         self.hash_df_rfv_np_array_ro = None
         self.hash_df_idf_ro = None
-        self.hash_index_x_clustered_ro = None
+        self.hash_index_command_fv_training_data_ro = None
         # Don't do for training data, it takes too long
         self.hash_df_rfv_dist_furthest_ro = None
 
@@ -263,26 +237,10 @@ class IntentEngine:
     # Run this slow load up in background thread
     #
     def background_load_rfv_commands_from_file(self):
-        self.__mutex.acquire()
-
         try:
-            self.df_x_name_ro = pd.read_csv(
-                filepath_or_buffer = self.fpath_x_name,
-                sep       =',',
-                index_col = 'INDEX'
-            )
-            if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
-                # Convert Index column to string
-                self.df_x_name_ro.index = self.df_x_name_ro.index.astype(str)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': x_name Data: Read ' + str(self.df_x_name_ro.shape[0]) + ' lines'
-            )
-            self.np_x_name_ro = np.array(self.df_x_name_ro.values)
-            self.np_x_name_ro = self.np_x_name_ro.transpose()
-            log.Log.info(self.df_x_name_ro)
-            log.Log.info(self.np_x_name_ro)
+            self.__mutex.acquire()
 
+            # TODO This data actually not needed
             self.df_idf_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_idf,
                 sep       =',',
@@ -291,14 +249,8 @@ class IntentEngine:
             if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_idf_ro.index = self.df_idf_ro.index.astype(str)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines'
-            )
-            self.np_idf_ro = np.array(self.df_idf_ro.values)
-            self.np_idf_ro = self.np_idf_ro.transpose()
-            log.Log.info(self.df_idf_ro)
-            log.Log.info(self.np_idf_ro)
+            log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': IDF Data: Read ' + str(self.df_idf_ro.shape[0]) + ' lines')
 
             self.df_rfv_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv,
@@ -308,27 +260,13 @@ class IntentEngine:
             if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                 # Convert Index column to string
                 self.df_rfv_ro.index = self.df_rfv_ro.index.astype(str)
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': RFV Data: Read ' + str(self.df_rfv_ro.shape[0]) + ' lines: '
-            )
-            log.Log.info(self.df_rfv_ro)
+            log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': RFV Data: Read ' + str(self.df_rfv_ro.shape[0]) + ' lines: ')
+            log.Log.important(self.df_rfv_ro.loc[self.df_rfv_ro.index[0:10]])
             # Cached the numpy array
-            self.np_rfv_array_ro = np.array(self.df_rfv_ro.values)
+            self.df_rfv_np_array_ro = np.array(self.df_rfv_ro.values)
             log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cached huge RFV array from dataframe..')
-            log.Log.info(self.np_rfv_array_ro)
-
-            # f = open(file=fpath_rfv_friendly, mode='w')
-            with open(self.fpath_rfv_friendly_json, 'r') as f:
-                self.rfv_friendly_json = json.load(f)
-            f.close()
-            log.Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Rfv friendly read keys ' + str(self.rfv_friendly_json.keys())
-                + ' from file "' + self.fpath_rfv_friendly_json + '".'
-            )
-            log.Log.info(self.rfv_friendly_json)
 
             self.df_rfv_dist_furthest_ro = pd.read_csv(
                 filepath_or_buffer = self.fpath_rfv_dist,
@@ -342,27 +280,33 @@ class IntentEngine:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': RFV Furthest Distance Data: Read ' + str(self.df_rfv_dist_furthest_ro.shape[0]) + ' lines'
             )
-            log.Log.info(self.df_rfv_dist_furthest_ro)
 
             #
             # RFV is ready, means we can start detecting intents. But still can't use training data
             #
             self.is_rfv_ready = True
 
+            # TODO When we go live to production, training data is no longer in file but in DB. How will we do?
             if not self.minimal:
-                self.df_x_clustered_ro = pd.read_csv(
-                    filepath_or_buffer = self.fpath_x_clustered,
+                self.df_fv_training_data_ro = pd.read_csv(
+                    filepath_or_buffer = self.fpath_fv_all,
                     sep       = ',',
                     index_col = 'INDEX'
                 )
                 if IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
                     # Convert Index column to string
-                    self.df_x_clustered_ro.index = self.df_x_clustered_ro.index.astype(str)
+                    self.df_fv_training_data_ro.index = self.df_fv_training_data_ro.index.astype(str)
                 log.Log.important(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': x clustered data: Read ' + str(self.df_x_clustered_ro.shape[0]) + ' lines\n\r')
-                self.np_x_clustered_ro = np.array(self.df_x_clustered_ro.values)
-                log.Log.info(self.df_x_clustered_ro)
-                log.Log.info(self.np_x_clustered_ro)
+                            + ': FV Training Data: Read ' + str(self.df_fv_training_data_ro.shape[0]) + ' lines')
+                log.Log.info(self.df_fv_training_data_ro[0:5])
+                # This is very slow, we do it first! Cache it!
+                self.index_command_fv_training_data_ro = np.array(self.get_command_index_from_training_data_index())
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                    +': Index of training data by command "'
+                                    + str(list(self.index_command_fv_training_data_ro)) + '".')
+                log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                   + ': Index original  "' + str(list(self.df_fv_training_data_ro.index)) + '".')
+
                 self.sanity_check()
 
                 #
@@ -411,15 +355,36 @@ class IntentEngine:
                 raise Exception('RFV error')
 
         if not self.minimal:
-            for i in range(0,self.np_x_clustered_ro.shape[0],1):
-                fv = self.np_x_clustered_ro[i]
+            for idx in list(self.df_fv_training_data_ro.index):
+                fv = np.array(self.df_fv_training_data_ro.loc[idx].values)
+                if len(fv.shape) != 1:
+                    raise Exception(
+                        str(self.__class__) + ': Training data vector must be 1-dimensional, got ' + str(len(fv.shape))
+                        + '-dimensional for index ' + str(idx)
+                        + '!! Possible clash of index (e.g. for number type index column 1234.1 is identical to 1234.10)')
                 dist = np.sum(np.multiply(fv,fv))**0.5
                 if abs(dist-1) > 0.000001:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Warning: x fv error for index [' + str(i) + '] not 1, ' + str(dist)
+                             + ': Warning: Training data FV Error for index [' + str(idx) + '] not 1, ' + str(dist)
                     log.Log.critical(errmsg)
                     raise Exception(errmsg)
         return
+
+    def get_command_index_from_training_data_index(self):
+        # This is very slow, we do it first! Cache it!
+        convert_to_type = 'str'
+        if not IntentEngine.CONVERT_COMMAND_INDEX_TO_STR:
+            convert_to_type = 'int'
+
+        # We derive the intent id or command from the strings '888-1', '888-2',...
+        # by removing the ending '-1', '-2', ...
+        # This will speed up filtering of training data later by command.
+        index_command = \
+            chatTr.ChatTraining.retrieve_intent_from_training_data_index(
+                index_list      = list(self.df_fv_training_data_ro.index),
+                convert_to_type = convert_to_type
+            )
+        return index_command
 
     def get_count_intent_calls(self):
         return self.count_intent_calls
@@ -506,11 +471,15 @@ class IntentEngine:
         wait_max_time = 10
         while not (self.is_rfv_ready and
                    (self.is_training_data_ready or self.minimal or not_necessary_to_use_training_data_samples)):
-            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': RFV not yet ready, sleep for ' + str(count*sleep_time_wait_rfv) + ' secs now..')
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': RFV not yet ready for botkey "' + str(self.bot_key)
+                + ', sleep for ' + str(count*sleep_time_wait_rfv) + ' secs now..'
+            )
             if count*sleep_time_wait_rfv > wait_max_time:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Waited too long ' + str(count*sleep_time_wait_rfv) + ' secs. Raising exception..'
+                         + ': Waited too long for botkey "' + str(self.bot_key)\
+                         + '" total wait time ' + str(count*sleep_time_wait_rfv) + ' secs. Raising exception..'
                 raise Exception(errmsg)
             time.sleep(sleep_time_wait_rfv)
             count = count + 1
@@ -521,11 +490,12 @@ class IntentEngine:
         #
         if self.do_profiling:
             start_func = prf.Profiling.start()
-            log.Log.info('.   '
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (reduced features = '
-                        + str(self.reduce_features) + ') Start: '
-                        + str(start_func))
+            log.Log.debug(
+                '.   '
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (reduced features = '
+                + str(self.reduce_features) + ') Start: '
+                + str(start_func))
 
         a = None
         space_profiling = '      '
@@ -537,9 +507,11 @@ class IntentEngine:
         #
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (replace root words) Start: ' + str(a))
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (replace root words) Start: ' + str(a)
+            )
 
         text_normalized = self.synonymlist_ro.normalize_text(text_segmented=text_segmented, verbose=verbose)
         text_normalized = text_normalized.lower()
@@ -549,9 +521,11 @@ class IntentEngine:
         log.Log.debugdebug('Text [' + text_segmented + '] normalized to [' + text_normalized + ']')
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.info('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (replace root words): ' + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (replace root words): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
 
         keywords_all = list(self.df_rfv_ro.columns)
 
@@ -564,9 +538,11 @@ class IntentEngine:
 
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (FV & Normalization) Start: ' + str(a))
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (FV & Normalization) Start: ' + str(a)
+            )
 
         model_fv = fv.FeatureVector()
         model_fv.set_freq_feature_vector_template(list_symbols=keywords_all)
@@ -581,7 +557,8 @@ class IntentEngine:
                      + ': Exception occurred calculating FV for "' + str(text_normalized)\
                      + '": Exception "' + str(ex)\
                      + '. Using FV Template ' + str(model_fv.get_fv_template())\
-                     + ', FV Weights ' + str(model_fv.get_fv_weights())
+                     + ', FV Weights ' + str(model_fv.get_fv_weights()) \
+                     + ', botkey "' + str(self.bot_key) + '".'
             log.Log.critical(errmsg)
             raise Exception(ex)
 
@@ -599,9 +576,11 @@ class IntentEngine:
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.info('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (FV & Normalization): ' + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (FV & Normalization): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
 
         if normalized:
             fv_text_1d = fv_text_normalized_1d
@@ -662,7 +641,10 @@ class IntentEngine:
         ori_len = fv_text_1d.size
         fv_text_2d = np.array(fv_text_1d, ndmin=2)
         if fv_text_2d.shape != (1,ori_len):
-            raise Exception(str(self.__class__) + ': Expected dimension (1,' + str(ori_len) + ') , got ' + str(fv_text_2d.shape))
+            raise Exception(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': Expected dimension (1,' + str(ori_len) + ') , got ' + str(fv_text_2d.shape)
+            )
         log.Log.debug('fv_text_2d:')
         log.Log.debug(fv_text_2d)
 
@@ -678,18 +660,23 @@ class IntentEngine:
         #
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (RFV Simplification) Start: ' + str(a))
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (RFV Simplification) Start: ' + str(a)
+            )
         log.Log.debug('#')
         log.Log.debug('# RFV SIMPLIFICATION')
         log.Log.debug('#')
 
         # Make sure cached RFV array is same dimension with RFV
         if self.df_rfv_np_array_ro.shape != self.df_rfv_ro.shape:
-            raise Exception(str(self.__class__) + ': Cached RFV array dimensions '
-                            + str(self.df_rfv_np_array_ro.shape) + ', different from RFV data frame '
-                            + str(self.df_rfv_ro.shape) + '!')
+            raise Exception(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': Cached RFV array dimensions '
+                + str(self.df_rfv_np_array_ro.shape) + ', different from RFV data frame '
+                + str(self.df_rfv_ro.shape) + '!'
+            )
         rfv_matrix = self.df_rfv_np_array_ro
         # if remove_zero_columns:
         #     rfv_matrix = np.array(df_rfv_tmp.values)
@@ -714,13 +701,18 @@ class IntentEngine:
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.info('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (RFV Simplification): ' + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (RFV Simplification): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
 
         # If no matches
         if df_rfv_nonzero.shape[0] == 0:
-            log.Log.warning('No common features with RFV!!')
+            log.Log.warning(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': No common features with RFV for "' + str(text_segmented) + '"'
+            )
             return None
 
         #
@@ -729,9 +721,11 @@ class IntentEngine:
 
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (FV-RFV Distance Calculation) Start: ' + str(a))
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (FV-RFV Distance Calculation) Start: ' + str(a)
+            )
 
         # Create a matrix of similar rows (fv_text_2d)
         text_matrix = np.repeat(a=fv_text_2d, repeats=df_rfv_nonzero.shape[0], axis=0)
@@ -772,15 +766,19 @@ class IntentEngine:
         log.Log.debug(distance_rfv_text)
 
         if distance_rfv_text.shape[0] != 1:
-            raise Exception(str(self.__class__) + ': Expected a single row for distance to RFV matrix, got ' +
-                            str(distance_rfv_text.shape))
+            raise Exception(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': Expected a single row for distance to RFV matrix, got ' + str(distance_rfv_text.shape)
+            )
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.info('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (FV-RFV Distance Calculation): '
-                        + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (FV-RFV Distance Calculation): '
+                + prf.Profiling.get_time_dif_str(a, b)
+            )
 
         #
         # Keep top X matches
@@ -789,9 +787,11 @@ class IntentEngine:
         #
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (Data Frame Preparation) Start: ' + str(a))
+            log.Log.debug(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (Data Frame Preparation) Start: ' + str(a)
+            )
 
         close_commands = list(df_rfv_nonzero.index)
 
@@ -815,8 +815,10 @@ class IntentEngine:
 
         # Furthest distance to RFV of input text
         max_distance_inputtext_to_rfv = max(df_dist_to_classes[IntentEngine.COL_DISTANCE_TO_RFV])
-        log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Max distance of input text to RFV = ' + str(max_distance_inputtext_to_rfv))
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Max distance of input text to RFV = ' + str(max_distance_inputtext_to_rfv)
+        )
 
         # Sort distance ascending
         df_dist_to_classes = df_dist_to_classes.sort_values(by=[IntentEngine.COL_DISTANCE_TO_RFV], ascending=True)
@@ -826,17 +828,21 @@ class IntentEngine:
         ]
         #df_dist_to_classes = df_dist_to_classes.reset_index(drop=True)
         df_dist_to_classes = df_dist_to_classes.set_index(IntentEngine.COL_COMMAND)
-        log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                           + ': Result Data Frame')
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Result Data Frame'
+        )
         # We sort again by command, so that later we can maintain consistency
         df_dist_to_classes = df_dist_to_classes.sort_values(by=[IntentEngine.COL_COMMAND], ascending=True)
         log.Log.debugdebug(df_dist_to_classes)
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.info('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' END PROFILING Intent (Data Frame Preparation): ' + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' END PROFILING Intent (Data Frame Preparation): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
 
         #
         # Doing only for top intents save time, speeds up the process by a lot
@@ -844,9 +850,11 @@ class IntentEngine:
         #
         is_using_training_data = self.is_training_data_ready
         if not is_using_training_data:
-            log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Not using training data for chat id "' + str(chatid)
-                            + '", text "' + str(text_segmented) + '".')
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not using training data for chat id "' + str(chatid)
+                + '", text "' + str(text_segmented) + '".'
+            )
         else:
             #
             # Zooming into the intent category
@@ -854,9 +862,11 @@ class IntentEngine:
             #
             if self.do_profiling:
                 a = prf.Profiling.start()
-                log.Log.info('.' + space_profiling
-                             + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                             + ' START PROFILING Intent (Zoom Into Training Data) Start: ' + str(a))
+                log.Log.debug(
+                    '.' + space_profiling
+                    + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                    + ' START PROFILING Intent (Zoom Into Training Data) Start: ' + str(a)
+                )
 
             top_intents = df_dist_to_classes.index.tolist()
             # log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -892,19 +902,23 @@ class IntentEngine:
 
             if self.do_profiling:
                 b = prf.Profiling.stop()
-                log.Log.info('.' + space_profiling
-                            + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                            + ' END PROFILING Intent (Zoom Into Training Data): '
-                             + prf.Profiling.get_time_dif_str(a, b))
+                log.Log.info(
+                    '.' + space_profiling
+                    + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                    + ' END PROFILING Intent (Zoom Into Training Data): '
+                    + str(prf.Profiling.get_time_dif_str(a, b))
+                )
 
         #
         # Now for the most important calculations: MATCH & SCORE
         #
         if self.do_profiling:
             a = prf.Profiling.start()
-            log.Log.info('.' + space_profiling
-                       + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                       + ' PROFILING Intent (Match & Score) Start: ' + str(a))
+            log.Log.info(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (Match & Score) Start: ' + str(a)
+            )
 
         # Be CAREFUL. This value of 1.1 will affect score, so don't simply change it
         # Just in case there is only 1 value of distance to RFV (unlikely), we multiply by 1.1 to avoid a 0 score
@@ -983,17 +997,21 @@ class IntentEngine:
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.critical('.' + space_profiling
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (Match & Score): ' + prf.Profiling.get_time_dif_str(a, b))
+            log.Log.critical(
+                '.' + space_profiling
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (Match & Score): ' + str(prf.Profiling.get_time_dif_str(a, b))
+            )
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.critical('.   '
-                        + '[ChatID=' + str(chatid) + ', Txt=' + text_segmented + ']'
-                        + ' PROFILING Intent (reduced features = '
-                        + str(self.reduce_features) + ') End: '
-                        + prf.Profiling.get_time_dif_str(start_func, b))
+            log.Log.critical(
+                '.   '
+                + '[Botkey "' + str(self.bot_key) + ', ChatID=' + str(chatid) + ', Txt=' + str(text_segmented) + ']'
+                + ' PROFILING Intent (reduced features = '
+                + str(self.reduce_features) + ') End: '
+                + str(prf.Profiling.get_time_dif_str(start_func, b))
+            )
 
         if df_dist_to_classes.shape[0] >= 1:
             col_command = df_dist_to_classes.index
@@ -1260,24 +1278,22 @@ class IntentEngine:
 
 
 if __name__ == '__main__':
-    topdir = '/Users/mark.tan/git/mozg'
+    topdir = '/Users/mark.tan/git/mozg.nlp'
     db_profile = 'mario2'
     account_id = 3
     bot_id = 4
     bot_lang = 'cn'
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-
     it = IntentEngine(
         lang = 'cn',
-        bot_key = 'demo_msmodel_testdata',
+        bot_key = 'cn.fun88',
         # bot_key = botia.BotIntentAnswer.get_bot_key(
         #     db_profile = db_profile,
         #     account_id = account_id,
         #     bot_id     = bot_id,
         #     lang       = bot_lang
         # ),
-        dir_rfv_commands = topdir + '/app.data/models',
+        dir_rfv_commands = topdir + '/app.data/intent/rfv',
         dirpath_synonymlist = topdir + '/nlp.data/app/chats',
         do_profiling = True,
         minimal = False,

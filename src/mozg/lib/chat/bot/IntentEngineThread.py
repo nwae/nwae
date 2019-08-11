@@ -1,7 +1,7 @@
 
 import threading
 import time
-import mozg.common.util.Log as log
+import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
 
 
@@ -68,27 +68,34 @@ class IntentEngineThread(threading.Thread):
                      + '" Exception in background thread rfv/etc from file. ' + str(ex)
             log.Log.critical(errmsg)
             # Don't throw exception here, no one is catching it as it is a thread
-            raise Exception(errmsg)
+            # raise Exception(errmsg)
 
     def run(self):
         log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                          + ': Botkey "' + str(self.botkey) + '" Intent Background Thread started..')
         sleep_time = 10
         while True:
-            if self.stoprequest.isSet():
-                log.Log.important(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Botkey "' + str(self.botkey) + '" Breaking from forever thread...'
-                )
-                break
-            if self.intent_self.check_if_rfv_updated():
-                self.__start_intent_engine()
-                if self.failed_to_load:
+            try:
+                if self.stoprequest.isSet():
                     log.Log.important(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Intent Engine failed to load. Try again in ' + str(sleep_time) + ' secs..'
+                        + ': Botkey "' + str(self.botkey) + '" Breaking from forever thread...'
                     )
-            time.sleep(sleep_time)
+                    break
+                if self.intent_self.check_if_rfv_updated():
+                    self.__start_intent_engine()
+                    if self.failed_to_load:
+                        log.Log.important(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Intent Engine failed to load. Try again in ' + str(sleep_time) + ' secs..'
+                        )
+                time.sleep(sleep_time)
+            except Exception as ex:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Intent Engine thread exception for botkey "' + str(self.botkey)\
+                         + '", exception message ' + str(ex)
+                log.Log.critical(errmsg)
+                # Don't quit without stop request
 
         #
         # Checking hashes are slow, do it only if necessary
