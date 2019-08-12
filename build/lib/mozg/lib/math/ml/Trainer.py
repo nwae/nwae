@@ -28,7 +28,7 @@ class Trainer(threading.Thread):
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
-            model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
+            model_name = None
     ):
         super(Trainer, self).__init__()
 
@@ -36,6 +36,8 @@ class Trainer(threading.Thread):
         self.dir_path_model = dir_path_model
         # Can be None type when class initiated
         self.training_data = training_data
+        if model_name is None:
+            model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         self.model_name = model_name
 
         self.__mutex_training = threading.Lock()
