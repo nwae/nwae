@@ -27,7 +27,7 @@ class Keras(modelIf.ModelInterface):
             dir_path_model,
             # Training data in TrainingDataModel class type
             training_data = None,
-            do_profiling = True
+            do_profiling = False
     ):
         super(Keras,self).__init__(
             model_name        = Keras.MODEL_NAME,
@@ -100,7 +100,9 @@ class Keras(modelIf.ModelInterface):
         )
 
     def train(
-            self
+            self,
+            persist_model_to_storage = True,
+            persist_training_data_to_storage = False
     ):
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
@@ -154,8 +156,11 @@ class Keras(modelIf.ModelInterface):
         )
 
         self.network = network
-        self.persist_model_to_storage(network=network)
-        self.persist_training_data_to_storage(td=self.training_data)
+
+        if persist_model_to_storage:
+            self.persist_model_to_storage(network=network)
+        if persist_training_data_to_storage:
+            self.persist_training_data_to_storage(td=self.training_data)
         return
 
     def load_model_parameters(
@@ -177,9 +182,6 @@ class Keras(modelIf.ModelInterface):
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Saved network to file "' + self.filepath_model + '".'
-        )
-        self.persist_training_data_to_storage(
-            td = self.training_data
         )
         return
 
@@ -208,8 +210,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     kr = Keras(
-        identifier_string='keras_image_bw_example',
-        dir_path_model='/Users/mark.tan/git/mozg/app.data/models'
+        identifier_string = 'keras_image_bw_example',
+        dir_path_model    = '/Users/mark.tan/git/mozg/app.data/models'
     )
     kr.load_mnist_example_data()
 
@@ -227,6 +229,7 @@ if __name__ == '__main__':
         kr.train()
         print('Training done.')
 
+    print('Loading model parameters...')
     kr.load_model_parameters()
     test_labels_cat = to_categorical(kr.mnist_test_labels)
 
@@ -235,6 +238,8 @@ if __name__ == '__main__':
 
     prd = kr.predict_classes(x=kr.mnist_train_images_2d[0:10])
     print(prd.predicted_classes)
+
+    exit(0)
 
     for i in range(10):
         plt.imshow(kr.mnist_train_images[i], cmap=plt.cm.binary)

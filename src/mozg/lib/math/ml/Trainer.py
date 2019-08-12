@@ -69,7 +69,11 @@ class Trainer(threading.Thread):
             + ': Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
         )
 
-    def train(self):
+    def train(
+            self,
+            persist_model_to_storage = True,
+            persist_training_data_to_storage = False
+    ):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -100,7 +104,10 @@ class Trainer(threading.Thread):
                 dir_path_model    = self.dir_path_model,
                 training_data     = tdm_object
             )
-            model_obj.train()
+            model_obj.train(
+                persist_model_to_storage = persist_model_to_storage,
+                persist_training_data_to_storage = persist_training_data_to_storage
+            )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception: ' + str(ex) + '.'

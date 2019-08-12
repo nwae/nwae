@@ -120,8 +120,7 @@ class Ut:
         return
 
     def unit_test_train(
-            self,
-            weigh_idf = False
+            self
     ):
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
@@ -130,7 +129,7 @@ class Ut:
             training_data     = self.tdm_obj
         )
 
-        trainer_obj.train()
+        trainer_obj.train(persist_training_data_to_storage = True)
 
         # How to make sure order is the same output from TextCluster in unit tests?
         x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
@@ -333,7 +332,7 @@ if __name__ == '__main__':
             identifier_string = 'demo_ut1',
             model_name        = model_name
         )
-        obj.unit_test_train(weigh_idf=True)
+        obj.unit_test_train()
         obj.unit_test_predict_classes(
             include_rfv = False,
             include_match_details = False,
