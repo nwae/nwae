@@ -715,7 +715,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
     # TODO: Currently uses static IDF weights.
     #
     def train(
-            self
+            self,
+            persist_model_to_storage = True,
+            persist_training_data_to_storage = False,
+            model_params = None
     ):
         prf_start = prf.Profiling.start()
 
@@ -913,8 +916,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
                 )
 
-            self.persist_model_to_storage()
-            self.persist_training_data_to_storage(td=self.training_data)
+            if persist_model_to_storage:
+                self.persist_model_to_storage()
+            if persist_training_data_to_storage:
+                self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception for identifier "' + str(self.identifier_string) + '".'\
