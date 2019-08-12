@@ -205,10 +205,16 @@ class WordList:
             WordList.COL_LATIN_NUMBER: measures_latin
         })
         if self.syl_split_token == '':
-            log.Log.log('Ngram length for ' + self.lang + ' is just the WORD length.')
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Ngram length for ' + self.lang + ' is just the WORD length.'
+            )
             df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.len()
         else:
-            log.Log.log('Ngram length for ' + self.lang + ' is just the SYLLABLE length.')
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Ngram length for ' + self.lang + ' is just the SYLLABLE length.'
+            )
             df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
 
         df_wordlist = df_wordlist.drop_duplicates(subset=[WordList.COL_WORD])
