@@ -152,7 +152,8 @@ class ModelInterface(threading.Thread):
     def train(
             self,
             persist_model_to_storage = True,
-            persist_training_data_to_storage = False
+            persist_training_data_to_storage = False,
+            model_params = None
     ):
         return
 

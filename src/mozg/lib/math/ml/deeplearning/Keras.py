@@ -102,7 +102,8 @@ class Keras(modelIf.ModelInterface):
     def train(
             self,
             persist_model_to_storage = True,
-            persist_training_data_to_storage = False
+            persist_training_data_to_storage = False,
+            model_params = None,
     ):
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
@@ -114,27 +115,32 @@ class Keras(modelIf.ModelInterface):
         y = self.training_data.get_y().copy()
         train_labels_categorical = to_categorical(y)
 
-        network = models.Sequential()
-        network.add(
-            layers.Dense(
-                units       = 512,
-                activation  = 'relu',
-                input_shape = (x.shape[1],)
-            )
-        )
-
         n_labels = len(list(set(y.tolist())))
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Total unique labels = ' + str(n_labels) + '.'
         )
 
-        network.add(
-            layers.Dense(
-                units      = train_labels_categorical.shape[1],
-                activation = 'softmax'
+        network = models.Sequential()
+
+        i_layer = 1
+        for ly in model_params:
+            if i_layer == 1:
+                network.add(
+                    layers.Dense(
+                        units       = ly['units'],
+                        activation  = ly['activation'],
+                        input_shape = ly['input_shape']
+                    )
+                )
+            else:
+                network.add(
+                    layers.Dense(
+                        units      = ly['units'],
+                        activation = ly['activation']
+                    )
             )
-        )
+            i_layer += 1
 
         network.compile(
             optimizer = 'rmsprop',
@@ -225,8 +231,25 @@ if __name__ == '__main__':
         )
         kr.set_training_data(td = td)
 
+        #
+        # Layers Design
+        #
+        nn_layers = [
+            {
+                'units': 512,
+                'activation': 'relu',
+                'input_shape': (td.get_x().shape[1],)
+            },
+            {
+                'units': to_categorical(td.get_y()).shape[1],
+                'activation': 'softmax'
+            }
+        ]
+
         print('Training started...')
-        kr.train()
+        kr.train(
+            model_params = nn_layers
+        )
         print('Training done.')
 
     print('Loading model parameters...')

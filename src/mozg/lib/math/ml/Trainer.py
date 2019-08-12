@@ -72,7 +72,8 @@ class Trainer(threading.Thread):
     def train(
             self,
             persist_model_to_storage = True,
-            persist_training_data_to_storage = False
+            persist_training_data_to_storage = False,
+            model_params = None
     ):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
             raise Exception(
@@ -106,7 +107,8 @@ class Trainer(threading.Thread):
             )
             model_obj.train(
                 persist_model_to_storage = persist_model_to_storage,
-                persist_training_data_to_storage = persist_training_data_to_storage
+                persist_training_data_to_storage = persist_training_data_to_storage,
+                model_params = model_params
             )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\

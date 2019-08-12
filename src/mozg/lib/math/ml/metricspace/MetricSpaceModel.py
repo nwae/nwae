@@ -717,7 +717,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     def train(
             self,
             persist_model_to_storage = True,
-            persist_training_data_to_storage = False
+            persist_training_data_to_storage = False,
+            model_params = None
     ):
         prf_start = prf.Profiling.start()
 

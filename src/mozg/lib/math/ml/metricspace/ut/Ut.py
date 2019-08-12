@@ -12,6 +12,7 @@ import mozg.utils.Profiling as prf
 
 
 class Ut:
+
     DATA_X = np.array(
         [
             # 무리 1
@@ -57,7 +58,7 @@ class Ut:
         '두 셋 넷 넷 다섯'
     ]
     DATA_Y = np.array(
-        [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4]
+        [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3]
     )
     DATA_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
 
@@ -66,24 +67,40 @@ class Ut:
     #
     DATA_TEST_X = np.array(
         [
-            # 무리 1
+            # 무리 0
             [1.2, 2.0, 1.1, 1.0, 0, 0],
             [2.1, 1.0, 2.4, 1.0, 0, 0],
             [1.5, 1.0, 1.3, 1.0, 0, 0],
-            # 무리 2
+            # 무리 1
             [0, 1.1, 2.5, 1.5, 0, 0],
             [0, 2.2, 2.6, 2.4, 0, 0],
             [0, 2.3, 1.7, 2.1, 0, 0],
-            # 무리 3
+            # 무리 2
             [0, 0.0, 0, 1.6, 2.1, 3.5],
             [0, 1.4, 0, 2.7, 1.2, 2.4],
             [0, 1.1, 0, 1.3, 1.3, 2.1],
-            # 무리 4
+            # 무리 3
             [1.1, 0.0, 0.0, 0.0, 0.0, 1.5],
             [0.0, 1.4, 0.9, 1.7, 1.2, 0.0]
         ]
     )
     DATA_TEST_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
+
+    #
+    # Layers Design
+    #
+    NEURAL_NETWORK_LAYERS = [
+        {
+            'units': 512,
+            'activation': 'relu',
+            'input_shape': (DATA_X.shape[1],)
+        },
+        {
+            # 4 unique classes
+            'units': 4,
+            'activation': 'softmax'
+        }
+    ]
 
     def __init__(
             self,
@@ -120,7 +137,8 @@ class Ut:
         return
 
     def unit_test_train(
-            self
+            self,
+            model_params = None
     ):
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
@@ -129,7 +147,10 @@ class Ut:
             training_data     = self.tdm_obj
         )
 
-        trainer_obj.train(persist_training_data_to_storage = True)
+        trainer_obj.train(
+            persist_training_data_to_storage = True,
+            model_params = model_params
+        )
 
         # How to make sure order is the same output from TextCluster in unit tests?
         x_name_expected = ['넷' '두' '셋' '여섯' '다섯' '하나']
@@ -326,13 +347,19 @@ if __name__ == '__main__':
 
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
-            # modelHelper.ModelHelper.MODEL_NAME_KERAS,
+            #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1',
             model_name        = model_name
         )
-        obj.unit_test_train()
+        if model_name == modelHelper.ModelHelper.MODEL_NAME_KERAS:
+            obj.unit_test_train(
+                model_params = Ut.NEURAL_NETWORK_LAYERS
+            )
+        else:
+            obj.unit_test_train()
+
         obj.unit_test_predict_classes(
             include_rfv = False,
             include_match_details = False,
