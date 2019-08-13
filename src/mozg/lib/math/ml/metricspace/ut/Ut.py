@@ -91,7 +91,7 @@ class Ut:
     #
     NEURAL_NETWORK_LAYERS = [
         {
-            'units': 512,
+            'units': 128,
             'activation': 'relu',
             'input_shape': (DATA_X.shape[1],)
         },
@@ -319,7 +319,9 @@ class Ut:
                 if x_classes_expected[i] in matches_i[0:t]:
                     compare_top_x[t][i] = False
             log.Log.info(compare_top_x[t])
-            log.Log.info('Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1)))
+            log.Log.critical(
+                'Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1))
+            )
 
         log.Log.info('mse = ' + str(mse))
         log.Log.info('mse_norm = ' + str(mse_norm))
@@ -343,11 +345,11 @@ if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
 
     # Overwrite config file log level
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_IMPORTANT
 
     for model_name in [
-            modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
-            #modelHelper.ModelHelper.MODEL_NAME_KERAS,
+            modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
+            modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1',
