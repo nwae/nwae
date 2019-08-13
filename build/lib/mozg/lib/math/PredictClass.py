@@ -97,7 +97,7 @@ class PredictClass:
             dir_path_model    = self.dir_path_model,
             training_data     = None
         )
-        self.model.load_model_parameters()
+        self.model.start()
 
         self.count_intent_calls = 0
         return
