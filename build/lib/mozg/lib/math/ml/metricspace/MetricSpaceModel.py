@@ -44,7 +44,7 @@ import mozg.utils.Profiling as prf
 # as the center of mass.
 #
 # Mean Radius:
-#  Given 2 random points on a hypersphere, what is the expected Euclidean distance between them?
+#  TODO Given 2 random points on a hypersphere, what is the expected Euclidean distance between them?
 #
 class MetricSpaceModel(modelIf.ModelInterface):
 

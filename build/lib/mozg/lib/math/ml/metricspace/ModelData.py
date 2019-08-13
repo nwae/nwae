@@ -80,7 +80,6 @@ class ModelData:
         self.fpath_idf                 = prefix + '.idf.csv'
         # y not recorded separately, it is in the index of this dataframe csv
         self.fpath_x_ref               = prefix + '.x_ref.csv'
-        self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
         # Only for debugging file
         self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
         self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
@@ -220,18 +219,18 @@ class ModelData:
                 f.write(str(line) + '\n\r')
             f.close()
 
-            with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
-                json.dump(x_ref_friendly, f, indent=2)
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved x_ref friendly ' + str(x_ref_friendly) +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-                , log_list=self.log_training
-            )
+            # with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
+            #     json.dump(x_ref_friendly, f, indent=2)
+            # f.close()
+            # log.Log.critical(
+            #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            #     + ': Saved x_ref friendly ' + str(x_ref_friendly) +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
+            #     , log_list=self.log_training
+            # )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_json
+                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
                 + '". ' + str(ex)
             , log_list = self.log_training
             )
@@ -335,12 +334,6 @@ class ModelData:
         if not os.path.isfile(self.fpath_x_ref):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': RFV file "' + self.fpath_x_ref + '" not found!'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        if not os.path.isfile(self.fpath_x_ref_friendly_json):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': RFV friendly file "' + self.fpath_x_ref_friendly_json + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
