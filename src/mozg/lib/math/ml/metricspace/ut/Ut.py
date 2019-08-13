@@ -148,7 +148,7 @@ class Ut:
         )
 
         trainer_obj.train(
-            persist_training_data_to_storage = True,
+            write_training_data_to_storage = True,
             model_params = model_params
         )
 
@@ -219,7 +219,9 @@ class Ut:
             dir_path_model    = cf.ConfigFile.DIR_MODELS,
             training_data     = None
         )
-        model_obj.load_model_parameters()
+        model_obj.start()
+        model_obj.wait_for_model()
+        #model_obj.load_model_parameters()
 
         test_x = Ut.DATA_TEST_X
         test_x_name = Ut.DATA_TEST_X_NAME
@@ -345,11 +347,11 @@ if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
 
     # Overwrite config file log level
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_IMPORTANT
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
-            modelHelper.ModelHelper.MODEL_NAME_KERAS,
+            #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1',

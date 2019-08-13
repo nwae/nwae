@@ -118,27 +118,27 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         return
 
+    # #
+    # # Model interface override
+    # #
+    # def run(self):
+    #     self.__mutex_training.acquire()
+    #     try:
+    #         self.bot_training_start_time = dt.datetime.now()
+    #         self.log_training = []
+    #         self.train()
+    #         self.bot_training_end_time = dt.datetime.now()
+    #     except Exception as ex:
+    #         log.Log.critical(
+    #             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+    #             + ': Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
+    #         )
+    #     finally:
+    #         self.is_training_done = True
+    #         self.__mutex_training.release()
     #
-    # Model interface override
-    #
-    def run(self):
-        self.__mutex_training.acquire()
-        try:
-            self.bot_training_start_time = dt.datetime.now()
-            self.log_training = []
-            self.train()
-            self.bot_training_end_time = dt.datetime.now()
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
-            )
-        finally:
-            self.is_training_done = True
-            self.__mutex_training.release()
-
-        log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
+    #     log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+    #                     + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
     #
     # Model interface override
@@ -436,6 +436,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             include_match_details = False,
             top = modelIf.ModelInterface.MATCH_TOP
     ):
+        self.wait_for_model()
         prf_start = prf.Profiling.start()
 
         if type(x) is not np.ndarray:
@@ -716,8 +717,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #
     def train(
             self,
-            persist_model_to_storage = True,
-            persist_training_data_to_storage = False,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
             model_params = None
     ):
         prf_start = prf.Profiling.start()
@@ -916,9 +917,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
                 )
 
-            if persist_model_to_storage:
+            if write_model_to_storage:
                 self.persist_model_to_storage()
-            if persist_training_data_to_storage:
+            if write_training_data_to_storage:
                 self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
