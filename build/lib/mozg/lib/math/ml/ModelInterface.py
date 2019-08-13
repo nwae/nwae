@@ -108,6 +108,9 @@ class ModelInterface(threading.Thread):
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" Background Thread started..'
         )
+        if not self.is_model_ready():
+            self.load_model_parameters()
+
         sleep_time = 10
         while True:
             if self.stoprequest.isSet():
@@ -130,6 +133,27 @@ class ModelInterface(threading.Thread):
                     self.__mutex_load_model.release()
             time.sleep(sleep_time)
 
+    def is_model_ready(self):
+        return True
+
+    def wait_for_model(self):
+        count = 1
+        sleep_time_wait_rfv = 0.1
+        wait_max_time = 10
+        while not self.is_model_ready():
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Waiting for model with identifier "' + str(self.identifier_string)
+                + ', sleep for ' + str(count * sleep_time_wait_rfv) + ' secs now..'
+            )
+            if count * sleep_time_wait_rfv > wait_max_time:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Waited too long for model "' + str(self.identifier_string) \
+                         + '" total wait time ' + str(count * sleep_time_wait_rfv) + ' secs. Raising exception..'
+                raise Exception(errmsg)
+            time.sleep(sleep_time_wait_rfv)
+            count = count + 1
+
     def get_model_features(
             self
     ):
@@ -151,8 +175,8 @@ class ModelInterface(threading.Thread):
 
     def train(
             self,
-            persist_model_to_storage = True,
-            persist_training_data_to_storage = False,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
             model_params = None
     ):
         return
@@ -166,11 +190,6 @@ class ModelInterface(threading.Thread):
             self
     ):
         return
-
-    def is_model_ready(
-            self
-    ):
-        return True
 
     def check_if_model_updated(
             self

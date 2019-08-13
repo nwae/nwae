@@ -64,15 +64,16 @@ class Trainer(threading.Thread):
             self.is_training_done = True
             self.__mutex_training.release()
 
-        lg.Log.critical(
+        lg.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
         )
+        return self.log_training
 
     def train(
             self,
-            persist_model_to_storage = True,
-            persist_training_data_to_storage = False,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
             model_params = None
     ):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
@@ -106,8 +107,8 @@ class Trainer(threading.Thread):
                 training_data     = tdm_object
             )
             model_obj.train(
-                persist_model_to_storage = persist_model_to_storage,
-                persist_training_data_to_storage = persist_training_data_to_storage,
+                write_model_to_storage = write_model_to_storage,
+                write_training_data_to_storage = write_training_data_to_storage,
                 model_params = model_params
             )
         except Exception as ex:

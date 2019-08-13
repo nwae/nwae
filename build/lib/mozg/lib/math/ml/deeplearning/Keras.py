@@ -47,6 +47,7 @@ class Keras(modelIf.ModelInterface):
             identifier_string = self.identifier_string
         )
         self.network = None
+        self.model_loaded = False
 
         self.do_profiling = do_profiling
 
@@ -56,6 +57,9 @@ class Keras(modelIf.ModelInterface):
         self.mnist_train_images_2d = None
         self.mnist_test_images_2d = None
         return
+
+    def is_model_ready(self):
+        return self.model_loaded
 
     def set_training_data(
             self,
@@ -84,6 +88,7 @@ class Keras(modelIf.ModelInterface):
             # ndarray type of >= 2 dimensions, single point/row array
             x
     ):
+        self.wait_for_model()
         p = self.network.predict_classes(x=x)
         return Keras.predict_class_retclass(
             predicted_classes = p
@@ -101,8 +106,8 @@ class Keras(modelIf.ModelInterface):
 
     def train(
             self,
-            persist_model_to_storage = True,
-            persist_training_data_to_storage = False,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
             model_params = None,
     ):
         log.Log.info(
@@ -163,18 +168,26 @@ class Keras(modelIf.ModelInterface):
 
         self.network = network
 
-        if persist_model_to_storage:
+        if write_model_to_storage:
             self.persist_model_to_storage(network=network)
-        if persist_training_data_to_storage:
+        if write_training_data_to_storage:
             self.persist_training_data_to_storage(td=self.training_data)
         return
 
     def load_model_parameters(
             self
     ):
-        self.network = objper.ObjectPersistence.deserialize_object_from_file(
-            obj_file_path = self.filepath_model
-        )
+        try:
+            self.network = objper.ObjectPersistence.deserialize_object_from_file(
+                obj_file_path = self.filepath_model
+            )
+            self.model_loaded = True
+        except Exception as ex:
+            errmsg = str(self.__class__) + str(getframeinfo(currentframe()).lineno)\
+                     + ': Model "' + str(self.identifier_string) + '" failed to load.'\
+                     + ' Got exception ' + str(ex) + '.'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
 
     def persist_model_to_storage(
             self,
