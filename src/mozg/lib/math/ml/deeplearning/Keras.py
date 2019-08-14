@@ -6,6 +6,7 @@ from keras.datasets import mnist
 from keras import models
 from keras import layers
 from keras.utils import to_categorical
+from keras.models import load_model
 import mozg.lib.math.ml.TrainingDataModel as tdm
 import mozg.utils.Log as log
 from inspect import currentframe, getframeinfo
@@ -178,14 +179,13 @@ class Keras(modelIf.ModelInterface):
             self
     ):
         try:
-            self.network = objper.ObjectPersistence.deserialize_object_from_file(
-                obj_file_path = self.filepath_model
-            )
+            self.network = load_model(self.filepath_model)
             self.model_loaded = True
         except Exception as ex:
             errmsg = str(self.__class__) + str(getframeinfo(currentframe()).lineno)\
-                     + ': Model "' + str(self.identifier_string) + '" failed to load.'\
-                     + ' Got exception ' + str(ex) + '.'
+                     + ': Model "' + str(self.identifier_string)\
+                     + '" failed to load from file "' + str(self.filepath_model)\
+                     + '". Got exception ' + str(ex) + '.'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
@@ -193,11 +193,7 @@ class Keras(modelIf.ModelInterface):
             self,
             network = None
     ):
-        objper.ObjectPersistence.serialize_object_to_file(
-            obj = network,
-            obj_file_path  = self.filepath_model,
-            lock_file_path = None
-        )
+        self.network.save(self.filepath_model)
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Saved network to file "' + self.filepath_model + '".'
@@ -274,8 +270,6 @@ if __name__ == '__main__':
 
     prd = kr.predict_classes(x=kr.mnist_train_images_2d[0:10])
     print(prd.predicted_classes)
-
-    exit(0)
 
     for i in range(10):
         plt.imshow(kr.mnist_train_images[i], cmap=plt.cm.binary)
