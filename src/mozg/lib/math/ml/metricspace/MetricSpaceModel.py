@@ -167,6 +167,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #
     # Given our training data x, we get the IDF of the columns x_name.
     # TODO Generalize this into a NN Layer instead
+    # TODO Optimal values are when "separation" (by distance in space or angle in space) is maximum
     #
     @staticmethod
     def get_feature_weight_idf(
