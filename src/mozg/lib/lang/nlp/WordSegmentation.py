@@ -353,26 +353,27 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    import mozg.ConfigFile as cf
+    cf.ConfigFile.get_cmdline_params_and_init_config()
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
-    topdir = '/Users/mark.tan/git/mozg.nlp'
     lang_stats = ls.LangStats(
-        dirpath_traindata   = topdir + '/nlp.data/traindata',
-        dirpath_collocation = topdir + '/nlp.output/collocation.stats'
+        dirpath_traindata   = cf.ConfigFile.DIR_NLP_LANGUAGE_TRAINDATA,
+        dirpath_collocation = cf.ConfigFile.DIR_NLP_LANGUAGE_STATS_COLLOCATION
     )
     lang_stats.load_collocation_stats()
 
     synonymlist_ro = slist.SynonymList(
         lang                = 'cn',
-        dirpath_synonymlist = topdir + '/nlp.data/app/chats',
-        postfix_synonymlist = '.synonymlist.txt'
+        dirpath_synonymlist = cf.ConfigFile.DIR_SYNONYMLIST,
+        postfix_synonymlist = cf.ConfigFile.POSTFIX_SYNONYMLIST
     )
     synonymlist_ro.load_synonymlist(verbose=1)
 
     ws = WordSegmentation(
         lang             = 'cn',
-        dirpath_wordlist = topdir + '/nlp.data/wordlist',
-        postfix_wordlist = '-wordlist.txt',
+        dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
+        postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST,
         lang_stats       = lang_stats,
         do_profiling     = True,
         verbose          = 0
@@ -392,7 +393,7 @@ if __name__ == '__main__':
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
-    text = '入钱'
+    #text = '入钱'
     #print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=False))
     print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=True))
 

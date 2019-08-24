@@ -1,5 +1,5 @@
 # Top level directory where everything is relative to
-topdir=/Users/mark.tan/git/mozg
+topdir=/Users/mark.tan/git/mapktah/mozg
 # See mozg.utils.Log.py for log level details
 loglevel=3.0
 # All logs go to stdout
