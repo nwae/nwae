@@ -105,29 +105,41 @@ class Idf:
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
         return
 
-    def get_separation(self):
+    def get_separation(
+            self,
+            xh
+    ):
         # Get total angle squared between all points on the hypersphere
-        for i in range(0, self.xh.shape[0], 1):
-            for j in range(i+1, self.xh.shape[0], 1):
+        sum_angle_2 = 0
+        for i in range(0, xh.shape[0], 1):
+            for j in range(i+1, xh.shape[0], 1):
                 if i == j:
                     continue
                 # Get
-                v1 = self.xh[i]
-                v2 = self.xh[j]
+                v1 = xh[i]
+                v2 = xh[j]
                 cross_prd = np.cross(v1, v2)
-                angle = np.arcsin(1 - cross_prd**2)
+                angle = abs(np.arcsin(1 - cross_prd**2))
                 lg.Log.debugdebug(
                     'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
                 )
+                sum_angle_2 += angle**2
+        lg.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sum square of angle = ' + str(sum_angle_2)
+        )
+        return sum_angle_2
 
     def optimize(self):
         #
         # Start with standard IDF values
         #
-        self.get_separation()
+        sa2 = self.get_separation(xh = self.xh)
         self.w = Idf.get_feature_weight_idf(
             x = self.xh
         )
+        xh_new = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
+        sa2 = self.get_separation(xh = xh_new)
 
         return
 
