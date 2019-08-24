@@ -133,6 +133,7 @@ class Idf:
 
 
 if __name__ == '__main__':
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
     x = np.array([
         [0.9, 0.8],
         [0.5, 0.0],
