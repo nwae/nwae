@@ -4,6 +4,7 @@ import mozg.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import numpy as np
 import pandas as pd
+import mozg.lib.math.NumpyUtil as nputil
 
 
 #
@@ -100,6 +101,8 @@ class Idf:
 
         self.x = x
         self.w = np.zeros(shape=(self.x.shape[1]))
+
+        self.xh = nputil.NumpyUtil.normalize(x=self.x)
         return
 
     def optimize(self):
@@ -107,7 +110,7 @@ class Idf:
         # Start with standard IDF values
         #
         self.w = Idf.get_feature_weight_idf(
-            x = self.x
+            x = self.xh
         )
 
         return
