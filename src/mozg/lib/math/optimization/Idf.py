@@ -26,9 +26,9 @@ class Idf:
     #
     MAXIMIZE_QUANTILE = 2/(1+5**0.5)
     #
-    MAXIMUM_IDF_W_MOVEMENT = 0.2
+    MAXIMUM_IDF_W_MOVEMENT = 1.0
     #
-    MINIMUM_WEIGHT_IDF = 0.01
+    MINIMUM_WEIGHT_IDF = 0.0
     # delta % of target function start value
     DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
 
@@ -163,8 +163,26 @@ class Idf:
                 # Get
                 v1 = x_input[i]
                 v2 = x_input[j]
+                #print('************ v1=' + str(v1))
+                #print('************ v2=' + str(v2))
                 cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+                #
+                # For some stupid reason, this value can be >1 and after that everything will be nan
+                #
+                if np.isnan(cos_angle):
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Cosine Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'
+                    lg.Log.critical(errmsg)
+                    raise Exception(errmsg)
+                if cos_angle > 1.0:
+                    cos_angle = 1.0
                 angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
+                if np.isnan(angle):
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'\
+                             + ' Cosine of angle = ' + str(cos_angle) + '.'
+                    lg.Log.critical(errmsg)
+                    raise Exception(errmsg)
                 lg.Log.debugdebug(
                     'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
                 )
@@ -202,7 +220,7 @@ class Idf:
             )
             dml_dw[i] = dm_dwi
 
-        lg.Log.debug(
+        lg.Log.debugdebug(
             'Differentiation with respect to w = ' + str(dml_dw)
         )
 
@@ -232,8 +250,8 @@ class Idf:
 
         ml_prev = ml_start
         while True:
-            lg.Log.debugdebug(
-                'Iteration #' + str(iter)
+            lg.Log.info(
+                'ITERATION #' + str(iter) + ', using weights ' + str(self.w)
             )
 
             if iter == 1:
@@ -272,13 +290,17 @@ class Idf:
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + 'Best MC w: ' + str(w_best) + ', target function value = ' + str(tf_val_best)
                     )
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Start weights: ' + str(self.w)
+                )
             else:
                 #
                 # Find the dw we need to move to
                 #
                 # Get delta of target function d_ml
                 dml_dw = self.differentiate_dml_dw()
-                lg.Log.debugdebug(
+                lg.Log.info(
                     'dml/dw = ' + str(dml_dw)
                 )
                 # Adjust weights
@@ -309,17 +331,16 @@ class Idf:
                 ml_prev = ml_cur
                 ml_final = ml_cur
 
-            # If the increase in target function is small enough already, we are done
             lg.Log.info(
-                ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase) + ' < delta (' + str(delta)
-                + '). Weights: ' + str(self.w)
+                ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase)
+                + ', delta =' + str(delta)
+                + ', weights = ' + str(self.w)
             )
             if ml_increase < delta:
                 break
-
-            iter += 1
             if iter > max_iter:
                 break
+            iter += 1
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
