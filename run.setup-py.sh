@@ -9,11 +9,8 @@ rm -rf ./build/*
 # Create wheel
 $PYTHON src/setup.py bdist_wheel
 
-# Uninstall old mozg
-$PIP uninstall mozg
+# Uninstall old nwae
+$PIP uninstall nwae
 
 # Install back
-$PIP install dist/mozg-0.2.0-py3-none-any.whl
-
-# Copy over to another project
-cp dist/*.whl ../../mozig/mozg.nlp/wheels
+$PIP install dist/nwae-0.1.0-py3-none-any.whl

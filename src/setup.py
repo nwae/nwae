@@ -1,25 +1,25 @@
 from setuptools import setup
 
 setup(
-    name='mozg',
-    version='0.2.0',
+    name='nwae',
+    version='0.1.0',
     packages=[
-        'mozg.lib.math',
-        'mozg.lib.math.ml',
-        'mozg.lib.math.ml.metricspace',
-        'mozg.lib.math.ml.deeplearning',
-        'mozg.lib.math.optimization',
-        'mozg.lib.lang',
-        'mozg.lib.lang.characters',
-        'mozg.lib.lang.classification',
-        'mozg.lib.lang.model',
-        'mozg.lib.lang.nlp',
-        'mozg.lib.lang.stats'
+        'nwae.lib.math',
+        'nwae.lib.math.ml',
+        'nwae.lib.math.ml.metricspace',
+        'nwae.lib.math.ml.deeplearning',
+        'nwae.lib.math.optimization',
+        'nwae.lib.lang',
+        'nwae.lib.lang.characters',
+        'nwae.lib.lang.classification',
+        'nwae.lib.lang.model',
+        'nwae.lib.lang.nlp',
+        'nwae.lib.lang.stats'
     ],
     package_dir={'': 'src'},
     url='',
     license='',
-    author='Mark',
-    author_email='mapktah@yandex.ru',
-    description='ML Algos'
+    author='NWAE',
+    author_email='705270564@qq.com',
+    description='ML'
 )
