@@ -241,7 +241,7 @@ class Idf:
                     for i in range(Idf.MONTE_CARLO_SAMPLES_N):
                         rd_vec = np.array([ rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0]) ])
                         w_mc = self.w + rd_vec
-                        lg.Log.info(
+                        lg.Log.debugdebug(
                             'MC random w = ' + str(w_mc)
                         )
                         x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, w_mc))
@@ -249,7 +249,7 @@ class Idf:
                         if tf_val > tf_val_best:
                             tf_val_best = tf_val
                             w_best = w_mc
-                            lg.Log.info(
+                            lg.Log.debugdebug(
                                 'Update best MC w to ' + str(w_best)
                                 + ', target function value = ' + str(tf_val_best)
                             )
