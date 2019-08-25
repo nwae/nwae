@@ -15,7 +15,14 @@ import mozg.lib.math.NumpyUtil as nputil
 #
 class Idf:
 
+    #
+    # We maximize by the 50% quantile, so that given all distance pairs
+    # in the vector set, the 50% quantile is optimized at maximum
+    #
     MAXIMIZE_QUANTILE = 0.5
+    #
+    MAXIMUM_IDF_W_MOVEMENT = 0.2
+    #
     MINIMUM_WEIGHT_IDF = 0.01
 
     #
@@ -103,17 +110,14 @@ class Idf:
             )
 
         self.x = x
-        self.w = np.zeros(shape=(self.x.shape[1]))
 
         # Normalized version of vectors on the hypersphere
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
 
         #
-        # Start with standard IDF values
+        # Start with no weights
         #
-        self.w_start = Idf.get_feature_weight_idf_default(
-            x = self.xh
-        )
+        self.w_start = np.array([1]*self.x.shape[1])
         # We want to opimize these weights to make the separation of angles
         # between vectors maximum
         self.w = self.w_start.copy()
@@ -143,7 +147,7 @@ class Idf:
                 )
                 angle_list.append(angle)
         quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
-        lg.Log.debugdebug(
+        lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Angle = ' + str(angle_list)
             + ', Quantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
@@ -180,16 +184,48 @@ class Idf:
     #
     def optimize(
             self,
-            delta = 0.1,
+            initial_w_as_standard_idf = False,
             max_iter = 10
     ):
         ml_old = self.target_ml_function(x_input = self.xh)
+        # The delta of limit increase in target function to stop iteration
+        delta = ml_old * 0.01
         iter = 1
 
         while True:
             lg.Log.debugdebug(
                 'Iteration #' + str(iter)
             )
+
+            if (iter == 1) and (initial_w_as_standard_idf):
+                # Start with standard IDF values
+                self.w_start = Idf.get_feature_weight_idf_default(
+                    x = self.xh
+                )
+                # We want to opimize these weights to make the separation of angles
+                # between vectors maximum
+                self.w = self.w_start.copy()
+            else:
+                #
+                # Find the dw we need to move to
+                #
+                # Get delta of target function d_ml
+                dml_dw = self.differentiate_dml_dw()
+                lg.Log.debugdebug(
+                    'dml/dw = ' + str(dml_dw)
+                )
+                # Adjust weights
+                l = self.w.shape[0]
+                max_movement_w = np.array([Idf.MAXIMUM_IDF_W_MOVEMENT] * l)
+                min_movement_w = -max_movement_w
+
+                self.w = self.w + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
+                # Don't allow negative weights
+                self.w = np.maximum(self.w, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
+                lg.Log.debug(
+                    'Iter ' + str(iter) + ': New weights: ' + str(self.w)
+                )
+
             # Get new vectors after weightage
             x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
             # Get new separation we are trying to maximize
@@ -218,31 +254,11 @@ class Idf:
             if iter > max_iter:
                 break
 
-            #
-            # Find the dw we need to move to
-            #
-            # Get delta of target function d_ml
-            dml_dw = self.differentiate_dml_dw()
-            lg.Log.debugdebug(
-                'dml/dw = ' + str(dml_dw)
-            )
-            # Adjust weights
-            l = self.w.shape[0]
-            max_movement_w = np.array([0.1]*l)
-            min_movement_w = -max_movement_w
-
-            self.w = self.w + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
-            # Don't allow negative weights
-            self.w = np.maximum(self.w, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
-            lg.Log.debug(
-                'Iter ' + str(iter) + ': New weights: ' + str(self.w)
-            )
-
         return
 
 
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
     x = np.array([
         [0.9, 0.8, 1.0],
         [0.5, 0.0, 0.0],
@@ -252,6 +268,6 @@ if __name__ == '__main__':
     obj = Idf(
         x = x
     )
-    obj.optimize()
+    obj.optimize(initial_w_as_standard_idf=True)
     print(obj.x)
     print(obj.w)
