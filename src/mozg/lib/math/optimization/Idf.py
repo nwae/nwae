@@ -131,6 +131,10 @@ class Idf:
         if self.x_name is None:
             self.x_name = np.array(range(0, x.shape[1], 1), dtype=int)
 
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Normalizing x..'
+        )
         # Normalized version of vectors on the hypersphere
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
 
