@@ -4,16 +4,16 @@
 # !!! Will work only on Python 3 and above
 
 import re
-import mozg.lib.lang.characters.LangCharacters as lc
-import mozg.lib.lang.LangFeatures as lf
-import mozg.lib.lang.nlp.WordList as wl
-import mozg.lib.lang.nlp.SynonymList as slist
-import mozg.lib.lang.stats.LangStats as ls
-import mozg.utils.Log as log
+import nwae.lib.lang.characters.LangCharacters as lc
+import nwae.lib.lang.LangFeatures as lf
+import nwae.lib.lang.nlp.WordList as wl
+import nwae.lib.lang.nlp.SynonymList as slist
+import nwae.lib.lang.stats.LangStats as ls
+import nwae.utils.Log as log
+from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
-import mozg.utils.Profiling as prf
-from inspect import currentframe, getframeinfo
+import nwae.utils.Profiling as prf
 
 
 #
@@ -53,12 +53,10 @@ class WordSegmentation(object):
             dirpath_wordlist,
             postfix_wordlist,
             do_profiling = False,
-            lang_stats = None,
-            verbose = 0
+            lang_stats = None
     ):
         self.lang = lang
         self.do_profiling = do_profiling
-        self.verbose = verbose
 
         self.lang_stats = lang_stats
         self.lang_characters = lc.LangCharacters()
@@ -67,8 +65,7 @@ class WordSegmentation(object):
         self.lang_wordlist = wl.WordList(
             lang             = lang,
             dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = postfix_wordlist,
-            verbose          = self.verbose
+            postfix_wordlist = postfix_wordlist
         )
         self.lang_wordlist.load_wordlist()
 
@@ -353,7 +350,7 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
-    import mozg.ConfigFile as cf
+    import nwae.ConfigFile as cf
     cf.ConfigFile.get_cmdline_params_and_init_config()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
@@ -375,8 +372,7 @@ if __name__ == '__main__':
         dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
         postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST,
         lang_stats       = lang_stats,
-        do_profiling     = True,
-        verbose          = 0
+        do_profiling     = True
     )
     len_before = ws.lang_wordlist.wordlist.shape[0]
     ws.add_wordlist(

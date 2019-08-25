@@ -9,10 +9,13 @@ import re
 import numpy as np
 import pandas as pd
 import collections
-import mozg.lib.lang.LangFeatures as langfeatures
-import mozg.lib.lang.characters.LangCharacters as langcharacters
-import mozg.utils.FileUtils as futil
-import mozg.utils.StringUtils as sutil
+import nwae.lib.lang.LangFeatures as langfeatures
+import nwae.lib.lang.characters.LangCharacters as langcharacters
+import nwae.utils.FileUtils as futil
+import nwae.utils.StringUtils as sutil
+import nwae.utils.Log as log
+from inspect import currentframe, getframeinfo
+
 
 #
 # Study unigram stats & unigram boundary conditional probabilities
@@ -29,7 +32,11 @@ import mozg.utils.StringUtils as sutil
 #
 class LangStats:
 
-    def __init__(self, dirpath_traindata, dirpath_collocation):
+    def __init__(
+            self,
+            dirpath_traindata,
+            dirpath_collocation
+    ):
         self.dirpath_traindata = dirpath_traindata
         self.dirpath_collocation = dirpath_collocation
         self.lang_features = langfeatures.LangFeatures()
@@ -37,18 +44,24 @@ class LangStats:
         self.collocation_stats = {}
         return
 
-    def get_collocation_probability(self, lang, pretoken, posttoken, conditional, verbose = 0):
+    def get_collocation_probability(
+            self,
+            lang,
+            pretoken,
+            posttoken,
+            conditional
+    ):
         prob = 0
         cs = self.collocation_stats[lang]
-        if verbose >= 2: print (cs)
+        log.Log.debugdebug(cs)
         if cs is None:
             return None
 
         # Make sure token exists
         is_exist_pretoken = pretoken in cs.index
         is_exist_posttoken = posttoken in cs.columns
-        if verbose>=2: print ('Pre token [' + pretoken + '] exists: ' + str(is_exist_pretoken))
-        if verbose>=2: print ('Post token [' + posttoken + '] exists: ' + str(is_exist_posttoken))
+        log.Log.debugdebug('Pre token [' + pretoken + '] exists: ' + str(is_exist_pretoken))
+        log.Log.debugdebug('Post token [' + posttoken + '] exists: ' + str(is_exist_posttoken))
 
         if not is_exist_pretoken:
             return None
@@ -59,18 +72,18 @@ class LangStats:
         if conditional == 'post':
             # Get column
             col = cs[posttoken]
-            if verbose >= 3: print (col)
+            log.Log.debugdebug(col)
             total_count = col.sum()
-            if verbose >= 2: print('Total column sum = ' + str(total_count))
+            log.Log.debugdebug('Total column sum = ' + str(total_count))
         else:
             # Get row
             row = cs.loc[pretoken]
-            if verbose >= 3: print (row)
+            log.Log.debugdebug(row)
             total_count = row.sum()
-            if verbose >= 2: print('Total row sum = ' + str(total_count))
+            log.Log.debugdebug('Total row sum = ' + str(total_count))
 
         cellcount = cs[posttoken][pretoken]
-        if verbose >= 2: print('Cell count [' + pretoken + ',' + posttoken + '] = ' + str(cellcount))
+        log.Log.debugdebug('Cell count [' + pretoken + ',' + posttoken + '] = ' + str(cellcount))
 
         return float( cellcount / float(total_count) )
 
@@ -96,21 +109,19 @@ class LangStats:
 
         return
 
-    def get_character_sticky_distribution_stats(self, lang, verbose = 0):
+    def get_character_sticky_distribution_stats(self, lang):
 
         traindata_files = self.get_training_files(lang, self.dirpath_traindata)
-        if verbose >= 1:
-            print('Training data files: ' + str(traindata_files))
+        log.Log.debugdebug('Training data files: ' + str(traindata_files))
 
         df = self.get_lang_unigram_distribution_stats(lang, verbose)
         token_list = df['TokenList']
         df_freqtable = df['FreqTable']
 
-        if verbose >= 1:
-            print ('Read ' + str(len(df['Lines'])) + ' lines from training files.')
-            print ('Read ' + str(len(df['TokenList'])) + ' characters from training files.')
-            print (df['TokenList'][0:1000])
-            print (df['FreqTable'])
+        log.Log.debugdebug('Read ' + str(len(df['Lines'])) + ' lines from training files.')
+        log.Log.debugdebug('Read ' + str(len(df['TokenList'])) + ' characters from training files.')
+        log.Log.debugdebug(df['TokenList'][0:1000])
+        log.Log.debugdebug(df['FreqTable'])
 
         token_index = list(range(0, len(token_list), 1))
 
@@ -128,31 +139,26 @@ class LangStats:
         # Loop through all unique tokens
         for e in tokens:
             count += 1
-            if verbose >= 1:
-                print ( 'Processing character [' + e + ']..' + str(count) + ' of ' + str(total_characters))
+            log.Log.debugdebug( 'Processing character [' + e + ']..' + str(count) + ' of ' + str(total_characters))
 
             # Get all positions of this token
             allpos = [ x for x in token_index if token_list[x]==e ]
 
-            if verbose >= 2:
-                print ( 'Positions of [' + e + ': ' )
-                print ( allpos )
+            log.Log.debugdebug( 'Positions of [' + e + ': ' )
+            log.Log.debugdebug( allpos )
 
             ones = [1]*len(allpos)
             # All valid positions preceding this token
             allpos_preceding = [ (x-y) for x,y in zip(allpos, ones) if (x-y)>=0 ]
-            if verbose >= 2:
-                print ( 'Positions of preceding characters:' )
-                print ( allpos_preceding )
+            log.Log.debugdebug( 'Positions of preceding characters:' )
+            log.Log.debugdebug( allpos_preceding )
 
             all_tokens_preceding = [ token_list[x] for x in allpos_preceding ]
-            if verbose >= 2:
-                print ( all_tokens_preceding )
+            log.Log.debugdebug( all_tokens_preceding )
 
             counter = collections.Counter(all_tokens_preceding)
             counter_sorted = counter.most_common()
-            if verbose >= 2:
-                print ( counter_sorted )
+            log.Log.debugdebug( counter_sorted )
 
             for pair in counter_sorted:
                 char_precede = pair[0]
@@ -164,15 +170,15 @@ class LangStats:
 
     def load_collocation_stats(self):
         for lang in self.lang_features.langfeatures['Language']:
-            print ('Loading collocation stats for language [' + lang + ']...')
+            log.Log.debugdebug('Loading collocation stats for language [' + lang + ']...')
 
             # Get collocation stats
             try:
                 df = pd.read_csv(self.dirpath_collocation + '/collocation.stats.' + lang + '.csv' , sep=',', index_col=0)
                 self.collocation_stats[lang] = df
-                print('   Loaded [' + lang + '] successfully.')
+                log.Log.debugdebug('   Loaded [' + lang + '] successfully.')
             except:
-                print('   Unexpected error: ', sys.exc_info()[0] )
+                log.Log.debugdebug('   Unexpected error: ', sys.exc_info()[0] )
                 self.collocation_stats[lang] = None
                 continue
 
@@ -183,11 +189,10 @@ class LangStats:
     # A unigram is not necessarily a word, it can also be a character or syllable, e.g. Chinese character,
     # Korean Hangul syllable, or Thai alphabet (because Thai don't have syllable nor word separator)
     #
-    def get_lang_unigram_distribution_stats(self, lang, verbose = 0):
+    def get_lang_unigram_distribution_stats(self, lang):
 
         traindata_files = self.get_training_files(lang, self.dirpath_traindata)
-        if verbose >= 1:
-            print('Training data files: ' + str(traindata_files))
+        log.Log.debugdebug('Training data files: ' + str(traindata_files))
 
         langcharset = langcharacters.LangCharacters.get_language_charset(lang)
         wordseparators = langcharacters.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS
@@ -220,7 +225,7 @@ class LangStats:
             if accept_token:
                 table_tokens[token] = counter_sorted[i][1]
 
-        print ( 'Found ' + str(len(table_tokens)) + ' unique allowed tokens.' )
+        log.Log.debugdebug( 'Found ' + str(len(table_tokens)) + ' unique allowed tokens.' )
 
         keys_tokens = list(table_tokens.keys())
         count_tokens = list(table_tokens.values())
