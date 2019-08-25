@@ -24,3 +24,4 @@ src/mozg/lib/math/ml/TrainingDataModel.py
 src/mozg/lib/math/ml/deeplearning/Keras.py
 src/mozg/lib/math/ml/metricspace/MetricSpaceModel.py
 src/mozg/lib/math/ml/metricspace/ModelData.py
+src/mozg/lib/math/optimization/Idf.py

@@ -8,6 +8,7 @@ setup(
         'mozg.lib.math.ml',
         'mozg.lib.math.ml.metricspace',
         'mozg.lib.math.ml.deeplearning',
+        'mozg.lib.math.optimization',
         'mozg.lib.lang',
         'mozg.lib.lang.characters',
         'mozg.lib.lang.classification',
