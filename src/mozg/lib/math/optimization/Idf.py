@@ -5,6 +5,7 @@ from inspect import currentframe, getframeinfo
 import numpy as np
 import pandas as pd
 import mozg.lib.math.NumpyUtil as nputil
+import random as rd
 
 
 #
@@ -23,13 +24,18 @@ class Idf:
     # We maximize by the 50% quantile, so that given all distance pairs
     # in the vector set, the 50% quantile is optimized at maximum
     #
-    MAXIMIZE_QUANTILE = 0.5
+    MAXIMIZE_QUANTILE = 2/(1+5**0.5)
     #
     MAXIMUM_IDF_W_MOVEMENT = 0.2
     #
     MINIMUM_WEIGHT_IDF = 0.01
     # delta % of target function start value
     DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
+
+    #
+    # Monte Carlo start points
+    #
+    MONTE_CARLO_SAMPLES_N = 100
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -184,7 +190,7 @@ class Idf:
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
             )
             dml_dw[i] = dm_dwi
-            
+
         lg.Log.debug(
             'Differentiation with respect to w = ' + str(dml_dw)
         )
@@ -196,6 +202,8 @@ class Idf:
     #
     def optimize(
             self,
+            # If we don't start with standard IDF=log(present_in_how_many_documents/total_documents),
+            # then we Monte Carlo some start points and choose the best one
             initial_w_as_standard_idf = False,
             max_iter = 10
     ):
@@ -207,6 +215,7 @@ class Idf:
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)
+            + ', quantile used = ' + str(Idf.MAXIMIZE_QUANTILE)
         )
         iter = 1
 
@@ -216,14 +225,39 @@ class Idf:
                 'Iteration #' + str(iter)
             )
 
-            if (iter == 1) and (initial_w_as_standard_idf):
-                # Start with standard IDF values
-                self.w_start = Idf.get_feature_weight_idf_default(
-                    x = self.xh
-                )
-                # We want to opimize these weights to make the separation of angles
-                # between vectors maximum
-                self.w = self.w_start.copy()
+            if iter == 1:
+                if initial_w_as_standard_idf:
+                    # Start with standard IDF values
+                    self.w_start = Idf.get_feature_weight_idf_default(
+                        x = self.xh
+                    )
+                    # We want to opimize these weights to make the separation of angles
+                    # between vectors maximum
+                    self.w = self.w_start.copy()
+                else:
+                    # Monte Carlo some start points to see which is best
+                    w_best = None
+                    tf_val_best = 0
+                    for i in range(Idf.MONTE_CARLO_SAMPLES_N):
+                        rd_vec = np.array([ rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0]) ])
+                        w_mc = self.w + rd_vec
+                        lg.Log.info(
+                            'MC random w = ' + str(w_mc)
+                        )
+                        x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, w_mc))
+                        tf_val = self.target_ml_function(x_input=x_weighted)
+                        if tf_val > tf_val_best:
+                            tf_val_best = tf_val
+                            w_best = w_mc
+                            lg.Log.info(
+                                'Update best MC w to ' + str(w_best)
+                                + ', target function value = ' + str(tf_val_best)
+                            )
+                    self.w = w_best
+                    lg.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + 'Best MC w: ' + str(w_best) + ', target function value = ' + str(tf_val_best)
+                    )
             else:
                 #
                 # Find the dw we need to move to
