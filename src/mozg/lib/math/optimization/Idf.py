@@ -15,6 +15,9 @@ import mozg.lib.math.NumpyUtil as nputil
 #
 class Idf:
 
+    MAXIMIZE_QUANTILE = 0.5
+    MINIMUM_WEIGHT_IDF = 0.01
+
     #
     # Given our training data x, we get the IDF of the columns x_name.
     # TODO Generalize this into a NN Layer instead
@@ -117,14 +120,15 @@ class Idf:
         return
 
     #
-    # This is the target function to maximize
+    # This is the target function to maximize the predetermined quantile MAXIMIZE_QUANTILE
     #
     def target_ml_function(
             self,
             x_input
     ):
         # Get total angle squared between all points on the hypersphere
-        sum_angle_2 = 0
+        quantile_angle_x = 0
+        angle_list = []
         for i in range(0, x_input.shape[0], 1):
             for j in range(i+1, x_input.shape[0], 1):
                 if i == j:
@@ -137,12 +141,14 @@ class Idf:
                 lg.Log.debugdebug(
                     'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
                 )
-                sum_angle_2 += angle**2
+                angle_list.append(angle)
+        quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
         lg.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Sum square of angle = ' + str(sum_angle_2)
+            + ': Angle = ' + str(angle_list)
+            + ', Quantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
         )
-        return sum_angle_2
+        return quantile_angle_x
 
     #
     # Differentiation of target function with respect to weights.
@@ -169,6 +175,9 @@ class Idf:
 
         return dml_dw
 
+    #
+    # Opimize by gradient ascent, on predetermined quantile MAXIMIZE_QUANTILE
+    #
     def optimize(
             self,
             delta = 0.1,
@@ -198,6 +207,11 @@ class Idf:
 
             # If the increase in target function is small enough already, we are done
             if ml_increase < delta:
+                lg.Log.debug(
+                    'ML Increase ' + str(ml_increase) + ' < delta (' + str(delta)
+                    + '). Stopping optimization at iteration #' + str(iter) + ' with weights:\n\r'
+                    + str(self.w)
+                )
                 break
 
             iter += 1
@@ -216,9 +230,10 @@ class Idf:
             l = self.w.shape[0]
             max_movement_w = np.array([0.1]*l)
             min_movement_w = -max_movement_w
+
             self.w = self.w + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
             # Don't allow negative weights
-            #self.w = np.maximum(self.w, np.array([0.001]*l))
+            self.w = np.maximum(self.w, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
             lg.Log.debug(
                 'Iter ' + str(iter) + ': New weights: ' + str(self.w)
             )
@@ -227,7 +242,7 @@ class Idf:
 
 
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
     x = np.array([
         [0.9, 0.8, 1.0],
         [0.5, 0.0, 0.0],
