@@ -135,6 +135,7 @@ class Idf:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Normalizing x..'
         )
+        # TODO This is unusable in production, too slow!
         # Normalized version of vectors on the hypersphere
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
 
@@ -152,6 +153,7 @@ class Idf:
 
     #
     # This is the target function to maximize the predetermined quantile MAXIMIZE_QUANTILE
+    # TODO Unusable in production too slow. Optimize!
     #
     def target_ml_function(
             self,

@@ -52,7 +52,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     MODEL_NAME = 'hypersphere_metricspace'
 
     # Our modified IDF that is much better than the IDF in literature
-    USE_OPIMIZED_IDF = True
+    # TODO For now it is unusable in production because it is too slow!
+    USE_OPIMIZED_IDF = False
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
