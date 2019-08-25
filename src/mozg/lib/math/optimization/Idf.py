@@ -21,7 +21,7 @@ class Idf:
     # TODO Optimal values are when "separation" (by distance in space or angle in space) is maximum
     #
     @staticmethod
-    def get_feature_weight_idf(
+    def get_feature_weight_idf_default(
             x,
             # Class label, if None then all vectors are different class
             y = None,
@@ -102,24 +102,38 @@ class Idf:
         self.x = x
         self.w = np.zeros(shape=(self.x.shape[1]))
 
+        # Normalized version of vectors on the hypersphere
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
+
+        #
+        # Start with standard IDF values
+        #
+        self.w_start = Idf.get_feature_weight_idf_default(
+            x = self.xh
+        )
+        # We want to opimize these weights to make the separation of angles
+        # between vectors maximum
+        self.w = self.w_start.copy()
         return
 
-    def get_separation(
+    #
+    # This is the target function to maximize
+    #
+    def target_ml_function(
             self,
-            xh
+            x_input
     ):
         # Get total angle squared between all points on the hypersphere
         sum_angle_2 = 0
-        for i in range(0, xh.shape[0], 1):
-            for j in range(i+1, xh.shape[0], 1):
+        for i in range(0, x_input.shape[0], 1):
+            for j in range(i+1, x_input.shape[0], 1):
                 if i == j:
                     continue
                 # Get
-                v1 = xh[i]
-                v2 = xh[j]
-                cross_prd = np.cross(v1, v2)
-                angle = abs(np.arcsin(1 - cross_prd**2))
+                v1 = x_input[i]
+                v2 = x_input[j]
+                cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+                angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
                 lg.Log.debugdebug(
                     'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
                 )
@@ -130,27 +144,95 @@ class Idf:
         )
         return sum_angle_2
 
-    def optimize(self):
-        #
-        # Start with standard IDF values
-        #
-        sa2 = self.get_separation(xh = self.xh)
-        self.w = Idf.get_feature_weight_idf(
-            x = self.xh
-        )
-        xh_new = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
-        sa2 = self.get_separation(xh = xh_new)
+    #
+    # Differentiation of target function with respect to weights.
+    # Returns a vector same dimensions as w
+    #
+    def differentiate_dml_dw(
+            self,
+            delta = 0.000001
+    ):
+        # Take dw
+        l = self.w.shape[0]
+        dw_diag = np.diag(np.array([delta]*l, dtype=float))
+        # The return value
+        dml_dw = np.zeros(l, dtype=float)
+        for i in range(l):
+            dw_i = dw_diag[i]
+            dm_dwi = self.target_ml_function(x_input = np.multiply(self.xh, self.w + dw_i)) -\
+                self.target_ml_function(x_input = np.multiply(self.xh, self.w))
+            dm_dwi = dm_dwi / delta
+            lg.Log.debugdebug(
+                'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
+            )
+            dml_dw[i] = dm_dwi
+
+        return dml_dw
+
+    def optimize(
+            self,
+            delta = 0.1,
+            max_iter = 10
+    ):
+        ml_old = self.target_ml_function(x_input = self.xh)
+        iter = 1
+
+        while True:
+            lg.Log.debugdebug(
+                'Iteration #' + str(iter)
+            )
+            # Get new vectors after weightage
+            x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
+            # Get new separation we are trying to maximize
+            ml_new = self.target_ml_function(x_input = x_weighted)
+            ml_increase = ml_new - ml_old
+            if ml_new - ml_old > 0:
+                lg.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Iteration #' + str(iter) + ': Increase from ' + str(ml_old) + ' to ' + str(ml_new)
+                    + ' with weights ' + str(self.w)
+                )
+                # Update the new normalized vectors
+                self.xh = nputil.NumpyUtil.normalize(x=self.x)
+                ml_old = ml_new
+
+            # If the increase in target function is small enough already, we are done
+            if ml_increase < delta:
+                break
+
+            iter += 1
+            if iter > max_iter:
+                break
+
+            #
+            # Find the dw we need to move to
+            #
+            # Get delta of target function d_ml
+            dml_dw = self.differentiate_dml_dw()
+            lg.Log.debugdebug(
+                'dml/dw = ' + str(dml_dw)
+            )
+            # Adjust weights
+            l = self.w.shape[0]
+            max_movement_w = np.array([0.1]*l)
+            min_movement_w = -max_movement_w
+            self.w = self.w + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
+            # Don't allow negative weights
+            #self.w = np.maximum(self.w, np.array([0.001]*l))
+            lg.Log.debug(
+                'Iter ' + str(iter) + ': New weights: ' + str(self.w)
+            )
 
         return
 
 
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
     x = np.array([
-        [0.9, 0.8],
-        [0.5, 0.0],
-        [0.0, 1.0],
-        [0.0, 1.0]
+        [0.9, 0.8, 1.0],
+        [0.5, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 1.0, 0.0]
     ])
     obj = Idf(
         x = x
