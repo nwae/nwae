@@ -5,12 +5,12 @@
 import re
 import numpy as np
 import pandas as pd
-import mozg.lib.math.Cluster as clst
+import nwae.lib.math.Cluster as clst
 import collections
-import mozg.lib.lang.characters.LangCharacters as lc
-import mozg.utils.StringUtils as su
-import mozg.lib.lang.model.FeatureVector as fv
-import mozg.utils.Log as log
+import nwae.lib.lang.characters.LangCharacters as lc
+import nwae.utils.StringUtils as su
+import nwae.lib.lang.model.FeatureVector as fv
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 
 

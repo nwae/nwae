@@ -5,16 +5,22 @@
 
 import re
 import pandas as pd
-import mozg.utils.FileUtils as futil
-import mozg.utils.StringUtils as su
-import mozg.lib.lang.nlp.LatinEquivalentForm as lef
-import mozg.lib.lang.characters.LangCharacters as langchar
-import mozg.utils.Log as log
+import nwae.utils.FileUtils as futil
+import nwae.utils.StringUtils as su
+import nwae.lib.lang.nlp.LatinEquivalentForm as lef
+import nwae.lib.lang.characters.LangCharacters as langchar
+import nwae.utils.Log as log
+from inspect import getframeinfo, currentframe
 
 
 class SynonymList:
 
-    def __init__(self, lang, dirpath_synonymlist, postfix_synonymlist='.synonymlist.txt'):
+    def __init__(
+            self,
+            lang,
+            dirpath_synonymlist,
+            postfix_synonymlist = '.synonymlist.txt'
+    ):
         self.lang = lang
 
         self.dirpath_synonymlist = dirpath_synonymlist
@@ -25,23 +31,35 @@ class SynonymList:
 
     def load_synonymlist(self, verbose=0):
         if self.synonymlist is None:
-            self.synonymlist = self.load_list(dirpath=self.dirpath_synonymlist, postfix=self.postfix_synonymlist, verbose=verbose)
+            self.synonymlist = self.load_list(
+                dirpath = self.dirpath_synonymlist,
+                postfix = self.postfix_synonymlist
+            )
         return
 
     # General function to load wordlist or stopwords
-    def load_list(self, dirpath, postfix, verbose=0):
+    def load_list(
+            self,
+            dirpath,
+            postfix,
+            verbose=0
+    ):
 
         lc = langchar.LangCharacters()
 
         filepath = dirpath + '/' + self.lang + postfix
-        if verbose >= 1:
-            log.Log.log('Loading list for [' + self.lang + ']' + '[' + filepath + ']')
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Loading list for [' + self.lang + ']' + '[' + filepath + ']'
+        )
 
         fu = futil.FileUtils()
         content = fu.read_text_file(filepath)
 
-        if verbose >= 1:
-            log.Log.log('   Read ' + str(len(content)) + ' lines.')
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Synonym Read ' + str(len(content)) + ' lines.'
+        )
 
         words = []
         rootwords = []
@@ -82,11 +100,13 @@ class SynonymList:
                 measures_latin.append(lc.convert_string_to_number(wordlatin))
 
         # Convert to pandas data frame
-        df_synonyms = pd.DataFrame({'RootWord':rootwords,
-                                         'Word':words,
-                                         'WordNumber':measures,
-                                         'WordLatin':words_latin,
-                                         'WordLatinNumber':measures_latin})
+        df_synonyms = pd.DataFrame({
+            'RootWord':rootwords,
+            'Word':words,
+            'WordNumber':measures,
+            'WordLatin':words_latin,
+            'WordLatinNumber':measures_latin}
+        )
         df_synonyms = df_synonyms.drop_duplicates(subset=['Word'])
         # Need to reset indexes, otherwise some index will be missing
         df_synonyms = df_synonyms.reset_index(drop=True)
@@ -116,12 +136,15 @@ class SynonymList:
 
 
 if __name__ == '__main__':
-    dirpath_synonymlist = '/Users/mark.tan/Documents/dev/ie/nlp.data/app/chats'
+    import nwae.ConfigFile as cf
+    cf.ConfigFile.get_cmdline_params_and_init_config()
 
     for lang in ['cn', 'th']:
-        sl = SynonymList(lang=lang,
-                         dirpath_synonymlist=dirpath_synonymlist,
-                         postfix_synonymlist='.synonymlist.txt')
-        sl.load_synonymlist(verbose=0)
+        sl = SynonymList(
+            lang=lang,
+            dirpath_synonymlist = cf.ConfigFile.DIR_SYNONYMLIST,
+            postfix_synonymlist = cf.ConfigFile.POSTFIX_SYNONYMLIST
+        )
+        sl.load_synonymlist()
         print(sl.synonymlist)
 

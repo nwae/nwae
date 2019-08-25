@@ -5,12 +5,12 @@
 
 import re
 import pandas as pd
-import mozg.utils.FileUtils as futil
-import mozg.utils.StringUtils as sutil
-import mozg.lib.lang.LangFeatures as lf
-import mozg.lib.lang.nlp.LatinEquivalentForm as lef
-import mozg.lib.lang.characters.LangCharacters as langchar
-import mozg.utils.Log as log
+import nwae.utils.FileUtils as futil
+import nwae.utils.StringUtils as sutil
+import nwae.lib.lang.LangFeatures as lf
+import nwae.lib.lang.nlp.LatinEquivalentForm as lef
+import nwae.lib.lang.characters.LangCharacters as langchar
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 
 
@@ -39,8 +39,7 @@ class WordList:
             self,
             lang,
             dirpath_wordlist,
-            postfix_wordlist = '-wordlist.txt',
-            verbose = 0
+            postfix_wordlist = '-wordlist.txt'
     ):
         self.lang = lang
 
@@ -60,7 +59,7 @@ class WordList:
             self.syl_split_token = ''
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Syllable split token is [' + self.syl_split_token + ']')
+            + ': Lang "' + str(lang) + '" syllable split token is "' + self.syl_split_token + '"')
 
         self.load_wordlist()
         return
@@ -86,7 +85,8 @@ class WordList:
             self.ngrams[i] = self.wordlist[WordList.COL_WORD][condition].tolist()
             log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Ngrams[' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):\n\r'
+                + ': Lang "' + str(self.lang)
+                + '" ngrams [' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):\n\r'
                 + str(self.ngrams[i])
             )
 
@@ -100,7 +100,7 @@ class WordList:
     ):
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Initial wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+            + ': Lang ' + str(self.lang) + '" Initial wordlist length = ' + str(self.wordlist.shape[0]) + '.'
             + ', appending wordlist:\n\r' + str(array_words)
         )
         wordlist_additional = None
@@ -121,7 +121,7 @@ class WordList:
         self.wordlist = self.wordlist.drop_duplicates(subset=[WordList.COL_WORD])
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Final wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+            + ': Lang "' + str(self.lang) + '" final wordlist length = ' + str(self.wordlist.shape[0]) + '.'
         )
 
         self.update_ngrams()
@@ -145,7 +145,7 @@ class WordList:
             filepath = dirpath + '/' + self.lang + postfix
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Loading list for [' + self.lang + ']' + '[' + filepath + ']'
+                + ': Lang "' + str(self.lang) + '" loading list for [' + self.lang + ']' + '[' + filepath + ']'
             )
 
             fu = futil.FileUtils()
@@ -160,11 +160,11 @@ class WordList:
             if len(content) == 0:
                 raise Exception(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': File [' + filepath + '] is empty or non-existent!!'
+                    + ': Lang "' + str(self.lang) + '" file [' + filepath + '] is empty or non-existent!!'
                 )
 
             log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Read ' + str(len(content)) + ' lines.')
+                         + ': Lang "' + str(self.lang) + '" read ' + str(len(content)) + ' lines.')
 
         words = []
         # Convert words to some number
@@ -207,13 +207,13 @@ class WordList:
         if self.syl_split_token == '':
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Ngram length for ' + self.lang + ' is just the WORD length.'
+                + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the WORD length.'
             )
             df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.len()
         else:
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Ngram length for ' + self.lang + ' is just the SYLLABLE length.'
+                + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the SYLLABLE length.'
             )
             df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
 
@@ -226,14 +226,15 @@ class WordList:
 
 
 if __name__ == '__main__':
+    import nwae.ConfigFile as cf
+    cf.ConfigFile.get_cmdline_params_and_init_config()
 
-    dirpath_wordlist = '/Users/mark.tan/git/mozg.nlp/nlp.data/wordlist'
 
     for lang in ['cn', 'th']:
         wl = WordList(
             lang             = lang,
-            dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = '-wordlist.txt'
+            dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
+            postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST
         )
         wl.load_wordlist()
         log.Log.log('')
@@ -257,8 +258,8 @@ if __name__ == '__main__':
         # Stopwords
         sw = WordList(
             lang             = lang,
-            dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = '-stopwords.txt'
+            dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
+            postfix_wordlist = cf.ConfigFile.POSTFIX_STOPWORDS
         )
         sw.load_wordlist()
         log.Log.log('')

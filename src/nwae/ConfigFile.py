@@ -2,8 +2,8 @@
 
 import os
 import sys
-import mozg.utils.StringUtils as su
-import mozg.utils.Log as lg
+import nwae.utils.StringUtils as su
+import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 
@@ -38,6 +38,7 @@ class ConfigFile:
     DIR_APP_WORDLIST     = None
     POSTFIX_WORDLIST     = None
     POSTFIX_APP_WORDLIST = None
+    POSTFIX_STOPWORDS    = None
 
     # Synonym lists
     DIR_SYNONYMLIST      = None
@@ -166,6 +167,7 @@ class ConfigFile:
         ConfigFile.DIR_APP_WORDLIST = ConfigFile.TOP_DIR + '/nlp.data/app/chats'
         ConfigFile.POSTFIX_WORDLIST = '-wordlist.txt'
         ConfigFile.POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
+        ConfigFile.POSTFIX_STOPWORDS = '-stopwords.txt'
 
         # Synonym lists
         ConfigFile.DIR_SYNONYMLIST = ConfigFile.TOP_DIR + '/nlp.data/app/chats'
