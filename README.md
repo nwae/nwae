@@ -1,5 +1,5 @@
-# mozg
+# nwae
 
-Проект MOZG
+Проект NWAE
 
 
