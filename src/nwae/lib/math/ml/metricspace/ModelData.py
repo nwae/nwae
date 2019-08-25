@@ -6,12 +6,12 @@ import json
 import datetime as dt
 import os
 import threading
-import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.lib.math.ml.ModelInterface as modelIf
-import mozg.utils.Log as log
+import nwae.lib.math.ml.TrainingDataModel as tdm
+import nwae.lib.math.ml.ModelInterface as modelIf
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.Constants as const
-import mozg.lib.math.NumpyUtil as npUtil
+import nwae.lib.math.Constants as const
+import nwae.lib.math.NumpyUtil as npUtil
 
 
 class ModelData:

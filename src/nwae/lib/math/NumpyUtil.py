@@ -1,8 +1,8 @@
 import numpy as np
-import mozg.utils.Log as log
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.utils.Profiling as prf
-import mozg.lib.math.Constants as const
+import nwae.utils.Profiling as prf
+import nwae.lib.math.Constants as const
 
 
 class NumpyUtil:
@@ -154,7 +154,8 @@ class NumpyUtil:
         for i in range(x.shape[0]):
             v = x[i]
             try:
-                mag = np.sum(np.multiply(v, v)) ** 0.5
+                #mag = np.sum(np.multiply(v, v)) ** 0.5
+                mag = np.linalg.norm(v)
                 log.Log.debugdebug('Magnitude for ' + str(v) + ' is ' + str(mag))
                 if mag == 0:
                     continue

@@ -1,14 +1,16 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import pandas as pd
-import mozg.lib.math.ml.ModelHelper as modelHelper
-import mozg.lib.math.ml.Trainer as trainer
-import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import mozg.utils.Log as log
+import nwae.lib.math.ml.ModelHelper as modelHelper
+import nwae.lib.math.ml.Trainer as trainer
+import nwae.lib.math.ml.TrainingDataModel as tdm
+import nwae.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.NumpyUtil as npUtil
-import mozg.ConfigFile as cf
-import mozg.utils.Profiling as prf
+import nwae.lib.math.NumpyUtil as npUtil
+import nwae.ConfigFile as cf
+import nwae.utils.Profiling as prf
 
 
 class Ut:

@@ -6,7 +6,7 @@
 import numpy as np
 import pandas as pd
 from scipy.cluster.vq import vq, kmeans, whiten
-import mozg.utils.Log as lg
+import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 #

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import mozg.utils.Log as log
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.lang.classification.TextClusterBasic as tcb
-import mozg.lib.math.Constants as const
-import mozg.lib.math.NumpyUtil as npUtil
+import nwae.lib.lang.classification.TextClusterBasic as tcb
+import nwae.lib.math.Constants as const
+import nwae.lib.math.NumpyUtil as npUtil
 
 
 #

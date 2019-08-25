@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import mozg.utils.Log as log
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import time
-import mozg.utils.Profiling as prf
-import mozg.utils.StringUtils as su
-import mozg.lib.lang.model.FeatureVector as fv
-import mozg.lib.lang.nlp.WordSegmentation as ws
-import mozg.lib.lang.nlp.SynonymList as sl
-import mozg.lib.math.NumpyUtil as npUtil
-import mozg.lib.math.ml.ModelInterface as modelIf
-import mozg.lib.math.ml.ModelHelper as modelHelper
+import nwae.utils.Profiling as prf
+import nwae.utils.StringUtils as su
+import nwae.lib.lang.model.FeatureVector as fv
+import nwae.lib.lang.nlp.WordSegmentation as ws
+import nwae.lib.lang.nlp.SynonymList as sl
+import nwae.lib.math.NumpyUtil as npUtil
+import nwae.lib.math.ml.ModelInterface as modelIf
+import nwae.lib.math.ml.ModelHelper as modelHelper
 
 
 #
@@ -260,8 +260,8 @@ if __name__ == '__main__':
 
     pc = PredictClass(
         model_name           = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
-        identifier_string = 'botkey_db_mario.production.accountid_4.botid_22.lang_cn',
-        dir_path_model    = '/Users/mark.tan/git/mozg.nlp/app.data/intent/models',
+        identifier_string    = '',
+        dir_path_model       = '',
         lang                 = 'cn',
         dirpath_synonymlist  = cf.ConfigFile.DIR_SYNONYMLIST,
         postfix_synonymlist  = cf.ConfigFile.POSTFIX_SYNONYMLIST,
@@ -274,7 +274,7 @@ if __name__ == '__main__':
 
     # Return all results in the top 5
     res = pc.predict_class_text_features(
-        inputtext="存款",
+        inputtext="我爱你",
         match_pct_within_top_score = 0,
         include_match_details      = True,
         top = 5
@@ -283,7 +283,7 @@ if __name__ == '__main__':
 
     # Return only those results with score at least 70% of top score
     res = pc.predict_class_text_features(
-        inputtext="存款",
+        inputtext="我爱你",
         match_pct_within_top_score = 0.7,
         include_match_details      = True,
         top = 5

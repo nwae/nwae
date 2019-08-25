@@ -3,12 +3,12 @@
 import numpy as np
 import pandas as pd
 import datetime as dt
-import mozg.lib.math.ml.ModelHelper as modelHelper
-import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import mozg.lib.math.ml.deeplearning.Keras as krModel
+import nwae.lib.math.ml.ModelHelper as modelHelper
+import nwae.lib.math.ml.TrainingDataModel as tdm
+import nwae.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import nwae.lib.math.ml.deeplearning.Keras as krModel
 import threading
-import mozg.utils.Log as lg
+import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 

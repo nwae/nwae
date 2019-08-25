@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import mozg.utils.Log as lg
+import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import numpy as np
 import pandas as pd
-import mozg.lib.math.NumpyUtil as nputil
+import nwae.lib.math.NumpyUtil as nputil
 import random as rd
 
 

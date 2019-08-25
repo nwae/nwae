@@ -2,11 +2,11 @@
 
 import threading
 import time
-import mozg.utils.Log as log
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import pandas as pd
 import numpy as np
-import mozg.lib.math.ml.TrainingDataModel as tdm
+import nwae.lib.math.ml.TrainingDataModel as tdm
 
 
 #

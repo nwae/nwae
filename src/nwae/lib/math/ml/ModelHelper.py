@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import mozg.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import mozg.lib.math.ml.deeplearning.Keras as krModel
-import mozg.utils.Log as lg
+import nwae.lib.math.ml.metricspace.MetricSpaceModel as msModel
+import nwae.lib.math.ml.deeplearning.Keras as krModel
+import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 
 

@@ -4,16 +4,16 @@ import numpy as np
 import pandas as pd
 import threading
 import datetime as dt
-import mozg.lib.math.ml.TrainingDataModel as tdm
-import mozg.utils.Log as log
+import nwae.lib.math.ml.TrainingDataModel as tdm
+import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import mozg.lib.math.Cluster as clstr
-import mozg.lib.math.Constants as const
-import mozg.lib.math.ml.metricspace.ModelData as modelData
-import mozg.lib.math.ml.ModelInterface as modelIf
-import mozg.lib.math.NumpyUtil as npUtil
-import mozg.utils.Profiling as prf
-import mozg.lib.math.optimization.Idf as idfopt
+import nwae.lib.math.Cluster as clstr
+import nwae.lib.math.Constants as const
+import nwae.lib.math.ml.metricspace.ModelData as modelData
+import nwae.lib.math.ml.ModelInterface as modelIf
+import nwae.lib.math.NumpyUtil as npUtil
+import nwae.utils.Profiling as prf
+import nwae.lib.math.optimization.Idf as idfopt
 
 
 #
