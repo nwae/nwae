@@ -765,6 +765,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
             #
             if self.weigh_idf:
                 if MetricSpaceModel.USE_OPIMIZED_IDF:
+                    log.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Initializing IDF object..'
+                    )
                     idf_opt_obj = idfopt.Idf(
                         x      = self.training_data.get_x(),
                         y      = self.training_data.get_y(),
