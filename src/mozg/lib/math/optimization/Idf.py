@@ -16,6 +16,9 @@ import mozg.lib.math.NumpyUtil as nputil
 #
 class Idf:
 
+    # General number precision required
+    ROUND_PRECISION = 6
+
     #
     # We maximize by the 50% quantile, so that given all distance pairs
     # in the vector set, the 50% quantile is optimized at maximum
@@ -25,6 +28,8 @@ class Idf:
     MAXIMUM_IDF_W_MOVEMENT = 0.2
     #
     MINIMUM_WEIGHT_IDF = 0.01
+    # delta % of target function start value
+    DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -149,7 +154,7 @@ class Idf:
                 angle_list.append(angle)
         quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
 
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Angle = ' + str(np.sort(angle_list))
             + '\n\rQuantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = '
@@ -175,10 +180,14 @@ class Idf:
             dm_dwi = self.target_ml_function(x_input = np.multiply(self.xh, self.w + dw_i)) -\
                 self.target_ml_function(x_input = np.multiply(self.xh, self.w))
             dm_dwi = dm_dwi / delta
-            lg.Log.debug(
+            lg.Log.debugdebug(
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
             )
             dml_dw[i] = dm_dwi
+            
+        lg.Log.debug(
+            'Differentiation with respect to w = ' + str(dml_dw)
+        )
 
         return dml_dw
 
@@ -192,13 +201,13 @@ class Idf:
     ):
         ml_start = self.target_ml_function(x_input = self.xh)
         ml_final = None
+        # The delta of limit increase in target function to stop iteration
+        delta = ml_start * Idf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Start target function value = ' + str(ml_start)
+            + ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)
         )
-        # The delta of limit increase in target function to stop iteration
-        delta = ml_start * 0.01
         iter = 1
 
         ml_prev = ml_start
@@ -253,12 +262,11 @@ class Idf:
                 ml_final = ml_cur
 
             # If the increase in target function is small enough already, we are done
+            lg.Log.info(
+                ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase) + ' < delta (' + str(delta)
+                + '). Weights: ' + str(self.w)
+            )
             if ml_increase < delta:
-                lg.Log.debug(
-                    'ML Increase ' + str(ml_increase) + ' < delta (' + str(delta)
-                    + '). Stopping optimization at iteration #' + str(iter) + ' with weights:\n\r'
-                    + str(self.w)
-                )
                 break
 
             iter += 1
@@ -275,7 +283,7 @@ class Idf:
 
 
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_INFO
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
     x = np.array([
         [0.9, 0.8, 1.0],
         [0.5, 0.0, 0.0],
@@ -286,12 +294,8 @@ if __name__ == '__main__':
         x = x
     )
     obj.optimize(initial_w_as_standard_idf=True)
-    print(obj.x)
-    print(obj.w)
 
     obj = Idf(
         x = x
     )
     obj.optimize(initial_w_as_standard_idf=False)
-    print(obj.x)
-    print(obj.w)
