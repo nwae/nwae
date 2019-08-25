@@ -350,8 +350,8 @@ if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
-            #modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
-            modelHelper.ModelHelper.MODEL_NAME_KERAS,
+            modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
+            #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
             identifier_string = 'demo_ut1',

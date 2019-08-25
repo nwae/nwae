@@ -13,6 +13,7 @@ import mozg.lib.math.ml.metricspace.ModelData as modelData
 import mozg.lib.math.ml.ModelInterface as modelIf
 import mozg.lib.math.NumpyUtil as npUtil
 import mozg.utils.Profiling as prf
+import mozg.lib.math.optimization.Idf as idfopt
 
 
 #
@@ -49,6 +50,9 @@ import mozg.utils.Profiling as prf
 class MetricSpaceModel(modelIf.ModelInterface):
 
     MODEL_NAME = 'hypersphere_metricspace'
+
+    # Our modified IDF that is much better than the IDF in literature
+    USE_OPIMIZED_IDF = True
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5
@@ -760,12 +764,23 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # TODO: IDF may not be the ideal weights, design an optimal one.
             #
             if self.weigh_idf:
-                # Sum x by class
-                self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
-                    x      = self.training_data.get_x(),
-                    y      = self.training_data.get_y(),
-                    x_name = self.training_data.get_x_name()
-                )
+                if MetricSpaceModel.USE_OPIMIZED_IDF:
+                    idf_opt_obj = idfopt.Idf(
+                        x      = self.training_data.get_x(),
+                        y      = self.training_data.get_y(),
+                        x_name = self.training_data.get_x_name()
+                    )
+                    idf_opt_obj.optimize(
+                        initial_w_as_standard_idf = True
+                    )
+                    self.model_data.idf = idf_opt_obj.get_w()
+                else:
+                    # Sum x by class
+                    self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
+                        x      = self.training_data.get_x(),
+                        y      = self.training_data.get_y(),
+                        x_name = self.training_data.get_x_name()
+                    )
                 # Standardize to at least 2-dimensional, easier when weighting x
                 self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
                     arr    = self.model_data.idf,
