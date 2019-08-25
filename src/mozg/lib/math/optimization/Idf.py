@@ -10,8 +10,9 @@ import mozg.lib.math.NumpyUtil as nputil
 #
 # Given a set of vectors v1, v2, ..., vn with features f1, f2, ..., fn
 # We try to find weights w1, w2, ..., wn or in NLP notation known as IDF,
-# such that the separation between the vectors v1, v2, ... vn by some metric
-# is maximum when projected onto a unit hypersphere.
+# such that the separation (default we are using angle) between the vectors
+# v1, v2, ... vn by some metric (default metric is the 50% quantile) is
+# maximum when projected onto a unit hypersphere.
 #
 class Idf:
 
@@ -117,7 +118,7 @@ class Idf:
         #
         # Start with no weights
         #
-        self.w_start = np.array([1]*self.x.shape[1])
+        self.w_start = np.array([1.0]*self.x.shape[1], dtype=float)
         # We want to opimize these weights to make the separation of angles
         # between vectors maximum
         self.w = self.w_start.copy()
@@ -147,10 +148,12 @@ class Idf:
                 )
                 angle_list.append(angle)
         quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
+
         lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Angle = ' + str(angle_list)
-            + ', Quantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
+            + ': Angle = ' + str(np.sort(angle_list))
+            + '\n\rQuantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = '
+            + str(quantile_angle_x)
         )
         return quantile_angle_x
 
@@ -172,7 +175,7 @@ class Idf:
             dm_dwi = self.target_ml_function(x_input = np.multiply(self.xh, self.w + dw_i)) -\
                 self.target_ml_function(x_input = np.multiply(self.xh, self.w))
             dm_dwi = dm_dwi / delta
-            lg.Log.debugdebug(
+            lg.Log.debug(
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
             )
             dml_dw[i] = dm_dwi
@@ -187,11 +190,18 @@ class Idf:
             initial_w_as_standard_idf = False,
             max_iter = 10
     ):
-        ml_old = self.target_ml_function(x_input = self.xh)
+        ml_start = self.target_ml_function(x_input = self.xh)
+        ml_final = None
+
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Start target function value = ' + str(ml_start)
+        )
         # The delta of limit increase in target function to stop iteration
-        delta = ml_old * 0.01
+        delta = ml_start * 0.01
         iter = 1
 
+        ml_prev = ml_start
         while True:
             lg.Log.debugdebug(
                 'Iteration #' + str(iter)
@@ -229,17 +239,18 @@ class Idf:
             # Get new vectors after weightage
             x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
             # Get new separation we are trying to maximize
-            ml_new = self.target_ml_function(x_input = x_weighted)
-            ml_increase = ml_new - ml_old
-            if ml_new - ml_old > 0:
+            ml_cur = self.target_ml_function(x_input = x_weighted)
+            ml_increase = ml_cur - ml_prev
+            if ml_cur - ml_prev > 0:
                 lg.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Iteration #' + str(iter) + ': Increase from ' + str(ml_old) + ' to ' + str(ml_new)
+                    + ': Iteration #' + str(iter) + ': Increase from ' + str(ml_prev) + ' to ' + str(ml_cur)
                     + ' with weights ' + str(self.w)
                 )
                 # Update the new normalized vectors
                 self.xh = nputil.NumpyUtil.normalize(x=self.x)
-                ml_old = ml_new
+                ml_prev = ml_cur
+                ml_final = ml_cur
 
             # If the increase in target function is small enough already, we are done
             if ml_increase < delta:
@@ -254,20 +265,33 @@ class Idf:
             if iter > max_iter:
                 break
 
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': End target function value = ' + str(ml_final) + ' (started with ' + str(ml_start) + ')'
+            + '\n\rStart weights: ' + str(self.w_start)
+            + '\n\rEnd weights: ' + str(self.w)
+        )
         return
 
 
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_INFO
     x = np.array([
         [0.9, 0.8, 1.0],
         [0.5, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
+        [0.1, 1.0, 0.0],
         [0.0, 1.0, 0.0]
     ])
     obj = Idf(
         x = x
     )
     obj.optimize(initial_w_as_standard_idf=True)
+    print(obj.x)
+    print(obj.w)
+
+    obj = Idf(
+        x = x
+    )
+    obj.optimize(initial_w_as_standard_idf=False)
     print(obj.x)
     print(obj.w)
