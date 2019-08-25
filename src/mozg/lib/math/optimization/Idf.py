@@ -46,18 +46,11 @@ class Idf:
     def get_feature_weight_idf_default(
             x,
             # Class label, if None then all vectors are different class
-            y = None,
+            y,
             # Feature name, if None then we use default numbers with 0 index
-            x_name = None,
+            x_name,
             feature_presence_only_in_label_training_data = True
     ):
-        if y is None:
-            # Default to all vectors are different class
-            y = np.array(range(0, x.shape[0], 1), dtype=int)
-
-        if x_name is None:
-            x_name = np.array(range(0, x.shape[1], 1), dtype=int)
-
         df_tmp = pd.DataFrame(data=x, index=y)
 
         # Group by the labels y, as they are not unique
@@ -107,7 +100,12 @@ class Idf:
     def __init__(
             self,
             # numpy array 2 dimensions
-            x
+            x,
+            # Class label, if None then all vectors are different class
+            y = None,
+            # Feature name, if None then we use default numbers with 0 index
+            x_name = None,
+            feature_presence_only_in_label_training_data = True
     ):
         if type(x) is not np.ndarray:
             raise Exception(
@@ -122,6 +120,16 @@ class Idf:
             )
 
         self.x = x
+        self.y = y
+        self.x_name = x_name
+        self.feature_presence_only_in_label_training_data = feature_presence_only_in_label_training_data
+
+        if self.y is None:
+            # Default to all vectors are different class
+            self.y = np.array(range(0, x.shape[0], 1), dtype=int)
+
+        if self.x_name is None:
+            self.x_name = np.array(range(0, x.shape[1], 1), dtype=int)
 
         # Normalized version of vectors on the hypersphere
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
@@ -134,6 +142,9 @@ class Idf:
         # between vectors maximum
         self.w = self.w_start.copy()
         return
+
+    def get_w(self):
+        return self.w.copy()
 
     #
     # This is the target function to maximize the predetermined quantile MAXIMIZE_QUANTILE
@@ -229,7 +240,10 @@ class Idf:
                 if initial_w_as_standard_idf:
                     # Start with standard IDF values
                     self.w_start = Idf.get_feature_weight_idf_default(
-                        x = self.xh
+                        x = self.xh,
+                        y = self.y,
+                        x_name = self.x_name,
+                        feature_presence_only_in_label_training_data = self.feature_presence_only_in_label_training_data
                     )
                     # We want to opimize these weights to make the separation of angles
                     # between vectors maximum
