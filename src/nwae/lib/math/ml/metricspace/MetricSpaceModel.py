@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 import threading
-import datetime as dt
 import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
@@ -53,7 +52,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
     # Our modified IDF that is much better than the IDF in literature
     # TODO For now it is unusable in production because it is too slow!
-    USE_OPIMIZED_IDF = False
+    USE_OPIMIZED_IDF = True
 
     # Hypersphere max/min Euclidean Distance
     HPS_MAX_EUCL_DIST = 2**0.5

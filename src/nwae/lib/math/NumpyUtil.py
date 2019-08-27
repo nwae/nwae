@@ -147,30 +147,40 @@ class NumpyUtil:
     @staticmethod
     def normalize(
             x,
-            rnd = None
+            axis  = -1,
+            # Default Frobenius norm
+            order = 2
     ):
-        # Make sure it is float, because if x is integer dtype, then a lot of numbers will be rounded to 0
-        y = np.empty(shape=x.shape, dtype=float)
-        for i in range(x.shape[0]):
-            v = x[i]
-            try:
-                #mag = np.sum(np.multiply(v, v)) ** 0.5
-                mag = np.linalg.norm(v)
-                log.Log.debugdebug('Magnitude for ' + str(v) + ' is ' + str(mag))
-                if mag == 0:
-                    continue
-                y[i] = v / mag
-                log.Log.debugdebug('Normalized as: ' + str(y[i]) + '=' + str(v/mag))
-                if not NumpyUtil.is_normalized(x=y[i]):
-                    raise Exception('Failed normalized test.')
-            except Exception as ex:
-                errmsg = str(NumpyUtil.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Exception normalizing vector ' + str(v) + '. Exception message ' + str(ex) + '.'
-                log.Log.error(errmsg)
+        norms = np.linalg.norm(
+            x    = x,
+            # If 2D matrix, use axis=1 to calculate norm of the rows.
+            # Thus in the 2D matrix case it loops by fixed axis=0, thus accessing the rows
+            # If n-dimensional, use axis=n-1 to calculate the norm of the last 1D rows,
+            # as it fixes and loops by the first n-1 axis to get norm
+            axis = axis,
+            ord  = order
+        )
+        log.Log.debugdebug(
+            'Norms:\n\r' + str(norms)
+        )
+        l2 = np.atleast_1d(norms)
+        log.Log.debugdebug(
+            'Norms (at least 1D):\n\r' + str(norms)
+        )
+        # Make 0 norms become 1
+        l2[l2 == 0] = 1
+        log.Log.debugdebug(
+            'Norms (replace 0s with 1s):\n\r' + str(norms)
+        )
 
-        if rnd is not None:
-            y = np.round(y, decimals=rnd)
-        return y
+        #
+        # Finally do a division but with same d
+        #
+        xn = x / np.expand_dims(l2, axis)
+        log.Log.debugdebug(
+            'Normalized vectors:\n\r' + str(xn)
+        )
+        return xn
 
     @staticmethod
     def is_normalized(
@@ -179,6 +189,15 @@ class NumpyUtil:
         return (abs((np.sum(np.multiply(x, x)) ** 0.5) - 1) < const.Constants.SMALL_VALUE)
 
 if __name__ == '__main__':
+
+    A = np.random.randn(3, 3, 3)
+    print(NumpyUtil.normalize(x=A, axis=0))
+    print(NumpyUtil.normalize(x=A, axis=1))
+    print(NumpyUtil.normalize(x=A, axis=2))
+
+    print(NumpyUtil.normalize(np.arange(3)[:, None]))
+    print(NumpyUtil.normalize(np.arange(3)))
+
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
     arr = np.array(range(10))
     print(NumpyUtil.convert_dimension(arr=arr, to_dim=1))
@@ -190,10 +209,12 @@ if __name__ == '__main__':
     print(NumpyUtil.convert_dimension(arr=arr3, to_dim=2))
     print(NumpyUtil.convert_dimension(arr=arr3, to_dim=1))
 
-    print(NumpyUtil.normalize(np.array([
-        [1,2,3,4,5],
-        [5,3,2,6,7],
-        [1,1,1,1,1],
-        [0,0,0,0,0]
-    ]),
-    rnd=5))
+    print(NumpyUtil.normalize(
+        x = np.array([
+            [1,2,3,4,5],
+            [5,3,2,6,7],
+            [1,1,1,1,1],
+            [0,0,0,0,0]
+        ]),
+        axis = 1
+    ))
