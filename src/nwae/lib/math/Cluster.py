@@ -229,7 +229,7 @@ class Cluster:
             dist = np.power(dist, 0.5)
             # Convert to a row matrix
             dist = dist.transpose()
-            print('dist:' + str(dist))
+            #print('dist:' + str(dist))
             df_dist_to_cluster_centers.at[idx] = dist
 
         # Transpose back
