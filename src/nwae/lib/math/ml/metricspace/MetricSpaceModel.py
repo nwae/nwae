@@ -751,7 +751,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Here training data must be prepared in the correct format already
             # Значит что множество свойств уже объединено как одно (unified features)
             #
-            log.Log.debug(
+            log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
                 + '\n\r\tx names: ' + str(self.training_data.get_x_name())
@@ -820,7 +820,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # to disappear
             self.model_data.y_unique = np.array(list(set(y)))
 
-            log.Log.debug(
+            log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
                 + '\n\r\ty\n\r' + str(y)

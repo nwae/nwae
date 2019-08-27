@@ -146,6 +146,13 @@ class Idf:
         # We want to opimize these weights to make the separation of angles
         # between vectors maximum
         self.w = self.w_start.copy()
+
+        lg.Log.debug(
+            str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + '\n\r\tIDF Initialization, x:\n\r' + str(self.x)
+            + '\n\r\ty:\n\r' + str(self.y)
+            + '\n\r\tx_name:\n\r' + str(self.x_name)
+        )
         return
 
     def get_w(self):
@@ -182,6 +189,8 @@ class Idf:
                     raise Exception(errmsg)
                 if cos_angle > 1.0:
                     cos_angle = 1.0
+                elif cos_angle < 0.0:
+                    cos_angle = 0.0
                 angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
                 if np.isnan(angle):
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -193,7 +202,14 @@ class Idf:
                     'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
                 )
                 angle_list.append(angle)
+
         quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
+        if np.isnan(quantile_angle_x):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Final quantile angle =' + str(quantile_angle_x)\
+                     + ' for x_input:\n\r' + str(x_input) + '.'
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
 
         lg.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
