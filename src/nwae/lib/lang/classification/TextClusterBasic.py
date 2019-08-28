@@ -91,10 +91,14 @@ class TextClusterBasic:
     #
     def __init__(self, text, stopwords):
         self.text_original = text
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text (before filter):\n\r' + str(text)
+        )
         self.text = self.__filter_text(text_array=text)
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text:\n\r' + str(text)
+            + ': Text (after filter):\n\r' + str(text)
         )
 
         # Since we use automated IDF already, stopwords are not really needed anymore

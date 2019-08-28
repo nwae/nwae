@@ -27,8 +27,8 @@ class Idf:
     MAXIMIZE_QUANTILE = 2/(1+5**0.5)
     #
     MAXIMUM_IDF_W_MOVEMENT = 1.0
-    #
-    MINIMUM_WEIGHT_IDF = 0.0
+    # Don't set to 0.0 as this might cause vectors to become 0.0
+    MINIMUM_WEIGHT_IDF = 0.01
     # delta % of target function start value
     DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
 
@@ -64,7 +64,7 @@ class Idf:
 
         # Sum by column axis=0
         np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
             + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
@@ -91,7 +91,7 @@ class Idf:
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
             idf = np.array([1]*x.shape[1])
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
@@ -147,7 +147,7 @@ class Idf:
         # between vectors maximum
         self.w = self.w_start.copy()
 
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tIDF Initialization, x:\n\r' + str(self.x)
             + '\n\r\ty:\n\r' + str(self.y)
@@ -176,6 +176,13 @@ class Idf:
                 # Get
                 v1 = x_input[i]
                 v2 = x_input[j]
+                # It is possible after iterations that vectors become 0 due to the weights
+                if (np.linalg.norm(v1) == 0) or (np.linalg.norm(v2) == 0):
+                    lg.Log.warning(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        + ': Vector zerorized from iterations.'
+                    )
+                    continue
                 #print('************ v1=' + str(v1))
                 #print('************ v2=' + str(v2))
                 cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
@@ -204,6 +211,9 @@ class Idf:
                 angle_list.append(angle)
 
         quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
+        values_in_quantile = np.array(angle_list)
+        values_in_quantile = values_in_quantile[values_in_quantile<=quantile_angle_x]
+        sum_square_values_in_q = np.sum(values_in_quantile**2)
         if np.isnan(quantile_angle_x):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ': Final quantile angle =' + str(quantile_angle_x)\
@@ -214,10 +224,10 @@ class Idf:
         lg.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Angle = ' + str(np.sort(angle_list))
-            + '\n\rQuantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = '
-            + str(quantile_angle_x)
+            + '\n\rQuantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
+            + '\n\rSum square values in quantile = ' + str(sum_square_values_in_q)
         )
-        return quantile_angle_x
+        return sum_square_values_in_q
 
     #
     # Differentiation of target function with respect to weights.
@@ -259,7 +269,7 @@ class Idf:
             max_iter = 10
     ):
         ml_start = self.target_ml_function(x_input = self.xh)
-        ml_final = None
+        ml_final = ml_start
         # The delta of limit increase in target function to stop iteration
         delta = ml_start * Idf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
 

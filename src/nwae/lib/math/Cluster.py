@@ -177,7 +177,7 @@ class Cluster:
             ncenters,
             iterations=50
     ):
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start clustering ncenters=' + str(ncenters) + ', data=\n\r' + str(matx)
             + ', shape ' + str(matx.shape) + '.'
