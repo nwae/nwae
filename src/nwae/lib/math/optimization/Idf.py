@@ -169,6 +169,10 @@ class Idf:
         # Get total angle squared between all points on the hypersphere
         quantile_angle_x = 0
         angle_list = []
+        #
+        # TODO
+        #  This double looping must be eliminated to no loops.
+        #
         for i in range(0, x_input.shape[0], 1):
             for j in range(i+1, x_input.shape[0], 1):
                 if i == j:
@@ -183,8 +187,6 @@ class Idf:
                         + ': Vector zerorized from iterations.'
                     )
                     continue
-                #print('************ v1=' + str(v1))
-                #print('************ v2=' + str(v2))
                 cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
                 #
                 # For some stupid reason, this value can be >1 and after that everything will be nan
