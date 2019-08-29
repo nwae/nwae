@@ -428,7 +428,9 @@ if __name__ == '__main__':
     obj = Idf(
         x = x
     )
-    obj.optimize(initial_w_as_standard_idf=True)
+    obj.optimize(
+        initial_w_as_standard_idf=True
+    )
 
     obj = Idf(
         x = x
