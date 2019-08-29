@@ -12,7 +12,7 @@ import random as rd
 # Given a set of vectors v1, v2, ..., vn with features f1, f2, ..., fn
 # We try to find weights w1, w2, ..., wn or in NLP notation known as IDF,
 # such that the separation (default we are using angle) between the vectors
-# v1, v2, ... vn by some metric (default metric is the 50% quantile) is
+# v1, v2, ... vn by some metric (default metric is the 61.8% quantile) is
 # maximum when projected onto a unit hypersphere.
 #
 class Idf:
@@ -36,6 +36,8 @@ class Idf:
     # Monte Carlo start points
     #
     MONTE_CARLO_SAMPLES_N = 100
+
+    TARGET_FUNCTION_AS_SUM_COSINE = True
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -166,6 +168,29 @@ class Idf:
             self,
             x_input
     ):
+        x_n = nputil.NumpyUtil.normalize(x = x_input)
+
+        if Idf.TARGET_FUNCTION_AS_SUM_COSINE:
+            #
+            # If already normalized, then a concise formula for sum of cosine of angles are just:
+            #
+            # 0.5 * [ (x_11 + x_21 +... + x_n1)^2 - (x_11^2 + x_21^2 + ... x_n1^2)
+            #         (x_12 + x_22 +... + x_n2)^2 - (x_12^2 + x_22^2 + ... x_n2^2)
+            #         ...
+            #         (x_1n + x_2n +... + x_nn)^2 - (x_1n^2 + x_2n^2 + ... x_nn^2)
+            #       ]
+            #
+            # Can be seen that the above formula takes care of all pairs.
+            #
+            # All vectors we assume are positive values only thus cosine values are in the range [0,1]
+            #
+            sum_cols = np.sum(x_n, axis=0)
+            sum_cols_square = np.sum(sum_cols**2)
+            sum_els_square = np.sum(x_n**2)
+            sum_cosine = 0.5 * (sum_cols_square - sum_els_square)
+            # Return negative value so that we are maximizing this
+            return -sum_cosine
+
         # Get total angle squared between all points on the hypersphere
         quantile_angle_x = 0
         angle_list = []
@@ -173,13 +198,13 @@ class Idf:
         # TODO
         #  This double looping must be eliminated to no loops.
         #
-        for i in range(0, x_input.shape[0], 1):
-            for j in range(i+1, x_input.shape[0], 1):
+        for i in range(0, x_n.shape[0], 1):
+            for j in range(i+1, x_n.shape[0], 1):
                 if i == j:
                     continue
                 # Get
-                v1 = x_input[i]
-                v2 = x_input[j]
+                v1 = x_n[i]
+                v2 = x_n[j]
                 # It is possible after iterations that vectors become 0 due to the weights
                 if (np.linalg.norm(v1) == 0) or (np.linalg.norm(v2) == 0):
                     lg.Log.warning(
@@ -187,9 +212,12 @@ class Idf:
                         + ': Vector zerorized from iterations.'
                     )
                     continue
-                cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
                 #
-                # For some stupid reason, this value can be >1 and after that everything will be nan
+                # The vectors are already normalized
+                #
+                cos_angle = np.dot(v1, v2)
+                #
+                # This value can be >1 due to computer roundings and after that everything will be nan
                 #
                 if np.isnan(cos_angle):
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -237,6 +265,7 @@ class Idf:
     #
     def differentiate_dml_dw(
             self,
+            x_input,
             delta = 0.000001
     ):
         # Take dw
@@ -246,8 +275,8 @@ class Idf:
         dml_dw = np.zeros(l, dtype=float)
         for i in range(l):
             dw_i = dw_diag[i]
-            dm_dwi = self.target_ml_function(x_input = np.multiply(self.xh, self.w + dw_i)) -\
-                self.target_ml_function(x_input = np.multiply(self.xh, self.w))
+            dm_dwi = self.target_ml_function(x_input = np.multiply(x_input, self.w + dw_i)) -\
+                self.target_ml_function(x_input = np.multiply(x_input, self.w))
             dm_dwi = dm_dwi / delta
             lg.Log.debugdebug(
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
@@ -270,7 +299,9 @@ class Idf:
             initial_w_as_standard_idf = False,
             max_iter = 10
     ):
-        ml_start = self.target_ml_function(x_input = self.xh)
+        x_vecs = self.xh.copy()
+
+        ml_start = self.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
         # The delta of limit increase in target function to stop iteration
         delta = ml_start * Idf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
@@ -301,16 +332,16 @@ class Idf:
                     # between vectors maximum
                     self.w = self.w_start.copy()
                 else:
-                    # Monte Carlo some start points to see which is best
+                    # Monte Carlo the weights for some start points to see which is best
                     w_best = None
-                    tf_val_best = 0
+                    tf_val_best = -np.inf
                     for i in range(Idf.MONTE_CARLO_SAMPLES_N):
                         rd_vec = np.array([ rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0]) ])
                         w_mc = self.w + rd_vec
                         lg.Log.debugdebug(
                             'MC random w = ' + str(w_mc)
                         )
-                        x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, w_mc))
+                        x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_mc))
                         tf_val = self.target_ml_function(x_input=x_weighted)
                         if tf_val > tf_val_best:
                             tf_val_best = tf_val
@@ -333,7 +364,10 @@ class Idf:
                 # Find the dw we need to move to
                 #
                 # Get delta of target function d_ml
-                dml_dw = self.differentiate_dml_dw()
+                dml_dw = self.differentiate_dml_dw(
+                    x_input = x_vecs
+                )
+
                 lg.Log.info(
                     'dml/dw = ' + str(dml_dw)
                 )
@@ -350,8 +384,8 @@ class Idf:
                 )
 
             # Get new vectors after weightage
-            x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(self.xh, self.w))
-            # Get new separation we are trying to maximize
+            x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, self.w))
+            # Get new separation we are trying to maximize (if using sum cosine is minimize)
             ml_cur = self.target_ml_function(x_input = x_weighted)
             ml_increase = ml_cur - ml_prev
             if ml_cur - ml_prev > 0:
@@ -360,8 +394,6 @@ class Idf:
                     + ': Iteration #' + str(iter) + ': Increase from ' + str(ml_prev) + ' to ' + str(ml_cur)
                     + ' with weights ' + str(self.w)
                 )
-                # Update the new normalized vectors
-                self.xh = nputil.NumpyUtil.normalize(x=self.x)
                 ml_prev = ml_cur
                 ml_final = ml_cur
 
@@ -401,4 +433,6 @@ if __name__ == '__main__':
     obj = Idf(
         x = x
     )
-    obj.optimize(initial_w_as_standard_idf=False)
+    obj.optimize(
+        initial_w_as_standard_idf = False
+    )
