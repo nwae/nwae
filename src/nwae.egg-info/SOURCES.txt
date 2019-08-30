@@ -23,4 +23,4 @@ src/nwae/lib/math/ml/TrainingDataModel.py
 src/nwae/lib/math/ml/deeplearning/Keras.py
 src/nwae/lib/math/ml/metricspace/MetricSpaceModel.py
 src/nwae/lib/math/ml/metricspace/ModelData.py
-src/nwae/lib/math/optimization/Idf.py
+src/nwae/lib/math/optimization/Eidf.py

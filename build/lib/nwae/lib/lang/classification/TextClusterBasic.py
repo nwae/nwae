@@ -91,7 +91,15 @@ class TextClusterBasic:
     #
     def __init__(self, text, stopwords):
         self.text_original = text
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text (before filter):\n\r' + str(text)
+        )
         self.text = self.__filter_text(text_array=text)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text (after filter):\n\r' + str(text)
+        )
 
         # Since we use automated IDF already, stopwords are not really needed anymore
         self.stopwords = stopwords
@@ -109,8 +117,10 @@ class TextClusterBasic:
         new_array = []
         for w in text_array:
             if type(w) is not str:
-                log.Log.warning(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + 'Warning line, not string [' + str(w) + ']')
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + 'Warning line ' + str(text_array) + ', word not string [' + str(w) + ']'
+                )
             w = str(w)
             new_array.append(su.StringUtils.trim(w.lower()))
         return new_array

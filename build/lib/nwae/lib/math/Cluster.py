@@ -173,11 +173,11 @@ class Cluster:
     @staticmethod
     def cluster(
             matx,
-            feature_names,
             ncenters,
-            iterations=50
+            feature_names = None,
+            iterations    = 10
     ):
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start clustering ncenters=' + str(ncenters) + ', data=\n\r' + str(matx)
             + ', shape ' + str(matx.shape) + '.'
@@ -185,12 +185,13 @@ class Cluster:
         if ncenters > matx.shape[0]:
             ncenters = matx.shape[0]
 
-        if len(feature_names) != matx.shape[1]:
-            raise Exception(
-                str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Number of columns for matx of shape ' + str(matx.shape)
-                + ' not equal to feature name columns ' + str(len(feature_names)) + '.'
-            )
+        if feature_names is not None:
+            if len(feature_names) != matx.shape[1]:
+                raise Exception(
+                    str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Number of columns for matx of shape ' + str(matx.shape)
+                    + ' not equal to feature name columns ' + str(len(feature_names)) + '.'
+                )
 
         # Set starting centers to be the top keywords
         # ncols_matx = matx.shape[1]
@@ -295,7 +296,6 @@ if __name__ == '__main__':
 
     retval = Cluster.cluster(
         matx          = m,
-        feature_names = fn,
         ncenters      = 3,
         iterations    = 20
     )
@@ -315,7 +315,6 @@ if __name__ == '__main__':
 
     retval = Cluster.cluster(
         matx=m,
-        feature_names=fn,
         ncenters=10,
         iterations=20
     )

@@ -136,7 +136,7 @@ class TrainingDataModel:
         # Weigh x by w
         #
         x_w = np.multiply(self.x, self.w)
-        log.Log.debug(
+        log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': x weighted by w:\n\r' + str(x_w)
         )
@@ -152,7 +152,7 @@ class TrainingDataModel:
             else:
                 x_w[i] = p / mag
 
-        log.Log.debug(
+        log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': x weighted by w and renormalized:\n\r' + str(x_w)
         )
@@ -325,7 +325,7 @@ class TrainingDataModel:
             , log_list = log_training
         )
 
-        log.Log.debugdebug(
+        log.Log.debug(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Training data text\n\r' + str(text_segmented)
             + ', label IDs\n\r' + str(label_id)
