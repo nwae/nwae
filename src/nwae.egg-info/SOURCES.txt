@@ -2,6 +2,7 @@ README.md
 src/nwae.egg-info/PKG-INFO
 src/nwae.egg-info/SOURCES.txt
 src/nwae.egg-info/dependency_links.txt
+src/nwae.egg-info/requires.txt
 src/nwae.egg-info/top_level.txt
 src/nwae/lib/lang/LangFeatures.py
 src/nwae/lib/lang/characters/LangCharacters.py

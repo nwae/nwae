@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='0.1.2',
+    version='0.1.3',
     packages=[
         'nwae.lib.math',
         'nwae.lib.math.ml',
@@ -17,6 +17,11 @@ setup(
         'nwae.lib.lang.stats'
     ],
     package_dir={'': 'src'},
+    install_requires = [
+        'nwae.utils',
+        'tensorflow',
+        'Keras'
+    ],
     url='',
     license='',
     author='NWAE',
