@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import nwae.lib.math.NumpyUtil as nputil
 import random as rd
+import nwae.lib.math.Cluster as cl
 
 
 #
@@ -37,7 +38,17 @@ class Idf:
     #
     MONTE_CARLO_SAMPLES_N = 100
 
+    #
+    # This is the fast closed formula calculation of target function value
+    # otherwise the double looping exact calculation is unusable
+    #
     TARGET_FUNCTION_AS_SUM_COSINE = True
+
+    #
+    # If too many rows in the array, the normalize() function will be too slow
+    # so we cluster them
+    #
+    MAX_X_ROWS_BEFORE_CLUSTER = 100
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -168,8 +179,16 @@ class Idf:
             self,
             x_input
     ):
+        #
+        # TODO
+        #  This normalize is unusable when x has too many rows,
+        #  This is why we should cluster x first, then only optimize.
+        #
         x_n = nputil.NumpyUtil.normalize(x = x_input)
 
+        #
+        # Fast calculation closed formula, compared to double-looping below that cannot be used in most cases
+        #
         if Idf.TARGET_FUNCTION_AS_SUM_COSINE:
             #
             # If already normalized, then a concise formula for sum of cosine of angles are just:
@@ -197,6 +216,7 @@ class Idf:
         angle_list = []
         #
         # TODO
+        #  The code below is quite unusable as it is super slow.
         #  This double looping must be eliminated to no loops.
         #
         for i in range(0, x_n.shape[0], 1):
@@ -303,6 +323,24 @@ class Idf:
     ):
         x_vecs = self.xh.copy()
 
+        #
+        # If too many rows, we will have problem calculating normalize() after weighing vectors
+        #
+        # if x_vecs.shape[0] > Idf.MAX_X_ROWS_BEFORE_CLUSTER:
+        #     lg.Log.info(
+        #         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #         + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER)
+        #         + '. Clustering to ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
+        #     )
+        #     cl_result = cl.Cluster.cluster(
+        #         matx = x_vecs,
+        #         ncenters = Idf.MAX_X_ROWS_BEFORE_CLUSTER
+        #     )
+        #     x_vecs = cl_result.np_cluster_centers
+        #     lg.Log.debug(
+        #         'New x after clustering:\n\r' + str(x_vecs)
+        #     )
+
         ml_start = self.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
         # The delta of limit increase in target function to stop iteration
@@ -323,14 +361,11 @@ class Idf:
         if initial_w_as_standard_idf:
             # Start with standard IDF values
             self.w_start = Idf.get_feature_weight_idf_default(
-                x=self.xh,
-                y=self.y,
-                x_name=self.x_name,
-                feature_presence_only_in_label_training_data=self.feature_presence_only_in_label_training_data
+                x = self.xh,
+                y = self.y,
+                x_name = self.x_name,
+                feature_presence_only_in_label_training_data = self.feature_presence_only_in_label_training_data
             )
-            # We want to opimize these weights to make the separation of angles
-            # between vectors maximum
-            w_iter_test = self.w_start.copy()
         else:
             # Monte Carlo the weights for some start points to see which is best
             tf_val_best = -np.inf

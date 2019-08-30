@@ -53,8 +53,10 @@ class FeatureVector:
     #
     def set_feature_weights(self, fw):
         self.fv_weights = np.array(fw)
-        lg.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ' Feature weights set to ' + str(self.fv_weights) + '.')
+        lg.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ' Feature weights set to ' + str(self.fv_weights) + '.'
+        )
         return
 
     #
