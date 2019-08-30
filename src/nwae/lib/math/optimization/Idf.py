@@ -142,7 +142,7 @@ class Idf:
         self.xh = nputil.NumpyUtil.normalize(x=self.x)
 
         #
-        # Start with no weights
+        # Start with default 1 weights
         #
         self.w_start = np.array([1.0]*self.x.shape[1], dtype=float)
         # We want to opimize these weights to make the separation of angles
@@ -188,8 +188,9 @@ class Idf:
             sum_cols_square = np.sum(sum_cols**2)
             sum_els_square = np.sum(x_n**2)
             sum_cosine = 0.5 * (sum_cols_square - sum_els_square)
-            # Return negative value so that we are maximizing this
-            return -sum_cosine
+            # Return average angle as this has meaning when troubleshooting or analyzing
+            angle = np.arccos(sum_cosine/x_n.shape[0])*180/np.pi
+            return angle
 
         # Get total angle squared between all points on the hypersphere
         quantile_angle_x = 0
@@ -266,17 +267,18 @@ class Idf:
     def differentiate_dml_dw(
             self,
             x_input,
+            w_vec,
             delta = 0.000001
     ):
         # Take dw
-        l = self.w.shape[0]
+        l = w_vec.shape[0]
         dw_diag = np.diag(np.array([delta]*l, dtype=float))
         # The return value
         dml_dw = np.zeros(l, dtype=float)
         for i in range(l):
             dw_i = dw_diag[i]
-            dm_dwi = self.target_ml_function(x_input = np.multiply(x_input, self.w + dw_i)) -\
-                self.target_ml_function(x_input = np.multiply(x_input, self.w))
+            dm_dwi = self.target_ml_function(x_input = np.multiply(x_input, w_vec + dw_i)) -\
+                self.target_ml_function(x_input = np.multiply(x_input, w_vec))
             dm_dwi = dm_dwi / delta
             lg.Log.debugdebug(
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
@@ -314,105 +316,108 @@ class Idf:
         iter = 1
 
         ml_prev = ml_start
+
+        #
+        # Find best initial start weights for iteration, either using standard IDF or via MC
+        #
+        if initial_w_as_standard_idf:
+            # Start with standard IDF values
+            self.w_start = Idf.get_feature_weight_idf_default(
+                x=self.xh,
+                y=self.y,
+                x_name=self.x_name,
+                feature_presence_only_in_label_training_data=self.feature_presence_only_in_label_training_data
+            )
+            # We want to opimize these weights to make the separation of angles
+            # between vectors maximum
+            w_iter_test = self.w_start.copy()
+        else:
+            # Monte Carlo the weights for some start points to see which is best
+            tf_val_best = -np.inf
+            for i in range(Idf.MONTE_CARLO_SAMPLES_N):
+                rd_vec = np.array([rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0])])
+                w_mc = self.w + rd_vec
+                lg.Log.debugdebug(
+                    'MC random w = ' + str(w_mc)
+                )
+                x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_mc))
+                tf_val = self.target_ml_function(x_input=x_weighted)
+                if tf_val > tf_val_best:
+                    tf_val_best = tf_val
+                    self.w_start = w_mc
+                    lg.Log.debugdebug(
+                        'Update best MC w to ' + str(self.w_start)
+                        + ', target function value = ' + str(tf_val_best)
+                    )
+            lg.Log.debugdebug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + 'Best MC w: ' + str(self.w_start) + ', target function value = ' + str(tf_val_best)
+            )
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Start weights:\n\r' + str(self.w_start)
+        )
+
+        w_iter_test = self.w_start.copy()
         while True:
-            lg.Log.info(
-                'ITERATION #' + str(iter) + ', using weights ' + str(self.w)
+            lg.Log.debugdebug(
+                'ITERATION #' + str(iter) + ', using test weights:\n\r' + str(w_iter_test)
+                + '\n\rexisting old weights:\n\r' + str(self.w)
             )
 
-            if iter == 1:
-                if initial_w_as_standard_idf:
-                    # Start with standard IDF values
-                    self.w_start = Idf.get_feature_weight_idf_default(
-                        x = self.xh,
-                        y = self.y,
-                        x_name = self.x_name,
-                        feature_presence_only_in_label_training_data = self.feature_presence_only_in_label_training_data
-                    )
-                    # We want to opimize these weights to make the separation of angles
-                    # between vectors maximum
-                    self.w = self.w_start.copy()
-                else:
-                    # Monte Carlo the weights for some start points to see which is best
-                    w_best = None
-                    tf_val_best = -np.inf
-                    for i in range(Idf.MONTE_CARLO_SAMPLES_N):
-                        rd_vec = np.array([ rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0]) ])
-                        w_mc = self.w + rd_vec
-                        lg.Log.debugdebug(
-                            'MC random w = ' + str(w_mc)
-                        )
-                        x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_mc))
-                        tf_val = self.target_ml_function(x_input=x_weighted)
-                        if tf_val > tf_val_best:
-                            tf_val_best = tf_val
-                            w_best = w_mc
-                            lg.Log.debugdebug(
-                                'Update best MC w to ' + str(w_best)
-                                + ', target function value = ' + str(tf_val_best)
-                            )
-                    self.w = w_best
-                    lg.Log.info(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + 'Best MC w: ' + str(w_best) + ', target function value = ' + str(tf_val_best)
-                    )
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Start weights: ' + str(self.w)
-                )
-            else:
-                #
-                # Find the dw we need to move to
-                #
-                # Get delta of target function d_ml
-                dml_dw = self.differentiate_dml_dw(
-                    x_input = x_vecs
-                )
-
-                lg.Log.info(
-                    'dml/dw = ' + str(dml_dw)
-                )
-                # Adjust weights
-                l = self.w.shape[0]
-                max_movement_w = np.array([Idf.MAXIMUM_IDF_W_MOVEMENT] * l)
-                min_movement_w = -max_movement_w
-
-                self.w = self.w + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
-                # Don't allow negative weights
-                self.w = np.maximum(self.w, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
-                lg.Log.debug(
-                    'Iter ' + str(iter) + ': New weights: ' + str(self.w)
-                )
-
             # Get new vectors after weightage
-            x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, self.w))
+            x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_iter_test))
             # Get new separation we are trying to maximize (if using sum cosine is minimize)
             ml_cur = self.target_ml_function(x_input = x_weighted)
             ml_increase = ml_cur - ml_prev
             if ml_cur - ml_prev > 0:
-                lg.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Iteration #' + str(iter) + ': Increase from ' + str(ml_prev) + ' to ' + str(ml_cur)
-                    + ' with weights ' + str(self.w)
-                )
-                ml_prev = ml_cur
                 ml_final = ml_cur
+                self.w = w_iter_test.copy()
+            # Update old ML value to current
+            ml_prev = ml_cur
 
-            lg.Log.info(
+            lg.Log.debug(
                 ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase)
-                + ', delta =' + str(delta)
-                + ', weights = ' + str(self.w)
+                + ', delta =' + str(delta) + ', ML = ' + str(ml_cur)
+                + ', updated weights:\n\r' + str(self.w)
             )
             if ml_increase < delta:
+                # Gradient ascent done, max local optimal reached
                 break
             if iter > max_iter:
+                # Gradient ascent done, too many iterations already
                 break
             iter += 1
+
+            #
+            # Find the dw we need to move to
+            #
+            # Get delta of target function d_ml
+            dml_dw = self.differentiate_dml_dw(
+                x_input = x_vecs,
+                w_vec   = w_iter_test
+            )
+
+            lg.Log.debugdebug(
+                'dml/dw = ' + str(dml_dw)
+            )
+            # Adjust weights
+            l = w_iter_test.shape[0]
+            max_movement_w = np.array([Idf.MAXIMUM_IDF_W_MOVEMENT] * l)
+            min_movement_w = -max_movement_w
+
+            w_iter_test = w_iter_test + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
+            # Don't allow negative weights
+            w_iter_test = np.maximum(w_iter_test, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
+            lg.Log.debugdebug(
+                'Iter ' + str(iter) + ': New weights:\n\r' + str(w_iter_test)
+            )
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': End target function value = ' + str(ml_final) + ' (started with ' + str(ml_start) + ')'
-            + '\n\rStart weights: ' + str(self.w_start)
-            + '\n\rEnd weights: ' + str(self.w)
+            + '\n\rStart weights:\n\r' + str(self.w_start)
+            + '\n\rEnd weights:\n\r' + str(self.w)
         )
         return
 
