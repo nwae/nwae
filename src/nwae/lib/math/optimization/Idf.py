@@ -48,7 +48,7 @@ class Idf:
     # If too many rows in the array, the normalize() function will be too slow
     # so we cluster them
     #
-    MAX_X_ROWS_BEFORE_CLUSTER = 100
+    MAX_X_ROWS_BEFORE_CLUSTER = 200
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -330,6 +330,7 @@ class Idf:
             max_iter = 10
     ):
         x_vecs = self.xh.copy()
+        y_vecs = self.y.copy()
 
         #
         # If too many rows, we will have problem calculating normalize() after weighing vectors
@@ -348,7 +349,7 @@ class Idf:
             lg.Log.debug(
                 'New x after clustering:\n\r' + str(x_vecs)
             )
-            raise Exception('DEBUGGING')
+            y_vecs = np.array(range(x_vecs.shape[0]))
 
         ml_start = self.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
@@ -370,8 +371,8 @@ class Idf:
         if initial_w_as_standard_idf:
             # Start with standard IDF values
             self.w_start = Idf.get_feature_weight_idf_default(
-                x = self.xh,
-                y = self.y,
+                x = x_vecs,
+                y = y_vecs,
                 x_name = self.x_name,
                 feature_presence_only_in_label_training_data = self.feature_presence_only_in_label_training_data
             )
