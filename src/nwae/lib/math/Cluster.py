@@ -175,7 +175,7 @@ class Cluster:
             matx,
             ncenters,
             feature_names = None,
-            iterations    = 50
+            iterations    = 10
     ):
         lg.Log.debugdebug(
             str(Cluster.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)

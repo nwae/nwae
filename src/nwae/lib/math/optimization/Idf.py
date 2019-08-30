@@ -64,29 +64,34 @@ class Idf:
             x_name,
             feature_presence_only_in_label_training_data = True
     ):
-        df_tmp = pd.DataFrame(data=x, index=y)
+        if feature_presence_only_in_label_training_data:
+            df_tmp = pd.DataFrame(data=x, index=y)
+            # Group by the labels y, as they are not unique
+            df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
+            # No need a copy, the dataframe will create a new copy already from original x
+            np_agg_sum = df_agg_sum.values
+        else:
+            # No need to group, each row is it's own document
+            np_agg_sum = x.copy()
 
-        # Group by the labels y, as they are not unique
-        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
-        np_agg_sum = df_agg_sum.values
+        # Just overwrite inline, don't copy
+        np.nan_to_num(np_agg_sum, copy=False)
 
         # Get presence only by cell, then sum up by columns to get total presence by document
-        np_feature_presence = np_agg_sum
-        if feature_presence_only_in_label_training_data:
-            np_feature_presence = (np_agg_sum>0)*1
-
+        np_feature_presence = (np_agg_sum > 0) * 1
         # Sum by column axis=0
-        np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
-        lg.Log.debugdebug(
+        np_idf = np.sum(np_feature_presence, axis=0)
+
+        lg.Log.debug(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
             + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
-            + '\n\r\tPresence sum:\n\r' + str(np_feature_presence_sum)
+            + '\n\r\tArray for IDF (presence/normalized sum):\n\r' + str(np_idf)
             + '\n\r\tx_names: ' + str(x_name) + '.'
         )
 
         # Total document count
-        n_documents = np_feature_presence.shape[0]
+        n_documents = np_agg_sum.shape[0]
         lg.Log.important(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
@@ -94,7 +99,7 @@ class Idf:
 
         # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
         # TODO RuntimeWarning: divide by zero encountered in true_divide
-        idf = np.log(n_documents / np_feature_presence_sum)
+        idf = np.log(n_documents / np_idf)
         # Replace infinity with 1 count or log(n_documents)
         idf[idf==np.inf] = np.log(n_documents)
         # If only 1 document, all IDF will be zero, we will handle below
@@ -207,8 +212,11 @@ class Idf:
             sum_cols_square = np.sum(sum_cols**2)
             sum_els_square = np.sum(x_n**2)
             sum_cosine = 0.5 * (sum_cols_square - sum_els_square)
+            # Average of the cosine sum
+            avg_cosine_sum = sum_cosine/x_n.shape[0]
+            avg_cosine_sum = max(0.0, min(1.0, avg_cosine_sum))
             # Return average angle as this has meaning when troubleshooting or analyzing
-            angle = np.arccos(sum_cosine/x_n.shape[0])*180/np.pi
+            angle = np.arccos(avg_cosine_sum)*180/np.pi
             return angle
 
         # Get total angle squared between all points on the hypersphere
@@ -326,20 +334,21 @@ class Idf:
         #
         # If too many rows, we will have problem calculating normalize() after weighing vectors
         #
-        # if x_vecs.shape[0] > Idf.MAX_X_ROWS_BEFORE_CLUSTER:
-        #     lg.Log.info(
-        #         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-        #         + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER)
-        #         + '. Clustering to ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
-        #     )
-        #     cl_result = cl.Cluster.cluster(
-        #         matx = x_vecs,
-        #         ncenters = Idf.MAX_X_ROWS_BEFORE_CLUSTER
-        #     )
-        #     x_vecs = cl_result.np_cluster_centers
-        #     lg.Log.debug(
-        #         'New x after clustering:\n\r' + str(x_vecs)
-        #     )
+        if x_vecs.shape[0] > Idf.MAX_X_ROWS_BEFORE_CLUSTER:
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER)
+                + '. Clustering to ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
+            )
+            cl_result = cl.Cluster.cluster(
+                matx = x_vecs,
+                ncenters = Idf.MAX_X_ROWS_BEFORE_CLUSTER
+            )
+            x_vecs = cl_result.np_cluster_centers
+            lg.Log.debug(
+                'New x after clustering:\n\r' + str(x_vecs)
+            )
+            raise Exception('DEBUGGING')
 
         ml_start = self.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
@@ -460,20 +469,35 @@ class Idf:
 if __name__ == '__main__':
     lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
     x = np.array([
-        [0.9, 0.8, 1.0],
-        [0.5, 0.0, 0.0],
-        [0.1, 1.0, 0.0],
-        [0.0, 1.0, 0.0]
+        [1.0, 0.0, 1.0], #0
+        [0.9, 0.8, 1.0], #0
+        [0.5, 0.0, 0.0], #1
+        [0.1, 1.0, 0.0], #2
+        [0.0, 1.0, 0.0]  #3
     ])
+    y = np.array([0, 0, 1, 2, 3])
     obj = Idf(
-        x = x
+        x = x,
+        y = y,
+        feature_presence_only_in_label_training_data = True
     )
     obj.optimize(
         initial_w_as_standard_idf=True
     )
 
     obj = Idf(
-        x = x
+        x = x,
+        y = y,
+        feature_presence_only_in_label_training_data = False
+    )
+    obj.optimize(
+        initial_w_as_standard_idf = True
+    )
+
+    obj = Idf(
+        x = x,
+        y = y,
+        feature_presence_only_in_label_training_data = False
     )
     obj.optimize(
         initial_w_as_standard_idf = False
