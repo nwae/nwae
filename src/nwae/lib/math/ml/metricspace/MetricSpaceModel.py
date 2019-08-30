@@ -462,7 +462,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + ': Expected x has 1 row got c shape ' + str(x.shape) + '".'
             )
 
-        log.Log.debug('x:\n\r' + str(x))
+        log.Log.debugdebug('predict_class() x:\n\r' + str(x))
 
         #
         # Weigh x with idf
