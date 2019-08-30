@@ -48,7 +48,7 @@ class Idf:
     # If too many rows in the array, the normalize() function will be too slow
     # so we cluster them
     #
-    MAX_X_ROWS_BEFORE_CLUSTER = 200
+    MAX_X_ROWS_BEFORE_CLUSTER = 500
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
