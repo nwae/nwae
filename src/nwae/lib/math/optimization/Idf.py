@@ -62,7 +62,7 @@ class Idf:
             y,
             # Feature name, if None then we use default numbers with 0 index
             x_name,
-            feature_presence_only_in_label_training_data = True
+            feature_presence_only_in_label_training_data = False
     ):
         if feature_presence_only_in_label_training_data:
             df_tmp = pd.DataFrame(data=x, index=y)
@@ -82,11 +82,11 @@ class Idf:
         # Sum by column axis=0
         np_idf = np.sum(np_feature_presence, axis=0)
 
-        lg.Log.debug(
+        lg.Log.debugdebug(
             str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
-            + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
-            + '\n\r\tArray for IDF (presence/normalized sum):\n\r' + str(np_idf)
+            + '\n\r\tAggregated sum by labels (' + str(np_agg_sum.shape[0]) + ' rows):\n\r' + str(np_agg_sum)
+            + '\n\r\tPresence array (' + str(np_feature_presence.shape[0]) + ' rows):\n\r' + str(np_feature_presence)
+            + '\n\r\tArray for IDF presence/normalized sum (' + str(np_idf) + ' rows):\n\r' + str(np_idf)
             + '\n\r\tx_names: ' + str(x_name) + '.'
         )
 
@@ -123,7 +123,7 @@ class Idf:
             y = None,
             # Feature name, if None then we use default numbers with 0 index
             x_name = None,
-            feature_presence_only_in_label_training_data = True
+            feature_presence_only_in_label_training_data = False
     ):
         if type(x) is not np.ndarray:
             raise Exception(
@@ -204,19 +204,28 @@ class Idf:
             #         (x_1n + x_2n +... + x_nn)^2 - (x_1n^2 + x_2n^2 + ... x_nn^2)
             #       ]
             #
-            # Can be seen that the above formula takes care of all pairs.
+            # Can be seen that the above formula takes care of all pairs = n_row*(n_row-1)/2.
             #
             # All vectors we assume are positive values only thus cosine values are in the range [0,1]
             #
+            n_els = x_n.shape[0]
+            n_pairs = n_els*(n_els-1)/2
             sum_cols = np.sum(x_n, axis=0)
+            lg.Log.debugdebug('************** Sum Cols (' + str(n_els)  + 'rows ):\n\r' + str(sum_cols))
             sum_cols_square = np.sum(sum_cols**2)
+            lg.Log.debugdebug('************** Sum Cols Square: ' + str(sum_cols_square))
             sum_els_square = np.sum(x_n**2)
+            lg.Log.debugdebug('************** Sum Elements Square: ' + str(sum_els_square))
             sum_cosine = 0.5 * (sum_cols_square - sum_els_square)
+            lg.Log.debugdebug('************** Sum Cosine: ' + str(sum_cosine))
             # Average of the cosine sum
-            avg_cosine_sum = sum_cosine/x_n.shape[0]
+            avg_cosine_sum = sum_cosine/n_pairs
+            lg.Log.debugdebug('************** Avg Cosine Sum (of ' + str(n_pairs) + ' pairs): ' + str(avg_cosine_sum))
             avg_cosine_sum = max(0.0, min(1.0, avg_cosine_sum))
+            lg.Log.debugdebug('************** Avg Cosine Sum (of ' + str(n_pairs) + ' pairs): ' + str(avg_cosine_sum))
             # Return average angle as this has meaning when troubleshooting or analyzing
             angle = np.arccos(avg_cosine_sum)*180/np.pi
+            lg.Log.debugdebug('************** Angle: ' + str(angle))
             return angle
 
         # Get total angle squared between all points on the hypersphere
