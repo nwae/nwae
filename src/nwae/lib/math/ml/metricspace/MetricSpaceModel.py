@@ -12,7 +12,7 @@ import nwae.lib.math.ml.metricspace.ModelData as modelData
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.utils.Profiling as prf
-import nwae.lib.math.optimization.Idf as idfopt
+import nwae.lib.math.optimization.Eidf as idfopt
 
 
 #
@@ -769,7 +769,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Initializing IDF object..'
                     )
-                    idf_opt_obj = idfopt.Idf(
+                    idf_opt_obj = idfopt.Eidf(
                         x      = self.training_data.get_x(),
                         y      = self.training_data.get_y(),
                         x_name = self.training_data.get_x_name()

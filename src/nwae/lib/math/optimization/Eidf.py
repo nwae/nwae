@@ -10,13 +10,15 @@ import nwae.lib.math.Cluster as cl
 
 
 #
+# Enhanced IDF (EIDF)
+#
 # Given a set of vectors v1, v2, ..., vn with features f1, f2, ..., fn
 # We try to find weights w1, w2, ..., wn or in NLP notation known as IDF,
 # such that the separation (default we are using angle) between the vectors
 # v1, v2, ... vn by some metric (default metric is the 61.8% quantile) is
 # maximum when projected onto a unit hypersphere.
 #
-class Idf:
+class Eidf:
 
     # General number precision required
     ROUND_PRECISION = 6
@@ -83,7 +85,7 @@ class Idf:
         np_idf = np.sum(np_feature_presence, axis=0)
 
         lg.Log.debugdebug(
-            str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tAggregated sum by labels (' + str(np_agg_sum.shape[0]) + ' rows):\n\r' + str(np_agg_sum)
             + '\n\r\tPresence array (' + str(np_feature_presence.shape[0]) + ' rows):\n\r' + str(np_feature_presence)
             + '\n\r\tArray for IDF presence/normalized sum (' + str(np_idf) + ' rows):\n\r' + str(np_idf)
@@ -93,7 +95,7 @@ class Idf:
         # Total document count
         n_documents = np_agg_sum.shape[0]
         lg.Log.important(
-            str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
         )
 
@@ -105,12 +107,12 @@ class Idf:
         # If only 1 document, all IDF will be zero, we will handle below
         if n_documents <= 1:
             lg.Log.warning(
-                str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
             idf = np.array([1]*x.shape[1])
         lg.Log.debugdebug(
-            str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
         )
         return idf
@@ -166,7 +168,7 @@ class Idf:
         self.w = self.w_start.copy()
 
         lg.Log.debugdebug(
-            str(Idf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tIDF Initialization, x:\n\r' + str(self.x)
             + '\n\r\ty:\n\r' + str(self.y)
             + '\n\r\tx_name:\n\r' + str(self.x_name)
@@ -194,7 +196,7 @@ class Idf:
         #
         # Fast calculation closed formula, compared to double-looping below that cannot be used in most cases
         #
-        if Idf.TARGET_FUNCTION_AS_SUM_COSINE:
+        if Eidf.TARGET_FUNCTION_AS_SUM_COSINE:
             #
             # If already normalized, then a concise formula for sum of cosine of angles are just:
             #
@@ -278,7 +280,7 @@ class Idf:
                 )
                 angle_list.append(angle)
 
-        quantile_angle_x = np.quantile(a=angle_list, q=[Idf.MAXIMIZE_QUANTILE])[0]
+        quantile_angle_x = np.quantile(a=angle_list, q=[Eidf.MAXIMIZE_QUANTILE])[0]
         values_in_quantile = np.array(angle_list)
         values_in_quantile = values_in_quantile[values_in_quantile<=quantile_angle_x]
         sum_square_values_in_q = np.sum(values_in_quantile**2)
@@ -292,7 +294,7 @@ class Idf:
         lg.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Angle = ' + str(np.sort(angle_list))
-            + '\n\rQuantile ' + str(100*Idf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
+            + '\n\rQuantile ' + str(100*Eidf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
             + '\n\rSum square values in quantile = ' + str(sum_square_values_in_q)
         )
         return sum_square_values_in_q
@@ -344,15 +346,15 @@ class Idf:
         #
         # If too many rows, we will have problem calculating normalize() after weighing vectors
         #
-        if x_vecs.shape[0] > Idf.MAX_X_ROWS_BEFORE_CLUSTER:
+        if x_vecs.shape[0] > Eidf.MAX_X_ROWS_BEFORE_CLUSTER:
             lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER)
-                + '. Clustering to ' + str(Idf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
+                + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER)
+                + '. Clustering to ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
             )
             cl_result = cl.Cluster.cluster(
                 matx = x_vecs,
-                ncenters = Idf.MAX_X_ROWS_BEFORE_CLUSTER
+                ncenters = Eidf.MAX_X_ROWS_BEFORE_CLUSTER
             )
             x_vecs = cl_result.np_cluster_centers
             lg.Log.debug(
@@ -363,12 +365,12 @@ class Idf:
         ml_start = self.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
         # The delta of limit increase in target function to stop iteration
-        delta = ml_start * Idf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
+        delta = ml_start * Eidf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)
-            + ', quantile used = ' + str(Idf.MAXIMIZE_QUANTILE)
+            + ', quantile used = ' + str(Eidf.MAXIMIZE_QUANTILE)
         )
         iter = 1
 
@@ -379,7 +381,7 @@ class Idf:
         #
         if initial_w_as_standard_idf:
             # Start with standard IDF values
-            self.w_start = Idf.get_feature_weight_idf_default(
+            self.w_start = Eidf.get_feature_weight_idf_default(
                 x = x_vecs,
                 y = y_vecs,
                 x_name = self.x_name,
@@ -388,7 +390,7 @@ class Idf:
         else:
             # Monte Carlo the weights for some start points to see which is best
             tf_val_best = -np.inf
-            for i in range(Idf.MONTE_CARLO_SAMPLES_N):
+            for i in range(Eidf.MONTE_CARLO_SAMPLES_N):
                 rd_vec = np.array([rd.uniform(-0.5, 0.5) for i in range(self.w.shape[0])])
                 w_mc = self.w + rd_vec
                 lg.Log.debugdebug(
@@ -457,12 +459,12 @@ class Idf:
             )
             # Adjust weights
             l = w_iter_test.shape[0]
-            max_movement_w = np.array([Idf.MAXIMUM_IDF_W_MOVEMENT] * l)
+            max_movement_w = np.array([Eidf.MAXIMUM_IDF_W_MOVEMENT] * l)
             min_movement_w = -max_movement_w
 
             w_iter_test = w_iter_test + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
             # Don't allow negative weights
-            w_iter_test = np.maximum(w_iter_test, np.array([Idf.MINIMUM_WEIGHT_IDF]*l))
+            w_iter_test = np.maximum(w_iter_test, np.array([Eidf.MINIMUM_WEIGHT_IDF]*l))
             lg.Log.debugdebug(
                 'Iter ' + str(iter) + ': New weights:\n\r' + str(w_iter_test)
             )
@@ -486,7 +488,7 @@ if __name__ == '__main__':
         [0.0, 1.0, 0.0]  #3
     ])
     y = np.array([0, 0, 1, 2, 3])
-    obj = Idf(
+    obj = Eidf(
         x = x,
         y = y,
         feature_presence_only_in_label_training_data = True
@@ -495,7 +497,7 @@ if __name__ == '__main__':
         initial_w_as_standard_idf=True
     )
 
-    obj = Idf(
+    obj = Eidf(
         x = x,
         y = y,
         feature_presence_only_in_label_training_data = False
@@ -504,7 +506,7 @@ if __name__ == '__main__':
         initial_w_as_standard_idf = True
     )
 
-    obj = Idf(
+    obj = Eidf(
         x = x,
         y = y,
         feature_presence_only_in_label_training_data = False
