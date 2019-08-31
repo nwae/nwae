@@ -177,7 +177,9 @@ class ModelInterface(threading.Thread):
             self,
             write_model_to_storage = True,
             write_training_data_to_storage = False,
-            model_params = None
+            model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         return
 

@@ -119,7 +119,7 @@ class TextClusterBasic:
             if type(w) is not str:
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + 'Warning line ' + str(text_array) + ', word not string [' + str(w) + ']'
+                    + ': Warning line ' + str(text_array) + ', word not string [' + str(w) + ']'
                 )
             w = str(w)
             new_array.append(su.StringUtils.trim(w.lower()))

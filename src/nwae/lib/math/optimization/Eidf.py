@@ -23,6 +23,16 @@ import re
 class Eidf:
 
     #
+    # Storage columns
+    #
+    STORAGE_COL_X_NAME = 'x_name'
+    STORAGE_COL_EIDF   = 'eidf'
+
+    # When nan after merging x_name, we replace with this, assuming
+    # roughly 100 documents or log(100/1)
+    DEFAULT_EIDF_IF_NAN = 4.605170185988092
+
+    #
     # We maximize by the 61.8% quantile, so that given all distance pairs
     # in the vector set, the 61.8% quantile is optimized at maximum
     #
@@ -536,13 +546,72 @@ class Eidf:
             + 'Total Iterations = ' + str(iter) + '\n\r'\
             + 'Start ML = ' + str(ml_start) + ', End ML = ' + str(ml_final) + '\n\r' \
             + 'Start weights:\n\r' + str(self.w_start.tolist()) + '\n\r' \
-            + 'End weights:\n\r' + str(self.w.tolist())
+            + 'End weights:\n\r' + str(self.w.tolist()) + '\n\r' \
+            + 'x_name:\n\r' + str(self.x_name)
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': ' + self.optimize_info
         )
         self.log_training_messages(msg=self.optimize_info)
         return self.optimize_info
+
+    @staticmethod
+    def read_eidf_from_storage(
+            dir_path_model,
+            identifier_string,
+            # We put in the same order as x_name passed in
+            x_name
+    ):
+        try:
+            fpath_eidf = Eidf.get_file_path_eidf(
+                dir_path_model    = dir_path_model,
+                identifier_string = identifier_string
+            )
+            df_eidf_file = pd.read_csv(
+                filepath_or_buffer = fpath_eidf,
+                sep                = ','
+            )
+            if Eidf.STORAGE_COL_X_NAME not in df_eidf_file.columns:
+                raise Exception('Column "' + str(Eidf.STORAGE_COL_X_NAME) + '" not in dataframe!')
+            if Eidf.STORAGE_COL_EIDF not in df_eidf_file.columns:
+                raise Exception('Column "' + str(Eidf.STORAGE_COL_EIDF) + '" not in dataframe!')
+
+            if type(x_name) is np.ndarray:
+                # Put in the same order as x_name passed in
+                df_eidf = pd.DataFrame({
+                    Eidf.STORAGE_COL_X_NAME: x_name
+                })
+                df_eidf = df_eidf.merge(
+                    right    = df_eidf_file,
+                    how      = 'left',
+                    left_on  = [Eidf.STORAGE_COL_X_NAME],
+                    right_on = [Eidf.STORAGE_COL_X_NAME]
+                )
+                # Log those nan values
+                w_eidf = np.array(df_eidf[Eidf.STORAGE_COL_EIDF])
+                cond_nan = np.isnan(w_eidf)
+                x_name_nan = x_name[cond_nan]
+                if x_name_nan.shape[0] > 0:
+                    lg.Log.warning(
+                        str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': EIDF needs to update. Symbols missing as follows: ' + str(x_name_nan.tolist())
+                        + '. Replaced NANs with ' + str(Eidf.DEFAULT_EIDF_IF_NAN) + '.'
+                    )
+
+                df_eidf = df_eidf.fillna(
+                    value = {
+                        Eidf.STORAGE_COL_EIDF: Eidf.DEFAULT_EIDF_IF_NAN
+                    }
+                )
+                return df_eidf
+            else:
+                return df_eidf_file
+        except Exception as ex:
+            errmsg =\
+                str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Error reading EIDF from file, exception ' + str(ex)
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
 
     def persist_eidf_to_storage(
             self,
@@ -551,16 +620,16 @@ class Eidf:
     ):
         try:
             df_eidf = pd.DataFrame({
-                'x_name': self.x_name,
-                'eidf': self.w
+                Eidf.STORAGE_COL_X_NAME: self.x_name,
+                Eidf.STORAGE_COL_EIDF: self.w
             })
             fpath_eidf = Eidf.get_file_path_eidf(
                 dir_path_model    = dir_path_model,
                 identifier_string = identifier_string
             )
             df_eidf.to_csv(
-                path_or_buf=fpath_eidf,
-                index=True
+                path_or_buf = fpath_eidf,
+                index       = True
             )
             logmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Successfully saved EIDF to file "' + str(fpath_eidf)

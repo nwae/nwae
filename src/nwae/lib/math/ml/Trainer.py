@@ -36,7 +36,10 @@ class Trainer(threading.Thread):
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
             model_name = None,
-            train_mode = None
+            # Either 'train_model' (or None), or 'train_nlp_eidf'
+            train_mode = None,
+            # Train a single intent ID or all (None)
+            intent_id = None
     ):
         super(Trainer, self).__init__()
 
@@ -51,6 +54,7 @@ class Trainer(threading.Thread):
         self.train_mode = train_mode
         if self.train_mode is None:
             self.train_mode = Trainer.TRAIN_MODE_MODEL
+        self.intent_id = intent_id
 
         self.__mutex_training = threading.Lock()
         self.bot_training_start_time = None
@@ -93,15 +97,15 @@ class Trainer(threading.Thread):
     ):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
             raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Train mode "' + str(self.train_mode)
-                + '". Wrong training data type "' + str(type(self.training_data)) + '".'
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Train mode "' + str(self.train_mode) + '", Intent ID ' + str(self.intent_id)
+                + '. Wrong training data type "' + str(type(self.training_data)) + '".'
             )
         else:
             lg.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Train mode "' + str(self.train_mode)
-                + '". Training started for "' + self.identifier_string
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Train mode "' + str(self.train_mode) + '", Intent ID ' + str(self.intent_id)
+                + '. Training started for "' + self.identifier_string
                 + '", model name "' + str(self.model_name)
                 + '" training data type "' + str(type(self.training_data)) + '" initialized.'
             )

@@ -110,6 +110,8 @@ class Keras(modelIf.ModelInterface):
             write_model_to_storage = True,
             write_training_data_to_storage = False,
             model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)

@@ -12,7 +12,7 @@ import nwae.lib.math.ml.metricspace.ModelData as modelData
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.utils.Profiling as prf
-import nwae.lib.math.optimization.Eidf as idfopt
+import nwae.lib.math.optimization.Eidf as eidf
 
 
 #
@@ -724,7 +724,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self,
             write_model_to_storage = True,
             write_training_data_to_storage = False,
-            model_params = None
+            model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         prf_start = prf.Profiling.start()
 
@@ -741,6 +743,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training for identifier=' + self.identifier_string
+                + ', y_id ' + str(y_id)
                 + '. Using key features remove quartile = ' + str(self.key_features_remove_quartile)
                 + ', stop features = [' + str(self.stop_features) + ']'
                 + ', weigh by IDF = ' + str(self.weigh_idf)
@@ -765,19 +768,36 @@ class MetricSpaceModel(modelIf.ModelInterface):
             #
             if self.weigh_idf:
                 if MetricSpaceModel.USE_OPIMIZED_IDF:
-                    log.Log.info(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Initializing IDF object..'
-                    )
-                    idf_opt_obj = idfopt.Eidf(
-                        x      = self.training_data.get_x(),
-                        y      = self.training_data.get_y(),
-                        x_name = self.training_data.get_x_name()
-                    )
-                    idf_opt_obj.optimize(
-                        initial_w_as_standard_idf = True
-                    )
-                    self.model_data.idf = idf_opt_obj.get_w()
+                    try:
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Initializing IDF object.. try to read from file first'
+                        )
+                        # Try to read from file
+                        df_eidf_file = eidf.Eidf.read_eidf_from_storage(
+                            dir_path_model = self.dir_path_model,
+                            identifier_string = self.identifier_string,
+                            x_name = self.training_data.get_x_name()
+                        )
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Successfully Read EIDF from file:\n\r' + str(df_eidf_file)
+                        )
+                        self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
+                    except Exception as ex_eidf:
+                        log.Log.critical(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': No EIDF from file available. Recalculating EIDF..'
+                        )
+                        idf_opt_obj = eidf.Eidf(
+                            x      = self.training_data.get_x(),
+                            y      = self.training_data.get_y(),
+                            x_name = self.training_data.get_x_name()
+                        )
+                        idf_opt_obj.optimize(
+                            initial_w_as_standard_idf = True
+                        )
+                        self.model_data.idf = idf_opt_obj.get_w()
                 else:
                     # Sum x by class
                     self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
