@@ -5,19 +5,29 @@ import pandas as pd
 import datetime as dt
 import nwae.lib.math.ml.ModelHelper as modelHelper
 import nwae.lib.math.ml.TrainingDataModel as tdm
+import nwae.lib.math.optimization.Eidf as eidf
 import threading
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
+import os
 
 
 #
 # Helper class to train data using given model
+# Supports also text data.
 #
 class Trainer(threading.Thread):
 
-    COL_TDATA_INTENT = 'Intent'
-    COL_TDATA_INTENT_ID = 'Intent ID'
-    COL_TDATA_TEXT_SEGMENTED = 'TextSegmented'
+    TRAIN_MODE_MODEL = 'train_model'
+    TRAIN_MODE_NLP_EIDF = 'train_nlp_eidf'
+
+    #
+    # If passing in text training data, then make sure these columns exist in the
+    # pandas DataFrame passed in.
+    #
+    COL_TEXT_TDATA_INTENT = 'Intent'
+    COL_TEXT_TDATA_INTENT_ID = 'Intent ID'
+    COL_TEXT_TDATA_TEXT_SEGMENTED = 'TextSegmented'
 
     def __init__(
             self,
@@ -26,7 +36,8 @@ class Trainer(threading.Thread):
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
-            model_name = None
+            model_name = None,
+            train_mode = None
     ):
         super(Trainer, self).__init__()
 
@@ -37,6 +48,10 @@ class Trainer(threading.Thread):
         if model_name is None:
             model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         self.model_name = model_name
+
+        self.train_mode = train_mode
+        if self.train_mode is None:
+            self.train_mode = Trainer.TRAIN_MODE_MODEL
 
         self.__mutex_training = threading.Lock()
         self.bot_training_start_time = None
@@ -77,12 +92,14 @@ class Trainer(threading.Thread):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Wrong training data type "' + str(type(self.training_data)) + '".'
+                + ': Train mode "' + str(self.train_mode)
+                + '". Wrong training data type "' + str(type(self.training_data)) + '".'
             )
         else:
             lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Training started for "' + self.identifier_string
+                + ': Train mode "' + str(self.train_mode)
+                + '". Training started for "' + self.identifier_string
                 + '", model name "' + str(self.model_name)
                 + '" training data type "' + str(type(self.training_data)) + '" initialized.'
             )
@@ -90,44 +107,78 @@ class Trainer(threading.Thread):
         try:
             tdm_object = self.training_data
             if type(self.training_data) is pd.DataFrame:
+                #
+                # If not in proper TrainingDataModel type, we assume the training data is text form
+                #
                 lg.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                     + ': Convert pandas DataFrame type to TrainingDataModel type...'
                 )
-                tdm_object = self.convert_to_training_data_model_type(
+                tdm_object = Trainer.convert_to_training_data_model_type(
                     td = self.training_data
                 )
 
-            model_obj = modelHelper.ModelHelper.get_model(
-                model_name = self.model_name,
-                identifier_string = self.identifier_string,
-                dir_path_model    = self.dir_path_model,
-                training_data     = tdm_object
-            )
-            model_obj.train(
-                write_model_to_storage = write_model_to_storage,
-                write_training_data_to_storage = write_training_data_to_storage,
-                model_params = model_params
-            )
+            if self.train_mode == Trainer.TRAIN_MODE_MODEL:
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Train mode "' + str(self.train_mode)
+                    + '". Training Model using model name "' + str(self.model_name)
+                    + '". for bot "' + str(self.identifier_string) + '".'
+                )
+                model_obj = modelHelper.ModelHelper.get_model(
+                    model_name = self.model_name,
+                    identifier_string = self.identifier_string,
+                    dir_path_model    = self.dir_path_model,
+                    training_data     = tdm_object
+                )
+                model_obj.train(
+                    write_model_to_storage = write_model_to_storage,
+                    write_training_data_to_storage = write_training_data_to_storage,
+                    model_params = model_params
+                )
+            elif self.train_mode == Trainer.TRAIN_MODE_NLP_EIDF:
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Train mode "' + str(self.train_mode)
+                    + '". Training NLP EIDF for bot "' + str(self.identifier_string) + '".'
+                )
+                eidf_opt_obj = eidf.Eidf(
+                    x      = tdm_object.get_x(),
+                    y      = tdm_object.get_y(),
+                    x_name = tdm_object.get_x_name()
+                )
+                info_msg = eidf_opt_obj.optimize(
+                    initial_w_as_standard_idf = True
+                )
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + str(info_msg)
+                )
+                eidf_opt_obj.persist_eidf_to_storage(
+                    dir_path_model    = self.dir_path_model,
+                    identifier_string = self.identifier_string
+                )
+            else:
+                raise Exception('Invalid train mode "' + str(self.train_mode) + '"!')
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Training exception: ' + str(ex) + '.'
             lg.Log.error(errmsg)
             raise Exception(errmsg)
 
+    @staticmethod
     def convert_to_training_data_model_type(
-            self,
             td,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
     ):
         # Extract these columns
-        classes_id     = td[Trainer.COL_TDATA_INTENT_ID]
-        text_segmented = td[Trainer.COL_TDATA_TEXT_SEGMENTED]
-        classes_name   = td[Trainer.COL_TDATA_INTENT]
+        classes_id     = td[Trainer.COL_TEXT_TDATA_INTENT_ID]
+        text_segmented = td[Trainer.COL_TEXT_TDATA_TEXT_SEGMENTED]
+        classes_name   = td[Trainer.COL_TEXT_TDATA_INTENT]
 
         lg.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Columns: ' + str(td.columns)
             + '\n\rClasses ID:\n\r' + str(classes_id)
             + '\n\rText Segmented:\n\r' + str(text_segmented)
@@ -170,7 +221,7 @@ class Trainer(threading.Thread):
 
         if (np_label_id.shape != np_label_name.shape) or (np_label_id.shape[0] != np_text_segmented.shape[0]):
             raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + 'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
                 + str(np_label_id)
                 + 'Label Name:\n\r'

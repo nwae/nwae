@@ -7,6 +7,7 @@ import pandas as pd
 import nwae.lib.math.NumpyUtil as nputil
 import random as rd
 import nwae.lib.math.Cluster as cl
+import datetime as dt
 
 
 #
@@ -26,11 +27,11 @@ class Eidf:
     #
     MAXIMIZE_QUANTILE = 2/(1+5**0.5)
     # Max weight movements, When doing gradient ascent /descent
-    MAXIMUM_IDF_WEIGHT_MOVEMENT = 0.5
+    MAXIMUM_IDF_WEIGHT_MOVEMENT = 0.8
     # Don't set to 0.0 as this might cause vectors to become 0.0
     MINIMUM_WEIGHT_IDF = 0.01
     # delta % of target function start value
-    DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
+    DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.005
 
     #
     # Monte Carlo start points quick start, instead of starting from unit weights vector
@@ -49,6 +50,20 @@ class Eidf:
     # so we cluster them
     #
     MAX_X_ROWS_BEFORE_CLUSTER = 500
+
+    @staticmethod
+    def get_file_path_eidf(
+            dir_path_model,
+            identifier_string
+    ):
+        return str(dir_path_model) + '/nlp.eidf.' + str(identifier_string) + '.csv'
+
+    @staticmethod
+    def get_file_path_eidf_info(
+            dir_path_model,
+            identifier_string
+    ):
+        return str(dir_path_model) + '/nlp.eidf.' + str(identifier_string) + '.info.csv'
 
     #
     # Given our training data x, we get the IDF of the columns x_name.
@@ -192,6 +207,8 @@ class Eidf:
         # We want to opimize these weights to make the separation of angles
         # between vectors maximum
         self.w = self.w_start.copy()
+
+        self.optimize_info = ''
 
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -495,13 +512,55 @@ class Eidf:
                 'Iter ' + str(iter) + ': New weights:\n\r' + str(w_iter_test)
             )
 
+        self.optimize_info =\
+            'Train time: ' + str(dt.datetime.now()) + '\n\r' \
+            + 'Using standard IDF as start weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
+            + 'Total Iterations = ' + str(iter) + '\n\r'\
+            + 'Start ML = ' + str(ml_start) + ', End ML = ' + str(ml_final) + '\n\r' \
+            + 'Start weights:\n\r' + str(self.w_start) + '\n\r' \
+            + 'End weights:\n\r' + str(self.w)
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': End target function value = ' + str(ml_final) + ' (started with ' + str(ml_start) + ')'
-            + '\n\rStart weights:\n\r' + str(self.w_start)
-            + '\n\rEnd weights:\n\r' + str(self.w)
+            + ': ' + self.optimize_info
         )
-        return
+        return self.optimize_info
+
+    def persist_eidf_to_storage(
+            self,
+            dir_path_model,
+            identifier_string
+    ):
+        try:
+            df_eidf = pd.DataFrame({
+                'x_name': self.x_name,
+                'eidf': self.w
+            })
+            fpath_eidf = Eidf.get_file_path_eidf(
+                dir_path_model    = dir_path_model,
+                identifier_string = identifier_string
+            )
+            df_eidf.to_csv(
+                path_or_buf=fpath_eidf,
+                index=True
+            )
+
+            #
+            # Now write some info
+            #
+            fpath_eidf_info = Eidf.get_file_path_eidf_info(
+                dir_path_model    = dir_path_model,
+                identifier_string = identifier_string
+            )
+            f = None
+            f = open(file=fpath_eidf_info, mode='w', encoding='utf-8')
+            f.write(self.optimize_info)
+            f.close()
+        except Exception as ex:
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Error persisting EIDF to file, exception ' + str(ex)
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
 
 
 if __name__ == '__main__':
