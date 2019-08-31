@@ -79,7 +79,8 @@ class Trainer(threading.Thread):
 
         lg.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
+            + ': Train mode "' + str(self.train_mode)
+            + '". Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
         )
         return self.log_training
 

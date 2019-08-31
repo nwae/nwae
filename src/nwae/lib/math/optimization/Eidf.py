@@ -517,8 +517,8 @@ class Eidf:
             + 'Using standard IDF as start weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
             + 'Total Iterations = ' + str(iter) + '\n\r'\
             + 'Start ML = ' + str(ml_start) + ', End ML = ' + str(ml_final) + '\n\r' \
-            + 'Start weights:\n\r' + str(self.w_start) + '\n\r' \
-            + 'End weights:\n\r' + str(self.w)
+            + 'Start weights:\n\r' + str(self.w_start.tolist()) + '\n\r' \
+            + 'End weights:\n\r' + str(self.w.tolist())
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': ' + self.optimize_info
