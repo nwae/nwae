@@ -8,6 +8,7 @@ import nwae.lib.math.NumpyUtil as nputil
 import random as rd
 import nwae.lib.math.Cluster as cl
 import datetime as dt
+import re
 
 
 #
@@ -209,6 +210,7 @@ class Eidf:
         self.w = self.w_start.copy()
 
         self.optimize_info = ''
+        self.log_training = []
 
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -383,6 +385,9 @@ class Eidf:
             initial_w_as_standard_idf = False,
             max_iter = 10
     ):
+        # Clear training log
+        self.log_training = []
+
         x_vecs = self.xh.copy()
         y_vecs = self.y.copy()
 
@@ -390,11 +395,14 @@ class Eidf:
         # If too many rows, we will have problem calculating normalize() after weighing vectors
         #
         if x_vecs.shape[0] > Eidf.MAX_X_ROWS_BEFORE_CLUSTER:
+            logmsg = ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER)\
+                     + '. Clustering to ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
             lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Too many rows ' + str(x_vecs.shape[0]) + ' > ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER)
-                + '. Clustering to ' + str(Eidf.MAX_X_ROWS_BEFORE_CLUSTER) + ' rows..'
+                + logmsg
             )
+            self.log_training_messages(msg=logmsg)
+
             cl_result = cl.Cluster.cluster(
                 matx = x_vecs,
                 ncenters = Eidf.MAX_X_ROWS_BEFORE_CLUSTER
@@ -410,11 +418,14 @@ class Eidf:
         # The delta of limit increase in target function to stop iteration
         delta = ml_start * Eidf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
 
+        logmsg = ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)\
+                 + ', quantile used = ' + str(Eidf.MAXIMIZE_QUANTILE)
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)
-            + ', quantile used = ' + str(Eidf.MAXIMIZE_QUANTILE)
+            + logmsg
         )
+        self.log_training_messages(msg=logmsg)
+
         iter = 1
 
         ml_prev = ml_start
@@ -459,10 +470,13 @@ class Eidf:
 
         w_iter_test = self.w_start.copy()
         while True:
-            lg.Log.debugdebug(
-                'ITERATION #' + str(iter) + ', using test weights:\n\r' + str(w_iter_test)
-                + '\n\rexisting old weights:\n\r' + str(self.w)
+            logmsg = 'ITERATION #' + str(iter) + ', using test weights:\n\r' + str(w_iter_test)\
+                     + '\n\rexisting old weights:\n\r' + str(self.w)
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + logmsg
             )
+            self.log_training_messages(msg=logmsg)
 
             # Get new vectors after weightage
             x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_iter_test))
@@ -475,11 +489,15 @@ class Eidf:
             # Update old ML value to current
             ml_prev = ml_cur
 
-            lg.Log.debug(
-                ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase)
-                + ', delta =' + str(delta) + ', ML = ' + str(ml_cur)
-                + ', updated weights:\n\r' + str(self.w)
+            logmsg = ': ITERATION #' + str(iter) + '. ML Increase = ' + str(ml_increase)\
+                     + ', delta =' + str(delta) + ', ML = ' + str(ml_cur)\
+                     + ', updated weights:\n\r' + str(self.w)
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + logmsg
             )
+            self.log_training_messages(msg=logmsg)
+
             if ml_increase < delta:
                 # Gradient ascent done, max local optimal reached
                 break
@@ -523,6 +541,7 @@ class Eidf:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': ' + self.optimize_info
         )
+        self.log_training_messages(msg=self.optimize_info)
         return self.optimize_info
 
     def persist_eidf_to_storage(
@@ -543,6 +562,10 @@ class Eidf:
                 path_or_buf=fpath_eidf,
                 index=True
             )
+            logmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Successfully saved EIDF to file "' + str(fpath_eidf)
+            lg.Log.important(logmsg)
+            self.log_training_messages(logmsg)
 
             #
             # Now write some info
@@ -560,7 +583,15 @@ class Eidf:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': Error persisting EIDF to file, exception ' + str(ex)
             lg.Log.error(errmsg)
+            self.log_training_messages(msg=errmsg)
             raise Exception(errmsg)
+
+    def log_training_messages(
+            self,
+            msg
+    ):
+        msg = re.sub(pattern='[\n\r]', repl='<br>', string=msg)
+        self.log_training.append(msg)
 
 
 if __name__ == '__main__':

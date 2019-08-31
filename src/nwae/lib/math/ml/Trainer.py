@@ -9,7 +9,6 @@ import nwae.lib.math.optimization.Eidf as eidf
 import threading
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
-import os
 
 
 #
@@ -57,6 +56,8 @@ class Trainer(threading.Thread):
         self.bot_training_start_time = None
         self.bot_training_end_time = None
         self.is_training_done = False
+
+        self.log_training = []
         return
 
     def run(self):
@@ -151,6 +152,7 @@ class Trainer(threading.Thread):
                 info_msg = eidf_opt_obj.optimize(
                     initial_w_as_standard_idf = True
                 )
+                self.log_training = eidf_opt_obj.log_training
                 lg.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                     + str(info_msg)
