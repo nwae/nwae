@@ -13,36 +13,34 @@ import nwae.lib.math.Cluster as cl
 # Enhanced IDF (EIDF)
 #
 # Given a set of vectors v1, v2, ..., vn with features f1, f2, ..., fn
-# We try to find weights w1, w2, ..., wn or in NLP notation known as IDF,
-# such that the separation (default we are using angle) between the vectors
-# v1, v2, ... vn by some metric (default metric is the 61.8% quantile) is
-# maximum when projected onto a unit hypersphere.
+# We try to find weights w1, w2, ..., wn, such that the separation
+# (default we are using angle) between the vectors
+# v1, v2, ... vn by some metric (default metric is average angle or the
+# 61.8% quantile) is maximum when projected onto a unit hypersphere.
 #
 class Eidf:
 
-    # General number precision required
-    ROUND_PRECISION = 6
-
     #
-    # We maximize by the 50% quantile, so that given all distance pairs
-    # in the vector set, the 50% quantile is optimized at maximum
+    # We maximize by the 61.8% quantile, so that given all distance pairs
+    # in the vector set, the 61.8% quantile is optimized at maximum
     #
     MAXIMIZE_QUANTILE = 2/(1+5**0.5)
-    #
-    MAXIMUM_IDF_W_MOVEMENT = 1.0
+    # Max weight movements, When doing gradient ascent /descent
+    MAXIMUM_IDF_WEIGHT_MOVEMENT = 0.5
     # Don't set to 0.0 as this might cause vectors to become 0.0
     MINIMUM_WEIGHT_IDF = 0.01
     # delta % of target function start value
     DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE = 0.01
 
     #
-    # Monte Carlo start points
+    # Monte Carlo start points quick start, instead of starting from unit weights vector
     #
-    MONTE_CARLO_SAMPLES_N = 100
+    MONTE_CARLO_SAMPLES_N = 200
 
     #
     # This is the fast closed formula calculation of target function value
-    # otherwise the double looping exact calculation is unusable
+    # otherwise the double looping exact calculation is unusable in production
+    # when data is too huge.
     #
     TARGET_FUNCTION_AS_SUM_COSINE = True
 
@@ -83,6 +81,8 @@ class Eidf:
         np_feature_presence = (np_agg_sum > 0) * 1
         # Sum by column axis=0
         np_idf = np.sum(np_feature_presence, axis=0)
+        # Don't allow 0's
+        np_idf[np_idf<=1] = 1
 
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -130,13 +130,13 @@ class Eidf:
         if type(x) is not np.ndarray:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Wrong type "' + str(type(x)) + '". Must be numpy ndarray type.'
+                + ': Wrong type x "' + str(type(x)) + '". Must be numpy ndarray type.'
             )
 
         if x.ndim != 2:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Wrong dimensions "' + str(x.shape) + '". Must be 2 dimensions.'
+                + ': Wrong dimensions x "' + str(x.shape) + '". Must be 2 dimensions.'
             )
 
         self.x = x
@@ -147,9 +147,35 @@ class Eidf:
         if self.y is None:
             # Default to all vectors are different class
             self.y = np.array(range(0, x.shape[0], 1), dtype=int)
+        if type(self.y) is not np.ndarray:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong type y "' + str(type(self.y)) + '". must be numpy ndarray type.'
+            )
+        if self.y.ndim != 1:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong dimensions y "' + str(self.y.shape) + '". Must be 1 dimension.'
+            )
+        if self.y.shape[0] != self.x.shape[0]:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Length of y ' + str(self.y.shape[0]) + ' must be equal to rows of x ' + str(self.x.shape[0])
+            )
 
         if self.x_name is None:
             self.x_name = np.array(range(0, x.shape[1], 1), dtype=int)
+        if self.x_name.ndim != 1:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong dimensions x_name "' + str(self.x_name.shape) + '". Must be 1 dimension.'
+            )
+        if self.x_name.shape[0] != self.x.shape[1]:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Length of x_name ' + str(self.x_name.shape[0])
+                + ' must be equal to columns of x ' + str(self.x.shape[1])
+            )
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -182,8 +208,8 @@ class Eidf:
     # This is the target function to maximize the predetermined quantile MAXIMIZE_QUANTILE
     # TODO Unusable in production too slow. Optimize!
     #
+    @staticmethod
     def target_ml_function(
-            self,
             x_input
     ):
         #
@@ -248,7 +274,7 @@ class Eidf:
                 # It is possible after iterations that vectors become 0 due to the weights
                 if (np.linalg.norm(v1) == 0) or (np.linalg.norm(v2) == 0):
                     lg.Log.warning(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                         + ': Vector zerorized from iterations.'
                     )
                     continue
@@ -260,7 +286,7 @@ class Eidf:
                 # This value can be >1 due to computer roundings and after that everything will be nan
                 #
                 if np.isnan(cos_angle):
-                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                    errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                              + ': Cosine Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'
                     lg.Log.critical(errmsg)
                     raise Exception(errmsg)
@@ -270,7 +296,7 @@ class Eidf:
                     cos_angle = 0.0
                 angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
                 if np.isnan(angle):
-                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                    errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                              + ': Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'\
                              + ' Cosine of angle = ' + str(cos_angle) + '.'
                     lg.Log.critical(errmsg)
@@ -285,14 +311,14 @@ class Eidf:
         values_in_quantile = values_in_quantile[values_in_quantile<=quantile_angle_x]
         sum_square_values_in_q = np.sum(values_in_quantile**2)
         if np.isnan(quantile_angle_x):
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ': Final quantile angle =' + str(quantile_angle_x)\
                      + ' for x_input:\n\r' + str(x_input) + '.'
             lg.Log.error(errmsg)
             raise Exception(errmsg)
 
         lg.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Angle = ' + str(np.sort(angle_list))
             + '\n\rQuantile ' + str(100*Eidf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
             + '\n\rSum square values in quantile = ' + str(sum_square_values_in_q)
@@ -303,8 +329,8 @@ class Eidf:
     # Differentiation of target function with respect to weights.
     # Returns a vector same dimensions as w
     #
+    @staticmethod
     def differentiate_dml_dw(
-            self,
             x_input,
             w_vec,
             delta = 0.000001
@@ -316,8 +342,8 @@ class Eidf:
         dml_dw = np.zeros(l, dtype=float)
         for i in range(l):
             dw_i = dw_diag[i]
-            dm_dwi = self.target_ml_function(x_input = np.multiply(x_input, w_vec + dw_i)) -\
-                self.target_ml_function(x_input = np.multiply(x_input, w_vec))
+            dm_dwi = Eidf.target_ml_function(x_input = np.multiply(x_input, w_vec + dw_i)) -\
+                Eidf.target_ml_function(x_input = np.multiply(x_input, w_vec))
             dm_dwi = dm_dwi / delta
             lg.Log.debugdebug(
                 'Differentiation with respect to w' + str(i) + ' = ' + str(dm_dwi)
@@ -362,7 +388,7 @@ class Eidf:
             )
             y_vecs = np.array(range(x_vecs.shape[0]))
 
-        ml_start = self.target_ml_function(x_input = x_vecs)
+        ml_start = Eidf.target_ml_function(x_input = x_vecs)
         ml_final = ml_start
         # The delta of limit increase in target function to stop iteration
         delta = ml_start * Eidf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
@@ -397,7 +423,7 @@ class Eidf:
                     'MC random w = ' + str(w_mc)
                 )
                 x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_mc))
-                tf_val = self.target_ml_function(x_input=x_weighted)
+                tf_val = Eidf.target_ml_function(x_input=x_weighted)
                 if tf_val > tf_val_best:
                     tf_val_best = tf_val
                     self.w_start = w_mc
@@ -424,7 +450,7 @@ class Eidf:
             # Get new vectors after weightage
             x_weighted = nputil.NumpyUtil.normalize(x=np.multiply(x_vecs, w_iter_test))
             # Get new separation we are trying to maximize (if using sum cosine is minimize)
-            ml_cur = self.target_ml_function(x_input = x_weighted)
+            ml_cur = Eidf.target_ml_function(x_input = x_weighted)
             ml_increase = ml_cur - ml_prev
             if ml_cur - ml_prev > 0:
                 ml_final = ml_cur
@@ -449,7 +475,7 @@ class Eidf:
             # Find the dw we need to move to
             #
             # Get delta of target function d_ml
-            dml_dw = self.differentiate_dml_dw(
+            dml_dw = Eidf.differentiate_dml_dw(
                 x_input = x_vecs,
                 w_vec   = w_iter_test
             )
@@ -459,7 +485,7 @@ class Eidf:
             )
             # Adjust weights
             l = w_iter_test.shape[0]
-            max_movement_w = np.array([Eidf.MAXIMUM_IDF_W_MOVEMENT] * l)
+            max_movement_w = np.array([Eidf.MAXIMUM_IDF_WEIGHT_MOVEMENT] * l)
             min_movement_w = -max_movement_w
 
             w_iter_test = w_iter_test + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)

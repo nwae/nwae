@@ -5,8 +5,6 @@ import pandas as pd
 import datetime as dt
 import nwae.lib.math.ml.ModelHelper as modelHelper
 import nwae.lib.math.ml.TrainingDataModel as tdm
-import nwae.lib.math.ml.metricspace.MetricSpaceModel as msModel
-import nwae.lib.math.ml.deeplearning.Keras as krModel
 import threading
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
