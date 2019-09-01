@@ -169,64 +169,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
         return self.model_data.check_if_model_updated()
 
     #
-    # Given our training data x, we get the IDF of the columns x_name.
-    # TODO Generalize this into a NN Layer instead
-    # TODO Optimal values are when "separation" (by distance in space or angle in space) is maximum
-    #
-    @staticmethod
-    def get_feature_weight_idf(
-            x,
-            y,
-            x_name,
-            feature_presence_only_in_label_training_data = True
-    ):
-        df_tmp = pd.DataFrame(data=x, index=y)
-
-        # Group by the labels y, as they are not unique
-        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
-        np_agg_sum = df_agg_sum.values
-
-        # Get presence only by cell, then sum up by columns to get total presence by document
-        np_feature_presence = np_agg_sum
-        if feature_presence_only_in_label_training_data:
-            np_feature_presence = (np_agg_sum>0)*1
-
-        # Sum by column axis=0
-        np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
-        log.Log.debug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
-            + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
-            + '\n\r\tPresence sum:\n\r' + str(np_feature_presence_sum)
-            + '\n\r\tx_names: ' + str(x_name) + '.'
-        )
-
-        # Total document count
-        n_documents = np_feature_presence.shape[0]
-        log.Log.important(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
-        )
-
-        # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
-        # TODO RuntimeWarning: divide by zero encountered in true_divide
-        idf = np.log(n_documents / np_feature_presence_sum)
-        # Replace infinity with 1 count or log(n_documents)
-        idf[idf==np.inf] = np.log(n_documents)
-        # If only 1 document, all IDF will be zero, we will handle below
-        if n_documents <= 1:
-            log.Log.warning(
-                str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
-            )
-            idf = np.array([1]*x.shape[1])
-        log.Log.debug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tWeight IDF:\n\r' + str(idf)
-        )
-        return idf
-
-    #
     # Get all class proximity scores to a point
     #
     def calc_proximity_class_score_to_point(
@@ -754,9 +696,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Here training data must be prepared in the correct format already
             # Значит что множество свойств уже объединено как одно (unified features)
             #
-            log.Log.debugdebug(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
+                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x().tolist())
                 + '\n\r\tx names: ' + str(self.training_data.get_x_name())
                 + '\n\r\ty labels: ' + str(self.training_data.get_y())
             )
@@ -800,31 +742,31 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         self.model_data.idf = idf_opt_obj.get_w()
                 else:
                     # Sum x by class
-                    self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
+                    self.model_data.idf = eidf.Eidf.get_feature_weight_idf_default(
                         x      = self.training_data.get_x(),
                         y      = self.training_data.get_y(),
                         x_name = self.training_data.get_x_name()
                     )
-                # Standardize to at least 2-dimensional, easier when weighting x
-                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
-                    arr    = self.model_data.idf,
-                    to_dim = 2
-                )
-
-                log.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
-                )
-
-                # This will change the x in self.training data
-                self.training_data.weigh_x(w=self.model_data.idf[0])
             else:
                 self.model_data.idf = np.array([1]*self.training_data.get_x_name().shape[0])
-                # Standardize to at least 2-dimensional, easier when weighting x
-                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
-                    arr    = self.model_data.idf,
-                    to_dim = 2
-                )
+
+            # Standardize to at least 2-dimensional, easier when weighting x
+            self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
+                arr    = self.model_data.idf,
+                to_dim = 2
+            )
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '\n\r\tEIDF values:\n\r' + str(self.model_data.idf)
+            )
+
+            #
+            # Re-weigh again. This will change the x in self.training data
+            #
+            self.training_data.weigh_x(
+                w = self.model_data.idf[0]
+            )
 
             #
             # Initizalize model data
@@ -833,16 +775,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             self.model_data.x_name = self.training_data.get_x_name()
-            self.model_data.idf = self.training_data.get_w()
 
             # Unique y or classes
             # We do this again because after weighing, it will remove bad rows, which might cause some y
             # to disappear
             self.model_data.y_unique = np.array(list(set(y)))
 
-            log.Log.debugdebug(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
+                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x.tolist())
                 + '\n\r\ty\n\r' + str(y)
                 + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
                 , log_list=self.log_training

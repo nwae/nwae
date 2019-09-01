@@ -348,9 +348,6 @@ class Ut:
 if __name__ == '__main__':
     cf.ConfigFile.get_cmdline_params_and_init_config()
 
-    # Overwrite config file log level
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
-
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
             #modelHelper.ModelHelper.MODEL_NAME_KERAS,

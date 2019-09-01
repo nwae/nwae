@@ -1,7 +1,7 @@
 # Top level directory where everything is relative to
 topdir=/usr/local/git/nwae/nwae
 # See mozg.utils.Log.py for log level details
-loglevel=3.0
+loglevel=4.0
 # All logs go to stdout
 debug=1
 # Profile math code
