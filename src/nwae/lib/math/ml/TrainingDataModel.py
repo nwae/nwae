@@ -265,25 +265,31 @@ class TrainingDataModel:
             v_show = v[non_zero_indexes]
             y_show = self.y[i]
 
-            min_v = 0.0
-            try:
-                min_v = np.min(v_show)
-                v_show = v_show / min_v
-            except Exception as ex:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Cannot get min val for x index ' + str(i)\
-                         + ', point ' + str(v)\
-                         + ' , nonzero x_name ' + str(x_name_show)\
-                         + ', nonzero values ' + str(v_show) + '.'
-                # raise Exception(errmsg)
-
             if min_value_as_one:
+                min_v = 0.0
+                try:
+                    min_v = np.min(v_show)
+                    v_show = v_show / min_v
+                except Exception as ex:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Cannot get min val for x index ' + str(i)\
+                             + ', point ' + str(v)\
+                             + ' , nonzero x_name ' + str(x_name_show)\
+                             + ', nonzero values ' + str(v_show) + '.'
+                    # raise Exception(errmsg)
+
                 v_show = np.round(v_show, 1)
+
+            #
+            # To ensure serializable by JSON, need to convert to proper types
+            #
+            v_show = v_show.astype(float)
+            y_show = y_show.astype(int)
 
             # Column names mean nothing because we convert to values list
             #x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
             x_dict[str(i)] = {
-                'index': i,
+                'index': int(i),
                 'x_name': x_name_show.tolist(),
                 'x': v_show.tolist(),
                 'y': y_show

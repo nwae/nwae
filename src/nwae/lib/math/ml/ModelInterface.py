@@ -78,19 +78,33 @@ class ModelInterface(threading.Thread):
         self.__mutex_load_model = threading.Lock()
 
         # Training data for testing back only
+        # This value must be initialized by the derived class
         self.training_data = None
+        # This value must be initialized by the derived class
+        self.y_id = None
+
+        return
+
+    def initialize_training_data_paths(self):
         prefix = ModelInterface.get_model_file_prefix(
             dir_path_model      = self.dir_path_model,
             model_name          = self.model_name,
             identifier_string   = self.identifier_string,
             is_partial_training = self.is_partial_training
         )
+        if self.is_partial_training:
+            if type(self.y_id) not in (int, str):
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Cannot set training paths without a single y_id! Got y_id: ' + str(self.y_id)
+                    + ' as type "' + str(type(self.y_id)) + '".'
+                )
+            prefix = prefix + '/' + str(self.y_id)
         self.fpath_training_data_x          = prefix + '.training_data.x.csv'
         self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
+        # self.fpath_training_data_x_friendly_json = prefix + '.training_data.x_friendly.json'
         self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
         self.fpath_training_data_y          = prefix + '.training_data.y.csv'
-
-        return
 
     @staticmethod
     def get_model_file_prefix(
@@ -237,25 +251,27 @@ class ModelInterface(threading.Thread):
             self,
             td
     ):
+        self.initialize_training_data_paths()
         #
         # Write back training data to file, for testing back the model only, not needed for the model
         #
-        df_td_x = pd.DataFrame(
-            data    = td.get_x(),
-            columns = td.get_x_name(),
-            index   = td.get_y()
-        )
-        df_td_x.sort_index(inplace=True)
-        df_td_x.to_csv(
-            path_or_buf = self.fpath_training_data_x,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
-            + ' filepath "' + self.fpath_training_data_x + '"'
-        )
+        if not self.is_partial_training:
+            df_td_x = pd.DataFrame(
+                data    = td.get_x(),
+                columns = td.get_x_name(),
+                index   = td.get_y()
+            )
+            df_td_x.sort_index(inplace=True)
+            df_td_x.to_csv(
+                path_or_buf = self.fpath_training_data_x,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data x with shape ' + str(df_td_x.shape)
+                + ' filepath "' + self.fpath_training_data_x + '"'
+            )
 
         try:
             x_friendly = td.get_print_friendly_x()
@@ -277,37 +293,39 @@ class ModelInterface(threading.Thread):
                 + '". ' + str(ex)
             )
 
-        df_td_x_name = pd.DataFrame(td.get_x_name())
-        df_td_x_name.to_csv(
-            path_or_buf = self.fpath_training_data_x_name,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
-            + ' filepath "' + self.fpath_training_data_x_name + '"'
-        )
+        if not self.is_partial_training:
+            df_td_x_name = pd.DataFrame(td.get_x_name())
+            df_td_x_name.to_csv(
+                path_or_buf = self.fpath_training_data_x_name,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
+                + ' filepath "' + self.fpath_training_data_x_name + '"'
+            )
 
-        df_td_y = pd.DataFrame(
-            data  = td.get_y_name(),
-            index = td.get_y()
-        )
-        df_td_y.to_csv(
-            path_or_buf = self.fpath_training_data_y,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
-            + ' filepath "' + self.fpath_training_data_y + '"'
-        )
+            df_td_y = pd.DataFrame(
+                data  = td.get_y_name(),
+                index = td.get_y()
+            )
+            df_td_y.to_csv(
+                path_or_buf = self.fpath_training_data_y,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data y with shape ' + str(df_td_y.shape)
+                + ' filepath "' + self.fpath_training_data_y + '"'
+            )
         return
 
     def load_training_data_from_storage(
             self
     ):
+        self.initialize_training_data_paths()
         try:
             df_td_x = pd.read_csv(
                 filepath_or_buffer=self.fpath_training_data_x,

@@ -921,7 +921,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
             if write_model_to_storage:
                 self.persist_model_to_storage()
-            if write_training_data_to_storage:
+            if write_training_data_to_storage or (self.is_partial_training):
                 self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
