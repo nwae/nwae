@@ -105,12 +105,6 @@ class ModelData:
         # Only for debugging file
         self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
         self.fpath_x_clustered_friendly_json = prefix + '.x_clustered_friendly.json'
-        # Training data for testing back only
-        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
-        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
-        # self.fpath_training_data_x_friendly_json = prefix + '.training_data.x_friendly.json'
-        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
-        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
 
         self.log_training = []
         return
