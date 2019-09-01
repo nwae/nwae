@@ -106,6 +106,29 @@ class TrainingDataModel:
         )
         return
 
+    def filter_by_y_id(
+            self,
+            y_id
+    ):
+        if type(y_id) in (int, str):
+            y_id = int(y_id)
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected int/str type, got "' + str(type(y_id)) + '" for y_id "' + str(y_id) + '".'
+            )
+
+        cond_y_id = np.isin(element=self.y, test_elements=[y_id])
+        # Filter away unneeded ones
+        self.x = self.x[cond_y_id]
+        self.y = self.y[cond_y_id]
+        self.y_name = self.y_name[cond_y_id]
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': After filtering y_id ' + str(y_id)
+            + ',\n\rx:\n\r' + str(self.x.tolist()) + ',\n\ry:\n\r' + str(self.y.tolist())
+        )
+
     #
     # The function of weights are just to reduce the meaningful dimensions of x (making some columns 0)
     # This function modifies x, y, y_name, and possibly x_name (if we do column deletion)

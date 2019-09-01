@@ -38,8 +38,8 @@ class Trainer(threading.Thread):
             model_name = None,
             # Either 'train_model' (or None), or 'train_nlp_eidf'
             train_mode = None,
-            # Train a single intent ID or all (None)
-            intent_id = None
+            # Train a single y/label ID or all (None)
+            y_id = None
     ):
         super(Trainer, self).__init__()
 
@@ -54,7 +54,7 @@ class Trainer(threading.Thread):
         self.train_mode = train_mode
         if self.train_mode is None:
             self.train_mode = Trainer.TRAIN_MODE_MODEL
-        self.intent_id = intent_id
+        self.y_id = y_id
 
         self.__mutex_training = threading.Lock()
         self.bot_training_start_time = None
@@ -69,6 +69,28 @@ class Trainer(threading.Thread):
             self.__mutex_training.acquire()
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
+
+            #
+            # If not in proper TrainingDataModel type, we assume the training data is legacy text form
+            #
+            if type(self.training_data) is pd.DataFrame:
+                lg.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Convert pandas DataFrame type to TrainingDataModel type...'
+                )
+                tdm_object = Trainer.convert_to_training_data_model_type(
+                    td = self.training_data
+                )
+                # Reassign back to training data
+                self.training_data = tdm_object
+
+            self.is_partial_training = False
+            if self.y_id is not None:
+                self.is_partial_training = True
+                # Filter by this y/label only
+                self.training_data.filter_by_y_id(
+                    y_id = self.y_id
+                )
 
             self.train()
 
@@ -98,13 +120,13 @@ class Trainer(threading.Thread):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Train mode "' + str(self.train_mode) + '", Intent ID ' + str(self.intent_id)
+                + ': Train mode "' + str(self.train_mode) + '", y/label id ' + str(self.y_id)
                 + '. Wrong training data type "' + str(type(self.training_data)) + '".'
             )
         else:
             lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Train mode "' + str(self.train_mode) + '", Intent ID ' + str(self.intent_id)
+                + ': Train mode "' + str(self.train_mode) + '", y/label id ' + str(self.y_id)
                 + '. Training started for "' + self.identifier_string
                 + '", model name "' + str(self.model_name)
                 + '" training data type "' + str(type(self.training_data)) + '" initialized.'
@@ -112,17 +134,6 @@ class Trainer(threading.Thread):
 
         try:
             tdm_object = self.training_data
-            if type(self.training_data) is pd.DataFrame:
-                #
-                # If not in proper TrainingDataModel type, we assume the training data is text form
-                #
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                    + ': Convert pandas DataFrame type to TrainingDataModel type...'
-                )
-                tdm_object = Trainer.convert_to_training_data_model_type(
-                    td = self.training_data
-                )
 
             if self.train_mode == Trainer.TRAIN_MODE_MODEL:
                 lg.Log.info(
@@ -132,10 +143,11 @@ class Trainer(threading.Thread):
                     + '". for bot "' + str(self.identifier_string) + '".'
                 )
                 model_obj = modelHelper.ModelHelper.get_model(
-                    model_name = self.model_name,
-                    identifier_string = self.identifier_string,
-                    dir_path_model    = self.dir_path_model,
-                    training_data     = tdm_object
+                    model_name          = self.model_name,
+                    identifier_string   = self.identifier_string,
+                    dir_path_model      = self.dir_path_model,
+                    training_data       = tdm_object,
+                    is_partial_training = self.is_partial_training
                 )
                 model_obj.train(
                     write_model_to_storage = write_model_to_storage,

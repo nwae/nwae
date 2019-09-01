@@ -29,10 +29,15 @@ class ModelData:
             identifier_string,
             # Directory to keep all our model files
             dir_path_model,
+            # Train only by some y/labels and keep model files in separate y_id directories
+            is_partial_training,
+            y_id = None
     ):
         self.model_name = model_name
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
+        self.is_partial_training = is_partial_training
+        self.y_id = y_id
 
         # Unique classes from y
         self.classes_unique = None
@@ -71,10 +76,20 @@ class ModelData:
 
         # First check the existence of the files
         prefix = modelIf.ModelInterface.get_model_file_prefix(
-            dir_path_model    = self.dir_path_model,
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
         )
+        if self.is_partial_training:
+            if type(self.y_id) not in (int, str):
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Cannot do partial training without y_id! Got y_id: ' + str(self.y_id)
+                    + ' as type "' + str(type(self.y_id)) + '".'
+                )
+            prefix = prefix + '/' + str(y_id)
+
         self.fpath_updated_file        = prefix + '.lastupdated.txt'
         self.fpath_x_name              = prefix + '.x_name.csv'
         self.fpath_idf                 = prefix + '.idf.csv'

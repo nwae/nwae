@@ -7,6 +7,7 @@ from inspect import currentframe, getframeinfo
 import pandas as pd
 import numpy as np
 import nwae.lib.math.ml.TrainingDataModel as tdm
+import os
 
 
 #
@@ -60,7 +61,9 @@ class ModelInterface(threading.Thread):
             model_name,
             identifier_string,
             dir_path_model,
-            training_data
+            training_data,
+            # Train only by y/labels and store model files in separate y_id directories
+            is_partial_training
     ):
         super(ModelInterface, self).__init__()
 
@@ -68,6 +71,7 @@ class ModelInterface(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+        self.is_partial_training = is_partial_training
 
         self.stoprequest = threading.Event()
 
@@ -76,9 +80,10 @@ class ModelInterface(threading.Thread):
         # Training data for testing back only
         self.training_data = None
         prefix = ModelInterface.get_model_file_prefix(
-            dir_path_model    = self.dir_path_model,
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
         )
         self.fpath_training_data_x          = prefix + '.training_data.x.csv'
         self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
@@ -88,8 +93,38 @@ class ModelInterface(threading.Thread):
         return
 
     @staticmethod
-    def get_model_file_prefix(dir_path_model, model_name, identifier_string):
-        return dir_path_model + '/' + model_name + '.' + identifier_string
+    def get_model_file_prefix(
+            dir_path_model,
+            model_name,
+            identifier_string,
+            is_partial_training
+    ):
+        # Prefix or dir
+        prefix_or_dir = dir_path_model + '/' + model_name + '.' + identifier_string
+        if is_partial_training:
+            # Check if directory exists
+            if not os.path.isdir(prefix_or_dir):
+                log.Log.important(
+                    str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Path "' + str(prefix_or_dir) + '" does not exist. Trying to create this directory...'
+                )
+                try:
+                    os.mkdir(
+                        path = prefix_or_dir
+                    )
+                    log.Log.important(
+                        str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Path "' + str(prefix_or_dir) + '" successfully created.'
+                    )
+                except Exception as ex:
+                    errmsg =\
+                        str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        + ': Error creating directory "' + str(prefix_or_dir) + '". Exception ' + str(ex) + '.'
+                    log.Log.error(errmsg)
+                    raise Exception(errmsg)
+            return prefix_or_dir
+        else:
+            return prefix_or_dir
 
     def join(self, timeout=None):
         log.Log.critical(

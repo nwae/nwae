@@ -72,7 +72,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Directory to keep all our model files
             dir_path_model,
             # Training data in TrainingDataModel class type
-            training_data = None,
+            training_data,
+            # Train only by y/labels and store model files in separate y_id directories
+            is_partial_training,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
@@ -82,15 +84,30 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
-            model_name        = MetricSpaceModel.MODEL_NAME,
-            identifier_string = identifier_string,
-            dir_path_model    = dir_path_model,
-            training_data     = training_data
+            model_name          = MetricSpaceModel.MODEL_NAME,
+            identifier_string   = identifier_string,
+            dir_path_model      = dir_path_model,
+            training_data       = training_data,
+            is_partial_training = is_partial_training
         )
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+        self.is_partial_training = is_partial_training
+        self.y_id = None
+
+        if self.is_partial_training:
+            # In this case training data must exist
+            unique_y = list(set(list(self.training_data.get_y())))
+            if len(unique_y) != 1:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': [' + str(self.identifier_string)
+                    + '] In partial training mode, must only have 1 unique label, but found '
+                    + str(unique_y) + '.'
+                )
+            self.y_id = int(unique_y[0])
 
         if self.training_data is not None:
             if type(self.training_data) is not tdm.TrainingDataModel:
@@ -104,14 +121,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
         self.do_profiling = do_profiling
+        # Only train some y/labels and store model files in separate directories by y_id
+        self.is_partial_training = is_partial_training
 
         #
         # All parameter for model is encapsulated in this class
         #
         self.model_data = modelData.ModelData(
-            model_name        = MetricSpaceModel.MODEL_NAME,
-            identifier_string = self.identifier_string,
-            dir_path_model    = self.dir_path_model
+            model_name          = MetricSpaceModel.MODEL_NAME,
+            identifier_string   = self.identifier_string,
+            dir_path_model      = self.dir_path_model,
+            is_partial_training = self.is_partial_training,
+            y_id                = self.y_id
         )
 
         self.bot_training_start_time = None
