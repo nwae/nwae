@@ -382,7 +382,7 @@ class ModelData:
         #
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': IDF file "' + self.fpath_idf + '" not found!'
+                     + ': EIDF file "' + self.fpath_idf + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 

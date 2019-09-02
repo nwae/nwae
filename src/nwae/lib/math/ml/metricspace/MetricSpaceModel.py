@@ -396,6 +396,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #
     # Model interface override
     #
+    # Required model data for prediction:
+    #  1. EIDF
+    #  2. x_clustered, y_clustered
+    #  3. x_ref, y_ref (if include_rfv=True)
+    #
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
@@ -676,6 +681,17 @@ class MetricSpaceModel(modelIf.ModelInterface):
             + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
         )
         return retobj
+
+    #
+    # Train from partial model files
+    #
+    def train_from_partial_models(
+            self,
+            write_model_to_storage=True,
+            write_training_data_to_storage=False,
+            model_params=None,
+    ):
+        return
 
     #
     # Model interface override

@@ -183,7 +183,10 @@ class ModelInterface(threading.Thread):
             time.sleep(sleep_time)
 
     def is_model_ready(self):
-        return True
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def wait_for_model(self):
         count = 1
@@ -206,21 +209,44 @@ class ModelInterface(threading.Thread):
     def get_model_features(
             self
     ):
-        return None
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions
             x
     ):
-        return
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
             x
     ):
-        return
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
+
+    #
+    # Train from partial model files
+    #
+    def train_from_partial_models(
+            self,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
+            model_params = None,
+    ):
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def train(
             self,
@@ -230,22 +256,34 @@ class ModelInterface(threading.Thread):
             # Option to train a single y ID/label
             y_id = None
     ):
-        return
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def persist_model_to_storage(
             self
     ):
-        return
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def load_model_parameters(
             self
     ):
-        return
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def check_if_model_updated(
             self
     ):
-        return False
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Not implemented by derived class!'
+        )
 
     def persist_training_data_to_storage(
             self,
