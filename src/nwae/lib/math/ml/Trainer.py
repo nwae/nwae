@@ -21,7 +21,9 @@ class Trainer(threading.Thread):
     # Model Training
     #
     # Train the entire model in one shot
-    TRAIN_MODE_MODEL    = 'train_model'
+    TRAIN_MODE_MODEL          = 'train_model'
+    # Trains by label only and write only to label specific training files
+    TRAIN_MODE_MODEL_BY_LABEL = 'train_model_by_label'
     #
     # NLP Training
     #
@@ -44,7 +46,7 @@ class Trainer(threading.Thread):
             training_data,
             model_name = None,
             # Either 'train_model' (or None), or 'train_nlp_eidf'
-            train_mode = None,
+            train_mode = TRAIN_MODE_MODEL,
             # Train a single y/label ID or all (None)
             y_id = None
     ):
@@ -52,15 +54,12 @@ class Trainer(threading.Thread):
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
-        # Can be None type when class initiated
         self.training_data = training_data
         if model_name is None:
             model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         self.model_name = model_name
 
         self.train_mode = train_mode
-        if self.train_mode is None:
-            self.train_mode = Trainer.TRAIN_MODE_MODEL
         self.y_id = y_id
 
         self.__mutex_training = threading.Lock()
@@ -69,6 +68,51 @@ class Trainer(threading.Thread):
         self.is_training_done = False
 
         self.log_training = []
+
+        # Do some conversion if necessary on training data
+        self.__pre_process_training_data()
+        if type(self.training_data) is not tdm.TrainingDataModel:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': "' + str(self.identifier_string)
+                + '": Wrong training data type "' + str(type(self.training_data)) + '".'
+            )
+
+        self.is_partial_training = False
+        if self.y_id is not None:
+            self.is_partial_training = True
+            # Filter by this y/label only
+            self.training_data.filter_by_y_id(
+                y_id = self.y_id
+            )
+        elif self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL:
+            #
+            # In this case the training will loop by y_id and do each partial
+            # training one by one
+            #
+            self.is_partial_training = True
+
+        return
+
+    #
+    # If training data is not in desired format, we do some conversion
+    #
+    def __pre_process_training_data(
+            self
+    ):
+        #
+        # If not in proper TrainingDataModel type, we assume the training data is legacy text form
+        #
+        if type(self.training_data) is pd.DataFrame:
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Convert pandas DataFrame type to TrainingDataModel type...'
+            )
+            tdm_object = Trainer.convert_to_training_data_model_type(
+                td = self.training_data
+            )
+            # Reassign back to training data
+            self.training_data = tdm_object
         return
 
     def run(self):
@@ -76,28 +120,6 @@ class Trainer(threading.Thread):
             self.__mutex_training.acquire()
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
-
-            #
-            # If not in proper TrainingDataModel type, we assume the training data is legacy text form
-            #
-            if type(self.training_data) is pd.DataFrame:
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                    + ': Convert pandas DataFrame type to TrainingDataModel type...'
-                )
-                tdm_object = Trainer.convert_to_training_data_model_type(
-                    td = self.training_data
-                )
-                # Reassign back to training data
-                self.training_data = tdm_object
-
-            self.is_partial_training = False
-            if self.y_id is not None:
-                self.is_partial_training = True
-                # Filter by this y/label only
-                self.training_data.filter_by_y_id(
-                    y_id = self.y_id
-                )
 
             self.train()
 
