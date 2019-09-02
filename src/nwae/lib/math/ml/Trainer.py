@@ -21,7 +21,7 @@ class Trainer(threading.Thread):
     # Model Training
     #
     # Train the entire model in one shot
-    TRAIN_MODE_MODEL          = 'train_model'
+    TRAIN_MODE_MODEL    = 'train_model'
     #
     # NLP Training
     #
