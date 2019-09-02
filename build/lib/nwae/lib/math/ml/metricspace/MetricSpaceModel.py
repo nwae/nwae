@@ -396,6 +396,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #
     # Model interface override
     #
+    # Required model data for prediction:
+    #  1. EIDF
+    #  2. x_clustered, y_clustered
+    #  3. x_ref, y_ref (if include_rfv=True)
+    #
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
@@ -678,6 +683,53 @@ class MetricSpaceModel(modelIf.ModelInterface):
         return retobj
 
     #
+    # Train from partial model files
+    #
+    def train_from_partial_models(
+            self,
+            write_model_to_storage = True,
+            write_training_data_to_storage = False,
+            model_params = None,
+    ):
+        #
+        # Load EIDF first
+        # TODO How to ensure there are no missing words?
+        #
+        x_name = self.training_data.get_x_name().copy()
+        try:
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Initializing IDF object.. try to read from file first'
+            )
+            # Try to read from file
+            df_eidf_file = eidf.Eidf.read_eidf_from_storage(
+                dir_path_model    = self.dir_path_model,
+                identifier_string = self.identifier_string,
+                x_name            = x_name
+            )
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Successfully Read EIDF from file'
+            )
+            self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
+        except Exception as ex_eidf:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': No EIDF from file available. Exception ' + str(ex_eidf)
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
+
+        # Standardize to at least 2-dimensional, easier when weighting x
+        self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
+            arr    = self.model_data.idf,
+            to_dim = 2
+        )
+
+        self.model_data.load_model_from_partial_trainings_data(
+            x_name = x_name
+        )
+        return
+
+    #
     # Model interface override
     #
     # TODO: Include training/optimization of vector weights to best define the category and differentiate with other categories.
@@ -717,7 +769,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Here training data must be prepared in the correct format already
             # Значит что множество свойств уже объединено как одно (unified features)
             #
-            log.Log.debug(
+            log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x().tolist())
                 + '\n\r\tx names: ' + str(self.training_data.get_x_name())
@@ -777,7 +829,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 to_dim = 2
             )
 
-            log.Log.debug(
+            log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + '\n\r\tEIDF values:\n\r' + str(self.model_data.idf)
             )

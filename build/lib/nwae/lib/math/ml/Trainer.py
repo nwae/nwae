@@ -26,6 +26,7 @@ class Trainer(threading.Thread):
     # training one by one, and write only to label specific training files.
     # The purpose is to do incremental training, thus fast
     TRAIN_MODE_MODEL_BY_LABEL = 'train_model_by_label'
+    TRAIN_MODE_MODEL_USE_PARTIAL_MODELS = 'train_model_use_partial_models'
     #
     # NLP Training
     #
@@ -223,6 +224,19 @@ class Trainer(threading.Thread):
                         + ': [' + str(self.identifier_string) + '] Done training label ' + str(y_id_item)
                         + '.'
                     )
+            elif self.train_mode == Trainer.TRAIN_MODE_MODEL_USE_PARTIAL_MODELS:
+                model_obj = modelHelper.ModelHelper.get_model(
+                    model_name          = self.model_name,
+                    identifier_string   = self.identifier_string,
+                    dir_path_model      = self.dir_path_model,
+                    training_data       = tdm_object,
+                    is_partial_training = self.is_partial_training
+                )
+                model_obj.train_from_partial_models(
+                    write_model_to_storage = write_model_to_storage,
+                    write_training_data_to_storage = write_training_data_to_storage,
+                    model_params = model_params
+                )
             elif self.train_mode == Trainer.TRAIN_MODE_NLP_EIDF:
                 eidf_opt_obj = eidf.Eidf(
                     x      = tdm_object.get_x(),

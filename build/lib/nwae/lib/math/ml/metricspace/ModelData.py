@@ -12,6 +12,9 @@ import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.Constants as const
 import nwae.lib.math.NumpyUtil as npUtil
+import os
+import re
+import nwae.lib.lang.model.FeatureVector as fv
 
 
 class ModelData:
@@ -21,6 +24,11 @@ class ModelData:
     # and causes problems, so we standardize all index to string type
     #
     CONVERT_DATAFRAME_INDEX_TO_STR = False
+
+    MODEL_FILES_X_REF_FRIENDLY_TXT_POSTFIX        = '.x_ref_friendly.txt'
+    MODEL_FILES_X_REF_FRIENDLY_JSON_POSTFIX       = '.x_ref_friendly.json'
+    MODEL_FILES_X_CLUSTERED_FRIENDLY_TXT_POSTFIX  = '.x_clustered_friendly.txt'
+    MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX = '.x_clustered_friendly.json'
 
     def __init__(
             self,
@@ -75,7 +83,7 @@ class ModelData:
         self.y_unique = None
 
         # First check the existence of the files
-        prefix = modelIf.ModelInterface.get_model_file_prefix(
+        self.model_path_prefix = modelIf.ModelInterface.get_model_file_prefix(
             dir_path_model      = self.dir_path_model,
             model_name          = self.model_name,
             identifier_string   = self.identifier_string,
@@ -88,23 +96,30 @@ class ModelData:
                     + ': Cannot do partial training without y_id! Got y_id: ' + str(self.y_id)
                     + ' as type "' + str(type(self.y_id)) + '".'
                 )
-            prefix = prefix + '/' + str(self.y_id)
+            self.model_path_prefix = self.model_path_prefix + '/' + str(self.y_id)
 
-        self.fpath_updated_file        = prefix + '.lastupdated.txt'
-        self.fpath_x_name              = prefix + '.x_name.csv'
-        self.fpath_idf                 = prefix + '.idf.csv'
+        self.fpath_updated_file        = self.model_path_prefix + '.lastupdated.txt'
+        self.fpath_x_name              = self.model_path_prefix + '.x_name.csv'
+        self.fpath_idf                 = self.model_path_prefix + '.idf.csv'
         # y not recorded separately, it is in the index of this dataframe csv
-        self.fpath_x_ref               = prefix + '.x_ref.csv'
+        self.fpath_x_ref               = self.model_path_prefix + '.x_ref.csv'
         # Only for debugging file
-        self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
-        self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
-        self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
+        self.fpath_y_ref_radius        = self.model_path_prefix + '.y_ref.radius.csv'
         # y_ref not recorded separately, it is in the index of this dataframe csv
-        self.fpath_x_clustered         = prefix + '.x_clustered.csv'
-        self.fpath_y_clustered_radius  = prefix + '.y_clustered.radius.csv'
-        # Only for debugging file
-        self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
-        self.fpath_x_clustered_friendly_json = prefix + '.x_clustered_friendly.json'
+        self.fpath_x_clustered         = self.model_path_prefix + '.x_clustered.csv'
+        self.fpath_y_clustered_radius  = self.model_path_prefix + '.y_clustered.radius.csv'
+        #
+        # Used for loading back from partial training, which is easy to load (JSON), and verify (TXT)
+        # Already contains both x_clustered and y_clustered
+        #
+        self.fpath_x_ref_friendly_txt        = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_REF_FRIENDLY_TXT_POSTFIX
+        self.fpath_x_ref_friendly_json       = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_REF_FRIENDLY_JSON_POSTFIX
+        self.fpath_x_clustered_friendly_txt  = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_TXT_POSTFIX
+        self.fpath_x_clustered_friendly_json = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX
 
         self.log_training = []
         return
@@ -382,7 +397,7 @@ class ModelData:
         #
         if not os.path.isfile(self.fpath_idf):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': IDF file "' + self.fpath_idf + '" not found!'
+                     + ': EIDF file "' + self.fpath_idf + '" not found!'
             log.Log.error(errmsg)
             raise Exception(errmsg)
 
@@ -499,6 +514,138 @@ class ModelData:
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+
+    def load_model_from_partial_trainings_data(
+            self,
+            x_name
+    ):
+        self.x_name = x_name
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Using x_name: ' + str(x_name)
+        )
+
+        # We will convert to numpy array later
+        self.x_clustered = []
+        self.y_clustered = []
+
+        # Get all x_clustered & y_clustered files by y_id
+        try:
+            file_pattern_regex = '.*' + ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX + '$'
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading x_clustered files from folder "' + self.model_path_prefix
+                + '", matching pattern "' + str(file_pattern_regex)
+            )
+
+            # Get files under the partial training folder
+            list_files = os.listdir(self.model_path_prefix)
+            r = re.compile(pattern = file_pattern_regex)
+            x_clustered_fnames = list(filter(r.match, list_files))
+
+            #
+            # Now form the general feature vector
+            #
+            features_model = list(npUtil.NumpyUtil.convert_dimension(arr=x_name, to_dim=1))
+            log.Log.debugdebug('Using model features:\n\r' + str(features_model))
+
+            #
+            # Helper object to convert sentence to a mathematical object (feature vector)
+            #
+            model_fv = fv.FeatureVector()
+            model_fv.set_freq_feature_vector_template(
+                list_symbols = features_model
+            )
+
+            count = 0
+            for fname in x_clustered_fnames:
+                x_clstrd_fpath = self.model_path_prefix + '/' + fname
+                try:
+                    with open(x_clstrd_fpath) as x_clstrd_handle:
+                        d = json.load(x_clstrd_handle)
+                    count += 1
+                    log.Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': ' + str(count) + '. Loaded "' + str(fname) + '" as:\n\r' + str(d)
+                        , log_list=self.log_training
+                    )
+
+                    for k in d.keys():
+                        line = d[k]
+                        line_x_name = line['x_name']
+                        line_x      = line['x']
+                        line_y      = line['y']
+                        df_text_counter = pd.DataFrame({
+                            fv.FeatureVector.COL_SYMBOL: line_x_name,
+                            fv.FeatureVector.COL_FREQUENCY: line_x
+                        })
+                        # Get feature vector of text
+                        try:
+                            # TODO When we merge there could be symbols not in feature list
+                            df_fv = model_fv.get_freq_feature_vector_df(
+                                df_text_counter = df_text_counter
+                            )
+                        except Exception as ex:
+                            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                                     + ': Exception occurred calculating FV for "' + str(df_text_counter) \
+                                     + '": Exception "' + str(ex) \
+                                     + '\n\rUsing FV Template:\n\r' + str(model_fv.get_fv_template()) \
+                                     + ', FV Weights:\n\r' + str(model_fv.get_fv_weights())
+                            log.Log.error(errmsg)
+                            raise Exception(errmsg)
+
+                        # This creates a single row matrix that needs to be transposed before matrix multiplications
+                        # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
+                        # For now we make it 1D first
+                        fv_text_1d = np.array(df_fv[fv.FeatureVector.COL_FREQUENCY].values, ndmin=1)
+                        fv_text_1d_norm = np.array(df_fv[fv.FeatureVector.COL_FREQ_NORM].values, ndmin=1)
+                        if fv_text_1d.ndim != 1:
+                            raise Exception(
+                                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
+                            )
+                        log.Log.debug(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + '\n\rConverted to:\n\r' + str(fv_text_1d)
+                            + '\n\rand:\n\r' + str(fv_text_1d_norm)
+                        )
+
+                        self.x_clustered.append(fv_text_1d_norm)
+                        self.y_clustered.append(line_y)
+                except Exception as ex:
+                    errmsg = \
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        + ': Could not load JSON from "' + str(x_clstrd_fpath) + '". Exception: ' + str(ex)
+                    log.Log.critical(
+                        s        = errmsg,
+                        log_list = self.log_training
+                    )
+                    # Raise exception for this one
+                    raise Exception(errmsg)
+
+            self.x_clustered = np.array(self.x_clustered)
+            self.y_clustered = np.array(self.y_clustered)
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Trained x_clustered:\n\r' + str(self.x_clustered)
+                + '\n\ry_clustered:\n\r' + str(self.y_clustered)
+            )
+
+            # TODO Store in files the trained model
+
+        except Exception as ex:
+            errmsg = \
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Partial loading exception for "' + str(self.identifier_string)\
+                + '" model. Exception message: ' + str(ex)
+            log.Log.critical(
+                s        = errmsg,
+                log_list = self.log_training
+            )
+            raise Exception(errmsg)
+
+        raise Exception('Load model from partial trainings data not yet implemented!')
 
     def sanity_check(self):
         # Check RFV is normalized
