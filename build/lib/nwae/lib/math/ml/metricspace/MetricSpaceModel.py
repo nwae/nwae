@@ -12,7 +12,7 @@ import nwae.lib.math.ml.metricspace.ModelData as modelData
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.utils.Profiling as prf
-import nwae.lib.math.optimization.Eidf as idfopt
+import nwae.lib.math.optimization.Eidf as eidf
 
 
 #
@@ -72,7 +72,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Directory to keep all our model files
             dir_path_model,
             # Training data in TrainingDataModel class type
-            training_data = None,
+            training_data,
+            # Train only by y/labels and store model files in separate y_id directories
+            is_partial_training,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
@@ -82,15 +84,30 @@ class MetricSpaceModel(modelIf.ModelInterface):
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
-            model_name        = MetricSpaceModel.MODEL_NAME,
-            identifier_string = identifier_string,
-            dir_path_model    = dir_path_model,
-            training_data     = training_data
+            model_name          = MetricSpaceModel.MODEL_NAME,
+            identifier_string   = identifier_string,
+            dir_path_model      = dir_path_model,
+            training_data       = training_data,
+            is_partial_training = is_partial_training
         )
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+        self.is_partial_training = is_partial_training
+        self.y_id = None
+
+        if self.is_partial_training:
+            # In this case training data must exist
+            unique_y = list(set(list(self.training_data.get_y())))
+            if len(unique_y) != 1:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': [' + str(self.identifier_string)
+                    + '] In partial training mode, must only have 1 unique label, but found '
+                    + str(unique_y) + '.'
+                )
+            self.y_id = int(unique_y[0])
 
         if self.training_data is not None:
             if type(self.training_data) is not tdm.TrainingDataModel:
@@ -104,14 +121,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
         self.do_profiling = do_profiling
+        # Only train some y/labels and store model files in separate directories by y_id
+        self.is_partial_training = is_partial_training
 
         #
         # All parameter for model is encapsulated in this class
         #
         self.model_data = modelData.ModelData(
-            model_name        = MetricSpaceModel.MODEL_NAME,
-            identifier_string = self.identifier_string,
-            dir_path_model    = self.dir_path_model
+            model_name          = MetricSpaceModel.MODEL_NAME,
+            identifier_string   = self.identifier_string,
+            dir_path_model      = self.dir_path_model,
+            is_partial_training = self.is_partial_training,
+            y_id                = self.y_id
         )
 
         self.bot_training_start_time = None
@@ -167,64 +188,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self
     ):
         return self.model_data.check_if_model_updated()
-
-    #
-    # Given our training data x, we get the IDF of the columns x_name.
-    # TODO Generalize this into a NN Layer instead
-    # TODO Optimal values are when "separation" (by distance in space or angle in space) is maximum
-    #
-    @staticmethod
-    def get_feature_weight_idf(
-            x,
-            y,
-            x_name,
-            feature_presence_only_in_label_training_data = True
-    ):
-        df_tmp = pd.DataFrame(data=x, index=y)
-
-        # Group by the labels y, as they are not unique
-        df_agg_sum = df_tmp.groupby(df_tmp.index).sum()
-        np_agg_sum = df_agg_sum.values
-
-        # Get presence only by cell, then sum up by columns to get total presence by document
-        np_feature_presence = np_agg_sum
-        if feature_presence_only_in_label_training_data:
-            np_feature_presence = (np_agg_sum>0)*1
-
-        # Sum by column axis=0
-        np_feature_presence_sum = np.sum(np_feature_presence, axis=0)
-        log.Log.debug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tAggregated sum by labels:\n\r' + str(np_agg_sum)
-            + '\n\r\tPresence array:\n\r' + str(np_feature_presence)
-            + '\n\r\tPresence sum:\n\r' + str(np_feature_presence_sum)
-            + '\n\r\tx_names: ' + str(x_name) + '.'
-        )
-
-        # Total document count
-        n_documents = np_feature_presence.shape[0]
-        log.Log.important(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
-        )
-
-        # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
-        # TODO RuntimeWarning: divide by zero encountered in true_divide
-        idf = np.log(n_documents / np_feature_presence_sum)
-        # Replace infinity with 1 count or log(n_documents)
-        idf[idf==np.inf] = np.log(n_documents)
-        # If only 1 document, all IDF will be zero, we will handle below
-        if n_documents <= 1:
-            log.Log.warning(
-                str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
-            )
-            idf = np.array([1]*x.shape[1])
-        log.Log.debug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tWeight IDF:\n\r' + str(idf)
-        )
-        return idf
 
     #
     # Get all class proximity scores to a point
@@ -724,7 +687,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self,
             write_model_to_storage = True,
             write_training_data_to_storage = False,
-            model_params = None
+            model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         prf_start = prf.Profiling.start()
 
@@ -741,6 +706,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training for identifier=' + self.identifier_string
+                + ', y_id ' + str(y_id)
                 + '. Using key features remove quartile = ' + str(self.key_features_remove_quartile)
                 + ', stop features = [' + str(self.stop_features) + ']'
                 + ', weigh by IDF = ' + str(self.weigh_idf)
@@ -751,9 +717,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Here training data must be prepared in the correct format already
             # Значит что множество свойств уже объединено как одно (unified features)
             #
-            log.Log.debugdebug(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x())
+                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x().tolist())
                 + '\n\r\tx names: ' + str(self.training_data.get_x_name())
                 + '\n\r\ty labels: ' + str(self.training_data.get_y())
             )
@@ -765,46 +731,63 @@ class MetricSpaceModel(modelIf.ModelInterface):
             #
             if self.weigh_idf:
                 if MetricSpaceModel.USE_OPIMIZED_IDF:
-                    log.Log.info(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Initializing IDF object..'
-                    )
-                    idf_opt_obj = idfopt.Eidf(
-                        x      = self.training_data.get_x(),
-                        y      = self.training_data.get_y(),
-                        x_name = self.training_data.get_x_name()
-                    )
-                    idf_opt_obj.optimize(
-                        initial_w_as_standard_idf = True
-                    )
-                    self.model_data.idf = idf_opt_obj.get_w()
+                    try:
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Initializing IDF object.. try to read from file first'
+                        )
+                        # Try to read from file
+                        df_eidf_file = eidf.Eidf.read_eidf_from_storage(
+                            dir_path_model = self.dir_path_model,
+                            identifier_string = self.identifier_string,
+                            x_name = self.training_data.get_x_name()
+                        )
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Successfully Read EIDF from file:\n\r' + str(df_eidf_file)
+                        )
+                        self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
+                    except Exception as ex_eidf:
+                        log.Log.critical(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': No EIDF from file available. Recalculating EIDF..'
+                        )
+                        idf_opt_obj = eidf.Eidf(
+                            x      = self.training_data.get_x(),
+                            y      = self.training_data.get_y(),
+                            x_name = self.training_data.get_x_name()
+                        )
+                        idf_opt_obj.optimize(
+                            initial_w_as_standard_idf = True
+                        )
+                        self.model_data.idf = idf_opt_obj.get_w()
                 else:
                     # Sum x by class
-                    self.model_data.idf = MetricSpaceModel.get_feature_weight_idf(
+                    self.model_data.idf = eidf.Eidf.get_feature_weight_idf_default(
                         x      = self.training_data.get_x(),
                         y      = self.training_data.get_y(),
                         x_name = self.training_data.get_x_name()
                     )
-                # Standardize to at least 2-dimensional, easier when weighting x
-                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
-                    arr    = self.model_data.idf,
-                    to_dim = 2
-                )
-
-                log.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tIDF values:\n\r' + str(self.model_data.idf)
-                )
-
-                # This will change the x in self.training data
-                self.training_data.weigh_x(w=self.model_data.idf[0])
             else:
                 self.model_data.idf = np.array([1]*self.training_data.get_x_name().shape[0])
-                # Standardize to at least 2-dimensional, easier when weighting x
-                self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
-                    arr    = self.model_data.idf,
-                    to_dim = 2
-                )
+
+            # Standardize to at least 2-dimensional, easier when weighting x
+            self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
+                arr    = self.model_data.idf,
+                to_dim = 2
+            )
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + '\n\r\tEIDF values:\n\r' + str(self.model_data.idf)
+            )
+
+            #
+            # Re-weigh again. This will change the x in self.training data
+            #
+            self.training_data.weigh_x(
+                w = self.model_data.idf[0]
+            )
 
             #
             # Initizalize model data
@@ -813,16 +796,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
             x = self.training_data.get_x()
             y = self.training_data.get_y()
             self.model_data.x_name = self.training_data.get_x_name()
-            self.model_data.idf = self.training_data.get_w()
 
             # Unique y or classes
             # We do this again because after weighing, it will remove bad rows, which might cause some y
             # to disappear
             self.model_data.y_unique = np.array(list(set(y)))
 
-            log.Log.debugdebug(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x)
+                + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x.tolist())
                 + '\n\r\ty\n\r' + str(y)
                 + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
                 , log_list=self.log_training
@@ -939,7 +921,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
             if write_model_to_storage:
                 self.persist_model_to_storage()
-            if write_training_data_to_storage:
+            if write_training_data_to_storage or (self.is_partial_training):
                 self.persist_training_data_to_storage(td=self.training_data)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\

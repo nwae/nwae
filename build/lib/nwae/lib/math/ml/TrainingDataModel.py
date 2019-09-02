@@ -106,6 +106,29 @@ class TrainingDataModel:
         )
         return
 
+    def filter_by_y_id(
+            self,
+            y_id
+    ):
+        if type(y_id) in (np.int64, int, str):
+            y_id = int(y_id)
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Expected numpy.int64/int/str type, got "' + str(type(y_id)) + '" for y_id "' + str(y_id) + '".'
+            )
+
+        cond_y_id = np.isin(element=self.y, test_elements=[y_id])
+        # Filter away unneeded ones
+        self.x = self.x[cond_y_id]
+        self.y = self.y[cond_y_id]
+        self.y_name = self.y_name[cond_y_id]
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': After filtering y_id ' + str(y_id)
+            + ',\n\rx:\n\r' + str(self.x.tolist()) + ',\n\ry:\n\r' + str(self.y.tolist())
+        )
+
     #
     # The function of weights are just to reduce the meaningful dimensions of x (making some columns 0)
     # This function modifies x, y, y_name, and possibly x_name (if we do column deletion)
@@ -242,25 +265,32 @@ class TrainingDataModel:
             v_show = v[non_zero_indexes]
             y_show = self.y[i]
 
-            min_v = 0.0
-            try:
-                min_v = np.min(v_show)
-                v_show = v_show / min_v
-            except Exception as ex:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Cannot get min val for x index ' + str(i)\
-                         + ', point ' + str(v)\
-                         + ' , nonzero x_name ' + str(x_name_show)\
-                         + ', nonzero values ' + str(v_show) + '.'
-                # raise Exception(errmsg)
-
             if min_value_as_one:
+                min_v = 0.0
+                try:
+                    min_v = np.min(v_show)
+                    v_show = v_show / min_v
+                except Exception as ex:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Cannot get min val for x index ' + str(i)\
+                             + ', point ' + str(v)\
+                             + ' , nonzero x_name ' + str(x_name_show)\
+                             + ', nonzero values ' + str(v_show) + '.'
+                    # raise Exception(errmsg)
+
                 v_show = np.round(v_show, 1)
+
+            #
+            # To ensure serializable by JSON, need to convert to proper types
+            #
+            v_show = v_show.astype(float)
+            # Single label
+            y_show = int(y_show)
 
             # Column names mean nothing because we convert to values list
             #x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()
             x_dict[str(i)] = {
-                'index': i,
+                'index': int(i),
                 'x_name': x_name_show.tolist(),
                 'x': v_show.tolist(),
                 'y': y_show

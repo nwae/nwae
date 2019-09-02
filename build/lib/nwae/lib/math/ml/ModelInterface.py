@@ -7,6 +7,7 @@ from inspect import currentframe, getframeinfo
 import pandas as pd
 import numpy as np
 import nwae.lib.math.ml.TrainingDataModel as tdm
+import os
 
 
 #
@@ -60,7 +61,9 @@ class ModelInterface(threading.Thread):
             model_name,
             identifier_string,
             dir_path_model,
-            training_data
+            training_data,
+            # Train only by y/labels and store model files in separate y_id directories
+            is_partial_training
     ):
         super(ModelInterface, self).__init__()
 
@@ -68,28 +71,74 @@ class ModelInterface(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
+        self.is_partial_training = is_partial_training
 
         self.stoprequest = threading.Event()
 
         self.__mutex_load_model = threading.Lock()
 
         # Training data for testing back only
+        # This value must be initialized by the derived class
         self.training_data = None
-        prefix = ModelInterface.get_model_file_prefix(
-            dir_path_model    = self.dir_path_model,
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string
-        )
-        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
-        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
-        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
-        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
+        # This value must be initialized by the derived class
+        self.y_id = None
 
         return
 
+    def initialize_training_data_paths(self):
+        prefix = ModelInterface.get_model_file_prefix(
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
+        )
+        if self.is_partial_training:
+            if type(self.y_id) not in (int, str):
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Cannot set training paths without a single y_id! Got y_id: ' + str(self.y_id)
+                    + ' as type "' + str(type(self.y_id)) + '".'
+                )
+            prefix = prefix + '/' + str(self.y_id)
+        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
+        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
+        # self.fpath_training_data_x_friendly_json = prefix + '.training_data.x_friendly.json'
+        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
+        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
+
     @staticmethod
-    def get_model_file_prefix(dir_path_model, model_name, identifier_string):
-        return dir_path_model + '/' + model_name + '.' + identifier_string
+    def get_model_file_prefix(
+            dir_path_model,
+            model_name,
+            identifier_string,
+            is_partial_training
+    ):
+        # Prefix or dir
+        prefix_or_dir = dir_path_model + '/' + model_name + '.' + identifier_string
+        if is_partial_training:
+            # Check if directory exists
+            if not os.path.isdir(prefix_or_dir):
+                log.Log.important(
+                    str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Path "' + str(prefix_or_dir) + '" does not exist. Trying to create this directory...'
+                )
+                try:
+                    os.mkdir(
+                        path = prefix_or_dir
+                    )
+                    log.Log.important(
+                        str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Path "' + str(prefix_or_dir) + '" successfully created.'
+                    )
+                except Exception as ex:
+                    errmsg =\
+                        str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        + ': Error creating directory "' + str(prefix_or_dir) + '". Exception ' + str(ex) + '.'
+                    log.Log.error(errmsg)
+                    raise Exception(errmsg)
+            return prefix_or_dir
+        else:
+            return prefix_or_dir
 
     def join(self, timeout=None):
         log.Log.critical(
@@ -177,7 +226,9 @@ class ModelInterface(threading.Thread):
             self,
             write_model_to_storage = True,
             write_training_data_to_storage = False,
-            model_params = None
+            model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         return
 
@@ -200,25 +251,27 @@ class ModelInterface(threading.Thread):
             self,
             td
     ):
+        self.initialize_training_data_paths()
         #
         # Write back training data to file, for testing back the model only, not needed for the model
         #
-        df_td_x = pd.DataFrame(
-            data    = td.get_x(),
-            columns = td.get_x_name(),
-            index   = td.get_y()
-        )
-        df_td_x.sort_index(inplace=True)
-        df_td_x.to_csv(
-            path_or_buf = self.fpath_training_data_x,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x with shape ' + str(df_td_x.shape)
-            + ' filepath "' + self.fpath_training_data_x + '"'
-        )
+        if not self.is_partial_training:
+            df_td_x = pd.DataFrame(
+                data    = td.get_x(),
+                columns = td.get_x_name(),
+                index   = td.get_y()
+            )
+            df_td_x.sort_index(inplace=True)
+            df_td_x.to_csv(
+                path_or_buf = self.fpath_training_data_x,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data x with shape ' + str(df_td_x.shape)
+                + ' filepath "' + self.fpath_training_data_x + '"'
+            )
 
         try:
             x_friendly = td.get_print_friendly_x()
@@ -240,37 +293,39 @@ class ModelInterface(threading.Thread):
                 + '". ' + str(ex)
             )
 
-        df_td_x_name = pd.DataFrame(td.get_x_name())
-        df_td_x_name.to_csv(
-            path_or_buf = self.fpath_training_data_x_name,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
-            + ' filepath "' + self.fpath_training_data_x_name + '"'
-        )
+        if not self.is_partial_training:
+            df_td_x_name = pd.DataFrame(td.get_x_name())
+            df_td_x_name.to_csv(
+                path_or_buf = self.fpath_training_data_x_name,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
+                + ' filepath "' + self.fpath_training_data_x_name + '"'
+            )
 
-        df_td_y = pd.DataFrame(
-            data  = td.get_y_name(),
-            index = td.get_y()
-        )
-        df_td_y.to_csv(
-            path_or_buf = self.fpath_training_data_y,
-            index       = True,
-            index_label = 'INDEX'
-        )
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Training Data y with shape ' + str(df_td_y.shape)
-            + ' filepath "' + self.fpath_training_data_y + '"'
-        )
+            df_td_y = pd.DataFrame(
+                data  = td.get_y_name(),
+                index = td.get_y()
+            )
+            df_td_y.to_csv(
+                path_or_buf = self.fpath_training_data_y,
+                index       = True,
+                index_label = 'INDEX'
+            )
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Training Data y with shape ' + str(df_td_y.shape)
+                + ' filepath "' + self.fpath_training_data_y + '"'
+            )
         return
 
     def load_training_data_from_storage(
             self
     ):
+        self.initialize_training_data_paths()
         try:
             df_td_x = pd.read_csv(
                 filepath_or_buffer=self.fpath_training_data_x,

@@ -16,7 +16,8 @@ class ModelHelper:
             model_name,
             identifier_string,
             dir_path_model,
-            training_data = None
+            training_data,
+            is_partial_training = False
     ):
         if model_name == ModelHelper.MODEL_NAME_KERAS:
             kr_model = krModel.Keras(
@@ -27,8 +28,9 @@ class ModelHelper:
             return kr_model
         else:
             ms_model = msModel.MetricSpaceModel(
-                identifier_string = identifier_string,
-                dir_path_model    = dir_path_model,
-                training_data     = training_data
+                identifier_string   = identifier_string,
+                dir_path_model      = dir_path_model,
+                training_data       = training_data,
+                is_partial_training = is_partial_training
             )
             return ms_model

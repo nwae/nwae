@@ -237,7 +237,7 @@ class PredictClass:
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
 
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
             + ', Top Class Distance: ' + str(top_class_distance)

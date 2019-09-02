@@ -28,24 +28,28 @@ class Keras(modelIf.ModelInterface):
             dir_path_model,
             # Training data in TrainingDataModel class type
             training_data = None,
-            do_profiling = False
+            do_profiling = False,
+            is_partial_training = False
     ):
         super(Keras,self).__init__(
-            model_name        = Keras.MODEL_NAME,
-            identifier_string = identifier_string,
-            dir_path_model    = dir_path_model,
-            training_data     = training_data
+            model_name          = Keras.MODEL_NAME,
+            identifier_string   = identifier_string,
+            dir_path_model      = dir_path_model,
+            training_data       = training_data,
+            is_partial_training = is_partial_training
         )
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
         if self.training_data is not None:
             self.__check_training_data()
+        self.is_partial_training = is_partial_training
 
         self.filepath_model = modelIf.ModelInterface.get_model_file_prefix(
-            dir_path_model    = self.dir_path_model,
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
         )
         self.network = None
         self.model_loaded = False
@@ -110,6 +114,8 @@ class Keras(modelIf.ModelInterface):
             write_model_to_storage = True,
             write_training_data_to_storage = False,
             model_params = None,
+            # Option to train a single y ID/label
+            y_id = None
     ):
         log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)

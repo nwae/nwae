@@ -29,10 +29,15 @@ class ModelData:
             identifier_string,
             # Directory to keep all our model files
             dir_path_model,
+            # Train only by some y/labels and keep model files in separate y_id directories
+            is_partial_training,
+            y_id = None
     ):
         self.model_name = model_name
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
+        self.is_partial_training = is_partial_training
+        self.y_id = y_id
 
         # Unique classes from y
         self.classes_unique = None
@@ -71,10 +76,20 @@ class ModelData:
 
         # First check the existence of the files
         prefix = modelIf.ModelInterface.get_model_file_prefix(
-            dir_path_model    = self.dir_path_model,
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
         )
+        if self.is_partial_training:
+            if type(self.y_id) not in (int, str):
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Cannot do partial training without y_id! Got y_id: ' + str(self.y_id)
+                    + ' as type "' + str(type(self.y_id)) + '".'
+                )
+            prefix = prefix + '/' + str(self.y_id)
+
         self.fpath_updated_file        = prefix + '.lastupdated.txt'
         self.fpath_x_name              = prefix + '.x_name.csv'
         self.fpath_idf                 = prefix + '.idf.csv'
@@ -82,17 +97,14 @@ class ModelData:
         self.fpath_x_ref               = prefix + '.x_ref.csv'
         # Only for debugging file
         self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
+        self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
         self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
         # y_ref not recorded separately, it is in the index of this dataframe csv
         self.fpath_x_clustered         = prefix + '.x_clustered.csv'
         self.fpath_y_clustered_radius  = prefix + '.y_clustered.radius.csv'
         # Only for debugging file
         self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
-        # Training data for testing back only
-        self.fpath_training_data_x          = prefix + '.training_data.x.csv'
-        self.fpath_training_data_x_friendly = prefix + '.training_data.x_friendly.csv'
-        self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
-        self.fpath_training_data_y          = prefix + '.training_data.y.csv'
+        self.fpath_x_clustered_friendly_json = prefix + '.x_clustered_friendly.json'
 
         self.log_training = []
         return
@@ -135,7 +147,6 @@ class ModelData:
         # Sort
         df_x_name = pd.DataFrame(data=self.x_name)
 
-        idf_1d = npUtil.NumpyUtil.convert_dimension(arr=self.idf, to_dim=1)
         df_idf = pd.DataFrame(
             data  = npUtil.NumpyUtil.convert_dimension(arr=self.idf, to_dim=1),
             index = self.x_name
@@ -190,50 +201,68 @@ class ModelData:
         # Save to file
         # TODO: This needs to be saved to DB, not file
         #
-        df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved x_name shape ' + str(df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
-            , log_list = self.log_training
-        )
+        if not self.is_partial_training:
+            df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved x_name shape ' + str(df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
+                , log_list = self.log_training
+            )
 
-        df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved IDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
-            , log_list = self.log_training
-        )
+            df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved IDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
+                , log_list = self.log_training
+            )
 
-        df_x_ref.to_csv(path_or_buf=self.fpath_x_ref, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_x_ref + '"'
-            , log_list = self.log_training
-        )
+            df_x_ref.to_csv(path_or_buf=self.fpath_x_ref, index=True, index_label='INDEX')
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_x_ref + '"'
+                , log_list = self.log_training
+            )
 
         try:
-            # This file only for debugging
             f = open(file=self.fpath_x_ref_friendly_txt, mode='w', encoding='utf-8')
             for i in x_ref_friendly.keys():
                 line = str(x_ref_friendly[i])
                 f.write(str(line) + '\n\r')
             f.close()
-
-            # with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
-            #     json.dump(x_ref_friendly, f, indent=2)
-            # f.close()
-            # log.Log.critical(
-            #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            #     + ': Saved x_ref friendly ' + str(x_ref_friendly) +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-            #     , log_list=self.log_training
-            # )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
                 + '". ' + str(ex)
-            , log_list = self.log_training
+                , log_list=self.log_training
             )
+
+        try:
+            #
+            # Only in partial training mode
+            #
+            if self.is_partial_training:
+                with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
+                    json.dump(x_ref_friendly, f, indent=2)
+                f.close()
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Saved x_ref friendly json ' + str(x_ref_friendly)
+                    +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
+                    , log_list=self.log_training
+                )
+        except Exception as ex:
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Could not create x_ref friendly JSON file "' + self.fpath_x_ref_friendly_json\
+                + ', object ' + str(x_ref_friendly)\
+                + '". ' + str(ex)
+            log.Log.critical(
+                s = errmsg,
+                log_list = self.log_training
+            )
+            # Raise exception for this one
+            raise Exception(errmsg)
 
         self.df_y_ref_radius.to_csv(path_or_buf=self.fpath_y_ref_radius, index=True, index_label='INDEX')
         log.Log.critical(
@@ -243,12 +272,13 @@ class ModelData:
             , log_list = self.log_training
         )
 
-        df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
-            , log_list=self.log_training
-        )
+        if not self.is_partial_training:
+            df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
+                , log_list=self.log_training
+            )
 
         df_y_clustered_radius.to_csv(path_or_buf=self.fpath_y_clustered_radius, index=True, index_label='INDEX')
         log.Log.critical(
@@ -258,9 +288,7 @@ class ModelData:
             , log_list=self.log_training
         )
 
-        # This file only for debugging
         try:
-            # This file only for debugging
             f = open(file=self.fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
             for i in x_clustered_friendly.keys():
                 line = str(x_clustered_friendly[i])
@@ -270,15 +298,42 @@ class ModelData:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
                 + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
-                , log_list=self.log_training
+                , log_list = self.log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
                 + '". ' + str(ex)
-            , log_list = self.log_training
+                , log_list=self.log_training
             )
+
+        try:
+            #
+            # Only in partial training mode
+            #
+            if self.is_partial_training:
+                with open(self.fpath_x_clustered_friendly_json, 'w', encoding='utf-8') as f:
+                    json.dump(x_clustered_friendly, f, indent=2)
+                f.close()
+                log.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Saved x_clustered friendly json ' + str(x_clustered_friendly)
+                    +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
+                    , log_list = self.log_training
+                )
+        except Exception as ex:
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Could not create x_clustered friendly JSON file "' + self.fpath_x_clustered_friendly_json\
+                + ', object ' + str(x_clustered_friendly)\
+                + '". ' + str(ex)
+            log.Log.critical(
+                s = errmsg,
+                log_list = self.log_training
+            )
+            # Raise exception for this one
+            raise Exception(errmsg)
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
