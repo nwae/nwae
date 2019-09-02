@@ -110,12 +110,12 @@ class TrainingDataModel:
             self,
             y_id
     ):
-        if type(y_id) in (int, str):
+        if type(y_id) in (np.int64, int, str):
             y_id = int(y_id)
         else:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Expected int/str type, got "' + str(type(y_id)) + '" for y_id "' + str(y_id) + '".'
+                + ': Expected numpy.int64/int/str type, got "' + str(type(y_id)) + '" for y_id "' + str(y_id) + '".'
             )
 
         cond_y_id = np.isin(element=self.y, test_elements=[y_id])
@@ -284,7 +284,8 @@ class TrainingDataModel:
             # To ensure serializable by JSON, need to convert to proper types
             #
             v_show = v_show.astype(float)
-            y_show = y_show.astype(int)
+            # Single label
+            y_show = int(y_show)
 
             # Column names mean nothing because we convert to values list
             #x_dict[i] = pd.DataFrame(data={'wordlabel': x_name_show, 'fv': v_show}).values.tolist()

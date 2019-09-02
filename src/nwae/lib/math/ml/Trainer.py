@@ -22,7 +22,9 @@ class Trainer(threading.Thread):
     #
     # Train the entire model in one shot
     TRAIN_MODE_MODEL          = 'train_model'
-    # Trains by label only and write only to label specific training files
+    # In this case the training will loop by y_id and do each partial
+    # training one by one, and write only to label specific training files.
+    # The purpose is to do incremental training, thus fast
     TRAIN_MODE_MODEL_BY_LABEL = 'train_model_by_label'
     #
     # NLP Training
@@ -47,7 +49,7 @@ class Trainer(threading.Thread):
             model_name = None,
             # Either 'train_model' (or None), or 'train_nlp_eidf'
             train_mode = TRAIN_MODE_MODEL,
-            # Train a single y/label ID or all (None)
+            # Train a single y/label ID only, regardless of train mode
             y_id = None
     ):
         super(Trainer, self).__init__()
@@ -78,19 +80,15 @@ class Trainer(threading.Thread):
                 + '": Wrong training data type "' + str(type(self.training_data)) + '".'
             )
 
-        self.is_partial_training = False
+        # Partial/Incremental training mode
+        self.is_partial_training = (self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL)\
+                                   | (self.y_id is not None)
+        # Train a single y/label ID only, regardless of train mode
         if self.y_id is not None:
-            self.is_partial_training = True
             # Filter by this y/label only
             self.training_data.filter_by_y_id(
                 y_id = self.y_id
             )
-        elif self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL:
-            #
-            # In this case the training will loop by y_id and do each partial
-            # training one by one
-            #
-            self.is_partial_training = True
 
         return
 
@@ -164,13 +162,13 @@ class Trainer(threading.Thread):
         try:
             tdm_object = self.training_data
 
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Train mode "' + str(self.train_mode)
+                + '". Training Model using model name "' + str(self.model_name)
+                + '". for bot "' + str(self.identifier_string) + '".'
+            )
             if self.train_mode == Trainer.TRAIN_MODE_MODEL:
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Train mode "' + str(self.train_mode)
-                    + '". Training Model using model name "' + str(self.model_name)
-                    + '". for bot "' + str(self.identifier_string) + '".'
-                )
                 model_obj = modelHelper.ModelHelper.get_model(
                     model_name          = self.model_name,
                     identifier_string   = self.identifier_string,
@@ -183,12 +181,49 @@ class Trainer(threading.Thread):
                     write_training_data_to_storage = write_training_data_to_storage,
                     model_params = model_params
                 )
+            elif self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL:
+                # Loop by unique y's
+                unique_y_list = list(set(list(self.training_data.get_y())))
+                # Keep backup of training data
+                x_initial = self.training_data.get_x()
+                x_name_initial = self.training_data.get_x_name()
+                y_name_initial = self.training_data.get_y_name()
+                y_initial = self.training_data.get_y()
+                for y_id_item in unique_y_list:
+                    # Create new TrainingDataModel object
+                    tdm_item = tdm.TrainingDataModel(
+                        x      = x_initial.copy(),
+                        x_name = x_name_initial.copy(),
+                        y      = y_initial.copy(),
+                        y_name = y_name_initial.copy()
+                    )
+                    # Filter by this y/label only
+                    tdm_item.filter_by_y_id(
+                        y_id = y_id_item
+                    )
+                    lg.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        + ': [' + str(self.identifier_string) + '] Begin training label ' + str(y_id_item)
+                        + ', with data:\n\r' + str(tdm_item.get_print_friendly_x())
+                    )
+                    model_obj_item = modelHelper.ModelHelper.get_model(
+                        model_name          = self.model_name,
+                        identifier_string   = self.identifier_string,
+                        dir_path_model      = self.dir_path_model,
+                        training_data       = tdm_item,
+                        is_partial_training = True
+                    )
+                    model_obj_item.train(
+                        write_model_to_storage         = write_model_to_storage,
+                        write_training_data_to_storage = write_training_data_to_storage,
+                        model_params                   = model_params
+                    )
+                    lg.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        + ': [' + str(self.identifier_string) + '] Done training label ' + str(y_id_item)
+                        + '.'
+                    )
             elif self.train_mode == Trainer.TRAIN_MODE_NLP_EIDF:
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Train mode "' + str(self.train_mode)
-                    + '". Training NLP EIDF for bot "' + str(self.identifier_string) + '".'
-                )
                 eidf_opt_obj = eidf.Eidf(
                     x      = tdm_object.get_x(),
                     y      = tdm_object.get_y(),

@@ -229,7 +229,15 @@ class ModelData:
                 line = str(x_ref_friendly[i])
                 f.write(str(line) + '\n\r')
             f.close()
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
+                + '". ' + str(ex)
+                , log_list=self.log_training
+            )
 
+        try:
             #
             # Only in partial training mode
             #
@@ -244,12 +252,17 @@ class ModelData:
                     , log_list=self.log_training
                 )
         except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Could not create x_ref friendly JSON file "' + self.fpath_x_ref_friendly_json\
+                + ', object ' + str(x_ref_friendly)\
                 + '". ' + str(ex)
-            , log_list = self.log_training
+            log.Log.critical(
+                s = errmsg,
+                log_list = self.log_training
             )
+            # Raise exception for this one
+            raise Exception(errmsg)
 
         self.df_y_ref_radius.to_csv(path_or_buf=self.fpath_y_ref_radius, index=True, index_label='INDEX')
         log.Log.critical(
@@ -287,13 +300,21 @@ class ModelData:
                 + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
                 , log_list = self.log_training
             )
+        except Exception as ex:
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
+                + '". ' + str(ex)
+                , log_list=self.log_training
+            )
 
+        try:
             #
             # Only in partial training mode
             #
             if self.is_partial_training:
                 with open(self.fpath_x_clustered_friendly_json, 'w', encoding='utf-8') as f:
-                    json.dump(x_ref_friendly, f, indent=2)
+                    json.dump(x_clustered_friendly, f, indent=2)
                 f.close()
                 log.Log.critical(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -301,14 +322,18 @@ class ModelData:
                     +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
                     , log_list = self.log_training
                 )
-
         except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Could not create x_clustered friendly JSON file "' + self.fpath_x_clustered_friendly_json\
+                + ', object ' + str(x_clustered_friendly)\
                 + '". ' + str(ex)
-            , log_list = self.log_training
+            log.Log.critical(
+                s = errmsg,
+                log_list = self.log_training
             )
+            # Raise exception for this one
+            raise Exception(errmsg)
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
