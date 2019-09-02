@@ -17,7 +17,14 @@ from inspect import currentframe, getframeinfo
 #
 class Trainer(threading.Thread):
 
-    TRAIN_MODE_MODEL = 'train_model'
+    #
+    # Model Training
+    #
+    # Train the entire model in one shot
+    TRAIN_MODE_MODEL          = 'train_model'
+    #
+    # NLP Training
+    #
     TRAIN_MODE_NLP_EIDF = 'train_nlp_eidf'
 
     #
