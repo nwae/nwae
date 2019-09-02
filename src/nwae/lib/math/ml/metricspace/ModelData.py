@@ -12,6 +12,8 @@ import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.Constants as const
 import nwae.lib.math.NumpyUtil as npUtil
+import os
+import re
 
 
 class ModelData:
@@ -21,6 +23,11 @@ class ModelData:
     # and causes problems, so we standardize all index to string type
     #
     CONVERT_DATAFRAME_INDEX_TO_STR = False
+
+    MODEL_FILES_X_REF_FRIENDLY_TXT_POSTFIX        = '.x_ref_friendly.txt'
+    MODEL_FILES_X_REF_FRIENDLY_JSON_POSTFIX       = '.x_ref_friendly.json'
+    MODEL_FILES_X_CLUSTERED_FRIENDLY_TXT_POSTFIX  = '.x_clustered_friendly.txt'
+    MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX = '.x_clustered_friendly.json'
 
     def __init__(
             self,
@@ -75,7 +82,7 @@ class ModelData:
         self.y_unique = None
 
         # First check the existence of the files
-        prefix = modelIf.ModelInterface.get_model_file_prefix(
+        self.model_path_prefix = modelIf.ModelInterface.get_model_file_prefix(
             dir_path_model      = self.dir_path_model,
             model_name          = self.model_name,
             identifier_string   = self.identifier_string,
@@ -88,23 +95,30 @@ class ModelData:
                     + ': Cannot do partial training without y_id! Got y_id: ' + str(self.y_id)
                     + ' as type "' + str(type(self.y_id)) + '".'
                 )
-            prefix = prefix + '/' + str(self.y_id)
+            self.model_path_prefix = self.model_path_prefix + '/' + str(self.y_id)
 
-        self.fpath_updated_file        = prefix + '.lastupdated.txt'
-        self.fpath_x_name              = prefix + '.x_name.csv'
-        self.fpath_idf                 = prefix + '.idf.csv'
+        self.fpath_updated_file        = self.model_path_prefix + '.lastupdated.txt'
+        self.fpath_x_name              = self.model_path_prefix + '.x_name.csv'
+        self.fpath_idf                 = self.model_path_prefix + '.idf.csv'
         # y not recorded separately, it is in the index of this dataframe csv
-        self.fpath_x_ref               = prefix + '.x_ref.csv'
+        self.fpath_x_ref               = self.model_path_prefix + '.x_ref.csv'
         # Only for debugging file
-        self.fpath_x_ref_friendly_txt  = prefix + '.x_ref_friendly.txt'
-        self.fpath_x_ref_friendly_json = prefix + '.x_ref_friendly.json'
-        self.fpath_y_ref_radius        = prefix + '.y_ref.radius.csv'
+        self.fpath_y_ref_radius        = self.model_path_prefix + '.y_ref.radius.csv'
         # y_ref not recorded separately, it is in the index of this dataframe csv
-        self.fpath_x_clustered         = prefix + '.x_clustered.csv'
-        self.fpath_y_clustered_radius  = prefix + '.y_clustered.radius.csv'
-        # Only for debugging file
-        self.fpath_x_clustered_friendly_txt = prefix + '.x_clustered_friendly.txt'
-        self.fpath_x_clustered_friendly_json = prefix + '.x_clustered_friendly.json'
+        self.fpath_x_clustered         = self.model_path_prefix + '.x_clustered.csv'
+        self.fpath_y_clustered_radius  = self.model_path_prefix + '.y_clustered.radius.csv'
+        #
+        # Used for loading back from partial training, which is easy to load (JSON), and verify (TXT)
+        # Already contains both x_clustered and y_clustered
+        #
+        self.fpath_x_ref_friendly_txt        = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_REF_FRIENDLY_TXT_POSTFIX
+        self.fpath_x_ref_friendly_json       = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_REF_FRIENDLY_JSON_POSTFIX
+        self.fpath_x_clustered_friendly_txt  = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_TXT_POSTFIX
+        self.fpath_x_clustered_friendly_json = self.model_path_prefix +\
+                                               ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX
 
         self.log_training = []
         return
@@ -499,6 +513,63 @@ class ModelData:
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+
+    def load_model_from_partial_trainings_data(
+            self
+    ):
+        # Get all x_clustered & y_clustered files by y_id
+        try:
+            file_pattern_regex = '.*' + ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX + '$'
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading x_clustered files from folder "' + self.model_path_prefix
+                + '", matching pattern "' + str(file_pattern_regex)
+            )
+
+            # Get files under the partial training folder
+            list_files = os.listdir(self.model_path_prefix)
+            r = re.compile(pattern = file_pattern_regex)
+            x_clustered_fnames = list(filter(r.match, list_files))
+
+            count = 0
+            for fname in x_clustered_fnames:
+                x_clstrd_fpath = self.model_path_prefix + '/' + fname
+                try:
+                    with open(x_clstrd_fpath) as x_clstrd_handle:
+                        d = json.load(x_clstrd_handle)
+                    count += 1
+                    log.Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': ' + str(count) + '. Loaded "' + str(fname) + '" as:\n\r' + str(d)
+                        , log_list=self.log_training
+                    )
+                except Exception as ex:
+                    errmsg = \
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        + ': Could not load JSON from "' + str(x_clstrd_fpath) + '". Exception: ' + str(ex)
+                    log.Log.critical(
+                        s        = errmsg,
+                        log_list = self.log_training
+                    )
+                    # Raise exception for this one
+                    raise Exception(errmsg)
+
+            raise Exception('NOT YET FINISHED IMPLEMENTING THIS FUNCTION')
+        except Exception as ex:
+            errmsg = \
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Partial loading exception for "' + str(self.identifier_string)\
+                + '" model. Exception message: ' + str(ex)
+            log.Log.critical(
+                s        = errmsg,
+                log_list = self.log_training
+            )
+            raise Exception(errmsg)
+        #
+        # Unify x_clustered & y_clustered
+        #
+
+        raise Exception('Load model from partial trainings data not yet implemented!')
 
     def sanity_check(self):
         # Check RFV is normalized
