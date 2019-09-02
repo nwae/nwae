@@ -17,6 +17,10 @@ from inspect import currentframe, getframeinfo
 #
 class FeatureVector:
 
+    COL_SYMBOL = 'Symbol'
+    COL_FREQUENCY = 'Frequency'
+    COL_FREQ_NORM = 'FrequencyNormalized'
+
     def __init__(self):
         self.fv_template = None
         self.fv_weights = None
@@ -88,14 +92,32 @@ class FeatureVector:
         # If <feature_as_presence_only> flag set, we don't count frequency, but presence
         if feature_as_presence_only:
             freqs = presence
-        df_counter = pd.DataFrame({'Symbol': symbols, 'Frequency': freqs})
+        df_counter = pd.DataFrame({
+            FeatureVector.COL_SYMBOL: symbols,
+            FeatureVector.COL_FREQUENCY: freqs
+        })
         #lg.Log.debugdebug(df_counter.values)
 
+        df_merge = self.get_freq_feature_vector_df(
+            df_text_counter = df_counter
+        )
+        return df_merge
+
+    def get_freq_feature_vector_df(
+            self,
+            # Data frame of columns 'Symbol', 'Frequency'
+            df_text_counter
+    ):
         # Merge feature vector template with counter
-        df_merge = pd.merge(self.fv_template, df_counter, how='left', on=['Symbol'])
+        df_merge = pd.merge(
+            self.fv_template,
+            df_text_counter,
+            how = 'left',
+            on  = [FeatureVector.COL_SYMBOL]
+        )
         df_merge = df_merge.sort_values(by=['No'], ascending=[True])
         # Replace NaN with 0's
-        df_merge['Frequency'].fillna(0, inplace=True)
+        df_merge[FeatureVector.COL_FREQUENCY].fillna(0, inplace=True)
         lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                           + ': Merged with FV template: ')
         lg.Log.debugdebug(df_merge)
@@ -115,16 +137,16 @@ class FeatureVector:
         # TF (Term Frequency)
         if sum(freq_weighted) > 0.000000001:
             normalize_factor = sum(np.multiply(freq_weighted, freq_weighted)) ** 0.5
-            df_merge['FrequencyNormalized'] = freq_weighted / normalize_factor
+            df_merge[FeatureVector.COL_FREQ_NORM] = freq_weighted / normalize_factor
             # Normalization factor can be 0
-            df_merge['FrequencyNormalized'].fillna(0, inplace=True)
+            df_merge[FeatureVector.COL_FREQ_NORM].fillna(0, inplace=True)
             df_merge['TF'] = freq_weighted / sum(freq_weighted)
         else:
-            df_merge['FrequencyNormalized'] = 0
+            df_merge[FeatureVector.COL_FREQ_NORM] = 0
             df_merge['TF'] = 0
             lg.Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Zero sum of weighted frequency for text "' + str(text) + '".'
+                + ': Zero sum of weighted frequency for df_text_counter "' + str(df_text_counter) + '".'
             )
             df_merge['TF'] = 0
         # TF Normalized is just the same as frequency normalized

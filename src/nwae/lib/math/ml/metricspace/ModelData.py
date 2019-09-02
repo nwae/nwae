@@ -14,6 +14,7 @@ import nwae.lib.math.Constants as const
 import nwae.lib.math.NumpyUtil as npUtil
 import os
 import re
+import nwae.lib.lang.model.FeatureVector as fv
 
 
 class ModelData:
@@ -515,8 +516,19 @@ class ModelData:
             raise Exception(errmsg)
 
     def load_model_from_partial_trainings_data(
-            self
+            self,
+            x_name
     ):
+        self.x_name = x_name
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Using x_name: ' + str(x_name)
+        )
+
+        # We will convert to numpy array later
+        self.x_clustered = []
+        self.y_clustered = []
+
         # Get all x_clustered & y_clustered files by y_id
         try:
             file_pattern_regex = '.*' + ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX + '$'
@@ -531,6 +543,20 @@ class ModelData:
             r = re.compile(pattern = file_pattern_regex)
             x_clustered_fnames = list(filter(r.match, list_files))
 
+            #
+            # Now form the general feature vector
+            #
+            features_model = list(npUtil.NumpyUtil.convert_dimension(arr=x_name, to_dim=1))
+            log.Log.debugdebug('Using model features:\n\r' + str(features_model))
+
+            #
+            # Helper object to convert sentence to a mathematical object (feature vector)
+            #
+            model_fv = fv.FeatureVector()
+            model_fv.set_freq_feature_vector_template(
+                list_symbols = features_model
+            )
+
             count = 0
             for fname in x_clustered_fnames:
                 x_clstrd_fpath = self.model_path_prefix + '/' + fname
@@ -543,6 +569,49 @@ class ModelData:
                         + ': ' + str(count) + '. Loaded "' + str(fname) + '" as:\n\r' + str(d)
                         , log_list=self.log_training
                     )
+
+                    for k in d.keys():
+                        line = d[k]
+                        line_x_name = line['x_name']
+                        line_x      = line['x']
+                        line_y      = line['y']
+                        df_text_counter = pd.DataFrame({
+                            fv.FeatureVector.COL_SYMBOL: line_x_name,
+                            fv.FeatureVector.COL_FREQUENCY: line_x
+                        })
+                        # Get feature vector of text
+                        try:
+                            # TODO When we merge there could be symbols not in feature list
+                            df_fv = model_fv.get_freq_feature_vector_df(
+                                df_text_counter = df_text_counter
+                            )
+                        except Exception as ex:
+                            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                                     + ': Exception occurred calculating FV for "' + str(df_text_counter) \
+                                     + '": Exception "' + str(ex) \
+                                     + '\n\rUsing FV Template:\n\r' + str(model_fv.get_fv_template()) \
+                                     + ', FV Weights:\n\r' + str(model_fv.get_fv_weights())
+                            log.Log.error(errmsg)
+                            raise Exception(errmsg)
+
+                        # This creates a single row matrix that needs to be transposed before matrix multiplications
+                        # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
+                        # For now we make it 1D first
+                        fv_text_1d = np.array(df_fv[fv.FeatureVector.COL_FREQUENCY].values, ndmin=1)
+                        fv_text_1d_norm = np.array(df_fv[fv.FeatureVector.COL_FREQ_NORM].values, ndmin=1)
+                        if fv_text_1d.ndim != 1:
+                            raise Exception(
+                                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
+                            )
+                        log.Log.debug(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + '\n\rConverted to:\n\r' + str(fv_text_1d)
+                            + '\n\rand:\n\r' + str(fv_text_1d_norm)
+                        )
+
+                        self.x_clustered.append(fv_text_1d_norm)
+                        self.y_clustered.append(line_y)
                 except Exception as ex:
                     errmsg = \
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -554,7 +623,17 @@ class ModelData:
                     # Raise exception for this one
                     raise Exception(errmsg)
 
-            raise Exception('NOT YET FINISHED IMPLEMENTING THIS FUNCTION')
+            self.x_clustered = np.array(self.x_clustered)
+            self.y_clustered = np.array(self.y_clustered)
+
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Trained x_clustered:\n\r' + str(self.x_clustered)
+                + '\n\ry_clustered:\n\r' + str(self.y_clustered)
+            )
+
+            # TODO Store in files the trained model
+
         except Exception as ex:
             errmsg = \
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -565,9 +644,6 @@ class ModelData:
                 log_list = self.log_training
             )
             raise Exception(errmsg)
-        #
-        # Unify x_clustered & y_clustered
-        #
 
         raise Exception('Load model from partial trainings data not yet implemented!')
 

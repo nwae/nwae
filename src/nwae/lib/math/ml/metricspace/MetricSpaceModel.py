@@ -695,6 +695,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Load EIDF first
         # TODO How to ensure there are no missing words?
         #
+        x_name = self.training_data.get_x_name().copy()
         try:
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -704,7 +705,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             df_eidf_file = eidf.Eidf.read_eidf_from_storage(
                 dir_path_model    = self.dir_path_model,
                 identifier_string = self.identifier_string,
-                x_name            = self.training_data.get_x_name()
+                x_name            = x_name
             )
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -723,7 +724,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             to_dim = 2
         )
 
-        self.model_data.load_model_from_partial_trainings_data()
+        self.model_data.load_model_from_partial_trainings_data(
+            x_name = x_name
+        )
         return
 
     #
