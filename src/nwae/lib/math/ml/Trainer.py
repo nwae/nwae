@@ -160,6 +160,7 @@ class Trainer(threading.Thread):
                 + '. Training started for "' + self.identifier_string
                 + '", model name "' + str(self.model_name)
                 + '" training data type "' + str(type(self.training_data)) + '" initialized.'
+                , log_list = self.log_training
             )
 
         try:
@@ -170,6 +171,7 @@ class Trainer(threading.Thread):
                 + ': Train mode "' + str(self.train_mode)
                 + '". Training Model using model name "' + str(self.model_name)
                 + '". for bot "' + str(self.identifier_string) + '".'
+                , log_list = self.log_training
             )
             if self.train_mode == Trainer.TRAIN_MODE_MODEL:
                 model_obj = modelHelper.ModelHelper.get_model(
@@ -179,10 +181,11 @@ class Trainer(threading.Thread):
                     training_data       = tdm_object,
                     is_partial_training = self.is_partial_training
                 )
-                self.log_training = model_obj.train(
+                model_obj.train(
                     write_model_to_storage = write_model_to_storage,
                     write_training_data_to_storage = write_training_data_to_storage,
-                    model_params = model_params
+                    model_params = model_params,
+                    logs = self.log_training
                 )
             elif self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL:
                 # Loop by unique y's
@@ -216,10 +219,11 @@ class Trainer(threading.Thread):
                         training_data       = tdm_item,
                         is_partial_training = True
                     )
-                    self.log_training = model_obj_item.train(
+                    model_obj_item.train(
                         write_model_to_storage         = write_model_to_storage,
                         write_training_data_to_storage = write_training_data_to_storage,
-                        model_params                   = model_params
+                        model_params                   = model_params,
+                        logs                           = self.log_training
                     )
                     lg.Log.important(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -234,10 +238,11 @@ class Trainer(threading.Thread):
                     training_data       = tdm_object,
                     is_partial_training = self.is_partial_training
                 )
-                self.log_training = model_obj.train_from_partial_models(
+                model_obj.train_from_partial_models(
                     write_model_to_storage = write_model_to_storage,
                     write_training_data_to_storage = write_training_data_to_storage,
-                    model_params = model_params
+                    model_params = model_params,
+                    logs = self.log_training
                 )
             elif self.train_mode == Trainer.TRAIN_MODE_NLP_EIDF:
                 eidf_opt_obj = eidf.Eidf(
@@ -246,9 +251,9 @@ class Trainer(threading.Thread):
                     x_name = tdm_object.get_x_name()
                 )
                 info_msg = eidf_opt_obj.optimize(
-                    initial_w_as_standard_idf = True
+                    initial_w_as_standard_idf = True,
+                    logs = self.log_training
                 )
-                self.log_training = eidf_opt_obj.log_training
                 lg.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                     + str(info_msg)

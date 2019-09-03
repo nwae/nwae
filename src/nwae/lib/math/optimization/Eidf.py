@@ -219,8 +219,8 @@ class Eidf:
         # between vectors maximum
         self.w = self.w_start.copy()
 
-        self.optimize_info = ''
         self.log_training = []
+        self.optimize_info = ''
 
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -393,10 +393,14 @@ class Eidf:
             # If we don't start with standard IDF=log(present_in_how_many_documents/total_documents),
             # then we Monte Carlo some start points and choose the best one
             initial_w_as_standard_idf = False,
-            max_iter = 10
+            max_iter = 10,
+            # Log training events
+            logs = None
     ):
-        # Clear training log
-        self.log_training = []
+        if type(logs) is list:
+            self.log_training = logs
+        else:
+            self.log_training = []
 
         x_vecs = self.xh.copy()
         y_vecs = self.y.copy()

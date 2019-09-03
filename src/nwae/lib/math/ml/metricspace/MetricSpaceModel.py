@@ -670,6 +670,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             write_model_to_storage = True,
             write_training_data_to_storage = False,
             model_params = None,
+            # Log training events
+            logs = None
     ):
         #
         # Load EIDF first
@@ -677,7 +679,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
         #
         x_name = self.training_data.get_x_name()
         try:
-            self.log_training = []
+            if type(logs) is list:
+                self.log_training = logs
+            else:
+                self.log_training = []
 
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -730,7 +735,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             write_training_data_to_storage = False,
             model_params = None,
             # Option to train a single y ID/label
-            y_id = None
+            y_id = None,
+            # Log training events
+            logs = None
     ):
         prf_start = prf.Profiling.start()
 
@@ -742,7 +749,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         self.__mutex_training.acquire()
         try:
-            self.log_training = []
+            if type(logs) is list:
+                self.log_training = logs
+            else:
+                self.log_training = []
 
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
