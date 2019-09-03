@@ -201,10 +201,10 @@ class ModelData:
         )
         x_clustered_friendly = xy_x_clustered.get_print_friendly_x()
 
-        log.Log.info(
+        log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tx_name:\n\r' + str(df_x_name)
-            + '\n\r\tIDF:\n\r' + str(df_idf)
+            + '\n\r\tEIDF:\n\r' + str(df_idf)
             + '\n\r\tRFV:\n\r' + str(df_x_ref)
             + '\n\r\tRFV friendly:\n\r' + str(x_ref_friendly)
             + '\n\r\tRFV Radius:\n\r' + str(self.df_y_ref_radius)
@@ -517,12 +517,15 @@ class ModelData:
 
     def load_model_from_partial_trainings_data(
             self,
-            x_name
+            # Most updated training data from DB/etc.
+            td_latest
     ):
-        self.x_name = x_name
+        self.x_name = td_latest.get_x_name()
+        y_unique_list_latest = list(set(list(td_latest.get_y())))
+
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Using x_name: ' + str(x_name)
+            + ': Using x_name: ' + str(self.x_name)
         )
 
         # We will convert to numpy array later
@@ -535,29 +538,33 @@ class ModelData:
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Loading x_clustered files from folder "' + self.model_path_prefix
-                + '", matching pattern "' + str(file_pattern_regex)
+                + '/", matching pattern "' + str(file_pattern_regex)
             )
 
             # Get files under the partial training folder
-            list_files = os.listdir(self.model_path_prefix)
+            list_files = os.listdir(self.model_path_prefix + '/')
             r = re.compile(pattern = file_pattern_regex)
             x_clustered_fnames = list(filter(r.match, list_files))
 
             #
             # Now form the general feature vector
             #
-            features_model = list(npUtil.NumpyUtil.convert_dimension(arr=x_name, to_dim=1))
-            log.Log.debugdebug('Using model features:\n\r' + str(features_model))
+            features = list(npUtil.NumpyUtil.convert_dimension(
+                arr    = self.x_name,
+                to_dim = 1
+            ))
+            log.Log.debugdebug('Using model features:\n\r' + str(features))
 
             #
             # Helper object to convert sentence to a mathematical object (feature vector)
             #
             model_fv = fv.FeatureVector()
             model_fv.set_freq_feature_vector_template(
-                list_symbols = features_model
+                list_symbols = features
             )
 
             count = 0
+            count_appended = 0
             for fname in x_clustered_fnames:
                 x_clstrd_fpath = self.model_path_prefix + '/' + fname
                 try:
@@ -575,6 +582,17 @@ class ModelData:
                         line_x_name = line['x_name']
                         line_x      = line['x']
                         line_y      = line['y']
+                        #
+                        # Check if we need to keep this y/label, it might be outdated or deleted already
+                        #
+                        if line_y not in y_unique_list:
+                            log.Log.warning(
+                                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                + ': ' + str(count) + '. Ignoring y label ' + str(line_y)
+                                + ', not in latest training data'
+                                , log_list=self.log_training
+                            )
+                            continue
                         df_text_counter = pd.DataFrame({
                             fv.FeatureVector.COL_SYMBOL: line_x_name,
                             fv.FeatureVector.COL_FREQUENCY: line_x
@@ -604,7 +622,7 @@ class ModelData:
                                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                 + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
                             )
-                        log.Log.debug(
+                        log.Log.debugdebug(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + '\n\rConverted to:\n\r' + str(fv_text_1d)
                             + '\n\rand:\n\r' + str(fv_text_1d_norm)
@@ -612,6 +630,14 @@ class ModelData:
 
                         self.x_clustered.append(fv_text_1d_norm)
                         self.y_clustered.append(line_y)
+
+                        count_appended += 1
+
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Total cluster now=' + str(count_appended) + '. Appended y label ' + str(line_y)
+                            + ' to cluster.'
+                        )
                 except Exception as ex:
                     errmsg = \
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\

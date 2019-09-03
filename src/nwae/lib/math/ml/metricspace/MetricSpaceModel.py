@@ -675,7 +675,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
 
-        log.Log.debug(
+        log.Log.debugdebug(
             str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
             + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
@@ -695,7 +695,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Load EIDF first
         # TODO How to ensure there are no missing words?
         #
-        x_name = self.training_data.get_x_name().copy()
+        x_name = self.training_data.get_x_name()
         try:
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -724,8 +724,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
             to_dim = 2
         )
 
+        #
+        # Combines
+        #
         self.model_data.load_model_from_partial_trainings_data(
-            x_name = x_name
+            td_latest = self.training_data
         )
         return
 
@@ -796,7 +799,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         )
                         log.Log.info(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Successfully Read EIDF from file:\n\r' + str(df_eidf_file)
+                            + ': Successfully Read EIDF from file.'
                         )
                         self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
                     except Exception as ex_eidf:
@@ -854,7 +857,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # to disappear
             self.model_data.y_unique = np.array(list(set(y)))
 
-            log.Log.debug(
+            log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x.tolist())
                 + '\n\r\ty\n\r' + str(y)
