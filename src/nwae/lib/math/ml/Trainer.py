@@ -63,6 +63,8 @@ class Trainer(threading.Thread):
         self.model_name = model_name
 
         self.train_mode = train_mode
+        if self.train_mode is None:
+            self.train_mode = Trainer.TRAIN_MODE_MODEL
         self.y_id = y_id
 
         self.__mutex_training = threading.Lock()
@@ -177,7 +179,7 @@ class Trainer(threading.Thread):
                     training_data       = tdm_object,
                     is_partial_training = self.is_partial_training
                 )
-                model_obj.train(
+                self.log_training = model_obj.train(
                     write_model_to_storage = write_model_to_storage,
                     write_training_data_to_storage = write_training_data_to_storage,
                     model_params = model_params
@@ -214,7 +216,7 @@ class Trainer(threading.Thread):
                         training_data       = tdm_item,
                         is_partial_training = True
                     )
-                    model_obj_item.train(
+                    self.log_training = model_obj_item.train(
                         write_model_to_storage         = write_model_to_storage,
                         write_training_data_to_storage = write_training_data_to_storage,
                         model_params                   = model_params
@@ -232,7 +234,7 @@ class Trainer(threading.Thread):
                     training_data       = tdm_object,
                     is_partial_training = self.is_partial_training
                 )
-                model_obj.train_from_partial_models(
+                self.log_training = model_obj.train_from_partial_models(
                     write_model_to_storage = write_model_to_storage,
                     write_training_data_to_storage = write_training_data_to_storage,
                     model_params = model_params

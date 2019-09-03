@@ -137,33 +137,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         self.bot_training_start_time = None
         self.bot_training_end_time = None
-        self.logs_training = None
         self.is_training_done = False
+        self.log_training = []
+
         self.__mutex_training = threading.Lock()
 
         return
-
-    # #
-    # # Model interface override
-    # #
-    # def run(self):
-    #     self.__mutex_training.acquire()
-    #     try:
-    #         self.bot_training_start_time = dt.datetime.now()
-    #         self.log_training = []
-    #         self.train()
-    #         self.bot_training_end_time = dt.datetime.now()
-    #     except Exception as ex:
-    #         log.Log.critical(
-    #             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-    #             + ': Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
-    #         )
-    #     finally:
-    #         self.is_training_done = True
-    #         self.__mutex_training.release()
-    #
-    #     log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-    #                     + ': Identifier ' + str(self.identifier_string) + '" trained successfully.')
 
     #
     # Model interface override
@@ -564,7 +543,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     def get_clusters(
             x,
             y,
-            x_name
+            x_name,
+            log_training = None
     ):
         class retclass:
             def __init__(self, x_cluster, y_cluster, y_cluster_radius):
@@ -697,25 +677,30 @@ class MetricSpaceModel(modelIf.ModelInterface):
         #
         x_name = self.training_data.get_x_name()
         try:
+            self.log_training = []
+
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Initializing IDF object.. try to read from file first'
+                , log_list = self.log_training
             )
             # Try to read from file
             df_eidf_file = eidf.Eidf.read_eidf_from_storage(
                 dir_path_model    = self.dir_path_model,
                 identifier_string = self.identifier_string,
-                x_name            = x_name
+                x_name            = x_name,
+                log_training      = self.log_training
             )
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Successfully Read EIDF from file'
+                , log_list = self.log_training
             )
             self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
         except Exception as ex_eidf:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': No EIDF from file available. Exception ' + str(ex_eidf)
-            log.Log.critical(errmsg)
+            log.Log.critical(errmsg, log_list=self.log_training)
             raise Exception(errmsg)
 
         # Standardize to at least 2-dimensional, easier when weighting x
@@ -728,9 +713,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Combines
         #
         self.model_data.load_model_from_partial_trainings_data(
-            td_latest = self.training_data
+            td_latest = self.training_data,
+            log_training = self.log_training
         )
-        return
+        return self.log_training
 
     #
     # Model interface override
@@ -764,7 +750,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + ', y_id ' + str(y_id)
                 + '. Using key features remove quartile = ' + str(self.key_features_remove_quartile)
                 + ', stop features = [' + str(self.stop_features) + ']'
-                + ', weigh by IDF = ' + str(self.weigh_idf)
+                + ', weigh by EIDF = ' + str(self.weigh_idf)
                 , log_list = self.log_training
             )
 
@@ -789,7 +775,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     try:
                         log.Log.info(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Initializing IDF object.. try to read from file first'
+                            + ': Initializing EIDF object.. try to read from file first',
+                            log_list = self.log_training
                         )
                         # Try to read from file
                         df_eidf_file = eidf.Eidf.read_eidf_from_storage(
@@ -799,13 +786,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         )
                         log.Log.info(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Successfully Read EIDF from file.'
+                            + ': Successfully Read EIDF from file.',
+                            log_list = self.log_training
                         )
                         self.model_data.idf = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF])
                     except Exception as ex_eidf:
                         log.Log.critical(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': No EIDF from file available. Recalculating EIDF..'
+                            + ': No EIDF from file available. Recalculating EIDF..',
+                            log_list = self.log_training
                         )
                         idf_opt_obj = eidf.Eidf(
                             x      = self.training_data.get_x(),
@@ -834,7 +823,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
             log.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tEIDF values:\n\r' + str(self.model_data.idf)
+                + '\n\r\tEIDF values:\n\r' + str(self.model_data.idf),
+                log_list = self.log_training
             )
 
             #
@@ -862,7 +852,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + '\n\r\tx weighted by idf and renormalized:\n\r' + str(x.tolist())
                 + '\n\r\ty\n\r' + str(y)
                 + '\n\r\tx_name\n\r' + str(self.model_data.x_name)
-                , log_list=self.log_training
+                , log_list = self.log_training
             )
 
             #
@@ -874,7 +864,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             xy_clstr = MetricSpaceModel.get_clusters(
                 x      = x,
                 y      = y,
-                x_name = self.model_data.x_name
+                x_name = self.model_data.x_name,
+                log_training = self.log_training
             )
             self.model_data.x_clustered = xy_clstr.x_cluster
             self.model_data.y_clustered = xy_clstr.y_cluster
@@ -930,11 +921,13 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 if abs(check_normalized-1) > const.Constants.SMALL_VALUE:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                              + ': Warning! RFV for class [' + str(cs) + '] not 1, but [' + str(check_normalized) + '].'
+                    log.Log.warning(errmsg, log_list=self.training_data)
                     raise Exception(errmsg)
                 else:
-                    log.Log.info(
+                    log.Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Check RFV class "' + str(cs) + '" normalized ok [' + str(check_normalized) + '].'
+                        , log_list = self.log_training
                     )
 
                 #
@@ -953,6 +946,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         + '   Class ' + str(cs) + ' check point ' + str(i)
                         + ', distance= ' + str(dist) + '. Point ' + str(class_points[i])
                         + ' with RFV ' + str(rfv)
+                        , log_list = self.log_training
                     )
                     if dist > radius_max:
                         radius_max = dist
@@ -962,6 +956,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Class "' + str(cs) + '". Max Radius = '
                     + str(self.model_data.df_y_ref_radius[MetricSpaceModel.TERM_RADIUS].loc[cs])
+                    , log_list = self.log_training
                 )
             df_x_ref.sort_index(inplace=True)
             self.model_data.y_ref = np.array(df_x_ref.index)
@@ -971,7 +966,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             if self.do_profiling:
                 log.Log.important(
                     str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                    + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                    + ' PROFILING train(): ' + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop()),
+                    log_list = self.log_training
                 )
 
             if write_model_to_storage:
@@ -987,18 +983,21 @@ class MetricSpaceModel(modelIf.ModelInterface):
         finally:
             self.__mutex_training.release()
 
-        return
+        return self.log_training
 
     def persist_model_to_storage(
             self
     ):
         prf_start = prf.Profiling.start()
-        self.model_data.persist_model_to_storage()
+        self.model_data.persist_model_to_storage(
+            log_training = self.log_training
+        )
         if self.do_profiling:
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ' PROFILING persist_model_to_storage(): '
                 + prf.Profiling.get_time_dif_str(prf_start, prf.Profiling.stop())
+                , log_list = self.log_training
             )
         return
 

@@ -560,7 +560,8 @@ class Eidf:
             dir_path_model,
             identifier_string,
             # We put in the same order as x_name passed in
-            x_name
+            x_name,
+            log_training = None
     ):
         try:
             fpath_eidf = Eidf.get_file_path_eidf(
@@ -596,6 +597,7 @@ class Eidf:
                         str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': EIDF needs to update. Symbols missing as follows: ' + str(x_name_nan.tolist())
                         + '. Replaced NANs with ' + str(Eidf.DEFAULT_EIDF_IF_NAN) + '.'
+                        , log_list = log_training
                     )
 
                 df_eidf = df_eidf.fillna(
@@ -610,7 +612,7 @@ class Eidf:
             errmsg =\
                 str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': Error reading EIDF from file, exception ' + str(ex)
-            lg.Log.error(errmsg)
+            lg.Log.error(errmsg, log_list=log_training)
             raise Exception(errmsg)
 
     def persist_eidf_to_storage(
