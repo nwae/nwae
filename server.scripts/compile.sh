@@ -6,7 +6,7 @@ SCRIPT_NAME="$0"
 #
 # To be defined by the calling script
 #
-COMPILE_DIR=""
+COMPILE_DIR="src"
 
 #
 # Get RAM memory
@@ -68,9 +68,11 @@ echo "[$SCRIPT_NAME] OK Command line params: [$*]"
 # Compile to byte code first
 #
 echo "[$SCRIPT_NAME] Compiling to byte code..."
+cd ..
 if ! $PYTHON_BIN -m compileall $COMPILE_DIR; then
     echo "[$SCRIPT_NAME] ERROR Failed compilation!"
     exit 1
 fi
+cd -
 
 echo "[$SCRIPT_NAME] OK Compilation to byte code successful"
