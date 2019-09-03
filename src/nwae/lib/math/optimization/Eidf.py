@@ -546,12 +546,12 @@ class Eidf:
 
         self.optimize_info =\
             'Train time: ' + str(dt.datetime.now()) + '\n\r' \
-            + 'Using standard IDF as start weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
+            + 'Using standard IDF as start EIDF weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
             + 'Total Iterations = ' + str(iter) + '\n\r'\
             + 'Start ML = ' + str(ml_start) + ', End ML = ' + str(ml_final) + '\n\r' \
             + 'Start weights:\n\r' + str(self.w_start.tolist()) + '\n\r' \
             + 'End weights:\n\r' + str(self.w.tolist()) + '\n\r' \
-            + 'x_name:\n\r' + str(self.x_name)
+            + 'x_name:\n\r' + str(self.x_name.tolist())
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': ' + self.optimize_info
