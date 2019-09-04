@@ -364,7 +364,7 @@ if __name__ == '__main__':
             obj.unit_test_train()
 
         obj.unit_test_predict_classes(
-            include_match_details = False,
+            include_match_details = True,
             top = 2
         )
 

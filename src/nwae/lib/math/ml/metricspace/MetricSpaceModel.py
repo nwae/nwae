@@ -199,9 +199,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
         log.Log.debugdebug('x_distance: ' + str(x_distance) + ', y_label ' + str(y_label))
 
         #
-        # Normalize distance to between 0 and 1
+        # Normalize distance to between 0 and 1 (already normalized)
         #
-        x_distance_norm = x_distance / MetricSpaceModel.HPS_MAX_EUCL_DIST
+        x_distance_norm = x_distance
         log.Log.debugdebug('distance normalized: ' + str(x_distance_norm))
 
         # Theoretical Inequality check
@@ -430,21 +430,17 @@ class MetricSpaceModel(modelIf.ModelInterface):
         log.Log.debugdebug('v normalized:\n\r' + str(v))
 
         #
-        # Calculate distance to x_ref & x_clustered for all the points in the array passed in
+        # Our distance metric
         #
-        # Returns absolute distance
-        distance_x_ref = None
-        # Because we might not be returning the full comparison, the labels need to be updated also
-        y_ref_rel = None
-
-        radial_angle_distance = npUtil.NumpyUtil.calc_metric_radial_angle_distance(
+        metric_distance = npUtil.NumpyUtil.calc_metric_cosine_angle(
             v = v,
             x = self.model_data.x_clustered
         )
+        metric_distance = 1 - metric_distance
 
         # Get the score of point relative to all classes.
         df_class_score = self.calc_proximity_class_score_to_point(
-            x_distance = radial_angle_distance,
+            x_distance = metric_distance,
             y_label    = self.model_data.y_clustered,
             top        = top
         )
@@ -456,8 +452,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Get the top class
         log.Log.debugdebug('x_classes:\n\r' + str(top_classes_label))
         log.Log.debugdebug('Class for point:\n\r' + str(top_classes_label))
-        log.Log.debugdebug('distance to rfv:\n\r' + str(distance_x_ref))
-        log.Log.debugdebug('radial angle distance to x_clustered:\n\r' + str(radial_angle_distance))
+        log.Log.debugdebug('distance metric to x_clustered:\n\r' + str(metric_distance))
         log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
 
         # Mean square error MSE and MSE normalized

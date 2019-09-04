@@ -61,9 +61,16 @@ class NumpyUtil:
 
     #
     # For points on a hypersphere, 1-dotproduct is the angle distance
+    # The point v and points in the array x are assumed to be already on the positive hypersphere.
+    # If not this metric has no meaning.
+    #
+    # In neural network interpretation this is equivalent to an input of dimension v,
+    # and a layer with x.shape[0] nodes.
+    # Each node then has weights x[node] which is the plane perpendicular to the reference
+    # point on the hypersphere.
     #
     @staticmethod
-    def calc_metric_radial_angle_distance(
+    def calc_metric_cosine_angle(
             # Point
             v,
             # Array of points
@@ -82,15 +89,13 @@ class NumpyUtil:
             raise Exception(errmsg)
 
         element_product = np.multiply(x, v)
-        dot_product = np.sum(element_product, axis=1)
-        angle_distance = 1 - dot_product
+        cosine_angle = np.sum(element_product, axis=1)
         log.Log.debugdebug(
             str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
             + ': Dot product between x:\n\r' + str(x)
             + '\n\rand v:\n\r' + str(v)
             + '\n\relement product:\n\r' + str(element_product)
-            + '\n\rdot product:\n\r' + str(dot_product)
-            + '\n\rangle distance:\n\r' + str(angle_distance)
+            + '\n\rcosine angle:\n\r' + str(cosine_angle)
         )
         if do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
@@ -100,7 +105,33 @@ class NumpyUtil:
                 + ' milliseconds.'
             )
 
-        return angle_distance
+        #
+        # We assume all x are positive and v also, thus cosine angle should be between [0,1]
+        #
+        bad_rows = (cosine_angle<0.0) | (cosine_angle>1.0)
+        sum_bad_rows = np.sum(1*bad_rows)
+        if sum_bad_rows > 0:
+            log.Log.warning(
+                str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno)
+                + ': Bad Rows produced from dot product between x:\n\r' + str(x[bad_rows].tolist())
+                + '\n\rand v:\n\r' + str(v.tolist())
+                + '\n\relement product:\n\r' + str(element_product[bad_rows])
+                + '\n\rcosine angle:\n\r' + str(cosine_angle[bad_rows])
+            )
+            cosine_angle[cosine_angle<0.0] = 0.0
+            cosine_angle[cosine_angle>1.0] = 1.0
+
+        # angle_distance = np.arccos(cosine_angle)
+        # log.Log.debugdebug(
+        #     str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
+        #     + ': Dot product between x:\n\r' + str(x)
+        #     + '\n\rand v:\n\r' + str(v)
+        #     + '\n\relement product:\n\r' + str(element_product)
+        #     + '\n\rcosine angle:\n\r' + str(cosine_angle)
+        #     + '\n\rangle:\n\r' + str(angle_distance)
+        # )
+
+        return cosine_angle
 
 
     #
