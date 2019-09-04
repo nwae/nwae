@@ -11,7 +11,6 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.ml.ModelInterface as modelIf
-import nwae.utils.ObjectPersistence as objper
 import nwae.lib.math.NumpyUtil as npUtil
 import matplotlib.pyplot as plt
 
@@ -229,12 +228,12 @@ class Keras(modelIf.ModelInterface):
 
 if __name__ == '__main__':
     import nwae.ConfigFile as cf
-    cf.ConfigFile.get_cmdline_params_and_init_config()
+    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     kr = Keras(
         identifier_string = 'keras_image_bw_example',
-        dir_path_model    = cf.ConfigFile.DIR_MODELS
+        dir_path_model    = config.DIR_MODELS
     )
     kr.load_mnist_example_data()
 

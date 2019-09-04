@@ -227,14 +227,14 @@ class WordList:
 
 if __name__ == '__main__':
     import nwae.ConfigFile as cf
-    cf.ConfigFile.get_cmdline_params_and_init_config()
+    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
 
 
     for lang in ['cn', 'th']:
         wl = WordList(
             lang             = lang,
-            dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
-            postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST
+            dirpath_wordlist = config.DIR_WORDLIST,
+            postfix_wordlist = config.POSTFIX_WORDLIST
         )
         wl.load_wordlist()
         log.Log.log('')
@@ -258,8 +258,8 @@ if __name__ == '__main__':
         # Stopwords
         sw = WordList(
             lang             = lang,
-            dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
-            postfix_wordlist = cf.ConfigFile.POSTFIX_STOPWORDS
+            dirpath_wordlist = config.DIR_WORDLIST,
+            postfix_wordlist = config.POSTFIX_STOPWORDS
         )
         sw.load_wordlist()
         log.Log.log('')

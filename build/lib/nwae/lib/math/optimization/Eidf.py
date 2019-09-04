@@ -219,8 +219,8 @@ class Eidf:
         # between vectors maximum
         self.w = self.w_start.copy()
 
-        self.optimize_info = ''
         self.log_training = []
+        self.optimize_info = ''
 
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -393,10 +393,14 @@ class Eidf:
             # If we don't start with standard IDF=log(present_in_how_many_documents/total_documents),
             # then we Monte Carlo some start points and choose the best one
             initial_w_as_standard_idf = False,
-            max_iter = 10
+            max_iter = 10,
+            # Log training events
+            logs = None
     ):
-        # Clear training log
-        self.log_training = []
+        if type(logs) is list:
+            self.log_training = logs
+        else:
+            self.log_training = []
 
         x_vecs = self.xh.copy()
         y_vecs = self.y.copy()
@@ -542,12 +546,12 @@ class Eidf:
 
         self.optimize_info =\
             'Train time: ' + str(dt.datetime.now()) + '\n\r' \
-            + 'Using standard IDF as start weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
+            + 'Using standard IDF as start EIDF weights = ' + str(initial_w_as_standard_idf) + '\n\r'\
             + 'Total Iterations = ' + str(iter) + '\n\r'\
             + 'Start ML = ' + str(ml_start) + ', End ML = ' + str(ml_final) + '\n\r' \
             + 'Start weights:\n\r' + str(self.w_start.tolist()) + '\n\r' \
             + 'End weights:\n\r' + str(self.w.tolist()) + '\n\r' \
-            + 'x_name:\n\r' + str(self.x_name)
+            + 'x_name:\n\r' + str(self.x_name.tolist())
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': ' + self.optimize_info
@@ -560,7 +564,8 @@ class Eidf:
             dir_path_model,
             identifier_string,
             # We put in the same order as x_name passed in
-            x_name
+            x_name,
+            log_training = None
     ):
         try:
             fpath_eidf = Eidf.get_file_path_eidf(
@@ -596,6 +601,7 @@ class Eidf:
                         str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': EIDF needs to update. Symbols missing as follows: ' + str(x_name_nan.tolist())
                         + '. Replaced NANs with ' + str(Eidf.DEFAULT_EIDF_IF_NAN) + '.'
+                        , log_list = log_training
                     )
 
                 df_eidf = df_eidf.fillna(
@@ -610,7 +616,7 @@ class Eidf:
             errmsg =\
                 str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': Error reading EIDF from file, exception ' + str(ex)
-            lg.Log.error(errmsg)
+            lg.Log.error(errmsg, log_list=log_training)
             raise Exception(errmsg)
 
     def persist_eidf_to_storage(

@@ -120,8 +120,6 @@ class ModelData:
                                                ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_TXT_POSTFIX
         self.fpath_x_clustered_friendly_json = self.model_path_prefix +\
                                                ModelData.MODEL_FILES_X_CLUSTERED_FRIENDLY_JSON_POSTFIX
-
-        self.log_training = []
         return
 
     def is_model_ready(self):
@@ -155,10 +153,9 @@ class ModelData:
             return False
 
     def persist_model_to_storage(
-            self
+            self,
+            log_training = None
     ):
-        self.log_training = []
-
         # Sort
         df_x_name = pd.DataFrame(data=self.x_name)
 
@@ -201,10 +198,10 @@ class ModelData:
         )
         x_clustered_friendly = xy_x_clustered.get_print_friendly_x()
 
-        log.Log.info(
+        log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tx_name:\n\r' + str(df_x_name)
-            + '\n\r\tIDF:\n\r' + str(df_idf)
+            + '\n\r\tEIDF:\n\r' + str(df_idf)
             + '\n\r\tRFV:\n\r' + str(df_x_ref)
             + '\n\r\tRFV friendly:\n\r' + str(x_ref_friendly)
             + '\n\r\tRFV Radius:\n\r' + str(self.df_y_ref_radius)
@@ -221,21 +218,21 @@ class ModelData:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved x_name shape ' + str(df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
-                , log_list = self.log_training
+                , log_list = log_training
             )
 
             df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved IDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
-                , log_list = self.log_training
+                + ': Saved EIDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
+                , log_list = log_training
             )
 
             df_x_ref.to_csv(path_or_buf=self.fpath_x_ref, index=True, index_label='INDEX')
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_x_ref + '"'
-                , log_list = self.log_training
+                , log_list = log_training
             )
 
         try:
@@ -249,7 +246,7 @@ class ModelData:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
                 + '". ' + str(ex)
-                , log_list=self.log_training
+                , log_list = log_training
             )
 
         try:
@@ -264,7 +261,7 @@ class ModelData:
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Saved x_ref friendly json ' + str(x_ref_friendly)
                     +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-                    , log_list=self.log_training
+                    , log_list = log_training
                 )
         except Exception as ex:
             errmsg =\
@@ -274,7 +271,7 @@ class ModelData:
                 + '". ' + str(ex)
             log.Log.critical(
                 s = errmsg,
-                log_list = self.log_training
+                log_list = log_training
             )
             # Raise exception for this one
             raise Exception(errmsg)
@@ -284,7 +281,7 @@ class ModelData:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved RFV radius with dimensions ' + str(self.df_y_ref_radius.shape)
             + ' filepath "' + self.fpath_y_ref_radius + '"'
-            , log_list = self.log_training
+            , log_list = log_training
         )
 
         if not self.is_partial_training:
@@ -292,7 +289,7 @@ class ModelData:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
-                , log_list=self.log_training
+                , log_list = log_training
             )
 
         df_y_clustered_radius.to_csv(path_or_buf=self.fpath_y_clustered_radius, index=True, index_label='INDEX')
@@ -300,7 +297,7 @@ class ModelData:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Saved y_clustered_radius with shape ' + str(df_y_clustered_radius.shape)
             + ' filepath "' + self.fpath_y_clustered_radius + '"'
-            , log_list=self.log_training
+            , log_list = log_training
         )
 
         try:
@@ -313,14 +310,14 @@ class ModelData:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
                 + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
-                , log_list = self.log_training
+                , log_list = log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
                 + '". ' + str(ex)
-                , log_list=self.log_training
+                , log_list = log_training
             )
 
         try:
@@ -335,7 +332,7 @@ class ModelData:
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Saved x_clustered friendly json ' + str(x_clustered_friendly)
                     +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-                    , log_list = self.log_training
+                    , log_list = log_training
                 )
         except Exception as ex:
             errmsg =\
@@ -345,7 +342,7 @@ class ModelData:
                 + '". ' + str(ex)
             log.Log.critical(
                 s = errmsg,
-                log_list = self.log_training
+                log_list = log_training
             )
             # Raise exception for this one
             raise Exception(errmsg)
@@ -361,14 +358,14 @@ class ModelData:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved update time file "' + self.fpath_updated_file
                 + '" for other processes to detect and restart.'
-                , log_list=self.log_training
+                , log_list = log_training
             )
         except Exception as ex:
             log.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create last updated file "' + self.fpath_updated_file
                 + '". ' + str(ex)
-            , log_list = self.log_training
+            , log_list = log_training
             )
 
     def load_model_parameters_from_storage(
@@ -517,12 +514,16 @@ class ModelData:
 
     def load_model_from_partial_trainings_data(
             self,
-            x_name
+            # Most updated training data from DB/etc.
+            td_latest,
+            log_training
     ):
-        self.x_name = x_name
+        self.x_name = td_latest.get_x_name()
+        y_unique_list_latest = list(set(list(td_latest.get_y())))
+
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Using x_name: ' + str(x_name)
+            + ': Using x_name: ' + str(self.x_name)
         )
 
         # We will convert to numpy array later
@@ -535,29 +536,34 @@ class ModelData:
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Loading x_clustered files from folder "' + self.model_path_prefix
-                + '", matching pattern "' + str(file_pattern_regex)
+                + '/", matching pattern "' + str(file_pattern_regex)
+                , log_list = log_training
             )
 
             # Get files under the partial training folder
-            list_files = os.listdir(self.model_path_prefix)
+            list_files = os.listdir(self.model_path_prefix + '/')
             r = re.compile(pattern = file_pattern_regex)
             x_clustered_fnames = list(filter(r.match, list_files))
 
             #
             # Now form the general feature vector
             #
-            features_model = list(npUtil.NumpyUtil.convert_dimension(arr=x_name, to_dim=1))
-            log.Log.debugdebug('Using model features:\n\r' + str(features_model))
+            features = list(npUtil.NumpyUtil.convert_dimension(
+                arr    = self.x_name,
+                to_dim = 1
+            ))
+            log.Log.debugdebug('Using model features:\n\r' + str(features))
 
             #
             # Helper object to convert sentence to a mathematical object (feature vector)
             #
             model_fv = fv.FeatureVector()
             model_fv.set_freq_feature_vector_template(
-                list_symbols = features_model
+                list_symbols = features
             )
 
             count = 0
+            count_appended = 0
             for fname in x_clustered_fnames:
                 x_clstrd_fpath = self.model_path_prefix + '/' + fname
                 try:
@@ -567,7 +573,6 @@ class ModelData:
                     log.Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': ' + str(count) + '. Loaded "' + str(fname) + '" as:\n\r' + str(d)
-                        , log_list=self.log_training
                     )
 
                     for k in d.keys():
@@ -575,6 +580,17 @@ class ModelData:
                         line_x_name = line['x_name']
                         line_x      = line['x']
                         line_y      = line['y']
+                        #
+                        # Check if we need to keep this y/label, it might be outdated or deleted already
+                        #
+                        if line_y not in y_unique_list_latest:
+                            log.Log.warning(
+                                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                + ': ' + str(count) + '. Ignoring y label ' + str(line_y)
+                                + ', not in latest training data'
+                                , log_list = log_training
+                            )
+                            continue
                         df_text_counter = pd.DataFrame({
                             fv.FeatureVector.COL_SYMBOL: line_x_name,
                             fv.FeatureVector.COL_FREQUENCY: line_x
@@ -591,7 +607,7 @@ class ModelData:
                                      + '": Exception "' + str(ex) \
                                      + '\n\rUsing FV Template:\n\r' + str(model_fv.get_fv_template()) \
                                      + ', FV Weights:\n\r' + str(model_fv.get_fv_weights())
-                            log.Log.error(errmsg)
+                            log.Log.error(errmsg, log_list=log_training)
                             raise Exception(errmsg)
 
                         # This creates a single row matrix that needs to be transposed before matrix multiplications
@@ -604,7 +620,7 @@ class ModelData:
                                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                 + ': Expected a 1D vector, got ' + str(fv_text_1d.ndim) + 'D!'
                             )
-                        log.Log.debug(
+                        log.Log.debugdebug(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + '\n\rConverted to:\n\r' + str(fv_text_1d)
                             + '\n\rand:\n\r' + str(fv_text_1d_norm)
@@ -612,13 +628,22 @@ class ModelData:
 
                         self.x_clustered.append(fv_text_1d_norm)
                         self.y_clustered.append(line_y)
+
+                        count_appended += 1
+
+                        log.Log.info(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Total cluster now=' + str(count_appended) + '. Appended y label ' + str(line_y)
+                            + ' to cluster.'
+                            , log_list = log_training
+                        )
                 except Exception as ex:
                     errmsg = \
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                         + ': Could not load JSON from "' + str(x_clstrd_fpath) + '". Exception: ' + str(ex)
                     log.Log.critical(
                         s        = errmsg,
-                        log_list = self.log_training
+                        log_list = log_training
                     )
                     # Raise exception for this one
                     raise Exception(errmsg)
@@ -630,6 +655,7 @@ class ModelData:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Trained x_clustered:\n\r' + str(self.x_clustered)
                 + '\n\ry_clustered:\n\r' + str(self.y_clustered)
+                , log_list = log_training
             )
 
             # TODO Store in files the trained model
@@ -641,7 +667,7 @@ class ModelData:
                 + '" model. Exception message: ' + str(ex)
             log.Log.critical(
                 s        = errmsg,
-                log_list = self.log_training
+                log_list = log_training
             )
             raise Exception(errmsg)
 

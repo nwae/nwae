@@ -351,26 +351,26 @@ class WordSegmentation(object):
 
 if __name__ == '__main__':
     import nwae.ConfigFile as cf
-    cf.ConfigFile.get_cmdline_params_and_init_config()
+    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     lang_stats = ls.LangStats(
-        dirpath_traindata   = cf.ConfigFile.DIR_NLP_LANGUAGE_TRAINDATA,
-        dirpath_collocation = cf.ConfigFile.DIR_NLP_LANGUAGE_STATS_COLLOCATION
+        dirpath_traindata   = config.DIR_NLP_LANGUAGE_TRAINDATA,
+        dirpath_collocation = config.DIR_NLP_LANGUAGE_STATS_COLLOCATION
     )
     lang_stats.load_collocation_stats()
 
     synonymlist_ro = slist.SynonymList(
         lang                = 'cn',
-        dirpath_synonymlist = cf.ConfigFile.DIR_SYNONYMLIST,
-        postfix_synonymlist = cf.ConfigFile.POSTFIX_SYNONYMLIST
+        dirpath_synonymlist = config.DIR_SYNONYMLIST,
+        postfix_synonymlist = config.POSTFIX_SYNONYMLIST
     )
     synonymlist_ro.load_synonymlist(verbose=1)
 
     ws = WordSegmentation(
         lang             = 'cn',
-        dirpath_wordlist = cf.ConfigFile.DIR_WORDLIST,
-        postfix_wordlist = cf.ConfigFile.POSTFIX_WORDLIST,
+        dirpath_wordlist = config.DIR_WORDLIST,
+        postfix_wordlist = config.POSTFIX_WORDLIST,
         lang_stats       = lang_stats,
         do_profiling     = True
     )

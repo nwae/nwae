@@ -25,6 +25,7 @@ class NumpyUtil:
 
     #
     # Converts to desired numpy array dimension, usually to higher dimension.
+    # Returns a new numpy ndarray object
     #
     @staticmethod
     def convert_dimension(
