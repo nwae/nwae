@@ -47,8 +47,10 @@ class Trainer(threading.Thread):
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             training_data,
+            # If training data is None, must pass a training_data_source object with method fetch_data() implemented
+            training_data_source = None,
             model_name = None,
-            # Either 'train_model' (or None), or 'train_nlp_eidf'
+            # Either 'train_model' (or None), or 'train_nlp_eidf', etc.
             train_mode = TRAIN_MODE_MODEL,
             # Train a single y/label ID only, regardless of train mode
             y_id = None
@@ -57,7 +59,24 @@ class Trainer(threading.Thread):
 
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
+
+        #
+        # We allow training data to be None, as it may take time to fetch this data.
+        # Thus we return this object quickly to caller (to check training logs, etc.).
+        #
+        self.is_training_data_ready = False
         self.training_data = training_data
+        self.training_data_source = training_data_source
+
+        if self.training_data is not None:
+            self.is_training_data_ready = True
+        else:
+            if self.training_data_source is None:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Data source must not be None if training data is None!'
+                )
+
         if model_name is None:
             model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         self.model_name = model_name
@@ -72,27 +91,17 @@ class Trainer(threading.Thread):
         self.bot_training_end_time = None
         self.is_training_done = False
 
-        self.log_training = []
-
-        # Do some conversion if necessary on training data
-        self.__pre_process_training_data()
-        if type(self.training_data) is not tdm.TrainingDataModel:
-            raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': "' + str(self.identifier_string)
-                + '": Wrong training data type "' + str(type(self.training_data)) + '".'
-            )
-
-        # Partial/Incremental training mode
+        #
+        # Partial/Incremental training mode.
+        # In this mode, training model files will only write to sub-folders of the model
+        # directory, instead of the final model files in the model directory.
+        # It is to speed up the actual model training so that only looks in sub-folders
+        # for pre-calculated sub-models.
+        #
         self.is_partial_training = (self.train_mode == Trainer.TRAIN_MODE_MODEL_BY_LABEL)\
                                    | (self.y_id is not None)
-        # Train a single y/label ID only, regardless of train mode
-        if self.y_id is not None:
-            # Filter by this y/label only
-            self.training_data.filter_by_y_id(
-                y_id = self.y_id
-            )
 
+        self.log_training = []
         return
 
     #
@@ -101,6 +110,17 @@ class Trainer(threading.Thread):
     def __pre_process_training_data(
             self
     ):
+        if not self.is_training_data_ready:
+            try:
+                self.training_data = self.training_data_source.fetch_data()
+            except Exception as ex:
+                errmsg = \
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                    + ': Exception calling external object type "' + str(type(self.training_data_source)) \
+                    + '" method fetch_data(), exception msg: ' + str(ex)
+                lg.Log.error(errmsg)
+                raise Exception(errmsg)
+
         #
         # If not in proper TrainingDataModel type, we assume the training data is legacy text form
         #
@@ -114,6 +134,21 @@ class Trainer(threading.Thread):
             )
             # Reassign back to training data
             self.training_data = tdm_object
+
+        if type(self.training_data) is not tdm.TrainingDataModel:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': "' + str(self.identifier_string)
+                + '": Wrong training data type "' + str(type(self.training_data)) + '".'
+            )
+
+        # Train a single y/label ID only, regardless of train mode
+        if self.y_id is not None:
+            # Filter by this y/label only
+            self.training_data.filter_by_y_id(
+                y_id = self.y_id
+            )
+
         return
 
     def run(self):
@@ -121,6 +156,8 @@ class Trainer(threading.Thread):
             self.__mutex_training.acquire()
             self.bot_training_start_time = dt.datetime.now()
             self.log_training = []
+
+            self.__pre_process_training_data()
 
             self.train()
 
