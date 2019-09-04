@@ -60,6 +60,50 @@ class NumpyUtil:
         return arr
 
     #
+    # For points on a hypersphere, 1-dotproduct is the angle distance
+    #
+    @staticmethod
+    def calc_metric_radial_angle_distance(
+            # Point
+            v,
+            # Array of points
+            x,
+            do_profiling = False
+    ):
+        prf_start = None
+        if do_profiling:
+            prf_start = prf.Profiling.start()
+
+        if (type(v) is not np.ndarray) or (type(x) is not np.ndarray):
+            errmsg = str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno)\
+                     + ': Excepted numpy ndarray type, got type v as "' + str(type(v))\
+                     + ', and type x_ref as "' + str(type(x))
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
+
+        element_product = np.multiply(x, v)
+        dot_product = np.sum(element_product, axis=1)
+        angle_distance = 1 - dot_product
+        log.Log.debugdebug(
+            str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
+            + ': Dot product between x:\n\r' + str(x)
+            + '\n\rand v:\n\r' + str(v)
+            + '\n\relement product:\n\r' + str(element_product)
+            + '\n\rdot product:\n\r' + str(dot_product)
+            + '\n\rangle distance:\n\r' + str(angle_distance)
+        )
+        if do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            log.Log.important(
+                str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING calc_metric_inverse_dot_product(): ' + str(round(1000*prf_dur,0))
+                + ' milliseconds.'
+            )
+
+        return angle_distance
+
+
+    #
     # Calculates the normalized distance (0 to 1 magnitude range) of a point v (n dimension)
     # to a set of references (n+1 dimensions or k rows of n dimensional points) by knowing
     # the theoretical max/min of our hypersphere

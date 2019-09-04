@@ -209,7 +209,6 @@ class Ut:
 
     def unit_test_predict_classes(
             self,
-            include_rfv = False,
             include_match_details = False,
             top = 5
     ):
@@ -281,7 +280,6 @@ class Ut:
             if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
                 predict_result = model_obj.predict_class(
                     x           = v,
-                    include_rfv = include_rfv,
                     include_match_details = include_match_details,
                     top = top
                 )
@@ -335,7 +333,6 @@ class Ut:
         if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
             predict_result = model_obj.predict_classes(
                     x           = reordered_test_x,
-                    include_rfv = include_rfv,
                     include_match_details = include_match_details,
                     top = top
                 )
@@ -367,7 +364,6 @@ if __name__ == '__main__':
             obj.unit_test_train()
 
         obj.unit_test_predict_classes(
-            include_rfv = False,
             include_match_details = False,
             top = 2
         )
