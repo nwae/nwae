@@ -106,9 +106,11 @@ class Ut:
 
     def __init__(
             self,
+            config,
             identifier_string,
             model_name
     ):
+        self.config = config
         self.identifier_string = identifier_string
         self.model_name = model_name
 
@@ -145,7 +147,7 @@ class Ut:
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
             model_name        = self.model_name,
-            dir_path_model    = cf.ConfigFile.DIR_MODELS,
+            dir_path_model    = self.config.DIR_MODELS,
             training_data     = self.tdm_obj
         )
 
@@ -218,7 +220,7 @@ class Ut:
         model_obj = modelHelper.ModelHelper.get_model(
             model_name        = self.model_name,
             identifier_string = self.identifier_string,
-            dir_path_model    = cf.ConfigFile.DIR_MODELS,
+            dir_path_model    = self.config.DIR_MODELS,
             training_data     = None
         )
         model_obj.start()
@@ -346,13 +348,14 @@ class Ut:
 
 
 if __name__ == '__main__':
-    cf.ConfigFile.get_cmdline_params_and_init_config()
+    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
 
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
             #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = Ut(
+            config            = config,
             identifier_string = 'demo_ut1',
             model_name        = model_name
         )

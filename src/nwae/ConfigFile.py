@@ -11,51 +11,24 @@ from inspect import currentframe, getframeinfo
 # We put all our common file paths here
 #
 class ConfigFile:
+
+    DEFAULT_LOGLEVEL = lg.Log.LOG_LEVEL_INFO
+
+    SINGLETON = None
+
     #
-    # There is no need to declare the class variables as None, but if we don't
-    # the IDE will show warning/error, which is error prone in programming, since
-    # we won't know the correct variable name.
-    # Thus declaring as None is to prevent programmer error only, and not necessary
-    # because Python in realtime will make the variable available after __init_config().
+    # Always call this method only to make sure we get singleton
     #
-
-    TOP_DIR = None
-    DO_PROFILING = None
-
-    #######################################################################
-    # Models Stuff
-    #######################################################################
-
-    # Where to store model files
-    DIR_MODELS     = None
-
-    #######################################################################
-    # NLP Stuff
-    #######################################################################
-
-    # Word lists
-    DIR_WORDLIST         = None
-    DIR_APP_WORDLIST     = None
-    POSTFIX_WORDLIST     = None
-    POSTFIX_APP_WORDLIST = None
-    POSTFIX_STOPWORDS    = None
-
-    # Synonym lists
-    DIR_SYNONYMLIST      = None
-    POSTFIX_SYNONYMLIST  = None
-
-    # Stopwords lists (to be outdated)
-    DIR_APP_STOPWORDS     = None
-    POSTFIX_APP_STOPWORDS = None
-
-    # Various general text for General NLP Training
-    DIR_NLP_LANGUAGE_TRAINDATA = None
-
-    # Language Stats - Collocation
-    DIR_NLP_LANGUAGE_STATS_COLLOCATION = None
-
     @staticmethod
-    def get_cmdline_params_and_init_config():
+    def get_cmdline_params_and_init_config_singleton():
+        if type(ConfigFile.SINGLETON) is ConfigFile:
+            lg.Log.info(
+                str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Config Singleton from file "' + str(ConfigFile.SINGLETON.CONFIGFILE)
+                + '" exists. Returning Singleton..'
+            )
+            return ConfigFile.SINGLETON
+
         # Default values
         pv = {
             'configfile': None
@@ -70,28 +43,31 @@ class ConfigFile:
                 if param in list(pv.keys()):
                     pv[param] = value
 
-        if (pv['configfile'] is None):
-            raise (Exception('"configfile" param not found on command line!'))
+        if pv['configfile'] is None:
+            raise Exception('"configfile" param not found on command line!')
 
         #
         # !!!MOST IMPORTANT, top directory, otherwise all other config/NLP/training/etc. files we won't be able to find
         #
-        ConfigFile.init_from_app_config_file(
-            config_file=pv['configfile']
+        ConfigFile.SINGLETON = ConfigFile(
+            config_file = pv['configfile']
         )
+        return ConfigFile.SINGLETON
 
-    @staticmethod
-    def init_from_app_config_file(
-            config_file,
-            # Overwrites port in config file
-            port = None
+    def __init__(
+            self,
+            config_file
     ):
+        self.CONFIGFILE = config_file
+        if not os.path.isfile(self.CONFIGFILE):
+            raise Exception('Configfile "' + str(self.CONFIGFILE) + '" is not a valid file path!')
+
         # Default values
         pv = {
             'topdir': None,
             'debug': '0',
             'do_profiling': '0',
-            'loglevel': lg.Log.LOG_LEVEL_INFO
+            'loglevel': ConfigFile.DEFAULT_LOGLEVEL
         }
         try:
             f = open(config_file, 'r')
@@ -115,70 +91,81 @@ class ConfigFile:
                         pv[param] = value
 
             lg.Log.important(
-                str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Read from app config file "' + str(config_file)
                 + ', file lines:\n\r' + str(linelist) + ', properties\n\r' + str(pv)
             )
 
-            ConfigFile.init_config(
-                topdir = pv['topdir']
-            )
+            self.TOP_DIR = pv['topdir']
+            self.reset_default_config()
 
+            self.LOGLEVEL = float(pv['loglevel'])
+            lg.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': CONFIG LOGLEVEL set to "' + str(self.LOGLEVEL) + '".'
+            )
             lg.Log.LOGLEVEL = float(pv['loglevel'])
             if pv['debug'] == '1':
                 lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+                lg.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': CONFIG DEBUG_PRINT_ALL_TO_SCREEN set to "' + str(lg.Log.DEBUG_PRINT_ALL_TO_SCREEN) + '".'
+                )
 
             if pv['do_profiling'] == '1':
-                ConfigFile.DO_PROFILING = True
+                self.DO_PROFILING = True
+                lg.Log.critical(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': CONFIG DO_PROFILING set to "' + str(self.DO_PROFILING) + '".'
+                )
         except Exception as ex:
-            errmsg = str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error reading app config file "' + str(config_file)\
                      + '". Exception message ' + str(ex)
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
 
-    @staticmethod
-    def init_config(
-            topdir
+    def reset_default_config(
+            self
     ):
         # This is the only variable that we should change, the top directory
-        ConfigFile.TOP_DIR = topdir
-        if not os.path.isdir(topdir):
-            errmsg = str(ConfigFile.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                     + ': Fatal error initializing config, "' + str(topdir) + '" is not a directory!'
+        if not os.path.isdir(self.TOP_DIR):
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Fatal error initializing config, "' + str(self.TOP_DIR) + '" is not a directory!'
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
 
-        ConfigFile.DO_PROFILING = False
+        self.LOGLEVEL = ConfigFile.DEFAULT_LOGLEVEL
+        self.DO_PROFILING = False
 
         #######################################################################
         # Models Stuff
         #######################################################################
 
         # Where to store model files
-        ConfigFile.DIR_MODELS = ConfigFile.TOP_DIR + '/app.data/models'
+        self.DIR_MODELS = self.TOP_DIR + '/app.data/models'
 
         #######################################################################
         # NLP Stuff
         #######################################################################
 
         # Word lists
-        ConfigFile.DIR_WORDLIST = ConfigFile.TOP_DIR + '/nlp.data/wordlist'
-        ConfigFile.DIR_APP_WORDLIST = ConfigFile.TOP_DIR + '/nlp.data/app/chats'
-        ConfigFile.POSTFIX_WORDLIST = '-wordlist.txt'
-        ConfigFile.POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
-        ConfigFile.POSTFIX_STOPWORDS = '-stopwords.txt'
+        self.DIR_WORDLIST = self.TOP_DIR + '/nlp.data/wordlist'
+        self.DIR_APP_WORDLIST = self.TOP_DIR + '/nlp.data/app/chats'
+        self.POSTFIX_WORDLIST = '-wordlist.txt'
+        self.POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
+        self.POSTFIX_STOPWORDS = '-stopwords.txt'
 
         # Synonym lists
-        ConfigFile.DIR_SYNONYMLIST = ConfigFile.TOP_DIR + '/nlp.data/app/chats'
-        ConfigFile.POSTFIX_SYNONYMLIST = '.synonymlist.txt'
+        self.DIR_SYNONYMLIST = self.TOP_DIR + '/nlp.data/app/chats'
+        self.POSTFIX_SYNONYMLIST = '.synonymlist.txt'
 
         # Stopwords lists (to be outdated)
-        ConfigFile.DIR_APP_STOPWORDS = ConfigFile.DIR_APP_WORDLIST
-        ConfigFile.POSTFIX_APP_STOPWORDS = '.stopwords.app.txt'
+        self.DIR_APP_STOPWORDS = self.DIR_APP_WORDLIST
+        self.POSTFIX_APP_STOPWORDS = '.stopwords.app.txt'
 
         # Various general text for General NLP Training
-        ConfigFile.DIR_NLP_LANGUAGE_TRAINDATA = ConfigFile.TOP_DIR + '/nlp.data/traindata'
+        self.DIR_NLP_LANGUAGE_TRAINDATA = self.TOP_DIR + '/nlp.data/traindata'
 
         # Language Stats - Collocation
-        ConfigFile.DIR_NLP_LANGUAGE_STATS_COLLOCATION = ConfigFile.TOP_DIR + '/nlp.output/collocation.stats'
+        self.DIR_NLP_LANGUAGE_STATS_COLLOCATION = self.TOP_DIR + '/nlp.output/collocation.stats'
