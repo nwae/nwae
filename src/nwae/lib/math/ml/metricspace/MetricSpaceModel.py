@@ -50,6 +50,20 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
     MODEL_NAME = 'hypersphere_metricspace'
 
+    # From rescoring training data (using SEARCH_TOPX_RFV=5), we find that
+    #    5% quartile score  = 10
+    #    25% quartile score = 22
+    #    50% quartile score = 32
+    #    75% quartile score = 42
+    #    95% quartile score = 58
+    # Using the above information, we set
+    CONFIDENCE_LEVEL_5_SCORE = 50
+    CONFIDENCE_LEVEL_4_SCORE = 40
+    CONFIDENCE_LEVEL_3_SCORE = 30
+    CONFIDENCE_LEVEL_2_SCORE = 20   # Means <1% of non-related data will go above it
+    CONFIDENCE_LEVEL_1_SCORE = 10   # This means 25% of non-related data will go above it
+
+
     # Our modified IDF that is much better than the IDF in literature
     # TODO For now it is unusable in production because it is too slow!
     USE_OPIMIZED_IDF = True
@@ -432,11 +446,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
         #
         # Our distance metric
         #
-        metric_distance = npUtil.NumpyUtil.calc_metric_cosine_angle(
+        metric_distance = npUtil.NumpyUtil.calc_metric_angle_distance(
             v = v,
             x = self.model_data.x_clustered
         )
-        metric_distance = 1 - metric_distance
+        # Normalize to [0,1]
+        metric_distance = metric_distance / (np.pi / 2)
 
         # Get the score of point relative to all classes.
         df_class_score = self.calc_proximity_class_score_to_point(

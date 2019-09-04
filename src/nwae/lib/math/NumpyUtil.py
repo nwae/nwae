@@ -70,7 +70,7 @@ class NumpyUtil:
     # point on the hypersphere.
     #
     @staticmethod
-    def calc_metric_cosine_angle(
+    def calc_metric_angle_distance(
             # Point
             v,
             # Array of points
@@ -90,13 +90,13 @@ class NumpyUtil:
 
         element_product = np.multiply(x, v)
         cosine_angle = np.sum(element_product, axis=1)
-        log.Log.debugdebug(
-            str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
-            + ': Dot product between x:\n\r' + str(x)
-            + '\n\rand v:\n\r' + str(v)
-            + '\n\relement product:\n\r' + str(element_product)
-            + '\n\rcosine angle:\n\r' + str(cosine_angle)
-        )
+        # log.Log.debugdebug(
+        #     str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
+        #     + ': Dot product between x:\n\r' + str(x)
+        #     + '\n\rand v:\n\r' + str(v)
+        #     + '\n\relement product:\n\r' + str(element_product)
+        #     + '\n\rcosine angle:\n\r' + str(cosine_angle)
+        # )
         if do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
             log.Log.important(
@@ -121,17 +121,17 @@ class NumpyUtil:
             cosine_angle[cosine_angle<0.0] = 0.0
             cosine_angle[cosine_angle>1.0] = 1.0
 
-        # angle_distance = np.arccos(cosine_angle)
-        # log.Log.debugdebug(
-        #     str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
-        #     + ': Dot product between x:\n\r' + str(x)
-        #     + '\n\rand v:\n\r' + str(v)
-        #     + '\n\relement product:\n\r' + str(element_product)
-        #     + '\n\rcosine angle:\n\r' + str(cosine_angle)
-        #     + '\n\rangle:\n\r' + str(angle_distance)
-        # )
+        angle_distance = np.arccos(cosine_angle)
+        log.Log.debugdebug(
+            str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
+            + ': Dot product between x:\n\r' + str(x)
+            + '\n\rand v:\n\r' + str(v)
+            + '\n\relement product:\n\r' + str(element_product)
+            + '\n\rcosine angle:\n\r' + str(cosine_angle)
+            + '\n\rangle:\n\r' + str(angle_distance)
+        )
 
-        return cosine_angle
+        return angle_distance
 
 
     #
