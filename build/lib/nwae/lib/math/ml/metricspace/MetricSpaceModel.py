@@ -280,7 +280,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self,
             # ndarray type of >= 2 dimensions
             x,
-            include_rfv = False,
             # This will slow down by a whopping 20ms!!
             include_match_details = False,
             top = modelIf.ModelInterface.MATCH_TOP
@@ -320,7 +319,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             v = npUtil.NumpyUtil.convert_dimension(arr=x[i], to_dim=2)
             predict_result = self.predict_class(
                 x           = v,
-                include_rfv = include_rfv,
                 include_match_details = include_match_details
             )
             x_classes.append(list(predict_result.predicted_classes))
@@ -384,7 +382,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self,
             # ndarray type of >= 2 dimensions, single point/row array
             x,
-            include_rfv = False,
             include_match_details = False,
             top = modelIf.ModelInterface.MATCH_TOP
     ):
@@ -440,67 +437,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # Because we might not be returning the full comparison, the labels need to be updated also
         y_ref_rel = None
 
-        # Filtered
-        x_clustered_filtered = self.model_data.x_clustered
-        y_clustered_filtered = self.model_data.y_clustered
-        #
-        # By using RFV first, we will achieve better speed, as this serves to filter the clustered data.
-        # However, accuracy will suffer
-        #
-        if include_rfv:
-            retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
-                v     = v,
-                x_ref = self.model_data.x_ref,
-                y_ref = self.model_data.y_ref,
-                do_profiling = self.do_profiling
-            )
-            distance_x_ref = retobj.distance_x_rel
-            y_ref_rel = retobj.y_rel
-
-            # If we are using RFV, then we can filter away a lot of clustered data
-            df_tmp = pd.DataFrame(
-                data = {
-                    'y_ref': y_ref_rel,
-                    'x_ref_distance': distance_x_ref
-                }
-            )
-            df_tmp = df_tmp.sort_values(by=['x_ref_distance'], ascending=True)
-            df_tmp = df_tmp.loc[0:min(2*top,round(df_tmp.shape[0]/2,0))]
-
-            log.Log.debugdebug(df_tmp)
-            log.Log.debugdebug(y_clustered_filtered)
-            log.Log.debugdebug(x_clustered_filtered)
-            filter_top_labels = np.isin(y_clustered_filtered, df_tmp['y_ref'])
-            y_clustered_filtered = y_clustered_filtered[filter_top_labels]
-            x_clustered_filtered = x_clustered_filtered[filter_top_labels]
-            log.Log.debugdebug(df_tmp)
-            log.Log.debugdebug(y_clustered_filtered)
-            log.Log.debugdebug(x_clustered_filtered)
-
-        retobj = npUtil.NumpyUtil.calc_distance_of_point_to_x_ref(
-            v     = v,
-            x_ref = x_clustered_filtered,
-            y_ref = y_clustered_filtered,
-            do_profiling = self.do_profiling
+        radial_angle_distance = npUtil.NumpyUtil.calc_metric_radial_angle_distance(
+            v = v,
+            x = self.model_data.x_clustered
         )
-        distance_x_clustered = retobj.distance_x_rel
-        y_clustered_rel = retobj.y_rel
-
-        # We combine all the reference points, or sub-classes of the classes. Thus each class
-        # is represented by more than one point, reference sub_classes.
-        if include_rfv:
-            x_distance = np.append(distance_x_ref, distance_x_clustered)
-            y_distance = np.append(y_ref_rel, y_clustered_rel)
-        else:
-            x_distance = distance_x_clustered
-            y_distance = y_clustered_rel
-        log.Log.debugdebug('x_distance combined:\n\r' + str(x_distance))
-        log.Log.debugdebug('y_distance combined:\n\r' + str(y_distance))
 
         # Get the score of point relative to all classes.
         df_class_score = self.calc_proximity_class_score_to_point(
-            x_distance = x_distance,
-            y_label    = y_distance,
+            x_distance = radial_angle_distance,
+            y_label    = self.model_data.y_clustered,
             top        = top
         )
         log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
@@ -512,7 +457,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         log.Log.debugdebug('x_classes:\n\r' + str(top_classes_label))
         log.Log.debugdebug('Class for point:\n\r' + str(top_classes_label))
         log.Log.debugdebug('distance to rfv:\n\r' + str(distance_x_ref))
-        log.Log.debugdebug('distance to x_clustered:\n\r' + str(distance_x_clustered))
+        log.Log.debugdebug('radial angle distance to x_clustered:\n\r' + str(radial_angle_distance))
         log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
 
         # Mean square error MSE and MSE normalized
