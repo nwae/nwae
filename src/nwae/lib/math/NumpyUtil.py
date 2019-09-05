@@ -121,6 +121,10 @@ class NumpyUtil:
             cosine_angle[cosine_angle<0.0] = 0.0
             cosine_angle[cosine_angle>1.0] = 1.0
 
+        #
+        # In neural network form, we would be returning instead 1-cosine_angle, which
+        # is the perpendicular distance from the plane.
+        #
         angle_distance = np.arccos(cosine_angle)
         log.Log.debugdebug(
             str(NumpyUtil.__name__) + str(getframeinfo(currentframe()).lineno) \
