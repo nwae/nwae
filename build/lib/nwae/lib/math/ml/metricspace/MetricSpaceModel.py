@@ -545,10 +545,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 max_cluster_radius_condition_met = False
 
                 # Start with 1 cluster
-                n_clusters = 1
+                n_clusters = 0
                 while not max_cluster_radius_condition_met:
+                    n_clusters += 1
                     np_cluster_centers = None
                     np_cluster_radius = None
+                    log.Log.info(
+                        str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Cls label ' + str(cs) + ' Loop #' + str(n_clusters)
+                    )
 
                     # Do clustering to n_clusters only if it is less than the number of points
                     if rows_of_class.shape[0] > n_clusters:
@@ -563,35 +568,51 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         np_cluster_radius = cluster_result.np_cluster_radius
                         # Remember this distance is calculated without a normalized cluster center, but we ignore for now
                         val_max_cl_radius = max(np_cluster_radius)
-
-                        # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
-                        # then our condition is met
-                        max_cluster_radius_condition_met = \
-                            (rows_of_class.shape[0] <= n_clusters+1) \
-                            or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
-                            or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
-                        n_clusters += 1
-
-                        if not max_cluster_radius_condition_met:
-                            continue
-                        #
-                        # Put the cluster center back on the hypersphere surface, renormalize cluster centers
-                        #
-                        for ii in range(0, np_cluster_centers.shape[0], 1):
-                            cluster_label = ii
-                            cc = np_cluster_centers[ii]
-                            mag = np.sum(np.multiply(cc, cc)) ** 0.5
-                            cc = cc / mag
-                            np_cluster_centers[ii] = cc
                     else:
+                        #
+                        # If number of clusters == number of points, then the cluster centers
+                        # are just the cluster points, and the cluster radiuses are all 0
+                        #
                         np_cluster_centers = np.array(rows_of_class)
-                        val_max_cl_radius = 0
+                        np_cluster_radius = np.array([cs] * rows_of_class.shape[0])
+                        val_max_cl_radius = max(np_cluster_radius)
+
+                    # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
+                    # then our condition is met
+                    max_cluster_radius_condition_met = \
+                        (rows_of_class.shape[0] <= n_clusters+1) \
+                        or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
+                        or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
+
+                    #
+                    # If not the best cluster points, we keep trying with 1 more center
+                    #
+                    if not max_cluster_radius_condition_met:
+                        continue
+
+                    #
+                    # Put the cluster center back on the hypersphere surface, renormalize cluster centers
+                    #
+                    for ii in range(0, np_cluster_centers.shape[0], 1):
+                        cluster_label = ii
+                        cc = np_cluster_centers[ii]
+                        mag = np.sum(np.multiply(cc, cc)) ** 0.5
+                        cc = cc / mag
+                        np_cluster_centers[ii] = cc
 
                     if x_clustered is None:
+                        # First time initializing x_clustered
                         x_clustered = np_cluster_centers
                         y_clustered = np.array([cs] * x_clustered.shape[0])
                         y_clustered_radius = np_cluster_radius
                     else:
+                        log.Log.debugdebug(
+                            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Concatenating x_cls row:\n\r' + str(np_cluster_centers)
+                            + '\n\nto x_cls array:\n\r' + str(x_clustered)
+                            + '\n\ry_cls row:\n\r' + str([cs] * np_cluster_centers.shape[0])
+                            + '\n\ry_radius row:\n\r' + str(np_cluster_radius) + ' to y_cls_radius ' + str(y_clustered_radius)
+                        )
                         # Append rows (thus 1st dimension at axis index 0)
                         x_clustered = np.append(
                             x_clustered,
