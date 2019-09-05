@@ -188,6 +188,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     def calc_proximity_class_score_to_point(
             self,
             # ndarray type of >= 2 dimensions, with 1 row (or 1st dimension length == 1)
+            # This distance metric must be normalized to [0,1] already
             x_distance,
             y_label,
             top = modelIf.ModelInterface.MATCH_TOP
@@ -212,20 +213,13 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         log.Log.debugdebug('x_distance: ' + str(x_distance) + ', y_label ' + str(y_label))
 
-        #
-        # Normalize distance to between 0 and 1 (already normalized)
-        #
-        x_distance_norm = x_distance
-        log.Log.debugdebug('distance normalized: ' + str(x_distance_norm))
-
         # Theoretical Inequality check
-        check_less_than_max = np.sum(1 * (x_distance_norm > 1+const.Constants.SMALL_VALUE))
-        check_greater_than_min = np.sum(1 * (x_distance_norm < 0-const.Constants.SMALL_VALUE))
+        check_less_than_max = np.sum(1 * (x_distance > 1+const.Constants.SMALL_VALUE))
+        check_greater_than_min = np.sum(1 * (x_distance < 0-const.Constants.SMALL_VALUE))
 
         if (check_less_than_max > 0) or (check_greater_than_min > 0):
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                     + ': Distance ' + str(x_distance) + ' fail theoretical inequality test.' \
-                     + ' Distance normalized:\n\r' + str(x_distance_norm)
+                     + ': Distance ' + str(x_distance) + ' fail theoretical inequality test.'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
 
@@ -235,7 +229,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             MetricSpaceModel.TERM_CLASS: y_label,
             # MetricSpaceModel.TERM_SCORE: x_score,
             MetricSpaceModel.TERM_DIST:  x_distance,
-            MetricSpaceModel.TERM_DISTNORM: x_distance_norm
         })
         # Sort distances
         # df_score.sort_values(by=[MetricSpaceModel.TERM_DIST], ascending=True, inplace=True)
@@ -249,7 +242,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         # Put score last (because we need to do groupby().min() above, which will screw up the values
         # as score is in the reverse order with distances) and sort scores
-        np_distnorm = np.array(df_score[MetricSpaceModel.TERM_DISTNORM])
+        np_distnorm = np.array(df_score[MetricSpaceModel.TERM_DIST])
         score_vec = np.round(100 - np_distnorm*100, 1)
         df_score[MetricSpaceModel.TERM_SCORE] = score_vec
         # Maximum confidence level is 5, minimum 0
@@ -324,7 +317,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
         x_classes = []
         top_class_distance = []
         mse = 0
-        mse_norm = 0
 
         #
         # Calculate distance to x_ref & x_clustered for all the points in the array passed in
@@ -340,9 +332,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             if include_match_details:
                 match_details[i] = predict_result.match_details
             metric = predict_result.top_class_distance
-            metric_norm = metric / MetricSpaceModel.HPS_MAX_EUCL_DIST
             mse += metric ** 2
-            mse_norm += metric_norm ** 2
 
         # Mean square error MSE and MSE normalized
         top_class_distance = np.array(top_class_distance)
@@ -353,23 +343,20 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     predicted_classes,
                     top_class_distance,
                     match_details,
-                    mse,
-                    mse_norm
+                    mse
             ):
                 self.predicted_classes = predicted_classes
                 # The top class and shortest distances (so that we can calculate sum of squared error
                 self.top_class_distance = top_class_distance
                 self.match_details = match_details
                 self.mse = mse
-                self.mse_norm = mse_norm
                 return
 
         retval = retclass(
             predicted_classes  = x_classes,
             top_class_distance = top_class_distance,
             match_details      = match_details,
-            mse                = mse,
-            mse_norm           = mse_norm
+            mse                = mse
         )
 
         if self.do_profiling:
@@ -452,6 +439,23 @@ class MetricSpaceModel(modelIf.ModelInterface):
         )
         # Normalize to [0,1]
         metric_distance = metric_distance / (np.pi / 2)
+
+        #
+        # Remove
+        #
+        # min_distance = min(metric_distance)
+        # log.Log.debugdebug(
+        #     'Min distance ' + str(min_distance) + ' from ' + str(metric_distance)
+        # )
+        # keep = metric_distance<2*min_distance
+        # keep_metric = metric_distance[keep]
+        # keep_x_clustered = self.model_data.x_clustered[keep]
+        # keep_y_clustered = self.model_data.y_clustered[keep]
+        # log.Log.debugdebug(
+        #     'Keep only x_clustered ' + str(keep_x_clustered)
+        #     + '\n\ry_clustered ' + str(keep_y_clustered)
+        #     + '\n\rmetric ' + str(keep_metric)
+        # )
 
         # Get the score of point relative to all classes.
         df_class_score = self.calc_proximity_class_score_to_point(

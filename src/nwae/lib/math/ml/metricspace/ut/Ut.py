@@ -269,7 +269,6 @@ class Ut:
         all_y_observed_top = []
         all_y_observed = []
         mse = 0
-        mse_norm = 0
         count_all = reordered_test_x.shape[0]
 
         log.Log.info('Predict classes for x:\n\r' + str(reordered_test_x))
@@ -302,9 +301,7 @@ class Ut:
 
             if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
                 metric = top_class_distance
-                metric_norm = metric / msModel.MetricSpaceModel.HPS_MAX_EUCL_DIST
                 mse += metric ** 2
-                mse_norm += metric_norm ** 2
 
         prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
         log.Log.important(
@@ -328,7 +325,6 @@ class Ut:
             )
 
         log.Log.info('mse = ' + str(mse))
-        log.Log.info('mse_norm = ' + str(mse_norm))
 
         if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
             predict_result = model_obj.predict_classes(
@@ -340,7 +336,6 @@ class Ut:
             log.Log.info('Top class distance:\n\r' + str(predict_result.top_class_distance))
             log.Log.info('Match Details:\n\r' + str(predict_result.match_details))
             log.Log.info('MSE = ' + str(predict_result.mse))
-            log.Log.info('MSE Normalized = ' + str(predict_result.mse_norm))
         return
 
 
