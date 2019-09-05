@@ -550,7 +550,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     n_clusters += 1
                     np_cluster_centers = None
                     np_cluster_radius = None
-                    log.Log.debugdebug('************* Cluster label ' + str(cs) + ' Loop #' + str(n_clusters))
+                    log.Log.info(
+                        str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Cls label ' + str(cs) + ' Loop #' + str(n_clusters)
+                    )
 
                     # Do clustering to n_clusters only if it is less than the number of points
                     if rows_of_class.shape[0] > n_clusters:
@@ -604,7 +607,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         y_clustered_radius = np_cluster_radius
                     else:
                         log.Log.debugdebug(
-                            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + ': Concatenating x_cls row:\n\r' + str(np_cluster_centers)
                             + '\n\nto x_cls array:\n\r' + str(x_clustered)
                             + '\n\ry_cls row:\n\r' + str([cs] * np_cluster_centers.shape[0])
