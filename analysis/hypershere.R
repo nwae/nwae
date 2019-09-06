@@ -5,9 +5,9 @@ options(scipen=999)
 setwd("~/git/nwae/nwae/analysis")
 
 # How many dimensional space
-DIM = 1000
+DIM = 500
 # How many simulations
-N_SIMS = 1000000
+N_SIMS = 100000
 
 #
 # Pick positive points at random
