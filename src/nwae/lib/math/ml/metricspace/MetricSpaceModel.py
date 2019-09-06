@@ -77,7 +77,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     # TODO For certain classes, all points are different, and this min cluster will not work
     #
     CLUSTER_RADIUS_MAX = 0.5
-    N_CLUSTER_MAX = 8
+    N_CLUSTER_MAX = 12
 
     def __init__(
             self,
