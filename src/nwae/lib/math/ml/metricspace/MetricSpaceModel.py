@@ -553,6 +553,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     log.Log.info(
                         str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cls label ' + str(cs) + ' Loop #' + str(n_clusters)
+                        , log_list = log_training
                     )
 
                     # Do clustering to n_clusters only if it is less than the number of points
@@ -630,7 +631,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             except Exception as ex:
                 errmsg = str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                          + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                log.Log.error(errmsg)
+                log.Log.error(errmsg, log_list=log_training)
                 raise Exception(errmsg)
 
         retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
