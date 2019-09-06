@@ -74,10 +74,17 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
     #
     # Radius min/max
-    # TODO For certain classes, all points are different, and this min cluster will not work
+    # TODO
+    #  Derive theoretical value for max cluster radius, such that it is say in the 5% low
+    #  quantile of distances between 2 points chosen at random on a hypersphere of unit radius.
     #
     CLUSTER_RADIUS_MAX = HPS_MAX_EUCL_DIST / 1.618
+    # TODO
+    #  Max cluster should depend on theoretical value of number of points in a cluster
     N_CLUSTER_MAX = 10
+    # TODO
+    #  Same thing, should depend on some factor
+    IDEAL_MIN_POINTS_PER_CLUSTER = 5
 
     def __init__(
             self,
@@ -588,7 +595,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         (rows_of_class.shape[0] <= n_clusters+1) \
                         or (
                                 (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX)
-                                and (points_per_cluster <= 5)
+                                and (points_per_cluster <= MetricSpaceModel.IDEAL_MIN_POINTS_PER_CLUSTER)
                         ) \
                         or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
 
