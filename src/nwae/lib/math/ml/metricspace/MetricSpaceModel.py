@@ -76,8 +76,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     # Radius min/max
     # TODO For certain classes, all points are different, and this min cluster will not work
     #
-    CLUSTER_RADIUS_MAX = 0.5
-    N_CLUSTER_MAX = 12
+    CLUSTER_RADIUS_MAX = HPS_MAX_EUCL_DIST / 1.618
+    N_CLUSTER_MAX = 10
 
     def __init__(
             self,
@@ -578,11 +578,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         np_cluster_radius = np.array([cs] * rows_of_class.shape[0])
                         val_max_cl_radius = max(np_cluster_radius)
 
-                    # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
+                    # If
+                    #  1. Number of clusters already equal to points
+                    #  2. (Max cluster radius < CLUSTER_RADIUS_MAX) AND (Points Per Cluster is below or equal 5)
+                    #  3. Number of clusters already exceed our limit N_CLUSTER_MAX
                     # then our condition is met
+                    points_per_cluster = rows_of_class.shape[0] / n_clusters
                     max_cluster_radius_condition_met = \
                         (rows_of_class.shape[0] <= n_clusters+1) \
-                        or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
+                        or (
+                                (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX)
+                                and (points_per_cluster <= 5)
+                        ) \
                         or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
 
                     #
