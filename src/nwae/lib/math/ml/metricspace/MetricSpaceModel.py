@@ -75,10 +75,16 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #
     # Radius min/max
     # TODO
-    #  Derive theoretical value for max cluster radius, such that it is say in the 5% low
+    #  Derive theoretical value for max cluster radius, such that it is say in the 0.1% low
     #  quantile of distances between 2 points chosen at random on a hypersphere of unit radius.
+    # Math Result
+    #  - The mean of distance between 2 random points on the positive hemisphere of the hypersphere
+    #    is (2^0.5)/2 or about 0.7071068
+    #  - The 0.1% quartile for 1,000 dimension is about 0.663, and this value gets bigger with higher
+    #    dimension. At 2000 dimension the 0.1% quartile is about 0.676
     #
-    CLUSTER_RADIUS_MAX = HPS_MAX_EUCL_DIST / 1.618
+    CLUSTER_RADIUS_MAX = 0.663
+    #CLUSTER_RADIUS_MAX = HPS_MAX_EUCL_DIST / 1.618
     # TODO
     #  Max cluster should depend on theoretical value of number of points in a cluster
     N_CLUSTER_MAX = 10

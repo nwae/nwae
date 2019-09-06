@@ -5,7 +5,7 @@ options(scipen=999)
 setwd("~/git/nwae/nwae/analysis")
 
 # How many dimensional space
-DIM = 500
+DIM = 2000
 # How many simulations
 N_SIMS = 100000
 
@@ -37,3 +37,4 @@ dist = rowSums(dif*dif)**0.5
 mean(dist)
 
 quantile(dist, c(1:20)/20)
+quantile(dist, c(0.001, 0.999))
