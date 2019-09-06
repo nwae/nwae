@@ -74,10 +74,17 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
     #
     # Radius min/max
-    # TODO For certain classes, all points are different, and this min cluster will not work
+    # TODO
+    #  Derive theoretical value for max cluster radius, such that it is say in the 5% low
+    #  quantile of distances between 2 points chosen at random on a hypersphere of unit radius.
     #
-    CLUSTER_RADIUS_MAX = 0.5
-    N_CLUSTER_MAX = 5
+    CLUSTER_RADIUS_MAX = HPS_MAX_EUCL_DIST / 1.618
+    # TODO
+    #  Max cluster should depend on theoretical value of number of points in a cluster
+    N_CLUSTER_MAX = 10
+    # TODO
+    #  Same thing, should depend on some factor
+    IDEAL_MIN_POINTS_PER_CLUSTER = 5
 
     def __init__(
             self,
@@ -553,6 +560,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     log.Log.info(
                         str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Cls label ' + str(cs) + ' Loop #' + str(n_clusters)
+                        , log_list = log_training
                     )
 
                     # Do clustering to n_clusters only if it is less than the number of points
@@ -577,11 +585,18 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         np_cluster_radius = np.array([cs] * rows_of_class.shape[0])
                         val_max_cl_radius = max(np_cluster_radius)
 
-                    # If number of clusters already equal to points, or max cluster radius < RADIUS_MAX
+                    # If
+                    #  1. Number of clusters already equal to points
+                    #  2. (Max cluster radius < CLUSTER_RADIUS_MAX) AND (Points Per Cluster is below or equal 5)
+                    #  3. Number of clusters already exceed our limit N_CLUSTER_MAX
                     # then our condition is met
+                    points_per_cluster = rows_of_class.shape[0] / n_clusters
                     max_cluster_radius_condition_met = \
                         (rows_of_class.shape[0] <= n_clusters+1) \
-                        or (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX) \
+                        or (
+                                (val_max_cl_radius <= MetricSpaceModel.CLUSTER_RADIUS_MAX)
+                                and (points_per_cluster <= MetricSpaceModel.IDEAL_MIN_POINTS_PER_CLUSTER)
+                        ) \
                         or (n_clusters >= MetricSpaceModel.N_CLUSTER_MAX)
 
                     #
@@ -630,7 +645,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             except Exception as ex:
                 errmsg = str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                          + ': Error for class "' + str(cs) + '", Exception msg ' + str(ex) + '.'
-                log.Log.error(errmsg)
+                log.Log.error(errmsg, log_list=log_training)
                 raise Exception(errmsg)
 
         retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
