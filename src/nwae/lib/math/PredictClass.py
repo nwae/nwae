@@ -191,7 +191,11 @@ class PredictClass(threading.Thread):
         log.Log.debugdebug('#')
         log.Log.debugdebug('# TEXT NORMALIZATION')
         log.Log.debugdebug('#')
-        log.Log.debugdebug('Text [' + text_segmented + '] normalized to [' + text_normalized + ']')
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented)
+            + '", normalized to "' + str(text_normalized) + '"'
+        )
         if self.do_profiling:
             log.Log.info(
                 '.' + space_profiling
@@ -283,7 +287,7 @@ class PredictClass(threading.Thread):
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
 
-        log.Log.debug(
+        log.Log.debugdebug(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
             + ', Top Class Distance: ' + str(top_class_distance)

@@ -14,6 +14,7 @@ from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
 import nwae.utils.Profiling as prf
+import nwae.utils.StringUtils as su
 
 
 #
@@ -182,8 +183,7 @@ class WordSegmentation(object):
     def segment_words_ml(
             self,
             text,
-            join_single_alphabets = True,
-            look_from_longest     = True
+            look_from_longest = True
     ):
         # TODO
         return
@@ -201,6 +201,16 @@ class WordSegmentation(object):
 
         return lookforward_chars
 
+    def __is_natural_word_separator(
+            self,
+            chr
+    ):
+        # Space always represents a word separator (not true for Vietnamese!)
+        if (chr in (' ', '。')) or\
+                (chr in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
+            return True
+        else:
+            return False
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
     # Make sure to call convert_to_simplified_chinese() first for traditional Chinese
@@ -208,8 +218,7 @@ class WordSegmentation(object):
     def segment_words(
             self,
             text,
-            join_single_alphabets = True,
-            look_from_longest     = True
+            look_from_longest = True
     ):
 
         a = None
@@ -217,9 +226,6 @@ class WordSegmentation(object):
             a = prf.Profiling.start()
             log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                          + '.      PROFILING Segment Words [' + text + '] Start: ' + str(a))
-
-        if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_EN or len(text)<=1:
-            join_single_alphabets = False
 
         # Get language wordlist
         wl = self.lang_wordlist.wordlist
@@ -238,12 +244,20 @@ class WordSegmentation(object):
         curpos = 0
 
         #
+        # Array of separated words
+        #
+        array_words = []
+
+        #
         # TODO We can speed up some more here by doing only longest matching, thus only looking from longest.
         #
         while curpos < tlen:
             # Already at last character in text, automatically a word separator
             if curpos == tlen-1:
                 word_sep[curpos] = True
+                word_found = text[curpos:(curpos+1)]
+                if not self.__is_natural_word_separator(chr = word_found):
+                    array_words.append(word_found)
                 break
 
             log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -252,8 +266,8 @@ class WordSegmentation(object):
             lookforward_window = min(lookforward_chars, tlen-curpos)
             match_longest = -1
 
-            # Space always represents a word separator
-            if text[curpos] == ' ' or (text[curpos] in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
+            # Check if this character is a natural word separator in this language
+            if self.__is_natural_word_separator(chr = text[curpos]):
                 log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                    + "  Word separator true")
                 match_longest = 0
@@ -288,6 +302,10 @@ class WordSegmentation(object):
 
             if match_longest >= 0:
                 word_sep[curpos + match_longest] = True
+                word_found = text[curpos:(curpos+match_longest+1)]
+                if not self.__is_natural_word_separator(chr = word_found):
+                    array_words.append(word_found)
+
                 log.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                    + '    Found word [' + text[curpos:(curpos+match_longest+1)] + ']')
                 curpos = curpos + match_longest + 1
@@ -313,39 +331,26 @@ class WordSegmentation(object):
                 word_sep[curpos] = True
                 curpos = curpos + 1
 
-        s = ''
+        #
+        # Break into array
+        #
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text "' + str(text) + '", separators ' + str(word_sep)
+            + '\n\rSplit words: ' + str(array_words)
+        )
+
         print_separator = '|'
-        if self.lang=='cn' or self.lang=='th':
+        if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_TH:
             print_separator = ' '
-        for i in range(0, tlen, 1):
-            s = s + text[i]
-            add_print_separator = False
-            if word_sep[i]:
-                if not join_single_alphabets:
-                    add_print_separator = True
-                elif join_single_alphabets:
-                    if ( i==0 and not word_sep[i+1] ) or ( i==tlen-1 and not word_sep[i-1] ):
-                        add_print_separator = True
-                    elif i>=1 and i<tlen-1:
-                        # Join together a string of single alphabets
-                        if not ( word_sep[i-1] and word_sep[i+1] ):
-                            add_print_separator = True
-            if add_print_separator:
-                s = s + print_separator
 
-        # Collapse print separators
-        regex = '[' + print_separator + ']+'
-        s = re.sub(regex, print_separator, s)
-
-        log.Log.debug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Sentence split as follows "' + str(s) + '".')
+        s = su.StringUtils.trim(print_separator.join(array_words))
 
         if self.do_profiling:
             b = prf.Profiling.stop()
             log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                              + ':      PROFILING Segment Words for [' + text + '] to [' + s
-                             +'] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
-
+                             + '] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
         return s
 
 
@@ -354,6 +359,8 @@ if __name__ == '__main__':
     config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
+    lang = lf.LangFeatures.LANG_CN
+
     lang_stats = ls.LangStats(
         dirpath_traindata   = config.DIR_NLP_LANGUAGE_TRAINDATA,
         dirpath_collocation = config.DIR_NLP_LANGUAGE_STATS_COLLOCATION
@@ -361,14 +368,14 @@ if __name__ == '__main__':
     lang_stats.load_collocation_stats()
 
     synonymlist_ro = slist.SynonymList(
-        lang                = 'cn',
+        lang                = lang,
         dirpath_synonymlist = config.DIR_SYNONYMLIST,
         postfix_synonymlist = config.POSTFIX_SYNONYMLIST
     )
-    synonymlist_ro.load_synonymlist(verbose=1)
+    synonymlist_ro.load_synonymlist()
 
     ws = WordSegmentation(
-        lang             = 'cn',
+        lang             = lang,
         dirpath_wordlist = config.DIR_WORDLIST,
         postfix_wordlist = config.POSTFIX_WORDLIST,
         lang_stats       = lang_stats,
@@ -378,7 +385,7 @@ if __name__ == '__main__':
     ws.add_wordlist(
         dirpath=None,
         postfix=None,
-        array_words=list(synonymlist_ro.synonymlist['Word'])
+        array_words=list(synonymlist_ro.synonymlist[slist.SynonymList.COL_WORD])
     )
     len_after = ws.lang_wordlist.wordlist.shape[0]
     if len_after - len_before > 0:
@@ -390,6 +397,6 @@ if __name__ == '__main__':
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
     #text = '入钱'
-    #print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=False))
-    print(ws.segment_words(text=text, join_single_alphabets=True, look_from_longest=True))
+    #print(ws.segment_words(text=text, look_from_longest=False))
+    print(ws.segment_words(text=text, look_from_longest=True))
 
