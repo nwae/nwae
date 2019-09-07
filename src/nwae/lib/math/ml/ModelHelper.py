@@ -10,6 +10,7 @@ class ModelHelper:
     # MODEL_NAME_KERAS = krModel.Keras.MODEL_NAME
     MODEL_NAME_KERAS = 'keras_nn'
     MODEL_NAME_HYPERSPHERE_METRICSPACE = msModel.MetricSpaceModel.MODEL_NAME
+    MODEL_NAME_SEQUENCE_MODEL = 'sequence_model'
 
     @staticmethod
     def get_model(
