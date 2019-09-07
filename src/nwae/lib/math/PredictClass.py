@@ -12,12 +12,13 @@ import nwae.lib.lang.nlp.SynonymList as sl
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
+import threading
 
 
 #
 # Given a model, predicts the point class
 #
-class PredictClass:
+class PredictClass(threading.Thread):
 
     #
     # This is to decide how many top answers to keep.
@@ -44,6 +45,8 @@ class PredictClass:
             postfix_wordlist_app,
             do_profiling = False
     ):
+        super(PredictClass, self).__init__()
+
         self.model_name = model_name
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
@@ -57,12 +60,19 @@ class PredictClass:
         self.postfix_wordlist_app = postfix_wordlist_app
         self.do_profiling = do_profiling
 
+        self.model = modelHelper.ModelHelper.get_model(
+            model_name        = self.model_name,
+            identifier_string = self.identifier_string,
+            dir_path_model    = self.dir_path_model,
+            training_data     = None
+        )
+        self.model.start()
+
         self.synonymlist = sl.SynonymList(
             lang                = self.lang,
             dirpath_synonymlist = self.dirpath_synonymlist,
             postfix_synonymlist = self.postfix_synonymlist
         )
-        self.synonymlist.load_synonymlist()
 
         self.wseg = ws.WordSegmentation(
             lang             = self.lang,
@@ -75,32 +85,78 @@ class PredictClass:
             dirpath = self.dir_wordlist_app,
             postfix = self.postfix_wordlist_app
         )
+        self.count_intent_calls = 0
 
-        # Add synonym list to wordlist (just in case they are not synched)
-        len_before = self.wseg.lang_wordlist.wordlist.shape[0]
-        self.wseg.add_wordlist(
-            dirpath     = None,
-            postfix     = None,
-            array_words = list(self.synonymlist.synonymlist['Word'])
-        )
-        len_after = self.wseg.lang_wordlist.wordlist.shape[0]
-        if len_after - len_before > 0:
-            words_not_synched = self.wseg.lang_wordlist.wordlist['Word'][len_before:len_after]
-            log.Log.warning(
+        # Wait for model to be ready to load synonym & word lists
+        self.start()
+        return
+
+    def run(self):
+        try:
+            self.wait_for_model_to_be_ready(
+                wait_max_time = 30
+            )
+        except Exception as ex:
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Waited 30secs for model to be ready but failed! ' + str(ex)
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
+
+        try:
+            log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ": Warning. These words not in word list but in synonym list:\n\r" + str(words_not_synched)
+                + ": Model " + str(self.model_name) + '" ready. Loading synonym & word lists..'
+            )
+            # Model ready we load the other things
+            self.synonymlist.load_synonymlist(
+                list_main_words = self.model.get_model_features().tolist()
             )
 
-        self.model = modelHelper.ModelHelper.get_model(
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string,
-            dir_path_model    = self.dir_path_model,
-            training_data     = None
-        )
-        self.model.start()
+            # Add synonym list to wordlist (just in case they are not synched)
+            len_before = self.wseg.lang_wordlist.wordlist.shape[0]
+            self.wseg.add_wordlist(
+                dirpath     = None,
+                postfix     = None,
+                array_words = list(self.synonymlist.synonymlist['Word'])
+            )
+            len_after = self.wseg.lang_wordlist.wordlist.shape[0]
+            if len_after - len_before > 0:
+                words_not_synched = self.wseg.lang_wordlist.wordlist['Word'][len_before:len_after]
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ": Warning. These words not in word list but in synonym list:\n\r" + str(words_not_synched)
+                )
+        except Exception as ex:
+            errmsg = \
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Exception initializing synonym & word lists: ' + str(ex)
+            log.Log.critical(errmsg)
+            raise Exception(errmsg)
 
-        self.count_intent_calls = 0
-        return
+    #
+    # Two things need to be ready, the model and our synonym list that depends on x_name from the model
+    #
+    def wait_for_model_to_be_ready(
+            self,
+            wait_max_time = 10
+    ):
+        if self.model.is_model_ready():
+            return
+
+        count = 1
+        sleep_time_wait_model = 0.1
+        while not self.model.is_model_ready():
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Model not yet ready, sleep for ' + str(count * sleep_time_wait_model) + ' secs now..'
+            )
+            if count * sleep_time_wait_model > wait_max_time:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Waited too long ' + str(count * sleep_time_wait_model) + ' secs. Raising exception..'
+                raise Exception(errmsg)
+            time.sleep(sleep_time_wait_model)
+            count = count + 1
 
     #
     # A helper class to predict class given text sentence instead of a nice array
@@ -113,6 +169,8 @@ class PredictClass:
             include_match_details = False,
             chatid = None
     ):
+        self.wait_for_model_to_be_ready()
+
         starttime_prf = prf.Profiling.start()
         space_profiling = '      '
 
@@ -162,22 +220,9 @@ class PredictClass:
             # Any relevant ID for logging purpose only
             id = None
     ):
-        self.count_intent_calls = self.count_intent_calls + 1
+        self.wait_for_model_to_be_ready()
 
-        count = 1
-        sleep_time_wait_model = 0.1
-        wait_max_time = 10
-        while not self.model.is_model_ready():
-            log.Log.warning(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Model not yet ready, sleep for ' + str(count * sleep_time_wait_model) + ' secs now..'
-            )
-            if count * sleep_time_wait_model > wait_max_time:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                         + ': Waited too long ' + str(count * sleep_time_wait_model) + ' secs. Raising exception..'
-                raise Exception(errmsg)
-            time.sleep(sleep_time_wait_model)
-            count = count + 1
+        self.count_intent_calls = self.count_intent_calls + 1
 
         starttime_predict_class = prf.Profiling.start()
 
