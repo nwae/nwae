@@ -18,6 +18,7 @@ class ModelHelper:
             identifier_string,
             dir_path_model,
             training_data,
+            do_profiling = False,
             is_partial_training = False
     ):
         if model_name == ModelHelper.MODEL_NAME_KERAS:
@@ -25,7 +26,8 @@ class ModelHelper:
             kr_model = krModel.Keras(
                 identifier_string = identifier_string,
                 dir_path_model    = dir_path_model,
-                training_data     = training_data
+                training_data     = training_data,
+                do_profiling      = do_profiling
             )
             return kr_model
         else:
@@ -33,6 +35,7 @@ class ModelHelper:
                 identifier_string   = identifier_string,
                 dir_path_model      = dir_path_model,
                 training_data       = training_data,
-                is_partial_training = is_partial_training
+                is_partial_training = is_partial_training,
+                do_profiling        = do_profiling
             )
             return ms_model

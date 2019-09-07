@@ -8,19 +8,10 @@ import nwae.lib.math.ml.ModelInterface as modelIf
 
 
 #
-# Empty template for implementing a new model
+# RNN type of models
 #
 class SequenceModel(modelIf.ModelInterface):
     MODEL_NAME = 'sequence_model'
-
-    #
-    # Overwrite base class
-    #
-    CONFIDENCE_LEVEL_5_SCORE = 50
-    CONFIDENCE_LEVEL_4_SCORE = 40
-    CONFIDENCE_LEVEL_3_SCORE = 30
-    CONFIDENCE_LEVEL_2_SCORE = 20
-    CONFIDENCE_LEVEL_1_SCORE = 10
 
     def __init__(
             self,

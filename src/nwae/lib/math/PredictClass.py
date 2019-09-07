@@ -64,7 +64,8 @@ class PredictClass(threading.Thread):
             model_name        = self.model_name,
             identifier_string = self.identifier_string,
             dir_path_model    = self.dir_path_model,
-            training_data     = None
+            training_data     = None,
+            do_profiling      = self.do_profiling
         )
         self.model.start()
 
