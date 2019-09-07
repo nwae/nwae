@@ -15,6 +15,12 @@ from inspect import getframeinfo, currentframe
 
 class SynonymList:
 
+    COL_ROOTWORD      = 'RootWord'
+    COL_WORD          = 'Word'
+    COL_WORD_NO       = 'WordNumber'
+    COL_WORD_LATIN    = 'WordLatin'
+    COL_WORD_LATIN_NO = 'WordLatinNumber'
+
     def __init__(
             self,
             lang,
@@ -141,17 +147,17 @@ class SynonymList:
 
         # Convert to pandas data frame
         df_synonyms = pd.DataFrame({
-            'RootWord':rootwords,
-            'Word':words,
-            'WordNumber':measures,
-            'WordLatin':words_latin,
-            'WordLatinNumber':measures_latin}
-        )
+            SynonymList.COL_ROOTWORD:      rootwords,
+            SynonymList.COL_WORD:          words,
+            SynonymList.COL_WORD_NO:       measures,
+            SynonymList.COL_WORD_LATIN:    words_latin,
+            SynonymList.COL_WORD_LATIN_NO: measures_latin
+        })
         log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()))
             + ': Successfully loaded synonym list:\n\r' + str(df_synonyms)
         )
-        df_synonyms = df_synonyms.drop_duplicates(subset=['Word'])
+        df_synonyms = df_synonyms.drop_duplicates(subset=[SynonymList.COL_WORD])
         # Need to reset indexes, otherwise some index will be missing
         df_synonyms = df_synonyms.reset_index(drop=True)
 
@@ -167,7 +173,7 @@ class SynonymList:
             word = words[i]
             if len(word)==0:
                 continue
-            rootword = self.synonymlist[self.synonymlist['Word']==word]['RootWord'].values
+            rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
             if len(rootword)==1:
                 # log.Log.log('Rootword of [' + word + '] is [' + rootword + ']')
                 words[i] = rootword[0]

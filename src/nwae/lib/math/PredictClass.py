@@ -118,11 +118,11 @@ class PredictClass(threading.Thread):
             self.wseg.add_wordlist(
                 dirpath     = None,
                 postfix     = None,
-                array_words = list(self.synonymlist.synonymlist['Word'])
+                array_words = list(self.synonymlist.synonymlist[sl.SynonymList.COL_WORD])
             )
             len_after = self.wseg.lang_wordlist.wordlist.shape[0]
             if len_after - len_before > 0:
-                words_not_synched = self.wseg.lang_wordlist.wordlist['Word'][len_before:len_after]
+                words_not_synched = self.wseg.lang_wordlist.wordlist[sl.SynonymList.COL_WORD][len_before:len_after]
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ": Warning. These words not in word list but in synonym list:\n\r" + str(words_not_synched)
