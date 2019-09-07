@@ -181,7 +181,7 @@ class Trainer(threading.Thread):
     def train(
             self,
             write_model_to_storage = True,
-            write_training_data_to_storage = False,
+            write_training_data_to_storage = True,
             model_params = None
     ):
         if type(self.training_data) not in (tdm.TrainingDataModel, pd.DataFrame):

@@ -37,6 +37,17 @@ import nwae.lib.math.optimization.Eidf as eidf
 #         = 2 - 2(x_a*y_a + x_b_*y_b + x_c*y_c)
 #         <= 2
 #
+#    Using the above formula we may also derive the expected distance between 2 random points,
+#    just as a double integral. Thus
+#
+#         E(distance)^2 = int{int{2 - 2xy}}dxdy
+#                       = 2 - int{int{2xy}}dxdy
+#
+# Thus on a whole hypersphere the average distance is sqrt(2) because the double integral of 2xy
+# is just 0 due to symmetry, but on the positive hyper-hemisphere there is an additional term of
+# the double integral of 2xy from 0 to 1.
+# This double integral for positive x, y from 0 to 1 theoretically is 2-(1/sqrt(2)).
+#
 # However we may choose a different metric to speed up calculation, perhaps a linear one.
 #
 # For all classes, or cluster the radius of the class/cluster is defined as the distance of the
@@ -79,7 +90,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #  quantile of distances between 2 points chosen at random on a hypersphere of unit radius.
     # Math Result
     #  - The mean of distance between 2 random points on the positive hemisphere of the hypersphere
-    #    is (2^0.5)/2 or about 0.7071068
+    #    is (2^0.5)/2 or 1/(2^0.5) or about 0.7071068
     #  - The 0.1% quartile for 1,000 dimension is about 0.663, and this value gets bigger with higher
     #    dimension. At 2000 dimension the 0.1% quartile is about 0.676
     #
@@ -446,12 +457,22 @@ class MetricSpaceModel(modelIf.ModelInterface):
         #
         # Our distance metric
         #
+        prf_start_layer_1_neural_network = prf.Profiling.start()
         metric_distance = npUtil.NumpyUtil.calc_metric_angle_distance(
             v = v,
             x = self.model_data.x_clustered
         )
         # Normalize to [0,1]
         metric_distance = metric_distance / (np.pi / 2)
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start_layer_1_neural_network, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_class(): ' + str(prf_dur)
+                + ', calculation of layer 1 neural network = ' + str(dpp) + ' milliseconds.'
+            )
 
         #
         # Remove
@@ -505,8 +526,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             dpp = round(1000 * prf_dur / x.shape[0], 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-                + ' PROFILING predict_classes(): ' + str(prf_dur)
-                + ', time per prediction = ' + str(dpp) + ' milliseconds.'
+                + ' PROFILING predict_class(): ' + str(prf_dur)
+                + ', prediction time = ' + str(dpp) + ' milliseconds.'
             )
 
         return retval

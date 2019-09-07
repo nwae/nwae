@@ -4,6 +4,7 @@
 # !!! Will work only on Python 3 and above
 
 import pandas as pd
+# from iso639 import languages
 
 
 #
@@ -15,12 +16,17 @@ import pandas as pd
 #
 class LangFeatures:
 
+    #
+    # TODO
+    #  Move to use ISO 639-2 standard instead of our own
+    #
     LANG_EN = 'en'
     LANG_CN = 'cn'
     LANG_TH = 'th'
     LANG_VN = 'vn'
     LANG_IN = 'in'
     LANG_KO = 'ko'
+    LANG_FR = 'fr'
 
     ERROR_TOLERANCE = 0.000000000001
 

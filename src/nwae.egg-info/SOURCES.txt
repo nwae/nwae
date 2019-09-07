@@ -8,7 +8,9 @@ src/nwae/lib/lang/LangFeatures.py
 src/nwae/lib/lang/characters/LangCharacters.py
 src/nwae/lib/lang/classification/TextClusterBasic.py
 src/nwae/lib/lang/model/FeatureVector.py
+src/nwae/lib/lang/nlp/Corpora.py
 src/nwae/lib/lang/nlp/LatinEquivalentForm.py
+src/nwae/lib/lang/nlp/PosTagging.py
 src/nwae/lib/lang/nlp/SynonymList.py
 src/nwae/lib/lang/nlp/WordList.py
 src/nwae/lib/lang/nlp/WordSegmentation.py
@@ -19,6 +21,7 @@ src/nwae/lib/math/NumpyUtil.py
 src/nwae/lib/math/PredictClass.py
 src/nwae/lib/math/ml/ModelHelper.py
 src/nwae/lib/math/ml/ModelInterface.py
+src/nwae/lib/math/ml/ModelTemplate.py
 src/nwae/lib/math/ml/Trainer.py
 src/nwae/lib/math/ml/TrainingDataModel.py
 src/nwae/lib/math/ml/deeplearning/Keras.py
