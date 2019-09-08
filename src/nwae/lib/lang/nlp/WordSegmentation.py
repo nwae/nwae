@@ -39,6 +39,7 @@ import nwae.utils.Profiling as prf
 #
 class WordSegmentation(object):
 
+    LOOKFORWARD_MAX_LIMIT = 12
     # Length 4 is good enough to cover 97.95% of Chinese words
     LOOKFORWARD_CN = 4
     # Length 12 is good enough to cover 98.6% of Thai words
@@ -126,7 +127,7 @@ class WordSegmentation(object):
             max_lookforward_chars = min(len(text_array), max_lookforward_chars)
 
         # Not more than the longest lookforward we know, which is for Vietnamese
-        max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_VN, max_lookforward_chars)
+        max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_MAX_LIMIT, max_lookforward_chars)
 
         tlen = len(text_array)
         # Record word separators
@@ -415,7 +416,8 @@ if __name__ == '__main__':
     import nwae.ConfigFile as cf
     config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
 
-    lang = lf.LangFeatures.LANG_CN
+    lang = lf.LangFeatures.LANG_TH
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     lang_stats = ls.LangStats(
         dirpath_traindata   = config.DIR_NLP_LANGUAGE_TRAINDATA,
@@ -439,8 +441,8 @@ if __name__ == '__main__':
     )
     len_before = ws.lang_wordlist.wordlist.shape[0]
     ws.add_wordlist(
-        dirpath=None,
-        postfix=None,
+        dirpath = config.DIR_APP_WORDLIST,
+        postfix = config.POSTFIX_APP_WORDLIST,
         array_words=list(synonymlist_ro.synonymlist[slist.SynonymList.COL_WORD])
     )
     len_after = ws.lang_wordlist.wordlist.shape[0]
@@ -452,8 +454,7 @@ if __name__ == '__main__':
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
-    text = '我等了很久了，還沒有收到手機驗證碼'
+    text = 'ขอเปลี่ยนรหัสผ่านของพันธมิตร'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 
