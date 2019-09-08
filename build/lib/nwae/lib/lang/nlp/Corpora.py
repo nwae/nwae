@@ -33,6 +33,15 @@ class Corpora:
         assert len(sentences_l1) == len(sentences_l2)
         return (sentences_l1, sentences_l2)
 
+    def clean_sentence(
+            self,
+            sentence
+    ):
+        regex_word_split = re.compile(pattern="([!?.,:;$\"')( ])")
+        clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
+        # Return non-empty split values
+        return [w for words in clean_words for w in words if words if w]
+
 
 if __name__ == '__main__':
     obj = Corpora()
@@ -42,3 +51,9 @@ if __name__ == '__main__':
     )
     print(sen_l1[0:10])
     print(sen_l2[0:10])
+    print('Corpora length = ' + str(len(sen_l1)))
+
+    clean_sen_l1 = [obj.clean_sentence(s) for s in sen_l1]
+    clean_sen_l2 = [obj.clean_sentence(s) for s in sen_l2]
+    print(clean_sen_l1[0:10])
+    print(clean_sen_l2[0:10])
