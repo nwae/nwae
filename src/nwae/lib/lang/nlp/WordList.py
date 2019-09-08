@@ -39,7 +39,7 @@ class WordList:
             self,
             lang,
             dirpath_wordlist,
-            postfix_wordlist = '-wordlist.txt'
+            postfix_wordlist
     ):
         self.lang = lang
 
@@ -61,14 +61,14 @@ class WordList:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(lang) + '" syllable split token is "' + self.syl_split_token + '"')
 
-        self.load_wordlist()
+        self.__load_wordlist()
         return
 
-    def load_wordlist(
+    def __load_wordlist(
             self
     ):
         if self.wordlist is None:
-            self.wordlist = self.load_list(
+            self.wordlist = self.__load_list(
                 dirpath = self.dirpath_wordlist,
                 postfix = self.postfix_wordlist
             )
@@ -105,13 +105,13 @@ class WordList:
         )
         wordlist_additional = None
         if array_words is not None:
-            wordlist_additional = self.load_list(
+            wordlist_additional = self.__load_list(
                 dirpath     = None,
                 postfix     = None,
                 array_words = array_words
             )
         else:
-            wordlist_additional = self.load_list(
+            wordlist_additional = self.__load_list(
                 dirpath = dirpath,
                 postfix = postfix
             )
@@ -129,7 +129,7 @@ class WordList:
         return
 
     # General function to load wordlist or stopwords
-    def load_list(
+    def __load_list(
             self,
             dirpath,
             postfix,
