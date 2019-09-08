@@ -107,6 +107,7 @@ class WordSegmentation(object):
     #
     def get_possible_word_separators_from_start(
             self,
+            # Can be of type "str", "list" or "tuple"
             text_array,
             # Should be max_lookforward_ngrams
             max_lookforward_chars = 0,
@@ -145,6 +146,7 @@ class WordSegmentation(object):
         for i_match in range(start_range, end_range, step_range):
             word_tmp = self.syl_split_token.join(text_array[curpos:(curpos + i_match + 1)])
 
+            # How many characters or ngrams (e.g. Vietnamese "gam en" is 2 ngrams)
             n_gram = i_match + 1
             if n_gram not in self.lang_wordlist.ngrams.keys():
                 continue
@@ -164,7 +166,7 @@ class WordSegmentation(object):
             # Valid Boundary Check:
             # In languages like Thai/Hangul, there are rules as to which alphabets may be start of a word.
             # Thus we need to check for next alphabet, if that is start of a word alphabet or not.
-            # This step is super critical for Thai, otherwise there will be too many segmentation errors.
+            # This step is the key step for Thai, otherwise the segmentation will be completely unusable.
             #
             if i_match < max_lookforward_chars - 1:
                 if self.lang == lf.LangFeatures.LANG_TH:
@@ -240,7 +242,8 @@ class WordSegmentation(object):
             # For certain languages like Thai, if a word is split into a single alphabet
             # it certainly has no meaning, and we join them together, until we find a
             # split word of length not 1
-            join_single_meaningless_alphabets_as_one = True
+            join_single_meaningless_alphabets_as_one = True,
+            return_array_of_split_words = False
     ):
         a = prf.Profiling.start()
 
@@ -361,33 +364,9 @@ class WordSegmentation(object):
                     array_words.append(word)
 
         if self.lang == lf.LangFeatures.LANG_TH:
-            array_words_redo = []
-            # Single alphabets have no meaning, so we join them
-            join_word = ''
-            tlen = len(array_words)
-            for i in range(len(array_words)):
-                word = array_words[i]
-                if join_word == '':
-                    if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
-                        array_words_redo.append(word)
-                    else:
-                        # Single alphabet word found, join them to previous
-                        join_word = join_word + word
-                else:
-                    if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
-                        array_words_redo.append(join_word)
-                        array_words_redo.append(word)
-                        join_word = ''
-                    else:
-                        # Single alphabet word found, join them to previous
-                        join_word = join_word + word
-
-                # Already at the last position
-                if i == tlen - 1:
-                    if join_word != '':
-                        array_words_redo.append(join_word)
-            # Set to new array
-            array_words = array_words_redo
+            array_words = self.__join_single_alphabets_as_a_word(
+                array_words = array_words
+            )
 
         #
         # Break into array
@@ -397,6 +376,9 @@ class WordSegmentation(object):
             + ': Text "' + str(text) + '", separators ' + str(word_sep)
             + '\n\rSplit words: ' + str(array_words)
         )
+
+        if return_array_of_split_words:
+            return array_words
 
         print_separator = '|'
         if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_TH:
@@ -410,6 +392,41 @@ class WordSegmentation(object):
                              + ':      PROFILING Segment Words for [' + text + '] to [' + s
                              + '] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
         return s
+
+    def __join_single_alphabets_as_a_word(
+            self,
+            array_words
+    ):
+        array_words_redo = []
+        # Single alphabets have no meaning, so we join them
+        join_word = ''
+        tlen = len(array_words)
+        for i in range(len(array_words)):
+            word = array_words[i]
+            if join_word == '':
+                # Previously no single alphabet
+                if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
+                    array_words_redo.append(word)
+                else:
+                    # Single alphabet word found, join them to previous
+                    join_word = join_word + word
+            else:
+                # Previously has single alphabet
+                if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
+                    # Write the joined alphabets, as the sequence has ended
+                    array_words_redo.append(join_word)
+                    array_words_redo.append(word)
+                    join_word = ''
+                else:
+                    # Single alphabet word found, join them to previous
+                    join_word = join_word + word
+
+            # Already at the last position
+            if i == tlen - 1:
+                if join_word != '':
+                    array_words_redo.append(join_word)
+
+        return array_words_redo
 
 
 if __name__ == '__main__':
