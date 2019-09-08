@@ -38,10 +38,10 @@ class SynonymList:
     def load_synonymlist(
             self,
             # List of words that should be in the first position (index 0)
-            list_main_words
+            list_main_words = None
     ):
         if self.synonymlist is None:
-            self.synonymlist = self.load_list(
+            self.synonymlist = self.__load_list(
                 dirpath = self.dirpath_synonymlist,
                 postfix = self.postfix_synonymlist,
                 list_main_words = list_main_words
@@ -50,11 +50,11 @@ class SynonymList:
         return
 
     # General function to load wordlist or stopwords
-    def load_list(
+    def __load_list(
             self,
             dirpath,
             postfix,
-            list_main_words
+            list_main_words = None
     ):
         lc = langchar.LangCharacters()
 
@@ -105,15 +105,18 @@ class SynonymList:
                 rootword_test = su.StringUtils.trim(linewords[i])
                 if len(rootword_test) <= 0:
                     continue
-                if rootword_test not in list_main_words:
-                    log.Log.warning(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Word "' + str(rootword_test) + '" is not in main words list! Trying next word in line.'
-                    )
-                    continue
-                else:
-                    rootword = rootword_test
-                    break
+
+                if list_main_words is not None:
+                    if rootword_test not in list_main_words:
+                        log.Log.warning(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Word "' + str(rootword_test) + '" is not in main words list! Trying next word in line.'
+                        )
+                        continue
+
+                # root word is in list of main words, or list main words is None
+                rootword = rootword_test
+                break
 
             # If 1st word is empty, ignore entire line
             if rootword is None:
