@@ -39,6 +39,7 @@ import nwae.utils.Profiling as prf
 #
 class WordSegmentation(object):
 
+    LOOKFORWARD_MAX_LIMIT = 12
     # Length 4 is good enough to cover 97.95% of Chinese words
     LOOKFORWARD_CN = 4
     # Length 12 is good enough to cover 98.6% of Thai words
@@ -126,7 +127,7 @@ class WordSegmentation(object):
             max_lookforward_chars = min(len(text_array), max_lookforward_chars)
 
         # Not more than the longest lookforward we know, which is for Vietnamese
-        max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_VN, max_lookforward_chars)
+        max_lookforward_chars = min(WordSegmentation.LOOKFORWARD_MAX_LIMIT, max_lookforward_chars)
 
         tlen = len(text_array)
         # Record word separators
@@ -308,7 +309,7 @@ class WordSegmentation(object):
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + '   Text "' + str(i) + '"="' + text_array[i]+'"'
                     )
-                    if (text_array[i] in lang_charset) or (text_array[i] in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
+                    if (text_array[i] in lang_charset) or (self.__is_natural_word_separator(chr = text_array[i])):
                         # Don't include the local character or space
                         match_longest = i - curpos - 1
                         break
@@ -340,16 +341,6 @@ class WordSegmentation(object):
                 # variants & employing probabilistic techniques of highest likelihood combination.
                 # e.g. '人口多' can be split into '人口 多' or '人 口多' depending on context and maximum likelihood.
             else:
-                # Resort to statistical method to split characters, no matching found above
-                c1 = text_array[curpos]
-                c2 = text_array[curpos+1]
-                if self.lang_stats is not None:
-                    prob_post = self.lang_stats.get_collocation_probability(self.lang, c1, c2, 'post')
-                    prob_pre = self.lang_stats.get_collocation_probability(self.lang, c1, c2, 'pre')
-                    if prob_post is None: prob_post = 0
-                    if prob_pre is None: prob_pre = 0
-                    # TODO: Design algorithm of word segmentation using purely statistical methods
-
                 # No separator found, assume just a one character word
                 word_sep[curpos] = True
                 curpos = curpos + 1
@@ -401,7 +392,7 @@ class WordSegmentation(object):
         #
         # Break into array
         #
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(text) + '", separators ' + str(word_sep)
             + '\n\rSplit words: ' + str(array_words)
@@ -424,9 +415,9 @@ class WordSegmentation(object):
 if __name__ == '__main__':
     import nwae.ConfigFile as cf
     config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
-    lang = lf.LangFeatures.LANG_CN
+    lang = lf.LangFeatures.LANG_TH
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     lang_stats = ls.LangStats(
         dirpath_traindata   = config.DIR_NLP_LANGUAGE_TRAINDATA,
@@ -450,8 +441,8 @@ if __name__ == '__main__':
     )
     len_before = ws.lang_wordlist.wordlist.shape[0]
     ws.add_wordlist(
-        dirpath=None,
-        postfix=None,
+        dirpath = config.DIR_APP_WORDLIST,
+        postfix = config.POSTFIX_APP_WORDLIST,
         array_words=list(synonymlist_ro.synonymlist[slist.SynonymList.COL_WORD])
     )
     len_after = ws.lang_wordlist.wordlist.shape[0]
@@ -463,7 +454,7 @@ if __name__ == '__main__':
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
-    #text = '入钱'
+    text = 'ขอเปลี่ยนรหัสผ่านของพันธมิตร'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 

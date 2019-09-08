@@ -30,6 +30,7 @@ class Corpora:
         als = comtrans.aligned_sents(corpora_name)
         sentences_l1 = [sent.words for sent in als]
         sentences_l2 = [sent.mots for sent in als]
+        assert len(sentences_l1) == len(sentences_l2)
         return (sentences_l1, sentences_l2)
 
 
