@@ -8,7 +8,10 @@ import nwae.lib.math.ml.ModelInterface as modelIf
 
 
 #
-# RNN type of models
+# Sequential data (language translation, chatbot, speech recognition) type of models
+#
+# Model Description
+#  The idea behind this NN is a bit different from the single label output.
 #
 class SequenceModel(modelIf.ModelInterface):
     MODEL_NAME = 'sequence_model'

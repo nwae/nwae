@@ -37,9 +37,17 @@ class Corpora:
             self,
             sentence
     ):
+        # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
         regex_word_split = re.compile(pattern="([!?.,:;$\"')( ])")
+        # Split words not already split (e.g. 17. should be '17', '.')
         clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
-        # Return non-empty split values
+        # Return non-empty split values, w
+        # Same as:
+        # for words in clean_words:
+        #     for w in words:
+        #         if words:
+        #             if w:
+        #                 w
         return [w for words in clean_words for w in words if words if w]
 
 
