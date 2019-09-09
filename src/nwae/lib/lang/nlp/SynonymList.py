@@ -102,7 +102,7 @@ class SynonymList:
             )
             rootword = None
             for i in range(len(linewords)):
-                rootword_test = su.StringUtils.trim(linewords[i])
+                rootword_test = su.StringUtils.trim(linewords[i]).lower()
                 if len(rootword_test) <= 0:
                     continue
 
@@ -132,7 +132,6 @@ class SynonymList:
             )
 
             for j in range(0, len(linewords), 1):
-
                 word = su.StringUtils.trim(linewords[j]).lower()
                 # Make sure to convert all to Unicode
                 # word = unicode(word, encoding='utf-8')
