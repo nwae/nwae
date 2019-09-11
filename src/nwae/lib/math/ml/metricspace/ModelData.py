@@ -152,6 +152,9 @@ class ModelData:
         else:
             return False
 
+    #
+    # TODO Write to .tmp files first, then read back, if ok, then move the .tmp file to desired file name
+    #
     def persist_model_to_storage(
             self,
             log_training = None
@@ -485,6 +488,10 @@ class ModelData:
                 + '\n\r' + str(self.df_y_ref_radius)
             )
 
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading file "' + str(self.fpath_x_clustered) + '...'
+            )
             df_x_clustered = pd.read_csv(
                 filepath_or_buffer = self.fpath_x_clustered,
                 sep       = ',',
