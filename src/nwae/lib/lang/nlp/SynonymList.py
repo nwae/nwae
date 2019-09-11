@@ -166,7 +166,32 @@ class SynonymList:
         return df_synonyms
 
     # Replace with root words, thus normalizing the text
-    def normalize_text(self, text_segmented):
+    def normalize_text_array(
+            self,
+            text_segmented_array
+    ):
+        words_normalized = []
+        #
+        # Replace words with root words
+        #
+        for i in range(0, len(text_segmented_array), 1):
+            word = text_segmented_array[i]
+            if len(word)==0:
+                continue
+            rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
+            if len(rootword)==1:
+                # log.Log.log('Rootword of [' + word + '] is [' + rootword + ']')
+                words_normalized.append(rootword[0])
+            else:
+                words_normalized.append(word)
+
+        return words_normalized
+
+    # Replace with root words, thus normalizing the text
+    def normalize_text(
+            self,
+            text_segmented
+    ):
         #
         # Replace words with root words
         #

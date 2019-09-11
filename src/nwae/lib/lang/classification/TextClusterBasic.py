@@ -27,17 +27,35 @@ from inspect import currentframe, getframeinfo
 #
 class TextClusterBasic:
 
+    DEFAULT_TEXT_SPLITTER = '--||--'
+
     @staticmethod
     def filter_sentence(
             sentence_text,
             stopwords,
-            sep = ' '
+            sep = DEFAULT_TEXT_SPLITTER
     ):
         try:
             if sentence_text == '':
                 return ''
 
+            # Try to split by default splitter
             all_words_split = sentence_text.split(sep)
+            if len(all_words_split) == 1:
+                all_words_split = sentence_text.split(' ')
+                log.Log.warning(
+                    str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Could not split sentence by default separator "' + str(sep)
+                    + '"\n\r   "' + str(sentence_text)
+                    + '"\n\rSplitting by space to:\n\r   ' + str(all_words_split) + '.'
+                )
+            else:
+                log.Log.info(
+                    str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Split sentence by default separator "' + str(sep)
+                    + '"\n\r   "' + str(sentence_text)
+                    + '" to:\n\r   ' + str(all_words_split)
+                )
             # Remove empty string ''
             all_words_split = [ x for x in all_words_split if x!='' ]
 
@@ -50,7 +68,7 @@ class TextClusterBasic:
             df_tmp = df_tmp[~is_number]
 
             sentence_txt_prefiltered = list(df_tmp['Word'])
-            new_sentence = ''
+            new_sentence = []
             for word in sentence_txt_prefiltered:
                 word = word.lower()
                 # Ignore empty string
@@ -72,10 +90,8 @@ class TextClusterBasic:
                 if (word in stopwords):
                     log.Log.debug('Stopword [' + word + '] ignored..')
                     continue
-                new_sentence = new_sentence + word + ' '
+                new_sentence.append(word)
 
-            # Remove last space
-            new_sentence = new_sentence[0:(len(new_sentence)-1)]
             return new_sentence
         except Exception as ex:
             errmsg = str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -153,14 +169,13 @@ class TextClusterBasic:
         # Paste all sentences into a single huge vector
         all_words = ''
         for i in range(0, len(self.text), 1):
-            all_words = all_words + ' ' + su.StringUtils.trim(self.text[i])
+            all_words = all_words + str(TextClusterBasic.DEFAULT_TEXT_SPLITTER) + su.StringUtils.trim(self.text[i])
 
-        sentence_all_words_filtered = TextClusterBasic.filter_sentence(
+        all_words_split = TextClusterBasic.filter_sentence(
             sentence_text = all_words,
             stopwords     = self.stopwords,
-            sep           = ' '
+            sep           = TextClusterBasic.DEFAULT_TEXT_SPLITTER
         )
-        all_words_split = sentence_all_words_filtered.split(sep=' ')
 
         col = collections.Counter(all_words_split)
         # Order by top frequency keywords, and also convert to a Dictionary type (otherwise we can't extract
@@ -204,9 +219,10 @@ class TextClusterBasic:
 
     def calculate_sentence_matrix(
             self,
-            freq_measure='tf',
-            feature_presence_only=False,
-            idf_matrix = None
+            freq_measure          = 'tf',
+            feature_presence_only = False,
+            idf_matrix            = None,
+            split_sentence_by     = DEFAULT_TEXT_SPLITTER
     ):
         #
         # 3. Model the sentences into a feature vector, using word frequency, relative positions, etc. as features
@@ -215,7 +231,9 @@ class TextClusterBasic:
         no_keywords = len(self.keywords_for_fv)
 
         model_fv = fv.FeatureVector()
-        model_fv.set_freq_feature_vector_template(list_symbols=self.keywords_for_fv)
+        model_fv.set_freq_feature_vector_template(
+            list_symbols = self.keywords_for_fv
+        )
 
         #
         # 4. Link top keywords to sentences in a matrix, used as features in feature vector
@@ -236,8 +254,23 @@ class TextClusterBasic:
             sent = su.StringUtils.trim( self.text[i] )
             if len(sent) == 0:
                 continue
+            # Try to split by default splitter
+            sent_arr = sent.split(split_sentence_by)
+            if len(sent_arr) == 1:
+                sent_arr = sent.split(' ')
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Could not split sentence "' + str(sent) +'" by separator "' + str(split_sentence_by)
+                    + '". Splitting by space to ' + str(sent_arr) + '.'
+                )
+            else:
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Split sentence "' + str(sent) + '" by separator "' + str(split_sentence_by)
+                    + '" to ' + str(sent_arr)
+                )
             df_fv = model_fv.get_freq_feature_vector(
-                text = sent,
+                text_list = sent_arr,
                 feature_as_presence_only = feature_presence_only
             )
             # By default, use TF
