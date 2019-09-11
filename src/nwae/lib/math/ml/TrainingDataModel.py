@@ -321,7 +321,8 @@ class TrainingDataModel:
     def unify_word_features_for_text_data(
             # List of segmented text data (the "x" but not in our unified format yet)
             # This function will convert this into our unified "x".
-            text_segmented,
+            # E.g. [ ['this','is','sentence','1','.'] , ['this','is','sent','2','.'], ...]
+            sentences_list,
             # List of labels (the "y")
             label_id,
             # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
@@ -334,18 +335,18 @@ class TrainingDataModel:
 
         if ( type(label_id) not in (list, tuple) ) \
                 or ( type(label_name) not in (list, tuple) ) \
-                or ( type(text_segmented) not in (list, tuple) ):
+                or ( type(sentences_list) not in (list, tuple) ):
             raise Exception(
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Label ID/Name and Text Segmented must be list/tuple type. Got label id type '
-                + str(type(label_id)) + ', and text segmented type ' + str(type(text_segmented)) + '.'
+                + ': Label ID/Name and sentences list must be list/tuple type. Got label id type '
+                + str(type(label_id)) + ', and text segmented type ' + str(type(sentences_list)) + '.'
             )
-        if ( len(label_id) != len(text_segmented) ) or ( len(label_id) != len(label_name) ):
+        if ( len(label_id) != len(sentences_list) ) or ( len(label_id) != len(label_name) ):
             raise Exception(
                 str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
                 + ', label name length = ' + str(len(label_name))
-                + ', and Text Segmented length = ' + str(len(text_segmented)) + ' must be equal.'
+                + ', and Text Segmented length = ' + str(len(sentences_list)) + ' must be equal.'
             )
 
         log.Log.info(
@@ -357,7 +358,7 @@ class TrainingDataModel:
 
         log.Log.debug(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training data text\n\r' + str(text_segmented)
+            + ': Training data text\n\r' + str(sentences_list)
             + ', label IDs\n\r' + str(label_id)
             + ', label names\n\r' + str(label_name)
         )
@@ -373,8 +374,8 @@ class TrainingDataModel:
             , log_list = log_training
         )
         textcluster = tcb.TextClusterBasic(
-            text      = text_segmented,
-            stopwords = stopwords
+            sentences_list = sentences_list,
+            stopwords      = stopwords
         )
         textcluster.calculate_top_keywords(
             remove_quartile = keywords_remove_quartile

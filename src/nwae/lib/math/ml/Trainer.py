@@ -9,6 +9,7 @@ import nwae.lib.math.optimization.Eidf as eidf
 import threading
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
+import nwae.lib.lang.TextProcessor as txtprocessor
 
 
 #
@@ -353,14 +354,19 @@ class Trainer(threading.Thread):
 
         # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
         np_label_id = np.array(list(classes_id[np_indexes]))
-        np_text_segmented = np.array(list(text_segmented[np_indexes]))
+        # Convert text to usable array form for further NLP processing
+        txtprocessor_obj = txtprocessor.TextProcessor(
+            text_segmented_list = list(text_segmented[np_indexes])
+        )
+        text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()
+        np_sentences_list = np.array(text_segmented_list_list)
 
         # Merge to get the label name
         df_tmp_id = pd.DataFrame(data={'id': np_label_id})
         df_tmp_id = df_tmp_id.merge(df_classes_id_name, how='left')
         np_label_name = np.array(df_tmp_id['name'])
 
-        if (np_label_id.shape != np_label_name.shape) or (np_label_id.shape[0] != np_text_segmented.shape[0]):
+        if (np_label_id.shape != np_label_name.shape) or (np_label_id.shape[0] != np_sentences_list.shape[0]):
             raise Exception(
                 str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + 'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
@@ -371,7 +377,7 @@ class Trainer(threading.Thread):
 
         lg.Log.debugdebug('LABELS ID:\n\r' + str(np_label_id[0:20]))
         lg.Log.debugdebug('LABELS NAME:\n\r' + str(np_label_name[0:20]))
-        lg.Log.debugdebug('np TEXT SEGMENTED:\n\r' + str(np_text_segmented[0:20]))
+        lg.Log.debugdebug('np TEXT SEGMENTED:\n\r' + str(np_sentences_list[0:20]))
         lg.Log.debugdebug('TEXT SEGMENTED:\n\r' + str(text_segmented[np_indexes]))
 
         #
@@ -380,7 +386,7 @@ class Trainer(threading.Thread):
         tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
             label_id       = np_label_id.tolist(),
             label_name     = np_label_name.tolist(),
-            text_segmented = np_text_segmented.tolist(),
+            sentences_list = np_sentences_list.tolist(),
             keywords_remove_quartile = 0
         )
 
