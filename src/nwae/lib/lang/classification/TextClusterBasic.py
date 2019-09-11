@@ -2,6 +2,7 @@
 
 # !!! Will work only on Python 3 and above
 
+import nwae.lib.lang.TextProcessor as txtprc
 import re
 import numpy as np
 import pandas as pd
@@ -27,13 +28,11 @@ from inspect import currentframe, getframeinfo
 #
 class TextClusterBasic:
 
-    DEFAULT_TEXT_SPLITTER = '--||--'
-
     @staticmethod
     def filter_sentence(
             sentence_text,
             stopwords,
-            sep = DEFAULT_TEXT_SPLITTER
+            sep = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
     ):
         try:
             if sentence_text == '':
@@ -105,7 +104,11 @@ class TextClusterBasic:
     # Initialize with a list of text, assumed to be already word separated by space.
     # TODO: Can't default to just [space] as word separator for languages like Vietnamese.
     #
-    def __init__(self, text, stopwords):
+    def __init__(
+            self,
+            text,
+            stopwords
+    ):
         self.text_original = text
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -164,17 +167,17 @@ class TextClusterBasic:
         )
 
         #
-        # 2. Get highest frequency words from the split sentences, and remove stop words
-        #
+        # Get highest frequency words from the split sentences, and remove stop words
         # Paste all sentences into a single huge vector
+        #
         all_words = ''
         for i in range(0, len(self.text), 1):
-            all_words = all_words + str(TextClusterBasic.DEFAULT_TEXT_SPLITTER) + su.StringUtils.trim(self.text[i])
+            all_words = all_words + str(txtprc.TextProcessor.DEFAULT_TEXT_SPLITTER) + su.StringUtils.trim(self.text[i])
 
         all_words_split = TextClusterBasic.filter_sentence(
             sentence_text = all_words,
             stopwords     = self.stopwords,
-            sep           = TextClusterBasic.DEFAULT_TEXT_SPLITTER
+            sep           = txtprc.TextProcessor.DEFAULT_TEXT_SPLITTER
         )
 
         col = collections.Counter(all_words_split)
@@ -222,7 +225,7 @@ class TextClusterBasic:
             freq_measure          = 'tf',
             feature_presence_only = False,
             idf_matrix            = None,
-            split_sentence_by     = DEFAULT_TEXT_SPLITTER
+            split_sentence_by     = txtprc.TextProcessor.DEFAULT_TEXT_SPLITTER
     ):
         #
         # 3. Model the sentences into a feature vector, using word frequency, relative positions, etc. as features
