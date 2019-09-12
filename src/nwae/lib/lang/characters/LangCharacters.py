@@ -41,22 +41,6 @@ class LangCharacters(object):
         return
 
     #
-    # Converts a unicode type list to a string
-    #
-    @staticmethod
-    def convert_unicode_list_to_string(
-            unicode_arr
-    ):
-        str = ""
-        for i in range(0, len(unicode_arr), 1):
-            # Handle escape character
-            if unicode_arr[i]=='\\':
-                str = str + '\\'
-            else:
-                str = str + unicode_arr[i]
-        return str
-
-    #
     # Latin
     #
 

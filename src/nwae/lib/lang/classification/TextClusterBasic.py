@@ -29,6 +29,10 @@ from inspect import currentframe, getframeinfo
 #
 class TextClusterBasic:
 
+    #
+    # Do some basic filtering like removing numbers, punctuations, etc.
+    # So that we can proceed to get keywords or other NLP stuff.
+    #
     @staticmethod
     def filter_words_array(
             words_array,

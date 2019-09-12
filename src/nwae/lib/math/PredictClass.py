@@ -177,11 +177,7 @@ class PredictClass(threading.Thread):
 
         # Segment words first
         inputtext_trim = su.StringUtils.trim(inputtext)
-        #
-        # TODO
-        #  We should be processing array instead of text, so should set
-        #  return_array_of_split_words = True
-        #
+        # Returns a word array, e.g. ['word1', 'word2', 'x', 'y',...]
         text_segmented_arr = self.wseg.segment_words(
             text = su.StringUtils.trim(inputtext_trim),
             return_array_of_split_words = True

@@ -168,6 +168,7 @@ class SynonymList:
     # Replace with root words, thus normalizing the text
     def normalize_text_array(
             self,
+            # A word array. e.g. ['this','is','a','sentence','or','just','any','word','array','.']
             text_segmented_array
     ):
         words_normalized = []
@@ -186,30 +187,6 @@ class SynonymList:
                 words_normalized.append(word)
 
         return words_normalized
-
-    # Replace with root words, thus normalizing the text
-    def normalize_text(
-            self,
-            text_segmented
-    ):
-        #
-        # Replace words with root words
-        #
-        words = text_segmented.split(sep=' ')
-        for i in range(0, len(words), 1):
-            word = words[i]
-            if len(word)==0:
-                continue
-            rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
-            if len(rootword)==1:
-                # log.Log.log('Rootword of [' + word + '] is [' + rootword + ']')
-                words[i] = rootword[0]
-        text_normalized = ' '.join(words)
-        #if verbose >= 2:
-        #    log.Log.log('Normalized Text:')
-        #    log.Log.log(text_normalized)
-
-        return text_normalized
 
 
 if __name__ == '__main__':
