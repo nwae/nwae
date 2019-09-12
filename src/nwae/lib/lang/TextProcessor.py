@@ -47,7 +47,7 @@ class TextProcessor:
             # Try to split by default splitter
             split_arr = sent.split(sep)
             if len(split_arr) == 1:
-                split_arr = sent.split(' ')
+                split_arr = sent.split(TextProcessor.DEFAULT_SPACE_SPLITTER)
                 lg.Log.debug(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Could not split sentence by default separator "' + str(sep)
@@ -80,19 +80,27 @@ class TextProcessor:
             self,
             sentence
     ):
-        # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
-        regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')( ])")
-        # Split words not already split (e.g. 17. should be '17', '.')
-        clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
-        # Return non-empty split values, w
-        # Same as:
-        # for words in clean_words:
-        #     for w in words:
-        #         if words:
-        #             if w:
-        #                 w
-        # All None and '' will be filtered out
-        return [w for words in clean_words for w in words if words if w]
+        try:
+            # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
+            regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')( ])")
+            # Split words not already split (e.g. 17. should be '17', '.')
+            clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
+            # Return non-empty split values, w
+            # Same as:
+            # for words in clean_words:
+            #     for w in words:
+            #         if words:
+            #             if w:
+            #                 w
+            # All None and '' will be filtered out
+            return [w for words in clean_words for w in words if words if w]
+        except Exception as ex:
+            errmsg =\
+                str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Could not clean punctuations and convert to lowercase for sentence "'\
+                + str(sentence) + '" exception message: ' + str(ex) + '.'
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
 
 
 if __name__ == '__main__':
