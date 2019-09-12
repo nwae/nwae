@@ -48,14 +48,14 @@ class TextProcessor:
             split_arr = sent.split(sep)
             if len(split_arr) == 1:
                 split_arr = sent.split(' ')
-                lg.Log.warning(
+                lg.Log.debug(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Could not split sentence by default separator "' + str(sep)
                     + '"\n\r   "' + str(sent)
                     + '"\n\rSplitting by space to:\n\r   ' + str(split_arr) + '.'
                 )
             else:
-                lg.Log.info(
+                lg.Log.debugdebug(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Split sentence by default separator "' + str(sep)
                     + '"\n\r   "' + str(sent)

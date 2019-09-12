@@ -470,26 +470,23 @@ class ModelInterface(threading.Thread):
             raise Exception(errmsg)
 
         #
-        # Finally write to desired file
+        # Finally rename the .tmp file
         #
         try:
-            df.to_csv(
-                path_or_buf = filepath,
-                index       = include_index,
-                index_label = index_label,
-                sep         = DEFAULT_CSV_SEPARATOR
-            )
+            os.rename(src=filepath_tmp, dst=filepath)
             log.Log.info(
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': REAL File: Saved "' + str(name_df) + '" with shape ' + str(df.shape)
+                + ': REAL File: Successfully saved data frame "' + str(name_df)
                 + ' filepath "' + str(filepath) + '"'
                 , log_list = log_training
             )
         except Exception as ex:
             errmsg =\
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                + ': REAL File: Could not create data frame "' + str(name_df)\
-                + '" file "' + str(filepath) + '". ' + str(ex)
+                + ': REAL File: For object "' + str(name_df)\
+                + '" could not rename tmp file "' + str(filepath_tmp)\
+                + '" to file "' + str(filepath)\
+                + '". ' + str(ex)
             log.Log.error(
                 s = errmsg,
                 log_list = log_training
@@ -545,17 +542,10 @@ class ModelInterface(threading.Thread):
         #
 
         #
-        # Finally write to desired file
+        # Finally rename the .tmp file
         #
         try:
-            f = open(file=filepath, mode='w', encoding=file_encoding)
-            if write_as_json:
-                json.dump(dict_obj, f, indent=2)
-            else:
-                for i in dict_obj.keys():
-                    line = str(dict_obj[i])
-                    f.write(str(line) + '\n\r')
-            f.close()
+            os.rename(src=filepath_tmp, dst=filepath)
             log.Log.info(
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': REAL File: Saved "' + str(name_dict_obj)
@@ -566,8 +556,10 @@ class ModelInterface(threading.Thread):
         except Exception as ex:
             errmsg =\
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                + ': REAL File: Could not create real "' + str(name_dict_obj)\
-                + '" file "' + str(filepath) + '". ' + str(ex)
+                + ': REAL File: For object "' + str(name_dict_obj)\
+                + '" could not rename tmp file "' + str(filepath_tmp)\
+                + '" to file "' + str(filepath)\
+                + '". ' + str(ex)
             log.Log.error(
                 s = errmsg,
                 log_list = log_training
