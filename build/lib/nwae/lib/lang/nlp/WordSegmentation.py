@@ -9,6 +9,7 @@ import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as slist
 import nwae.lib.lang.stats.LangStats as ls
+import nwae.lib.lang.TextProcessor as txtprocessor
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
@@ -380,9 +381,9 @@ class WordSegmentation(object):
         if return_array_of_split_words:
             return array_words
 
-        print_separator = '|'
+        print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
         if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_TH:
-            print_separator = ' '
+            print_separator = txtprocessor.TextProcessor.DEFAULT_SPACE_SPLITTER
 
         s = print_separator.join(array_words)
 

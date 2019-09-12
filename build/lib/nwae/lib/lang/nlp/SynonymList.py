@@ -102,7 +102,7 @@ class SynonymList:
             )
             rootword = None
             for i in range(len(linewords)):
-                rootword_test = su.StringUtils.trim(linewords[i])
+                rootword_test = su.StringUtils.trim(linewords[i]).lower()
                 if len(rootword_test) <= 0:
                     continue
 
@@ -132,7 +132,6 @@ class SynonymList:
             )
 
             for j in range(0, len(linewords), 1):
-
                 word = su.StringUtils.trim(linewords[j]).lower()
                 # Make sure to convert all to Unicode
                 # word = unicode(word, encoding='utf-8')
@@ -167,25 +166,27 @@ class SynonymList:
         return df_synonyms
 
     # Replace with root words, thus normalizing the text
-    def normalize_text(self, text_segmented):
+    def normalize_text_array(
+            self,
+            # A word array. e.g. ['this','is','a','sentence','or','just','any','word','array','.']
+            text_segmented_array
+    ):
+        words_normalized = []
         #
         # Replace words with root words
         #
-        words = text_segmented.split(sep=' ')
-        for i in range(0, len(words), 1):
-            word = words[i]
+        for i in range(0, len(text_segmented_array), 1):
+            word = text_segmented_array[i]
             if len(word)==0:
                 continue
             rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
             if len(rootword)==1:
                 # log.Log.log('Rootword of [' + word + '] is [' + rootword + ']')
-                words[i] = rootword[0]
-        text_normalized = ' '.join(words)
-        #if verbose >= 2:
-        #    log.Log.log('Normalized Text:')
-        #    log.Log.log(text_normalized)
+                words_normalized.append(rootword[0])
+            else:
+                words_normalized.append(word)
 
-        return text_normalized
+        return words_normalized
 
 
 if __name__ == '__main__':

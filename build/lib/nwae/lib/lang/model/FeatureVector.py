@@ -69,14 +69,10 @@ class FeatureVector:
     #
     def get_freq_feature_vector(
             self,
-            text,
+            # A word array. e.g. ['this','is','a','sentence','or','just','any','word','array','.']
+            text_list,
             feature_as_presence_only = False,
-            split_by = ' '
     ):
-        text_list = text.split(split_by)
-        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ' Text "' + str(text) + '" List ' + str(text_list) + '.')
-
         counter = col.Counter(text_list)
         # Order the counter
         counter = counter.most_common()
@@ -84,10 +80,12 @@ class FeatureVector:
         symbols = [x[0] for x in counter]
         freqs = np.array( [x[1] for x in counter] )
         presence = (freqs>=1)*1
-        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ': Symbols ' + str(symbols)
-                          + ', Frequencies ' + str(freqs)
-                          + ', Presence ' + str(presence))
+        lg.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Symbols ' + str(symbols)
+            + ', Frequencies ' + str(freqs)
+            + ', Presence ' + str(presence)
+        )
 
         # If <feature_as_presence_only> flag set, we don't count frequency, but presence
         if feature_as_presence_only:

@@ -2,6 +2,7 @@
 
 # !!! Will work only on Python 3 and above
 
+import nwae.lib.lang.TextProcessor as txtprc
 import re
 import numpy as np
 import pandas as pd
@@ -20,26 +21,27 @@ from inspect import currentframe, getframeinfo
 # and relies on stopwords (and/or IDF measure) to increase accuracy.
 # For English/Indonesian/Korean or any language with conjugations, root word extraction is a must,
 # otherwise it will be inaccurate. Chinese, Thai, Vietnamese don't need this extra complication.
-# TODO: The IDF word relevance weights are not efficient for the demos below, why?
-# TODO: Normalized frequency works well for Chinese, but not English, why?
+# TODO
+#   - Normalized frequency works well for Chinese, but not English, why?
+#   - The text processing functions should be moved away to TextProcessor class
 #
 # NOTE: This Class is NOT Thread Safe
 #
 class TextClusterBasic:
 
+    #
+    # Do some basic filtering like removing numbers, punctuations, etc.
+    # So that we can proceed to get keywords or other NLP stuff.
+    #
     @staticmethod
-    def filter_sentence(
-            sentence_text,
+    def filter_words_array(
+            words_array,
             stopwords,
-            sep = ' '
+            sep = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
     ):
         try:
-            if sentence_text == '':
-                return ''
-
-            all_words_split = sentence_text.split(sep)
             # Remove empty string ''
-            all_words_split = [ x for x in all_words_split if x!='' ]
+            all_words_split = [ x for x in words_array if x!='' ]
 
             if len(all_words_split) == 0:
                 return ''
@@ -50,7 +52,7 @@ class TextClusterBasic:
             df_tmp = df_tmp[~is_number]
 
             sentence_txt_prefiltered = list(df_tmp['Word'])
-            new_sentence = ''
+            new_sentence = []
             for word in sentence_txt_prefiltered:
                 word = word.lower()
                 # Ignore empty string
@@ -72,14 +74,12 @@ class TextClusterBasic:
                 if (word in stopwords):
                     log.Log.debug('Stopword [' + word + '] ignored..')
                     continue
-                new_sentence = new_sentence + word + ' '
+                new_sentence.append(word)
 
-            # Remove last space
-            new_sentence = new_sentence[0:(len(new_sentence)-1)]
             return new_sentence
         except Exception as ex:
             errmsg = str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Error filtering sentence "' + str(sentence_text)\
+                     + ': Error filtering sentence "' + str(words_array)\
                      + '", stopwords ' + str(stopwords) + ', using separator "' + str(sep) + '".'\
                      + ' Got exception ' + str(ex) + '.'
             log.Log.error(errmsg)
@@ -89,17 +89,18 @@ class TextClusterBasic:
     # Initialize with a list of text, assumed to be already word separated by space.
     # TODO: Can't default to just [space] as word separator for languages like Vietnamese.
     #
-    def __init__(self, text, stopwords):
-        self.text_original = text
+    def __init__(
+            self,
+            # A list of text sentences in list type, already in lowercase and cleaned of None or ''.
+            sentences_list,
+            stopwords
+    ):
+        self.sentences_list = sentences_list
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text (before filter):\n\r' + str(text)
+            + ': Sentences list (before filter):\n\r' + str(self.sentences_list)
         )
-        self.text = self.__filter_text(text_array=text)
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text (after filter):\n\r' + str(text)
-        )
+        self.__sanity_check()
 
         # Since we use automated IDF already, stopwords are not really needed anymore
         self.stopwords = stopwords
@@ -113,17 +114,29 @@ class TextClusterBasic:
         self.idf_matrix = None
         return
 
-    def __filter_text(self, text_array):
+    #
+    # Make sure the sentences list is in correct type and form
+    #
+    def __sanity_check(
+            self
+    ):
         new_array = []
-        for w in text_array:
-            if type(w) is not str:
-                log.Log.warning(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Warning line ' + str(text_array) + ', word not string [' + str(w) + ']'
-                )
-            w = str(w)
-            new_array.append(su.StringUtils.trim(w.lower()))
-        return new_array
+        for sent in self.sentences_list:
+            if type(sent) not in (list, tuple):
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Warning line ' + str(sent) + ', sentence not list type but type "'\
+                         + str(type(sent)) + '": ' + str(sent)
+                log.Log.warning(errmsg)
+                raise Exception(errmsg)
+            for j in range(len(sent)):
+                w = sent[j]
+                if type(w) is not str:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                             + ': Warning line ' + str(sent) + ', have non string type words "' \
+                             + str(type(w)) + '": ' + str(w)
+                    log.Log.warning(errmsg)
+                    raise Exception(errmsg)
+        return
 
     #
     # Option to pre-define keywords instead of extracting from text
@@ -148,19 +161,17 @@ class TextClusterBasic:
         )
 
         #
-        # 2. Get highest frequency words from the split sentences, and remove stop words
+        # Get highest frequency words from the split sentences, and remove stop words
         #
-        # Paste all sentences into a single huge vector
-        all_words = ''
-        for i in range(0, len(self.text), 1):
-            all_words = all_words + ' ' + su.StringUtils.trim(self.text[i])
 
-        sentence_all_words_filtered = TextClusterBasic.filter_sentence(
-            sentence_text = all_words,
+        # Paste all sentences into a single huge vector
+        all_words = [su.StringUtils.trim(w).lower() for sent in self.sentences_list for w in sent]
+
+        all_words_split = TextClusterBasic.filter_words_array(
+            words_array   = all_words,
             stopwords     = self.stopwords,
-            sep           = ' '
+            sep           = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
         )
-        all_words_split = sentence_all_words_filtered.split(sep=' ')
 
         col = collections.Counter(all_words_split)
         # Order by top frequency keywords, and also convert to a Dictionary type (otherwise we can't extract
@@ -201,12 +212,12 @@ class TextClusterBasic:
 
         return
 
-
     def calculate_sentence_matrix(
             self,
-            freq_measure='tf',
-            feature_presence_only=False,
-            idf_matrix = None
+            freq_measure          = 'tf',
+            feature_presence_only = False,
+            idf_matrix            = None,
+            split_sentence_by     = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
     ):
         #
         # 3. Model the sentences into a feature vector, using word frequency, relative positions, etc. as features
@@ -215,7 +226,9 @@ class TextClusterBasic:
         no_keywords = len(self.keywords_for_fv)
 
         model_fv = fv.FeatureVector()
-        model_fv.set_freq_feature_vector_template(list_symbols=self.keywords_for_fv)
+        model_fv.set_freq_feature_vector_template(
+            list_symbols = self.keywords_for_fv
+        )
 
         #
         # 4. Link top keywords to sentences in a matrix, used as features in feature vector
@@ -223,7 +236,7 @@ class TextClusterBasic:
         # Create a frequency matrix of keywords by sentences
         # Get feature vector of sentence
         # Number of rows or rank (number of axes) in numpy speak
-        nrow = len(self.text)
+        nrow = len(self.sentences_list)
         ncol = no_keywords
         # By default this is TF
         sentence_matrix = np.zeros((nrow, ncol))
@@ -233,18 +246,18 @@ class TextClusterBasic:
 
         # Fill matrix
         for i in range(0, sentence_matrix.shape[0], 1):
-            sent = su.StringUtils.trim( self.text[i] )
-            if len(sent) == 0:
+            sent_arr = self.sentences_list[i]
+            if len(sent_arr) == 0:
                 continue
             df_fv = model_fv.get_freq_feature_vector(
-                text = sent,
+                text_list = sent_arr,
                 feature_as_presence_only = feature_presence_only
             )
             # By default, use TF
             sentence_matrix[i] = list(df_fv['TF'])
             sentence_matrix_freq[i] = list(df_fv['Frequency'])
             sentence_matrix_norm[i] = list(df_fv['FrequencyNormalized'])
-            log.Log.debugdebug('Sentence ' + str(i) + ': [' + sent + ']')
+            log.Log.debugdebug('Sentence ' + str(i) + ': ' + str(sent_arr) + '.')
 
         #
         # By default, we should use the TF form.
@@ -313,6 +326,8 @@ class TextClusterBasic:
     #
     # Inverse Document Frequency = log(Total_Documents / Number_of_Documents_of_Word_occurrence)
     # This measure doesn't work well in automatic clustering of texts.
+    # TODO
+    #   Long outdated code
     #
     def calculate_idf(
             self
@@ -387,6 +402,8 @@ class TextClusterBasic:
 
     #
     # The main clustering function
+    # TODO
+    #   This method already broken
     #
     def cluster(
             self,
@@ -444,7 +461,7 @@ class TextClusterBasic:
         df_point_cluster_info = retval_cluster['PointClusterInfo']
 
         # Add column of cluster number to text data frame
-        df_point_cluster_info['Text'] = self.text
+        df_point_cluster_info['Text'] = self.sentences_list
         return { 'ClusterMatrix': df_cluster_matrix, 'TextClusterInfo': df_point_cluster_info }
 
 
