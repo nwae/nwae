@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import nwae.lib.math.ml.TrainingDataModel as tdm
 import os
+import json
 
 
 #
@@ -403,3 +404,175 @@ class ModelInterface(threading.Thread):
                      + '". Error msg "' + str(ex) + '".'
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+
+    #
+    # Write to .tmp file, read back, then only write to desired file
+    #
+    @staticmethod
+    def safe_dataframe_write(
+            df,
+            include_index,
+            index_label,
+            filepath,
+            name_df = None,
+            log_training = None
+    ):
+        DEFAULT_CSV_SEPARATOR = ','
+        #
+        # Write to tmp file first
+        #
+        filepath_tmp = str(filepath) + '.tmp'
+        try:
+            df.to_csv(
+                path_or_buf = filepath_tmp,
+                index       = include_index,
+                index_label = index_label,
+                sep         = DEFAULT_CSV_SEPARATOR
+            )
+            log.Log.info(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': TMP File: Saved "' + str(name_df) + '" with shape ' + str(df.shape)
+                + ' filepath "' + str(filepath_tmp) + '"'
+                , log_list = log_training
+            )
+        except Exception as ex:
+            errmsg =\
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': TMP File: Could not create tmp "' + str(name_df)\
+                + '" file "' + str(filepath_tmp) + '". ' + str(ex)
+            log.Log.error(
+                s = errmsg,
+                log_list = log_training
+            )
+            raise Exception(errmsg)
+
+        #
+        # Now try to read it back
+        #
+        try:
+            df_read_back = pd.read_csv(
+                filepath_or_buffer = filepath_tmp,
+                sep                = DEFAULT_CSV_SEPARATOR,
+                index_col          = index_label
+            )
+            log.Log.info(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': TMP File: Successfully read back "' + str(name_df) + '" file "' + str(filepath_tmp)
+            )
+        except Exception as ex:
+            errmsg = \
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': TMP File: Could not read back "' + str(name_df) + '" file "' + str(filepath_tmp)
+            log.Log.critical(
+                s = errmsg,
+                log_list = log_training
+            )
+            raise Exception(errmsg)
+
+        #
+        # Finally write to desired file
+        #
+        try:
+            df.to_csv(
+                path_or_buf = filepath,
+                index       = include_index,
+                index_label = index_label,
+                sep         = DEFAULT_CSV_SEPARATOR
+            )
+            log.Log.info(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': REAL File: Saved "' + str(name_df) + '" with shape ' + str(df.shape)
+                + ' filepath "' + str(filepath) + '"'
+                , log_list = log_training
+            )
+        except Exception as ex:
+            errmsg =\
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': REAL File: Could not create data frame "' + str(name_df)\
+                + '" file "' + str(filepath) + '". ' + str(ex)
+            log.Log.error(
+                s = errmsg,
+                log_list = log_training
+            )
+            raise Exception(errmsg)
+
+    #
+    # Write to .tmp file, read back, then only write to desired file
+    #
+    @staticmethod
+    def safe_file_write(
+            dict_obj,
+            filepath,
+            name_dict_obj = None,
+            write_as_json = False,
+            log_training  = None,
+            file_encoding = 'utf-8'
+    ):
+        DEFAULT_CSV_SEPARATOR = ','
+        #
+        # Write to tmp file first
+        #
+        filepath_tmp = str(filepath) + '.tmp'
+        try:
+            f = open(file=filepath_tmp, mode='w', encoding=file_encoding)
+            if write_as_json:
+                json.dump(dict_obj, f, indent=2)
+            else:
+                for i in dict_obj.keys():
+                    line = str(dict_obj[i])
+                    f.write(str(line) + '\n\r')
+            f.close()
+            log.Log.info(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': TMP File: Saved "' + str(name_dict_obj)
+                + '" with ' + str(len(dict_obj.keys())) + ' lines,'
+                + ' filepath "' + str(filepath_tmp) + '"'
+                , log_list = log_training
+            )
+        except Exception as ex:
+            errmsg =\
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': TMP File: Could not create tmp "' + str(name_dict_obj)\
+                + '" file "' + str(filepath_tmp) + '". ' + str(ex)
+            log.Log.error(
+                s = errmsg,
+                log_list = log_training
+            )
+            raise Exception(errmsg)
+
+        #
+        # TODO Now try to read it back
+        #
+
+        #
+        # Finally write to desired file
+        #
+        try:
+            f = open(file=filepath, mode='w', encoding=file_encoding)
+            if write_as_json:
+                json.dump(dict_obj, f, indent=2)
+            else:
+                for i in dict_obj.keys():
+                    line = str(dict_obj[i])
+                    f.write(str(line) + '\n\r')
+            f.close()
+            log.Log.info(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': REAL File: Saved "' + str(name_dict_obj)
+                + '" with ' + str(len(dict_obj.keys())) + ' lines,'
+                + ' filepath "' + str(filepath) + '"'
+                , log_list = log_training
+            )
+        except Exception as ex:
+            errmsg =\
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': REAL File: Could not create real "' + str(name_dict_obj)\
+                + '" file "' + str(filepath) + '". ' + str(ex)
+            log.Log.error(
+                s = errmsg,
+                log_list = log_training
+            )
+            raise Exception(errmsg)
+
+
+
