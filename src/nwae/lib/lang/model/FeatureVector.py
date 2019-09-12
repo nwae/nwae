@@ -69,14 +69,9 @@ class FeatureVector:
     #
     def get_freq_feature_vector(
             self,
-            text,
+            text_list,
             feature_as_presence_only = False,
-            split_by = ' '
     ):
-        text_list = text.split(split_by)
-        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ' Text "' + str(text) + '" List ' + str(text_list) + '.')
-
         counter = col.Counter(text_list)
         # Order the counter
         counter = counter.most_common()

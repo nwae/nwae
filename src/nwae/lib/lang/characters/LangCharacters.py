@@ -1,9 +1,7 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# !!! Will work only on Python 3 and above
+import nwae.lib.lang.LangFeatures as lf
 
-import re
 
 #
 # Class LangCharacters:
@@ -35,27 +33,20 @@ class LangCharacters(object):
 
     encoding = 'utf-8'
 
-    def __init__(self, encoding='utf-8'):
+    def __init__(
+            self,
+            encoding='utf-8'
+    ):
         self.encoding = encoding
         return
-
-    #
-    # Create a 'unicode' type list from given 'int' list
-    # The opposite of chr() is ord()
-    #
-    def create_unicode_list_from_unicode_ordinal(self, unicode_ordinal_block, verbose=0):
-        uni_list = []
-        for i in range(0, len(unicode_ordinal_block), 1):
-            uni_list.append(chr(unicode_ordinal_block[i]))
-            if verbose >= 1:
-                print('Ordinal ' + str(unicode_ordinal_block[i]) + ': [' + chr(unicode_ordinal_block[i]) + ']')
-        return uni_list
 
     #
     # Converts a unicode type list to a string
     #
     @staticmethod
-    def convert_unicode_list_to_string(unicode_arr):
+    def convert_unicode_list_to_string(
+            unicode_arr
+    ):
         str = ""
         for i in range(0, len(unicode_arr), 1):
             # Handle escape character
@@ -73,13 +64,13 @@ class LangCharacters(object):
     UNICODE_BLOCK_ORDINAL_LATIN_BASIC = list( range(0x0041, 0x005A+1, 1) ) +\
                                         list( range(0x0061, 0x007A+1, 1) )
     # Convert to Python Unicode Type list
-    UNICODE_BLOCK_LATIN_BASIC = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_LATIN_BASIC)
+    UNICODE_BLOCK_LATIN_BASIC = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_LATIN_BASIC]
 
     # Latin Extended
     UNICODE_BLOCK_ORDINAL_LATIN_EXTENDED = list( range(0x00C0, 0x00F6+1, 1) ) +\
                                            list( range(0x00F8, 0x01BF+1, 1) ) +\
                                            list( range(0x01C4, 0x024F+1, 1) )
-    UNICODE_BLOCK_LATIN_EXTENDED = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_LATIN_EXTENDED)
+    UNICODE_BLOCK_LATIN_EXTENDED = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_LATIN_EXTENDED]
 
     # All Latin
     UNICODE_BLOCK_ORDINAL_LATIN_ALL = UNICODE_BLOCK_ORDINAL_LATIN_BASIC + UNICODE_BLOCK_ORDINAL_LATIN_EXTENDED
@@ -94,35 +85,35 @@ class LangCharacters(object):
     #
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS = list( range(0x4E00, 0x9FFF+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS =\
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS]
 
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_A = list( range(0x3400, 0x4DBF+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_A =\
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_A)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_A]
 
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_B = list( range(0x20000, 0x2A6DF+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_B =\
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_B)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_B]
 
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_C = list( range(0x2A700, 0x2B73F+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_C =\
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_C)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_C]
 
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_D = list( range(0x2B740, 0x2B81F+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_D =\
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_D)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_D]
 
     UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_E = list( range(0x2B820, 0x2CEAF+1, 1) )
     UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_E = \
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_E)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_UNIFIED_IDEOGRAPHS_EXT_E]
 
     UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS = list( range(0xF900, 0xFAFF+1, 1) )
     UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS = \
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS]
 
     UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS_SUPP = list( range(0x2F800, 0x2FA1F+1, 1) )
     UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS_SUPP = \
-        create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS_SUPP)
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CJK_COMPATIBILITY_IDEOGRAPHS_SUPP]
 
     UNICODE_BLOCK_CJK = UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS + UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_A +\
                         UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS +\
@@ -135,10 +126,10 @@ class LangCharacters(object):
     # Hangul
     #
     UNICODE_BLOCK_ORDINAL_HANGUL = list( range(0x1100, 0x11FF+1, 1) )
-    UNICODE_BLOCK_HANGUL = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_HANGUL)
+    UNICODE_BLOCK_HANGUL = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HANGUL]
 
     UNICODE_BLOCK_ORDINAL_HANGUL_SYLLABLE = list( range(0xAC00, 0xD7AF+1, 1) )
-    UNICODE_BLOCK_HANGUL_SYLLABLE = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_HANGUL_SYLLABLE)
+    UNICODE_BLOCK_HANGUL_SYLLABLE = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HANGUL_SYLLABLE]
 
     UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE = UNICODE_BLOCK_HANGUL + UNICODE_BLOCK_HANGUL_SYLLABLE
 
@@ -147,26 +138,31 @@ class LangCharacters(object):
     # From http://sites.psu.edu/symbolcodes/languages/asia/thai/thaichart/
     #
     UNICODE_BLOCK_ORDINAL_THAI_CONSONANTS = list( range(0x0E01, 0x0E2E+1, 1) )
-    UNICODE_BLOCK_THAI_CONSONANTS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_CONSONANTS)
+    UNICODE_BLOCK_THAI_CONSONANTS = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_CONSONANTS]
 
     UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT = list( range(0x0E30, 0x0E3A+1, 1) ) +\
                                                         list( range(0x0E47, 0x0E47+1, 1) )
-    UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT)
+    UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT =\
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT]
 
     UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT = list( range(0x0E40, 0x0E44+1, 1) )
-    UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT)
+    UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT = \
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT]
 
     UNICODE_BLOCK_ORDINAL_THAI_TONEMARKS = list( range(0x0E48, 0x0E4B+1, 1) )
-    UNICODE_BLOCK_THAI_TONEMARKS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_TONEMARKS)
+    UNICODE_BLOCK_THAI_TONEMARKS = \
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_TONEMARKS]
 
     UNICODE_BLOCK_ORDINAL_THAI_NUMBERS = list( range(0x0E50, 0x0E59+1, 1) )
-    UNICODE_BLOCK_THAI_NUMBERS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_NUMBERS)
+    UNICODE_BLOCK_THAI_NUMBERS =\
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_NUMBERS]
 
     UNICODE_BLOCK_ORDINAL_THAI_SIGNS_PUNCTUATIONS = list( range(0x0E2F, 0x0E2F+1, 1) ) +\
                                                     list( range(0x0E45, 0x0E46+1, 1) ) +\
                                                     list( range(0x0E4C, 0x0E4F+1, 1) ) +\
                                                     list( range(0x0E5A, 0x0E5B+1, 1) )
-    UNICODE_BLOCK_THAI_SIGNS_PUNCTUATIONS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_THAI_SIGNS_PUNCTUATIONS)
+    UNICODE_BLOCK_THAI_SIGNS_PUNCTUATIONS = \
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_SIGNS_PUNCTUATIONS]
 
     UNICODE_BLOCK_THAI = UNICODE_BLOCK_THAI_CONSONANTS +\
                          UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT +\
@@ -187,7 +183,8 @@ class LangCharacters(object):
     # Numbers: normal Latin and CJK halfwidth/fullwidth
     #
     UNICODE_BLOCK_ORDINAL_NUMBERS = list( range(0x0030, 0x0039+1, 1) ) + list( range(0xFF10, 0xFF19+1, 1) )
-    UNICODE_BLOCK_NUMBERS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_NUMBERS)
+    UNICODE_BLOCK_NUMBERS =\
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_NUMBERS]
 
     #
     # Punctuations Only (Half-Width & Full-Width Forms)
@@ -199,7 +196,8 @@ class LangCharacters(object):
                                          list(range(0xFF1A, 0xFF20+1, 1)) +\
                                          list(range(0xFF3B, 0xFF40+1, 1)) +\
                                          list(range(0xFF5B, 0xFF65+1, 1))
-    UNICODE_BLOCK_PUNCTUATIONS = create_unicode_list_from_unicode_ordinal(0, UNICODE_BLOCK_ORDINAL_PUNCTUATIONS)
+    UNICODE_BLOCK_PUNCTUATIONS =\
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_PUNCTUATIONS]
     # Remove non-punctuations from original list of punctuations
     UNICODE_BLOCK_PUNCTUATIONS = list( set(UNICODE_BLOCK_PUNCTUATIONS) - set(UNICODE_BLOCK_LATIN_ALL) )
     UNICODE_BLOCK_PUNCTUATIONS = list( set(UNICODE_BLOCK_PUNCTUATIONS) - set(UNICODE_BLOCK_WORD_SEPARATORS) )
@@ -211,13 +209,16 @@ class LangCharacters(object):
     #
     @staticmethod
     def get_language_charset(lang):
-        if lang in ['en','vn','in','my','es']:
+        if lang in [
+            lf.LangFeatures.LANG_EN,
+            lf.LangFeatures.LANG_VN
+        ]:
             return LangCharacters.UNICODE_BLOCK_LATIN_ALL
-        if lang == 'cn':
+        if lang == lf.LangFeatures.LANG_CN:
             return LangCharacters.UNICODE_BLOCK_CJK
-        if lang == 'th':
+        if lang == lf.LangFeatures.LANG_TH:
             return LangCharacters.UNICODE_BLOCK_THAI
-        if lang == 'ko':
+        if lang == lf.LangFeatures.LANG_KO:
             return LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE
         else:
             return []
@@ -237,7 +238,7 @@ class LangCharacters(object):
             # Characters that can never be start of syllable
             not_start_syllable_char = LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT +\
                                       LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS
-            lang = 'th'
+            lang = lf.LangFeatures.LANG_TH
             char_prev = s[0]
             for i in range(1, len(s)-1, 1):
                 char_prev = s[i-1]
@@ -245,7 +246,7 @@ class LangCharacters(object):
 
                 # This character can never be start of syllable
                 if char_cur not in not_start_syllable_char:
-                    next
+                    continue
 
                 char_next = s[i+1]
                 # Case of 'เดือน', 'เมื่อ', 'เลข', etc.
@@ -278,7 +279,7 @@ class LangCharacters(object):
             # We don't include a syllable ending consonant for Thai in the measure, since this character is prone
             # to spelling mistakes
             ignore = False
-            if lang=='th':
+            if lang == lf.LangFeatures.LANG_TH:
                 if s[i] in LangCharacters.UNICODE_BLOCK_THAI_CONSONANTS and syllable_end[i]:
                     # print('Ignore ' + s[i])
                     ignore = True
@@ -348,6 +349,67 @@ class LangCharacters(object):
 
 
 if __name__ == '__main__':
+    #
+    # Check UNICODE BLOCKS
+    #
+    print('****************************** LATIN ALL ('
+          + str(len(LangCharacters.UNICODE_BLOCK_LATIN_ALL))
+          + ') BLOCK ******************************')
+    print(LangCharacters.UNICODE_BLOCK_LATIN_ALL)
+
+    print('****************************** HANGUL ('
+          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL))
+          + ') BLOCK ******************************')
+    print(LangCharacters.UNICODE_BLOCK_HANGUL)
+    print('****************************** HANGUL SYLLABLE BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL_SYLLABLE))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_HANGUL_SYLLABLE)
+    print('****************************** HANGUL + SYLLABLE BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE)
+
+    print('****************************** THAI BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI)
+    print('****************************** THAI CONSONANTS BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI_CONSONANTS))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI_CONSONANTS)
+    print('****************************** THAI NUMBERS BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI_NUMBERS))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI_NUMBERS)
+    print('****************************** THAI TONEMARKS BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS)
+    print('****************************** THAI VOWELS BEFORE CONSONANT BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT)
+    print('****************************** THAI VOWELS AFTER CONSONANT BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT)
+
+    print('****************************** CJK BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_CJK))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_CJK)
+
+    print('****************************** VIETNAMESE BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_LATIN_VIETNAMESE))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_LATIN_VIETNAMESE)
+
+    print('****************************** PUNCTUATIONS BLOCK ('
+          + str(len(LangCharacters.UNICODE_BLOCK_PUNCTUATIONS))
+          + ') ******************************')
+    print(LangCharacters.UNICODE_BLOCK_PUNCTUATIONS)
+
     s = u'북핵 英国前首мешание相卡梅伦（David Cameron）将要接受一个新的война官方工作，领导一个关于英中合สวยจีง作的英国政府投资计划。'
     print ( s )
     lc = LangCharacters()

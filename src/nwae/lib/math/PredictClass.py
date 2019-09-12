@@ -182,9 +182,9 @@ class PredictClass(threading.Thread):
         #  We should be processing array instead of text, so should set
         #  return_array_of_split_words = True
         #
-        text_segmented = self.wseg.segment_words(
+        text_segmented_arr = self.wseg.segment_words(
             text = su.StringUtils.trim(inputtext_trim),
-            return_array_of_split_words = False
+            return_array_of_split_words = True
         )
 
         #
@@ -192,26 +192,29 @@ class PredictClass(threading.Thread):
         # This step uses synonyms and replaces say 存钱, 入钱, 入款, all with the standard 存款
         # This will reduce training data without needing to put all versions of the same thing.
         #
-        text_normalized = self.synonymlist.normalize_text(text_segmented=text_segmented)
-        text_normalized = text_normalized.lower()
+        text_normalized_arr = self.synonymlist.normalize_text_array(
+            text_segmented_array = text_segmented_arr
+        )
+        text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
         log.Log.debugdebug('#')
         log.Log.debugdebug('# TEXT NORMALIZATION')
         log.Log.debugdebug('#')
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented)
-            + '", normalized to "' + str(text_normalized) + '"'
+            + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+            + '", normalized to "' + str(text_normalized_arr_lower) + '"'
         )
         if self.do_profiling:
             log.Log.info(
                 '.' + space_profiling
-                + 'Chat ID="' + str(chatid) + '", Txt="' + text_segmented + '"'
+                + 'Chat ID="' + str(chatid) + '", Txt="' + str(text_segmented_arr) + '"'
+                + ' to "' + str(text_normalized_arr_lower) + '"'
                 + ' PROFILING Intent (replace root words): '
                 + prf.Profiling.get_time_dif_str(starttime_prf, prf.Profiling.stop())
             )
 
         return self.predict_class_features(
-            v_feature_segmented = text_normalized,
+            v_feature_segmented = text_normalized_arr_lower,
             id                  = chatid,
             top                 = top,
             match_pct_within_top_score = match_pct_within_top_score,
@@ -248,7 +251,9 @@ class PredictClass(threading.Thread):
 
         # Get feature vector of text
         try:
-            df_fv = model_fv.get_freq_feature_vector(text=v_feature_segmented)
+            df_fv = model_fv.get_freq_feature_vector(
+                text_list = v_feature_segmented
+            )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ': Exception occurred calculating FV for "' + str(v_feature_segmented) \

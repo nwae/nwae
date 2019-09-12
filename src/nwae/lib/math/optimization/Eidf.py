@@ -28,9 +28,16 @@ class Eidf:
     STORAGE_COL_X_NAME = 'x_name'
     STORAGE_COL_EIDF   = 'eidf'
 
+    # Use 10 to make the weights smaller
+    EIDF_BASE_LOG = np.log(np.e)
+    # Roughly 100 documents
+    MAX_EIDF_WEIGHT = np.log(100) / EIDF_BASE_LOG
+
     # When nan after merging x_name, we replace with this, assuming
     # roughly 100 documents or log(100/1)
-    DEFAULT_EIDF_IF_NAN = 4.605170185988092
+    # DEFAULT_EIDF_IF_NAN = 4.605170185988092
+    DEFAULT_EIDF_IF_NAN = MAX_EIDF_WEIGHT
+
 
     #
     # We maximize by the 61.8% quantile, so that given all distance pairs
@@ -88,6 +95,13 @@ class Eidf:
             y,
             # Feature name, if None then we use default numbers with 0 index
             x_name,
+            #
+            # The intuitive meaning is this. If set to False, then we ignore y
+            # and treat all samples as separate documents.
+            # If set to True, a single word appearing in a group only once will
+            # not be weighted too heavily. However if a word appears only very
+            # infrequently in every group will have very low weight.
+            #
             feature_presence_only_in_label_training_data = False
     ):
         if feature_presence_only_in_label_training_data:
@@ -122,14 +136,14 @@ class Eidf:
         n_documents = np_agg_sum.shape[0]
         lg.Log.important(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Total unique documents/intents to calculate IDF = ' + str(n_documents)
+            + ': EIDF: Total unique documents/intents to calculate IDF = ' + str(n_documents)
         )
 
         # If using outdated np.matrix, this IDF will be a (1,n) array, but if using np.array, this will be 1-dimensional vector
         # TODO RuntimeWarning: divide by zero encountered in true_divide
-        idf = np.log(n_documents / np_idf)
+        idf = np.log(n_documents / np_idf) / Eidf.EIDF_BASE_LOG
         # Replace infinity with 1 count or log(n_documents)
-        idf[idf==np.inf] = np.log(n_documents)
+        idf[idf==np.inf] = np.log(n_documents) / Eidf.EIDF_BASE_LOG
         # If only 1 document, all IDF will be zero, we will handle below
         if n_documents <= 1:
             lg.Log.warning(
@@ -137,6 +151,13 @@ class Eidf:
                 + ': Only ' + str(n_documents) + ' document in IDF calculation. Setting IDF to 1.'
             )
             idf = np.array([1]*x.shape[1])
+
+        log_percentiles = (5, 10, 25, 50, 75, 90, 95)
+        lg.Log.important(
+            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': EIDF : Quantiles ' + str(log_percentiles)
+            + str(np.percentile(idf, log_percentiles))
+        )
         lg.Log.debugdebug(
             str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '\n\r\tWeight IDF:\n\r' + str(idf)
@@ -483,6 +504,7 @@ class Eidf:
         )
 
         w_iter_test = self.w_start.copy()
+        w_iter_test = np.minimum(w_iter_test, Eidf.MAX_EIDF_WEIGHT)
         while True:
             logmsg = 'ITERATION #' + str(iter) + ', using test weights:\n\r' + str(w_iter_test)\
                      + '\n\rexisting old weights:\n\r' + str(self.w)
@@ -539,7 +561,9 @@ class Eidf:
 
             w_iter_test = w_iter_test + np.maximum(np.minimum(dml_dw*0.1, max_movement_w), min_movement_w)
             # Don't allow negative weights
-            w_iter_test = np.maximum(w_iter_test, np.array([Eidf.MINIMUM_WEIGHT_IDF]*l))
+            w_iter_test = np.maximum(w_iter_test, Eidf.MINIMUM_WEIGHT_IDF)
+            # Don't allow too big
+            w_iter_test = np.minimum(w_iter_test, Eidf.MAX_EIDF_WEIGHT)
             lg.Log.debugdebug(
                 'Iter ' + str(iter) + ': New weights:\n\r' + str(w_iter_test)
             )

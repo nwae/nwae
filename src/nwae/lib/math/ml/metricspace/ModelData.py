@@ -152,6 +152,9 @@ class ModelData:
         else:
             return False
 
+    #
+    # TODO Write to .tmp files first, then read back, if ok, then move the .tmp file to desired file name
+    #
     def persist_model_to_storage(
             self,
             log_training = None
@@ -214,159 +217,106 @@ class ModelData:
         # TODO: This needs to be saved to DB, not file
         #
         if not self.is_partial_training:
-            df_x_name.to_csv(path_or_buf=self.fpath_x_name, index=True, index_label='INDEX')
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved x_name shape ' + str(df_x_name.shape) + ', filepath "' + self.fpath_x_name + ']'
-                , log_list = log_training
+            modelIf.ModelInterface.safe_dataframe_write(
+                df            = df_x_name,
+                name_df       = 'x_name',
+                include_index = True,
+                index_label   = 'INDEX',
+                filepath      = self.fpath_x_name,
+                log_training  = log_training
             )
 
-            df_idf.to_csv(path_or_buf=self.fpath_idf, index=True, index_label='INDEX')
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved EIDF dimensions ' + str(df_idf.shape) + ' filepath "' + self.fpath_idf + '"'
-                , log_list = log_training
+            modelIf.ModelInterface.safe_dataframe_write(
+                df            = df_idf,
+                name_df       = 'eidf',
+                include_index = True,
+                index_label   = 'INDEX',
+                filepath      = self.fpath_idf,
+                log_training  = log_training
             )
 
-            df_x_ref.to_csv(path_or_buf=self.fpath_x_ref, index=True, index_label='INDEX')
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved RFV dimensions ' + str(df_x_ref.shape) + ' filepath "' + self.fpath_x_ref + '"'
-                , log_list = log_training
+            modelIf.ModelInterface.safe_dataframe_write(
+                df            = df_x_ref,
+                name_df       = 'x_ref',
+                include_index = True,
+                index_label   = 'INDEX',
+                filepath      = self.fpath_x_ref,
+                log_training  = log_training
             )
 
-        try:
-            f = open(file=self.fpath_x_ref_friendly_txt, mode='w', encoding='utf-8')
-            for i in x_ref_friendly.keys():
-                line = str(x_ref_friendly[i])
-                f.write(str(line) + '\n\r')
-            f.close()
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_ref friendly file "' + self.fpath_x_ref_friendly_txt
-                + '". ' + str(ex)
-                , log_list = log_training
-            )
+        modelIf.ModelInterface.safe_file_write(
+            dict_obj      = x_ref_friendly,
+            name_dict_obj = 'x_ref_friendly',
+            filepath      = self.fpath_x_ref_friendly_txt,
+            write_as_json = False,
+            log_training  = log_training
+        )
 
-        try:
-            #
-            # Only in partial training mode
-            #
-            if self.is_partial_training:
-                with open(self.fpath_x_ref_friendly_json, 'w', encoding='utf-8') as f:
-                    json.dump(x_ref_friendly, f, indent=2)
-                f.close()
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Saved x_ref friendly json ' + str(x_ref_friendly)
-                    +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-                    , log_list = log_training
-                )
-        except Exception as ex:
-            errmsg =\
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                + ': Could not create x_ref friendly JSON file "' + self.fpath_x_ref_friendly_json\
-                + ', object ' + str(x_ref_friendly)\
-                + '". ' + str(ex)
-            log.Log.critical(
-                s = errmsg,
-                log_list = log_training
-            )
-            # Raise exception for this one
-            raise Exception(errmsg)
+        modelIf.ModelInterface.safe_file_write(
+            dict_obj      = x_ref_friendly,
+            name_dict_obj = 'x_ref_friendly_json',
+            filepath      = self.fpath_x_ref_friendly_json,
+            write_as_json = True,
+            log_training  = log_training
+        )
 
-        self.df_y_ref_radius.to_csv(path_or_buf=self.fpath_y_ref_radius, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved RFV radius with dimensions ' + str(self.df_y_ref_radius.shape)
-            + ' filepath "' + self.fpath_y_ref_radius + '"'
-            , log_list = log_training
+        modelIf.ModelInterface.safe_dataframe_write(
+            df            = self.df_y_ref_radius,
+            name_df       = 'y_ref_radius',
+            include_index = True,
+            index_label   = 'INDEX',
+            filepath      = self.fpath_y_ref_radius,
+            log_training  = log_training
         )
 
         if not self.is_partial_training:
-            df_x_clustered.to_csv(path_or_buf=self.fpath_x_clustered, index=True, index_label='INDEX')
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved Clustered x with shape ' + str(df_x_clustered.shape) + ' filepath "' + self.fpath_x_clustered + '"'
-                , log_list = log_training
+            modelIf.ModelInterface.safe_dataframe_write(
+                df            = df_x_clustered,
+                name_df       = 'x_clustered',
+                include_index = True,
+                index_label   = 'INDEX',
+                filepath      = self.fpath_x_clustered,
+                log_training  = log_training
             )
 
-        df_y_clustered_radius.to_csv(path_or_buf=self.fpath_y_clustered_radius, index=True, index_label='INDEX')
-        log.Log.critical(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Saved y_clustered_radius with shape ' + str(df_y_clustered_radius.shape)
-            + ' filepath "' + self.fpath_y_clustered_radius + '"'
-            , log_list = log_training
+        modelIf.ModelInterface.safe_dataframe_write(
+            df            = df_y_clustered_radius,
+            name_df       = 'y_clustered_radius',
+            include_index = True,
+            index_label   = 'INDEX',
+            filepath      = self.fpath_y_clustered_radius,
+            log_training=log_training
         )
 
-        try:
-            f = open(file=self.fpath_x_clustered_friendly_txt, mode='w', encoding='utf-8')
-            for i in x_clustered_friendly.keys():
-                line = str(x_clustered_friendly[i])
-                f.write(str(line) + '\n\r')
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved x_clustered friendly with keys ' + str(x_clustered_friendly.keys())
-                + ' filepath "' + self.fpath_x_clustered_friendly_txt + '"'
-                , log_list = log_training
-            )
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create x_clustered friendly file "' + self.fpath_x_clustered_friendly_txt
-                + '". ' + str(ex)
-                , log_list = log_training
-            )
+        modelIf.ModelInterface.safe_file_write(
+            dict_obj      = x_clustered_friendly,
+            name_dict_obj = 'x_clustered_friendly',
+            filepath      = self.fpath_x_clustered_friendly_txt,
+            write_as_json = False,
+            log_training  = log_training
+        )
 
-        try:
-            #
-            # Only in partial training mode
-            #
-            if self.is_partial_training:
-                with open(self.fpath_x_clustered_friendly_json, 'w', encoding='utf-8') as f:
-                    json.dump(x_clustered_friendly, f, indent=2)
-                f.close()
-                log.Log.critical(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Saved x_clustered friendly json ' + str(x_clustered_friendly)
-                    +  ' to file "' + self.fpath_x_ref_friendly_json + '".'
-                    , log_list = log_training
-                )
-        except Exception as ex:
-            errmsg =\
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                + ': Could not create x_clustered friendly JSON file "' + self.fpath_x_clustered_friendly_json\
-                + ', object ' + str(x_clustered_friendly)\
-                + '". ' + str(ex)
-            log.Log.critical(
-                s = errmsg,
-                log_list = log_training
+        #
+        # Only in partial training mode
+        #
+        if self.is_partial_training:
+            modelIf.ModelInterface.safe_file_write(
+                dict_obj      = x_clustered_friendly,
+                name_dict_obj = 'x_clustered_friendly_json',
+                filepath      = self.fpath_x_clustered_friendly_json,
+                write_as_json = True,
+                log_training  = log_training
             )
-            # Raise exception for this one
-            raise Exception(errmsg)
 
         # Our servers look to this file to see if RFV has changed
         # It is important to do it last (and fast), after everything is done
-        try:
-            f = open(file=self.fpath_updated_file, mode='w')
-            f.write(str(dt.datetime.now()))
-            f.write('\n\r')
-            f.close()
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved update time file "' + self.fpath_updated_file
-                + '" for other processes to detect and restart.'
-                , log_list = log_training
-            )
-        except Exception as ex:
-            log.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not create last updated file "' + self.fpath_updated_file
-                + '". ' + str(ex)
-            , log_list = log_training
-            )
+        modelIf.ModelInterface.safe_file_write(
+            dict_obj      = {'timenow': str(dt.datetime.now())},
+            name_dict_obj = 'model last updated time',
+            filepath      = self.fpath_updated_file,
+            write_as_json = False,
+            log_training = log_training
+        )
 
     def load_model_parameters_from_storage(
             self
@@ -485,6 +435,10 @@ class ModelData:
                 + '\n\r' + str(self.df_y_ref_radius)
             )
 
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading file "' + str(self.fpath_x_clustered) + '...'
+            )
             df_x_clustered = pd.read_csv(
                 filepath_or_buffer = self.fpath_x_clustered,
                 sep       = ',',
