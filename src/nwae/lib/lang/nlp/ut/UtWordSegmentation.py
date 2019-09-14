@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import nwae.ConfigFile as cf
+import nwae.Config as cf
 import nwae.lib.lang.nlp.WordSegmentation as ws
+import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.Log as lg
 
 
@@ -26,15 +27,15 @@ class testNLP:
 
     def test_chinese(self):
         ws_cn = ws.WordSegmentation(
-            lang             = 'cn',
-            dirpath_wordlist = self.config.DIR_WORDLIST,
-            postfix_wordlist = self.config.POSTFIX_WORDLIST,
-            do_profiling     = self.config.DO_PROFILING
+            lang             = lf.LangFeatures.LANG_CN,
+            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
         )
         # Add application wordlist
         ws_cn.add_wordlist(
-            dirpath = self.config.DIR_APP_WORDLIST,
-            postfix = self.config.POSTFIX_APP_WORDLIST
+            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
         )
 
         # Simplified Chinese
@@ -59,15 +60,15 @@ class testNLP:
 
     def test_thai(self):
         ws_th = ws.WordSegmentation(
-            lang             = 'th',
-            dirpath_wordlist = self.config.DIR_WORDLIST,
-            postfix_wordlist = self.config.POSTFIX_WORDLIST,
-            do_profiling     = self.config.DO_PROFILING
+            lang             = lf.LangFeatures.LANG_TH,
+            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
         )
         # Add application wordlist
         ws_th.add_wordlist(
-            dirpath = self.config.DIR_APP_WORDLIST,
-            postfix = self.config.POSTFIX_APP_WORDLIST,
+            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
         )
 
         text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
@@ -87,10 +88,10 @@ class testNLP:
 
     def test_viet(self):
         ws_vn = ws.WordSegmentation(
-            lang             = 'vn',
-            dirpath_wordlist = self.config.DIR_WORDLIST,
-            postfix_wordlist = self.config.POSTFIX_WORDLIST,
-            do_profiling     = self.config.DO_PROFILING
+            lang             = lf.LangFeatures.LANG_VN,
+            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
         )
 
         text = 'Hoặc nếu ông Thăng không bị kỷ luật, cây bút Tâm Chánh nêu giả thiết Tổng Bí thư Nguyễn Phú Trọng sẽ có thể "huy động sự tham gia của người dân vào cuộc đấu tranh sinh tử này".'.lower()
@@ -101,14 +102,14 @@ class testNLP:
     def test_ml(self):
         ws_cn = ws.WordSegmentation(
             lang             = 'cn',
-            dirpath_wordlist = self.config.DIR_WORDLIST,
-            postfix_wordlist = self.config.POSTFIX_WORDLIST,
-            do_profiling     = self.config.DO_PROFILING
+            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
         )
         # Add application wordlist
         ws_cn.add_wordlist(
-            dirpath = self.config.DIR_APP_WORDLIST,
-            postfix = self.config.POSTFIX_APP_WORDLIST,
+            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
         )
 
         print(
@@ -126,7 +127,9 @@ class testNLP:
 
 
 if __name__ == '__main__':
-    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
 
     tst = testNLP(
         config = config
