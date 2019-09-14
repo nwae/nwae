@@ -382,7 +382,9 @@ class ModelBackTest:
 
 
 if __name__ == '__main__':
-    cf.Config.get_cmdline_params_and_init_config()
+    cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
     # Default values
     pv = {
         'configfile': None,
