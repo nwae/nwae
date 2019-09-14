@@ -59,12 +59,10 @@ class Config(baseconfig.BaseConfig):
 
     def __init__(
             self,
-            config_file,
-            reload_every_x_secs = baseconfig.BaseConfig.DEFAULT_RELOAD_EVERY_X_SECS
+            config_file
     ):
         super(Config, self).__init__(
-            config_file = config_file,
-            reload_every_x_secs = reload_every_x_secs
+            config_file = config_file
         )
 
         try:
@@ -99,7 +97,7 @@ class Config(baseconfig.BaseConfig):
             )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Error reading app config file "' + str(config_file)\
+                     + ': Error initializing config file "' + str(config_file)\
                      + '". Exception message ' + str(ex)
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
@@ -180,16 +178,17 @@ class Config(baseconfig.BaseConfig):
 
 if __name__ == '__main__':
     config = Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = Config,
-        reload_every_x_secs = 5
+        Derived_Class = Config
     )
     print(config.param_value)
     Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = Config,
-        reload_every_x_secs = 5
+        Derived_Class = Config
     )
     config = Config(
-        config_file = '/usr/local/git/nwae/nwae/app.data/config/nwae.cf.local',
-        reload_every_x_secs = 5
+        config_file = '/usr/local/git/nwae/nwae/app.data/config/nwae.cf.local'
     )
-    print(config.param_value)
+    import time
+    while True:
+        time.sleep(3)
+        print(config.get_config(param='topdir'))
+        print(config.param_value)
