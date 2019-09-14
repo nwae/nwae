@@ -188,3 +188,7 @@ class SequenceModel(modelIf.ModelInterface):
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Template Model only, not a real model!'
         )
+
+
+if __name__ == '__main__':
+    import nwae.lib.lang.nlp.Corpora as corpora
