@@ -8,7 +8,6 @@ import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as slist
-import nwae.lib.lang.stats.LangStats as ls
 import nwae.lib.lang.TextProcessor as txtprocessor
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
@@ -431,36 +430,31 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
-    import nwae.ConfigFile as cf
-    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
+    import nwae.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
 
     lang = lf.LangFeatures.LANG_TH
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
-    lang_stats = ls.LangStats(
-        dirpath_traindata   = config.DIR_NLP_LANGUAGE_TRAINDATA,
-        dirpath_collocation = config.DIR_NLP_LANGUAGE_STATS_COLLOCATION
-    )
-    lang_stats.load_collocation_stats()
-
     synonymlist_ro = slist.SynonymList(
         lang                = lang,
-        dirpath_synonymlist = config.DIR_SYNONYMLIST,
-        postfix_synonymlist = config.POSTFIX_SYNONYMLIST
+        dirpath_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
     )
     synonymlist_ro.load_synonymlist()
 
     ws = WordSegmentation(
         lang             = lang,
-        dirpath_wordlist = config.DIR_WORDLIST,
-        postfix_wordlist = config.POSTFIX_WORDLIST,
-        lang_stats       = lang_stats,
+        dirpath_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
         do_profiling     = True
     )
     len_before = ws.lang_wordlist.wordlist.shape[0]
     ws.add_wordlist(
-        dirpath = config.DIR_APP_WORDLIST,
-        postfix = config.POSTFIX_APP_WORDLIST,
+        dirpath = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
         array_words=list(synonymlist_ro.synonymlist[slist.SynonymList.COL_WORD])
     )
     len_after = ws.lang_wordlist.wordlist.shape[0]
