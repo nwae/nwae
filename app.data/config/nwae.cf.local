@@ -2,6 +2,9 @@
 topdir=/usr/local/git/nwae/nwae
 # See mozg.utils.Log.py for log level details
 loglevel=4.0
+# Model directory and key to load
+model_dir=/usr/local/git/mozig/mozg.nlp/app.data/intent/models
+model_identifier=botkey_db_mario.production.accountid_3.botid_4.lang_cn
 # All logs go to stdout
 debug=1
 # Profile math code
