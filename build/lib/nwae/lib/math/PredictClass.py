@@ -86,7 +86,7 @@ class PredictClass(threading.Thread):
             dirpath = self.dir_wordlist_app,
             postfix = self.postfix_wordlist_app
         )
-        self.count_intent_calls = 0
+        self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
         self.start()
@@ -185,7 +185,7 @@ class PredictClass(threading.Thread):
 
         #
         # Replace words with root words
-        # This step uses synonyms and replaces say 存钱, 入钱, 入款, all with the standard 存款
+        # This step uses synonyms and replaces say "красивая", "милая", "симпатичная", all with "красивая"
         # This will reduce training data without needing to put all versions of the same thing.
         #
         text_normalized_arr = self.synonymlist.normalize_text_array(
@@ -205,7 +205,7 @@ class PredictClass(threading.Thread):
                 '.' + space_profiling
                 + 'Chat ID="' + str(chatid) + '", Txt="' + str(text_segmented_arr) + '"'
                 + ' to "' + str(text_normalized_arr_lower) + '"'
-                + ' PROFILING Intent (replace root words): '
+                + ' PROFILING Predict Class Text Features (replace root words): '
                 + prf.Profiling.get_time_dif_str(starttime_prf, prf.Profiling.stop())
             )
 
@@ -232,7 +232,7 @@ class PredictClass(threading.Thread):
     ):
         self.wait_for_model_to_be_ready()
 
-        self.count_intent_calls = self.count_intent_calls + 1
+        self.count_predict_calls = self.count_predict_calls + 1
 
         starttime_predict_class = prf.Profiling.start()
 

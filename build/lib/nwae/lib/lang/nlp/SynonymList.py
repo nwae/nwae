@@ -190,14 +190,16 @@ class SynonymList:
 
 
 if __name__ == '__main__':
-    import nwae.ConfigFile as cf
-    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
+    import nwae.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
 
     for lang in ['cn', 'th']:
         sl = SynonymList(
-            lang=lang,
-            dirpath_synonymlist = config.DIR_SYNONYMLIST,
-            postfix_synonymlist = config.POSTFIX_SYNONYMLIST
+            lang                = lang,
+            dirpath_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+            postfix_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
         )
         sl.load_synonymlist()
         print(sl.synonymlist)
