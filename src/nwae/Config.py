@@ -33,11 +33,17 @@ class Config(baseconfig.BaseConfig):
     PARAM_NLP_POSTFIX_WORDLIST = 'postfix_wordlist'
     DEFAULT_VALUE_POSTFIX_WORDLIST = '-wordlist.txt'
 
+    PARAM_NLP_POSTFIX_STOPWORDS = 'postfix_stopwords'
+    DEFAULT_VALUE_POSTFIX_STOPWORDS = '-stopwords.txt'
+
     PARAM_NLP_DIR_APP_WORDLIST = 'dir_app_wordlist'
     DEFAULT_VALUE_DIR_APP_WORDLIST = None
 
     PARAM_NLP_POSTFIX_APP_WORDLIST = 'postfix_app_wordlist'
     DEFAULT_VALUE_POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
+
+    PARAM_NLP_POSTFIX_APP_STOPWORDS = 'postfix_app_stopwords'
+    DEFAULT_VALUE_POSTFIX_APP_STOPWORDS = '.stopwords.app.txt'
 
     PARAM_NLP_DIR_SYNONYMLIST = 'dir_synonymlist'
     DEFAULT_VALUE_DIR_SYNONYMLIST = None
@@ -133,7 +139,7 @@ class Config(baseconfig.BaseConfig):
         # NLP Stuff
         #######################################################################
 
-        # Word lists
+        # Built-in Word/Stop lists
         self.set_default_value_if_not_exist(
             param         = Config.PARAM_NLP_DIR_WORDLIST,
             default_value = topdir + '/nlp.data/wordlist'
@@ -142,7 +148,12 @@ class Config(baseconfig.BaseConfig):
             param         = Config.PARAM_NLP_POSTFIX_WORDLIST,
             default_value = Config.DEFAULT_VALUE_POSTFIX_WORDLIST
         )
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_NLP_POSTFIX_STOPWORDS,
+            default_value = Config.DEFAULT_VALUE_POSTFIX_STOPWORDS
+        )
 
+        # Application Word/Stop lists
         self.set_default_value_if_not_exist(
             param         = Config.PARAM_NLP_DIR_APP_WORDLIST,
             default_value = topdir + '/nlp.data/app/chats'
@@ -150,6 +161,10 @@ class Config(baseconfig.BaseConfig):
         self.set_default_value_if_not_exist(
             param         = Config.PARAM_NLP_POSTFIX_APP_WORDLIST,
             default_value = Config.DEFAULT_VALUE_POSTFIX_APP_WORDLIST
+        )
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_NLP_POSTFIX_APP_STOPWORDS,
+            default_value = Config.DEFAULT_VALUE_POSTFIX_APP_STOPWORDS
         )
 
         # Synonym lists
