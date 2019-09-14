@@ -8,7 +8,7 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.NumpyUtil as npUtil
-import nwae.ConfigFile as cf
+import nwae.Config as cf
 import nwae.utils.Profiling as prf
 
 
@@ -39,24 +39,24 @@ class Ut:
     )
     DATA_TEXTS = [
         # 0
-        '하나 두 두 셋 넷',
-        '하나 하나 두 셋 셋 넷',
-        '하나 두 셋 넷',
+        ['하나', '두', '두', '셋', '넷'],
+        ['하나', '하나', '두', '셋', '셋', '넷'],
+        ['하나', '두', '셋', '넷'],
         # 1
-        '두 셋 셋 넷',
-        '두 두 셋 셋 넷 넷',
-        '두 두 셋 넷 넷',
+        ['두', '셋', '셋', '넷'],
+        ['두', '두', '셋', '셋', '넷', '넷'],
+        ['두', '두', '셋', '넷', '넷'],
         # 2
-        '넷 다섯 다섯 여섯 여섯 여섯',
-        '두 넷 넷 다섯 다섯 여섯 여섯',
-        '두 넷 다섯 여섯 여섯',
+        ['넷', '다섯', '다섯', '여섯', '여섯', '여섯'],
+        ['두', '넷', '넷', '다섯', '다섯', '여섯', '여섯'],
+        ['두', '넷', '다섯', '여섯', '여섯'],
         # 3
-        '하나 여섯',
-        '하나 여섯 여섯',
-        '하나 하나 여섯',
-        '두 셋 넷 다섯',
-        '두 셋 셋 넷 다섯',
-        '두 셋 넷 넷 다섯'
+        ['하나', '여섯'],
+        ['하나', '여섯', '여섯'],
+        ['하나', '하나', '여섯'],
+        ['두', '셋', '넷', '다섯'],
+        ['두', '셋', '셋', '넷', '다섯'],
+        ['두', '셋', '넷', '넷', '다섯']
     ]
     DATA_Y = np.array(
         [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3]
@@ -126,7 +126,7 @@ class Ut:
         self.tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
             label_id       = y_list.copy(),
             label_name     = y_list.copy(),
-            text_segmented = self.texts,
+            sentences_list = self.texts,
             keywords_remove_quartile = 0
         )
 
@@ -146,7 +146,7 @@ class Ut:
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
             model_name        = self.model_name,
-            dir_path_model    = self.config.DIR_MODELS,
+            dir_path_model    = self.config.get_config(param=cf.Config.PARAM_MODEL_DIR),
             training_data     = self.tdm_obj
         )
 
@@ -218,7 +218,7 @@ class Ut:
         model_obj = modelHelper.ModelHelper.get_model(
             model_name        = self.model_name,
             identifier_string = self.identifier_string,
-            dir_path_model    = self.config.DIR_MODELS,
+            dir_path_model    = self.config.get_config(param=cf.Config.PARAM_MODEL_DIR),
             training_data     = None
         )
         model_obj.start()
@@ -339,7 +339,9 @@ class Ut:
 
 
 if __name__ == '__main__':
-    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
 
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,

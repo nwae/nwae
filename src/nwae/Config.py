@@ -164,6 +164,15 @@ class Config(baseconfig.BaseConfig):
 
 
 if __name__ == '__main__':
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
+        reload_every_x_secs = 5
+    )
+    print(config.param_value)
+    Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
+        reload_every_x_secs = 5
+    )
     config = Config(
         config_file = '/usr/local/git/nwae/nwae/app.data/config/nwae.cf.local',
         reload_every_x_secs = 5
