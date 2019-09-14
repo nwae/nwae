@@ -227,13 +227,15 @@ class Keras(modelIf.ModelInterface):
 
 
 if __name__ == '__main__':
-    import nwae.ConfigFile as cf
-    config = cf.ConfigFile.get_cmdline_params_and_init_config_singleton()
+    import nwae.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     kr = Keras(
         identifier_string = 'keras_image_bw_example',
-        dir_path_model    = config.DIR_MODELS
+        dir_path_model    = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
     )
     kr.load_mnist_example_data()
 
