@@ -124,7 +124,6 @@ class ModelBackTest:
         x = td.get_x()
         y = td.get_y()
         for i in range(0, x.shape[0], 1):
-            # if i<=410: continue
             y_expected = y[i]
             v = nputil.NumpyUtil.convert_dimension(arr=x[i], to_dim=2)
             x_features = x_name[v[0]>0]

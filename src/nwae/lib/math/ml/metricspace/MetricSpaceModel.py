@@ -235,7 +235,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             else:
                 x_distance = x_distance[0]
 
-        log.Log.debugdebug('x_distance: ' + str(x_distance) + ', y_label ' + str(y_label))
+        # log.Log.debugdebug('x_distance: ' + str(x_distance) + ', y_label ' + str(y_label))
 
         # Theoretical Inequality check
         check_less_than_max = np.sum(1 * (x_distance > 1+const.Constants.SMALL_VALUE))
@@ -262,6 +262,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         # Aggregate class by min distance, don't make class index.
         df_score = df_score.groupby(by=[MetricSpaceModel.TERM_CLASS], as_index=False, axis=0).min()
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
         # log.Log.debugdebug('DF SCORE 2:\n\r' + str(df_score))
 
         # Put score last (because we need to do groupby().min() above, which will screw up the values
@@ -285,7 +286,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
         df_score = df_score[0:min(top,df_score.shape[0])]
         df_score.reset_index(drop=True, inplace=True)
 
-        log.Log.debugdebug('x_score:\n\r' + str(df_score))
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        #log.Log.debugdebug('x_score:\n\r' + str(df_score))
 
         if self.do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
@@ -335,7 +337,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + ': Expected x has at least 1 row got c shape ' + str(x.shape) + '".'
             )
 
-        log.Log.debugdebug('x:\n\r' + str(x))
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        #log.Log.debugdebug('x:\n\r' + str(x))
 
         match_details = {}
         x_classes = []
@@ -431,35 +434,51 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + ': Expected x has 1 row got c shape ' + str(x.shape) + '".'
             )
 
-        log.Log.debugdebug('predict_class() x:\n\r' + str(x))
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        # log.Log.debugdebug('predict_class() x:\n\r' + str(x))
+
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur, 0)
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_class(): ' + str(prf_dur)
+                + ', sanity check = ' + str(dpp) + ' milliseconds.'
+                + ' x shape ' + str(x.shape)
+            )
 
         #
         # Weigh x with idf
         # TODO
         #   Для Китайского языка это вычисление занимает 1ms, но в Тайском языком 25ms. Почему?
         #
+        prf_start_x_weigh = prf.Profiling.start()
         x_weighted = x * self.model_data.idf
-        log.Log.debugdebug(
-            'x_weighted shape: ' + str(x_weighted.shape) + ', x shape: ' + str(x.shape)
-            + ', eidf shape: ' + str(self.model_data.idf.shape)
-        )
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        #log.Log.debugdebug(
+        #    'x_weighted shape: ' + str(x_weighted.shape) + ', x shape: ' + str(x.shape)
+        #    + ', eidf shape: ' + str(self.model_data.idf.shape)
+        #)
 
         v = x_weighted
 
         if self.do_profiling:
-            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            prf_dur = prf.Profiling.get_time_dif(prf_start_x_weigh, prf.Profiling.stop())
             # Duration per prediction
-            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            dpp = round(1000 * prf_dur, 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ' PROFILING predict_class(): ' + str(prf_dur)
                 + ', multiply eidf weights on v = ' + str(dpp) + ' milliseconds.'
+                + ' v shape ' + str(v.shape) + ', v dtype ' + str(v.dtype)
+                + ' eidf shape ' + str(self.model_data.idf.shape) + ', eidf dtype ' + str(self.model_data.idf.dtype)
             )
 
-        prf_start_normalize = prf.Profiling.start()
         #
         # Normalize x_weighted
         #
+        prf_start_normalize = prf.Profiling.start()
         mag = np.sum(np.multiply(v,v)**0.5)
         #
         # In the case of 0 magnitude, we put the point right in the center of the hypersphere at 0
@@ -468,11 +487,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
             v = np.multiply(v, 0)
         else:
             v = v / mag
-        log.Log.debugdebug('v normalized:\n\r' + str(v))
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        # log.Log.debugdebug('v normalized:\n\r' + str(v))
         if self.do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start_normalize, prf.Profiling.stop())
             # Duration per prediction
-            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            dpp = round(1000 * prf_dur, 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ' PROFILING predict_class(): ' + str(prf_dur)
@@ -492,7 +512,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         if self.do_profiling:
             prf_dur = prf.Profiling.get_time_dif(prf_start_layer_1_neural_network, prf.Profiling.stop())
             # Duration per prediction
-            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            dpp = round(1000 * prf_dur, 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ' PROFILING predict_class(): ' + str(prf_dur)
@@ -505,16 +525,17 @@ class MetricSpaceModel(modelIf.ModelInterface):
             y_label    = self.model_data.y_clustered,
             top        = top
         )
-        log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
+        # Warning! Uncomment only when debugging, this statement printing numpy array takes up to 10ms on Mac Air
+        # log.Log.debugdebug('df_class_score:\n\r' + str(df_class_score))
 
         top_classes_label = list(df_class_score[MetricSpaceModel.TERM_CLASS])
         top_class_distance = df_class_score[MetricSpaceModel.TERM_DIST].loc[df_class_score.index[0]]
 
         # Get the top class
-        log.Log.debugdebug('x_classes:\n\r' + str(top_classes_label))
-        log.Log.debugdebug('Class for point:\n\r' + str(top_classes_label))
-        log.Log.debugdebug('distance metric to x_clustered:\n\r' + str(metric_distance))
-        log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
+        # log.Log.debugdebug('x_classes:\n\r' + str(top_classes_label))
+        # log.Log.debugdebug('Class for point:\n\r' + str(top_classes_label))
+        # log.Log.debugdebug('distance metric to x_clustered:\n\r' + str(metric_distance))
+        # log.Log.debugdebug('top class distance:\n\r' + str(top_class_distance))
 
         # Mean square error MSE and MSE normalized
         top_class_distance = np.array(top_class_distance)
@@ -573,11 +594,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 if rows_of_class.shape[0] == 0:
                     continue
 
-                log.Log.debugdebug(
-                    str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + '\n\r\tRows of class "' + str(cs) + ':'
-                    + '\n\r' + str(rows_of_class)
-                )
+                # log.Log.debugdebug(
+                #     str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                #     + '\n\r\tRows of class "' + str(cs) + ':'
+                #     + '\n\r' + str(rows_of_class)
+                # )
 
                 #
                 # Cluster intent
@@ -656,13 +677,13 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         y_clustered = np.array([cs] * x_clustered.shape[0])
                         y_clustered_radius = np_cluster_radius
                     else:
-                        log.Log.debugdebug(
-                            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Concatenating x_cls row:\n\r' + str(np_cluster_centers)
-                            + '\n\nto x_cls array:\n\r' + str(x_clustered)
-                            + '\n\ry_cls row:\n\r' + str([cs] * np_cluster_centers.shape[0])
-                            + '\n\ry_radius row:\n\r' + str(np_cluster_radius) + ' to y_cls_radius ' + str(y_clustered_radius)
-                        )
+                        # log.Log.debugdebug(
+                        #     str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        #     + ': Concatenating x_cls row:\n\r' + str(np_cluster_centers)
+                        #     + '\n\nto x_cls array:\n\r' + str(x_clustered)
+                        #     + '\n\ry_cls row:\n\r' + str([cs] * np_cluster_centers.shape[0])
+                        #     + '\n\ry_radius row:\n\r' + str(np_cluster_radius) + ' to y_cls_radius ' + str(y_clustered_radius)
+                        # )
                         # Append rows (thus 1st dimension at axis index 0)
                         x_clustered = np.append(
                             x_clustered,
@@ -685,11 +706,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         retobj = retclass(x_cluster=x_clustered, y_cluster=y_clustered, y_cluster_radius=y_clustered_radius)
 
-        log.Log.debugdebug(
-            str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
-            + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
-        )
+        # log.Log.debugdebug(
+        #     str(MetricSpaceModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + '\n\r\tCluster of x\n\r' + str(retobj.x_cluster)
+        #     + '\n\r\ty labels for cluster: ' + str(retobj.y_cluster)
+        # )
         return retobj
 
     #
@@ -798,12 +819,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Here training data must be prepared in the correct format already
             # Значит что множество свойств уже объединено как одно (unified features)
             #
-            log.Log.debugdebug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x().tolist())
-                + '\n\r\tx names: ' + str(self.training_data.get_x_name())
-                + '\n\r\ty labels: ' + str(self.training_data.get_y())
-            )
+            # log.Log.debugdebug(
+            #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            #     + '\n\r\tTraining data:\n\r' + str(self.training_data.get_x().tolist())
+            #     + '\n\r\tx names: ' + str(self.training_data.get_x_name())
+            #     + '\n\r\ty labels: ' + str(self.training_data.get_y())
+            # )
 
             #
             # Get IDF first
