@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# !!! Will work only on Python 3 and above
-
 import pandas as pd
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
@@ -13,7 +11,7 @@ import nwae.lib.math.ml.ModelInterface as modelif
 
 
 #
-# This only tests intent engine, does not test word segmentation
+# Model Engine back test on training data
 #
 class ModelBackTest:
 
