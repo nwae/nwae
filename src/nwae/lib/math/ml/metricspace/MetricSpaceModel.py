@@ -439,7 +439,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
         #   Для Китайского языка это вычисление занимает 1ms, но в Тайском языком 25ms. Почему?
         #
         x_weighted = x * self.model_data.idf
-        log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
+        log.Log.debugdebug(
+            'x_weighted shape: ' + str(x_weighted.shape) + ', x shape: ' + str(x.shape)
+            + ', eidf shape: ' + str(self.model_data.idf.shape)
+        )
 
         v = x_weighted
 
