@@ -109,9 +109,18 @@ class Config(baseconfig.BaseConfig):
             self.convert_value_to_boolean_type(
                 param = Config.PARAM_DEBUG
             )
+            lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = self.param_value[Config.PARAM_DEBUG]
+            lg.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Set debug print to screen to "' + str(lg.Log.DEBUG_PRINT_ALL_TO_SCREEN) + '".'
+            )
 
             self.convert_value_to_boolean_type(
                 param = Config.PARAM_DO_PROFILING
+            )
+
+            self.convert_value_to_boolean_type(
+                param = Config.PARAM_MODEL_BACKTEST_DETAILED_STATS
             )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
