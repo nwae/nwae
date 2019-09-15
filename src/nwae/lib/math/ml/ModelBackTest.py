@@ -2,11 +2,8 @@
 
 # !!! Will work only on Python 3 and above
 
-import sys
-import numpy as np
 import pandas as pd
 import nwae.utils.Log as lg
-import nwae.utils.Log as nwaelog
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as pf
 import nwae.Config as cf
