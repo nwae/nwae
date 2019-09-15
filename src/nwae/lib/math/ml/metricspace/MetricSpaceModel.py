@@ -435,6 +435,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
 
         #
         # Weigh x with idf
+        # TODO
+        #   Для Китайского языка это вычисление занимает 1ms, но в Тайском языком 25ms. Почему?
         #
         x_weighted = x * self.model_data.idf
         log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
@@ -453,6 +455,15 @@ class MetricSpaceModel(modelIf.ModelInterface):
         else:
             v = v / mag
         log.Log.debugdebug('v normalized:\n\r' + str(v))
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_class(): ' + str(prf_dur)
+                + ', multiply eidf weights on v = ' + str(dpp) + ' milliseconds.'
+            )
 
         #
         # Our distance metric
