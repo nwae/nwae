@@ -256,7 +256,6 @@ class ModelBackTest:
 
     def run(
             self,
-            ignore_db = False,
             test_training_data = False
     ):
         while True:
@@ -272,7 +271,6 @@ class ModelBackTest:
                 lg.Log.log('Start Time: ' + str(start))
 
                 self.test_model_against_training_data(
-                    ignore_db = ignore_db,
                     include_detailed_accuracy_stats = self.include_detailed_accuracy_stats
                 )
 
