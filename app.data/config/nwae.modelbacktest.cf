@@ -11,7 +11,7 @@ model_identifier=botkey_db_mario.production.accountid_3.botid_4.lang_cn
 # All logs go to stdout
 debug=1
 # Profile math code
-do_profiling=1
+do_profiling=0
 #
 # For Model Back Testing
 #

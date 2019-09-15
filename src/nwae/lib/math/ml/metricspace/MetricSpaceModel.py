@@ -441,8 +441,19 @@ class MetricSpaceModel(modelIf.ModelInterface):
         x_weighted = x * self.model_data.idf
         log.Log.debugdebug('x_weighted:\n\r' + str(x_weighted))
 
-        v = x_weighted.copy()
+        v = x_weighted
 
+        if self.do_profiling:
+            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            # Duration per prediction
+            dpp = round(1000 * prf_dur / x.shape[0], 0)
+            log.Log.important(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ' PROFILING predict_class(): ' + str(prf_dur)
+                + ', multiply eidf weights on v = ' + str(dpp) + ' milliseconds.'
+            )
+
+        prf_start_normalize = prf.Profiling.start()
         #
         # Normalize x_weighted
         #
@@ -456,13 +467,13 @@ class MetricSpaceModel(modelIf.ModelInterface):
             v = v / mag
         log.Log.debugdebug('v normalized:\n\r' + str(v))
         if self.do_profiling:
-            prf_dur = prf.Profiling.get_time_dif(prf_start, prf.Profiling.stop())
+            prf_dur = prf.Profiling.get_time_dif(prf_start_normalize, prf.Profiling.stop())
             # Duration per prediction
             dpp = round(1000 * prf_dur / x.shape[0], 0)
             log.Log.important(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ' PROFILING predict_class(): ' + str(prf_dur)
-                + ', multiply eidf weights on v = ' + str(dpp) + ' milliseconds.'
+                + ', normalize v = ' + str(dpp) + ' milliseconds.'
             )
 
         #
@@ -484,23 +495,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
                 + ' PROFILING predict_class(): ' + str(prf_dur)
                 + ', calculation of layer 1 neural network = ' + str(dpp) + ' milliseconds.'
             )
-
-        #
-        # Remove
-        #
-        # min_distance = min(metric_distance)
-        # log.Log.debugdebug(
-        #     'Min distance ' + str(min_distance) + ' from ' + str(metric_distance)
-        # )
-        # keep = metric_distance<2*min_distance
-        # keep_metric = metric_distance[keep]
-        # keep_x_clustered = self.model_data.x_clustered[keep]
-        # keep_y_clustered = self.model_data.y_clustered[keep]
-        # log.Log.debugdebug(
-        #     'Keep only x_clustered ' + str(keep_x_clustered)
-        #     + '\n\ry_clustered ' + str(keep_y_clustered)
-        #     + '\n\rmetric ' + str(keep_metric)
-        # )
 
         # Get the score of point relative to all classes.
         df_class_score = self.calc_proximity_class_score_to_point(
