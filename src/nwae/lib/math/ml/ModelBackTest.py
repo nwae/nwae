@@ -74,7 +74,6 @@ class ModelBackTest:
     #
     def test_model_against_training_data(
             self,
-            ignore_db = False,
             include_detailed_accuracy_stats = False
     ):
         start_get_td_time = pf.Profiling.start()
