@@ -18,6 +18,12 @@ class Config(baseconfig.BaseConfig):
     PARAM_LOG_LEVEL = 'loglevel'
     DEFAULT_VALUE_LOGLEVEL = lg.Log.LOG_LEVEL_INFO
 
+    PARAM_MODEL_NAME = 'model_name'
+    DEFAULT_VALUE_MODEL_NAME = None
+
+    PARAM_MODEL_LANG = 'model_lang'
+    DEFAULT_VALUE_MODEL_LANG = None
+
     PARAM_MODEL_DIR = 'model_dir'
     DEFAULT_VALUE_MODEL_DIR = None
 
@@ -161,8 +167,23 @@ class Config(baseconfig.BaseConfig):
 
         # Where to store model files
         self.set_default_value_if_not_exist(
+            param         = Config.PARAM_MODEL_NAME,
+            default_value = Config.DEFAULT_VALUE_MODEL_NAME
+        )
+        # Where to store model files
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_MODEL_LANG,
+            default_value = Config.DEFAULT_VALUE_MODEL_LANG
+        )
+        # Where to store model files
+        self.set_default_value_if_not_exist(
             param         = Config.PARAM_MODEL_DIR,
             default_value = topdir + '/app.data/models'
+        )
+        # Where to store model files
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_MODEL_IDENTIFIER,
+            default_value = Config.DEFAULT_VALUE_MODEL_IDENTIFIER
         )
 
         #######################################################################
