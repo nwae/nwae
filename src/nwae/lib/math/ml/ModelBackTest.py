@@ -385,15 +385,6 @@ if __name__ == '__main__':
     cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config
     )
-    # Default values
-    pv = {
-        'configfile': None,
-        'detailedstats': True,
-        # Will overwrite setting in config file
-        'debug': False
-    }
-    args = sys.argv
-
     detailed_stats = True
 
     for arg in args:
@@ -416,7 +407,9 @@ if __name__ == '__main__':
     #
     # Main config
     #
-    config = cf.Config.get_cmdline_params_and_init_config()
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
     if pv['debug'] == '1':
         lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
         nwaelog.Log.DEBUG_PRINT_ALL_TO_SCREEN = True

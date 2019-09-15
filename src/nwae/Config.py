@@ -51,11 +51,20 @@ class Config(baseconfig.BaseConfig):
     PARAM_NLP_POSTFIX_SYNONYMLIST = 'postfix_synonymlist'
     DEFAULT_VALUE_POSTFIX_SYNONYMLIST = '.synonymlist.txt'
 
+    #
+    # General debug, profiling settings
+    #
     PARAM_DEBUG = 'debug'
     DEFAULT_VALUE_DEBUG = False
 
     PARAM_DO_PROFILING = 'do_profiling'
     DEFAULT_VALUE_DO_PROFILING = False
+
+    #
+    # Model Back Testing
+    #
+    PARAM_MODEL_BACKTEST_DETAILED_STATS = 'model_backtest_detailed_stats'
+    DEFAULT_VALUE_MODEL_BACKTEST_DETAILED_STATS = True
 
     def __init__(
             self,
@@ -64,44 +73,58 @@ class Config(baseconfig.BaseConfig):
         super(Config, self).__init__(
             config_file = config_file
         )
+        self.reload_config()
+        return
+
+    def reload_config(
+            self
+    ):
+        # Call base class first
+        lg.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': Calling base class reload config for "' + str(self.config_file) + '"..'
+        )
+        super(Config,self).reload_config()
 
         try:
             self.reset_default_config()
 
-            lg.Log.LOGLEVEL = float(self.param_value[Config.PARAM_LOG_LEVEL])
+            #
+            # This is the part we convert our values to desired types
+            #
+            self.convert_value_to_float_type(
+                param = Config.PARAM_LOG_LEVEL,
+                default_val = Config.DEFAULT_VALUE_LOGLEVEL
+            )
+            lg.Log.LOGLEVEL = self.param_value[Config.PARAM_LOG_LEVEL]
             lg.Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': CONFIG "' + str(Config.PARAM_LOG_LEVEL)
-                + '" set to "' + str(self.param_value[Config.PARAM_LOG_LEVEL]) + '".'
+                + ': Set log level to "' + str(lg.Log.LOGLEVEL) + '".'
             )
 
-            if self.param_value[Config.PARAM_DEBUG] == '1':
-                self.param_value[Config.PARAM_DEBUG] = True
-                lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-            else:
-                self.param_value[Config.PARAM_DEBUG] = False
-            lg.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': CONFIG "' + str(Config.PARAM_DEBUG)
-                + '" set to "' + str(self.param_value[Config.PARAM_DEBUG]) + '".'
+            #
+            # Here lies the important question, should we standardize all config
+            # to only string type, or convert them?
+            #
+            self.convert_value_to_boolean_type(
+                param = Config.PARAM_DEBUG
             )
 
-            if self.param_value[Config.PARAM_DO_PROFILING] == '1':
-                self.param_value[Config.PARAM_DO_PROFILING] = True
-            else:
-                self.param_value[Config.PARAM_DO_PROFILING] = False
-            lg.Log.critical(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': CONFIG "' + str(Config.PARAM_DO_PROFILING)
-                + '" set to "' + str(self.param_value[Config.PARAM_DO_PROFILING]) + '".'
+            self.convert_value_to_boolean_type(
+                param = Config.PARAM_DO_PROFILING
             )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Error initializing config file "' + str(config_file)\
+                     + ': Error initializing config file "' + str(self.config_file)\
                      + '". Exception message ' + str(ex)
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
 
+        return
+
+    #
+    # For those params not found in config file, we give default values
+    #
     def reset_default_config(
             self
     ):
@@ -175,20 +198,40 @@ class Config(baseconfig.BaseConfig):
             default_value = Config.DEFAULT_VALUE_POSTFIX_SYNONYMLIST
         )
 
+        #
+        # Model Backtesting
+        #
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_MODEL_BACKTEST_DETAILED_STATS,
+            default_value = Config.DEFAULT_VALUE_MODEL_BACKTEST_DETAILED_STATS
+        )
+        return
+
 
 if __name__ == '__main__':
+    import time
+
     config = Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = Config
     )
     print(config.param_value)
+    #
+    # Singleton should already exist
+    #
+    print('*************** Test Singleton exists')
     Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = Config
     )
+    time.sleep(3)
+
+    print('*************** Test config file reload..')
     config = Config(
         config_file = '/usr/local/git/nwae/nwae/app.data/config/nwae.cf.local'
     )
-    import time
     while True:
         time.sleep(3)
-        print(config.get_config(param='topdir'))
-        print(config.param_value)
+        if config.is_file_last_updated_time_is_newer():
+            print('********************* FILE TIME UPDATED...')
+            config.reload_config()
+            print(config.get_config(param='topdir'))
+            print(config.param_value)
