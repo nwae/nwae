@@ -10,6 +10,7 @@ import nwae.utils.Log as nwaelog
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as pf
 import nwae.Config as cf
+import nwae.lib.math.PredictClass as predictclass
 
 
 #
@@ -21,82 +22,39 @@ class ModelBackTest:
 
     def __init__(
             self,
-            config,
-            account_id,
-            bot_id,
-            lang,
-            bot_key,
-            do_text_segmentation,
-            do_profiling,
-            minimal,
-            include_detailed_accuracy_stats = False
+            config
     ):
         self.config = config
-        self.account_id = account_id
-        self.bot_id = bot_id
-        self.lang = lang
-        self.bot_key = bot_key
-        self.do_text_segmentation = do_text_segmentation
-        self.do_profiling = do_profiling
-        self.minimal = minimal
-        self.include_detailed_accuracy_stats = include_detailed_accuracy_stats
 
-        self.dir_testdata = self.config.DIR_INTENTTEST_TESTDATA
+        self.include_detailed_accuracy_stats = config.get_config(param=cf.Config.PARAM_MODEL_BACKTEST_DETAILED_STATS)
+        self.model_dir = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
+        self.model_identifier = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER)
+        self.do_profiling = config.get_config(param=cf.Config.PARAM_DO_PROFILING)
 
-        self.bot_config = cfbot.BotConfigFile.get_botconfig_singleton(
-            bot_id = self.bot_id,
-            dir_bot_config = self.config.DIR_BOT_SPECIFIC_CONFIG_FILES,
-            db_profile     = self.config.DB_PROFILE
-        )
-        self.bot_config.init_from_app_config_file()
-
-        dir_path_model = self.config.DIR_INTENT_MODELS
-        if self.bot_config.MATH_ENGINE == cfbot.BotConfigFile.CONST_MATH_ENGINE_BUILT_IN:
-            dir_path_model = self.config.DIR_RFV_INTENTS
+        lg.Log.info('Include detailed stats = ' + str(self.include_detailed_accuracy_stats) + '.')
+        lg.Log.info('Model Directory "' + str(self.model_dir) + '"')
+        lg.Log.info('Model Identifier "' + str(self.model_identifier) + '"')
+        lg.Log.info('Do profiling = ' + str(self.do_profiling) + '.')
 
         try:
-            import ie.lib.chat.bot.IntentModel as intentModel
-            self.bot = intentModel.IntentModel.get_bot(
-                model_name        = self.bot_config.MATH_MODEL,
-                dir_path_model    = dir_path_model,
-                account_id        = self.account_id,
-                bot_id            = self.bot_id,
-                lang              = self.lang,
-                bot_key           = self.bot_key,
-                minimal           = self.minimal,
-                dir_synonymlist      = self.config.DIR_SYNONYMLIST,
-                postfix_synonymlist  = self.config.POSTFIX_SYNONYMLIST,
-                dir_wordlist         = self.config.DIR_WORDLIST,
-                postfix_wordlist     = self.config.POSTFIX_WORDLIST,
-                dir_wordlist_app     = self.config.DIR_APP_WORDLIST,
-                postfix_wordlist_app = self.config.POSTFIX_APP_WORDLIST,
-                use_db               = self.config.USE_DB,
-                db_profile           = self.config.DB_PROFILE,
-                do_profiling         = self.do_profiling
+            self.intent = predictclass.PredictClass(
+                model_name           = self.model_name,
+                identifier_string    = self.model_identifier,
+                dir_path_model       = self.model_dir,
+                lang                 = self.lang,
+                dirpath_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+                postfix_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+                dir_wordlist         = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+                postfix_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+                dir_wordlist_app     = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+                postfix_wordlist_app = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+                do_profiling         = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
             )
         except Exception as ex:
             lg.Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not load IntentModel: ' + str(ex)
+                + ': Could not load PredictClass: ' + str(ex)
             )
-            self.bot = intwrapper.IntentWrapper(
-                use_db     = self.config.USE_DB,
-                db_profile = self.config.DB_PROFILE,
-                account_id = self.account_id,
-                bot_id     = self.bot_id,
-                lang       = self.lang,
-                bot_key    = self.bot_key,
-                minimal    = self.minimal,
-                dir_rfv_commands     = self.config.DIR_RFV_INTENTS,
-                dir_synonymlist      = self.config.DIR_SYNONYMLIST,
-                dir_wordlist         = self.config.DIR_WORDLIST,
-                postfix_wordlist     = self.config.POSTFIX_WORDLIST,
-                dir_wordlist_app     = self.config.DIR_APP_WORDLIST,
-                postfix_wordlist_app = self.config.POSTFIX_APP_WORDLIST,
-                do_profiling         = self.do_profiling
-            )
-            self.bot.init()
-
         return
 
     #
@@ -382,63 +340,14 @@ class ModelBackTest:
 
 
 if __name__ == '__main__':
-    cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
-    )
-    detailed_stats = True
-
-    for arg in args:
-        arg_split = arg.split('=')
-        if len(arg_split) == 2:
-            param = arg_split[0].lower()
-            value = arg_split[1]
-            if param in list(pv.keys()):
-                print('Command line param [' + param + '], value [' + str(value) + '].')
-                pv[param] = value
-
-    if (pv['configfile'] is None):
-        errmsg = usage_msg
-        raise (Exception(errmsg))
-
-    if pv['detailedstats'] == '0':
-        detailed_stats = False
-        lg.Log.log('Detailed stats = ' + str(detailed_stats))
-
-    #
-    # Main config
-    #
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config
     )
-    if pv['debug'] == '1':
-        lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-        nwaelog.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-        print('OVERWRITE CONFIG FILE SETTING of DEBUG to ' + str(lg.Log.DEBUG_PRINT_ALL_TO_SCREEN))
 
-    test_training_data = False
-    # Logs
-    lg.Log.set_path(config.FILEPATH_GENERAL_LOG)
-    lg.Log.log('** Bot Test startup. Using the following parameters..')
-    lg.Log.log(str(pv))
-
-    # DB Stuff initializations
-    au.Auth.init_instances()
-
-    [accountId, botId, botLang, botkey] = cmdline.CommandLine.get_parameters_to_run_bot(
-        db_profile = config.DB_PROFILE
-    )
-    bt = BotTest(
+    mt = ModelBackTest(
         config     = config,
-        account_id = accountId,
-        bot_id     = botId,
-        lang       = botLang,
-        bot_key    = botkey,
-        do_text_segmentation = do_text_segmentation,
+        model_identifier = model_identifier,
         do_profiling = config.DO_PROFILING,
-        minimal      = config.MINIMAL_SERVER,
         include_detailed_accuracy_stats = detailed_stats
     )
-    bt.run(
-        ignore_db          = ignore_db,
-        test_training_data = test_training_data
-    )
+    mt.run()
