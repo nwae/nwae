@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='0.7.2',
+    version='0.8.1',
     packages=[
         'nwae.lib.math',
         'nwae.lib.math.ml',
