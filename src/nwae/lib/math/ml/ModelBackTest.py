@@ -19,6 +19,15 @@ class ModelBackTest:
 
     TEST_TOP_X = 5
 
+    KEY_STATS_START_TEST_TIME = 'start_test_time'
+    KEY_STATS_RESULT_TOTAL = 'result_total'
+    KEY_STATS_RESULT_CORRECT = 'result_correct'
+    KEY_STATS_RESULT_TOP = 'result_top'
+    # How many % in top X
+    KEY_STATS_RESULT_ACCURACY = 'result_accuracy'
+    KEY_STATS_RESULT_WRONG = 'result_wrong'
+    KEY_STATS_DF_SCORES = 'df_scores'
+
     def __init__(
             self,
             config
@@ -100,17 +109,19 @@ class ModelBackTest:
         #
         # Read from chatbot training files to compare with LeBot performance
         #
-        result_total = 0
-        result_correct = 0
-        result_accuracy_in_top_x = 0
-        result_top = {}
-        # How many % in top X
-        result_accuracy = {}
+        test_stats = {
+            ModelBackTest.KEY_STATS_START_TEST_TIME: start_test_time,
+            ModelBackTest.KEY_STATS_RESULT_TOTAL: 0,
+            ModelBackTest.KEY_STATS_RESULT_CORRECT: 0,
+            ModelBackTest.KEY_STATS_RESULT_TOP: {},
+            # How many % in top X
+            ModelBackTest.KEY_STATS_RESULT_ACCURACY: {},
+            ModelBackTest.KEY_STATS_RESULT_WRONG: 0,
+            ModelBackTest.KEY_STATS_DF_SCORES: pd.DataFrame(columns=['Score', 'ConfLevel', 'Correct'])
+        }
         for top_i in range(ModelBackTest.TEST_TOP_X):
-            result_top[top_i] = 0
-            result_accuracy[top_i] = 0
-        result_wrong = 0
-        df_scores = pd.DataFrame(columns=['Score', 'ConfLevel', 'Correct'])
+            test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][top_i] = 0
+            test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][top_i] = 0
 
         x_name = td.get_x_name()
         x = td.get_x()
@@ -121,92 +132,130 @@ class ModelBackTest:
             v = nputil.NumpyUtil.convert_dimension(arr=x[i], to_dim=2)
             x_features = x_name[v[0]>0]
 
-            predict_result = self.model.predict_class(
-                x   = v,
-                top = ModelBackTest.TEST_TOP_X,
-                include_match_details = True
-            )
-            df_match_details = predict_result.match_details
-            lg.Log.debugdebug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': y expected: ' + str(y_expected) + ', x features: ' + str(x_features)
-                + '\n\rMatch Details:\n\r' + str(df_match_details)
+            df_match_details = self.predict_top_x(
+                v = v,
+                y_expected = y_expected,
+                x_features = x_features
             )
 
-            com_idx = 0
-            com_class = '-'
-            # com_match = None
-            com_score = 0
-            com_conflevel = 0
-            correct = False
-            if df_match_details is not None:
-                # We define correct by having the targeted intent in the top closest
-                com_results_list = list(df_match_details[modelif.ModelInterface.TERM_CLASS])
-                correct = (y_expected in com_results_list)
-
-                if correct:
-                    com_idx = df_match_details.index[
-                        df_match_details[modelif.ModelInterface.TERM_CLASS] == y_expected
-                    ][0]
-                    com_class = df_match_details[modelif.ModelInterface.TERM_CLASS].loc[com_idx]
-                    com_score = df_match_details[modelif.ModelInterface.TERM_SCORE].loc[com_idx]
-                    com_conflevel = df_match_details[modelif.ModelInterface.TERM_CONFIDENCE].loc[com_idx]
-
-            result_total = result_total + 1
-            time_elapsed = pf.Profiling.get_time_dif(start_test_time, pf.Profiling.stop())
-            rps = round(result_total / time_elapsed, 1)
-            # Time per request in milliseconds
-            tpr = round(1000 / rps, 1)
-
-            df_scores = df_scores.append({
-                'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
-            },
-                ignore_index=True)
-            lg.Log.debugdebug(df_scores)
-            if not correct:
-                result_wrong = result_wrong + 1
-                lg.Log.log('Failed Test y: ' + str(y_expected) + ' (' + str(x_features) + ') === ' + str(com_class))
-                lg.Log.log(df_match_details)
-                lg.Log.log('   Result: ' + str(com_class))
-            else:
-                result_correct = result_correct + 1
-                result_accuracy_in_top_x = round(100 * result_correct / result_total, 2)
-                str_result_accuracy = str(result_accuracy_in_top_x) + '%'
-
-                if include_detailed_accuracy_stats:
-                    result_top[com_idx] = result_top[com_idx] + 1
-                    result_accuracy[com_idx] = round(100 * result_top[com_idx] / result_total, 1)
-                    for iii in range(min(3,ModelBackTest.TEST_TOP_X)):
-                        str_result_accuracy =\
-                            str_result_accuracy\
-                            + ', p' + str(iii+1) + '=' + str(result_accuracy[iii]) + '%'
-
-                if result_correct % 100 == 0:
-                    lg.Log.log('Passed ' + str(result_correct) + '..')
-                lg.Log.log('Passed ' + str(result_correct)
-                           + ' (' + str_result_accuracy
-                           + ', ' + str(rps) + ' rps, ' + str(tpr) + 'ms per/req'
-                           + '): ' + str(y_expected) + ':' + str(x_features)
-                           + '). Score=' + str(com_score) + ', ConfLevel=' + str(com_conflevel)
-                           + ', Index=' + str(com_idx+1))
-                if com_idx != 0:
-                    lg.Log.log('   Result not 1st (in position #' + str(com_idx) + ')')
-
-            # if i>1: break
+            self.update_test_stats(
+                df_match_details = df_match_details,
+                y_expected = y_expected,
+                x_features = x_features,
+                test_stats = test_stats,
+                include_detailed_accuracy_stats = include_detailed_accuracy_stats
+            )
 
         stop_test_time = pf.Profiling.stop()
         lg.Log.log('.   Stop Testing of Training Data from DB Time : '
                    + str(pf.Profiling.get_time_dif_str(start_test_time, stop_test_time)))
 
-        lg.Log.log(str(result_wrong) + ' wrong results from ' + str(result_total) + ' total tests.')
-        lg.Log.log("Score Quantile (0): " + str(df_scores['Score'].quantile(0)))
-        lg.Log.log("Score Quantile (5%): " + str(df_scores['Score'].quantile(0.05)))
-        lg.Log.log("Score Quantile (25%): " + str(df_scores['Score'].quantile(0.25)))
-        lg.Log.log("Score Quantile (50%): " + str(df_scores['Score'].quantile(0.5)))
-        lg.Log.log("Score Quantile (75%): " + str(df_scores['Score'].quantile(0.75)))
-        lg.Log.log("Score Quantile (95%): " + str(df_scores['Score'].quantile(0.95)))
+        lg.Log.log(
+            str(test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
+            + str(test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
+        )
+        lg.Log.log("Score Quantile (0): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0)))
+        lg.Log.log("Score Quantile (5%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.05)))
+        lg.Log.log("Score Quantile (25%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.25)))
+        lg.Log.log("Score Quantile (50%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.5)))
+        lg.Log.log("Score Quantile (75%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.75)))
+        lg.Log.log("Score Quantile (95%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.95)))
 
         return
+
+    def predict_top_x(
+            self,
+            # 2D numpy ndarray, shape (1,n)
+            v,
+            y_expected,
+            x_features
+    ):
+        predict_result = self.model.predict_class(
+            x   = v,
+            top = ModelBackTest.TEST_TOP_X,
+            include_match_details = True
+        )
+        df_match_details = predict_result.match_details
+        lg.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': y expected: ' + str(y_expected) + ', x features: ' + str(x_features)
+            + '\n\rMatch Details:\n\r' + str(df_match_details)
+        )
+        return df_match_details
+
+    def update_test_stats(
+            self,
+            df_match_details,
+            y_expected,
+            x_features,
+            test_stats,
+            include_detailed_accuracy_stats
+    ):
+        com_idx = 0
+        com_class = '-'
+        # com_match = None
+        com_score = 0
+        com_conflevel = 0
+        correct = False
+        if df_match_details is not None:
+            # We define correct by having the targeted intent in the top closest
+            com_results_list = list(df_match_details[modelif.ModelInterface.TERM_CLASS])
+            correct = (y_expected in com_results_list)
+
+            if correct:
+                com_idx = df_match_details.index[
+                    df_match_details[modelif.ModelInterface.TERM_CLASS] == y_expected
+                    ][0]
+                com_class = df_match_details[modelif.ModelInterface.TERM_CLASS].loc[com_idx]
+                com_score = df_match_details[modelif.ModelInterface.TERM_SCORE].loc[com_idx]
+                com_conflevel = df_match_details[modelif.ModelInterface.TERM_CONFIDENCE].loc[com_idx]
+
+        test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] =\
+            test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] + 1
+        time_elapsed = pf.Profiling.get_time_dif(test_stats[ModelBackTest.KEY_STATS_START_TEST_TIME], pf.Profiling.stop())
+        rps = round(test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] / time_elapsed, 1)
+        # Time per request in milliseconds
+        tpr = round(1000 / rps, 1)
+
+        test_stats[ModelBackTest.KEY_STATS_DF_SCORES] = test_stats[ModelBackTest.KEY_STATS_DF_SCORES].append({
+            'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
+        },
+            ignore_index=True)
+        lg.Log.debugdebug(test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
+        if not correct:
+            lg.Log.log('Failed Test y: ' + str(y_expected) + ' (' + str(x_features) + ') === ' + str(com_class))
+            lg.Log.log(df_match_details)
+            lg.Log.log('   Result: ' + str(com_class))
+        else:
+            test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] = test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] + 1
+            result_accuracy_in_top_x =\
+                round(100 * test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT]
+                      / test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 2)
+            str_result_accuracy = str(result_accuracy_in_top_x) + '%'
+
+            if include_detailed_accuracy_stats:
+                # Update the result at the index it appeared
+                test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] =\
+                    test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] + 1
+                test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][com_idx] =\
+                    round(100 * test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx]
+                          / test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 1)
+
+                # Only show 3
+                for iii in range(min(3, ModelBackTest.TEST_TOP_X)):
+                    str_result_accuracy = \
+                        str_result_accuracy \
+                        + ', p' + str(iii + 1) + '='\
+                        + str(test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][iii]) + '%'
+
+            lg.Log.log('Passed ' + str(test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT])
+                       + ' (' + str_result_accuracy
+                       + ', ' + str(rps) + ' rps, ' + str(tpr) + 'ms per/req'
+                       + '): ' + str(y_expected) + ':' + str(x_features)
+                       + '). Score=' + str(com_score) + ', ConfLevel=' + str(com_conflevel)
+                       + ', Index=' + str(com_idx + 1))
+            if com_idx != 0:
+                lg.Log.log('   Result not 1st (in position #' + str(com_idx) + ')')
 
     def run(
             self,
