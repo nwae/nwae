@@ -32,6 +32,9 @@ class ModelBackTest:
     ):
         self.config = config
 
+        if self.config is None:
+            return
+
         self.include_detailed_accuracy_stats = config.get_config(param=cf.Config.PARAM_MODEL_BACKTEST_DETAILED_STATS)
         self.model_name = config.get_config(param=cf.Config.PARAM_MODEL_NAME)
         self.model_lang = config.get_config(param=cf.Config.PARAM_MODEL_LANG)
@@ -61,12 +64,29 @@ class ModelBackTest:
                 do_profiling         = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
             )
             self.model = self.predictor.model
+            self.test_stats = None
         except Exception as ex:
-            lg.Log.warning(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Could not load PredictClass: ' + str(ex)
-            )
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Could not load PredictClass: ' + str(ex)
+            lg.Log.error(errmsg)
+            # Don't raise exception
+            # raise Exception(errmsg)
         return
+
+    def reset_test_stats(self):
+        self.test_stats = {
+            ModelBackTest.KEY_STATS_START_TEST_TIME: 0,
+            ModelBackTest.KEY_STATS_RESULT_TOTAL: 0,
+            ModelBackTest.KEY_STATS_RESULT_CORRECT: 0,
+            ModelBackTest.KEY_STATS_RESULT_TOP: {},
+            # How many % in top X
+            ModelBackTest.KEY_STATS_RESULT_ACCURACY: {},
+            ModelBackTest.KEY_STATS_RESULT_WRONG: 0,
+            ModelBackTest.KEY_STATS_DF_SCORES: pd.DataFrame(columns=['Score', 'ConfLevel', 'Correct'])
+        }
+        for top_i in range(ModelBackTest.TEST_TOP_X):
+            self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][top_i] = 0
+            self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][top_i] = 0
 
     #
     # TODO: Include data that is suppose to fail (e.g. run LeBot through our historical chats to get that data)
@@ -106,19 +126,8 @@ class ModelBackTest:
         #
         # Read from chatbot training files to compare with LeBot performance
         #
-        test_stats = {
-            ModelBackTest.KEY_STATS_START_TEST_TIME: start_test_time,
-            ModelBackTest.KEY_STATS_RESULT_TOTAL: 0,
-            ModelBackTest.KEY_STATS_RESULT_CORRECT: 0,
-            ModelBackTest.KEY_STATS_RESULT_TOP: {},
-            # How many % in top X
-            ModelBackTest.KEY_STATS_RESULT_ACCURACY: {},
-            ModelBackTest.KEY_STATS_RESULT_WRONG: 0,
-            ModelBackTest.KEY_STATS_DF_SCORES: pd.DataFrame(columns=['Score', 'ConfLevel', 'Correct'])
-        }
-        for top_i in range(ModelBackTest.TEST_TOP_X):
-            test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][top_i] = 0
-            test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][top_i] = 0
+        self.reset_test_stats()
+        self.test_stats[ModelBackTest.KEY_STATS_START_TEST_TIME] = start_test_time
 
         x_name = td.get_x_name()
         x = td.get_x()
@@ -138,7 +147,6 @@ class ModelBackTest:
                 df_match_details = df_match_details,
                 y_expected = y_expected,
                 x_features = x_features,
-                test_stats = test_stats,
                 include_detailed_accuracy_stats = include_detailed_accuracy_stats
             )
 
@@ -147,15 +155,14 @@ class ModelBackTest:
                    + str(pf.Profiling.get_time_dif_str(start_test_time, stop_test_time)))
 
         lg.Log.log(
-            str(test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
-            + str(test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
+            str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
+            + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
         )
-        lg.Log.log("Score Quantile (0): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0)))
-        lg.Log.log("Score Quantile (5%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.05)))
-        lg.Log.log("Score Quantile (25%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.25)))
-        lg.Log.log("Score Quantile (50%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.5)))
-        lg.Log.log("Score Quantile (75%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.75)))
-        lg.Log.log("Score Quantile (95%): " + str(test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.95)))
+        for q in (0.0, 0.05, 0.25, 0.50, 0.75, 0.75, 0.95):
+            lg.Log.log(
+                'Score Quantile (' + str(q) + '): '
+                + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(q))
+            )
 
         return
 
@@ -184,7 +191,6 @@ class ModelBackTest:
             df_match_details,
             y_expected,
             x_features,
-            test_stats,
             include_detailed_accuracy_stats
     ):
         com_idx = 0
@@ -206,45 +212,50 @@ class ModelBackTest:
                 com_score = df_match_details[modelif.ModelInterface.TERM_SCORE].loc[com_idx]
                 com_conflevel = df_match_details[modelif.ModelInterface.TERM_CONFIDENCE].loc[com_idx]
 
-        test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] =\
-            test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] + 1
-        time_elapsed = pf.Profiling.get_time_dif(test_stats[ModelBackTest.KEY_STATS_START_TEST_TIME], pf.Profiling.stop())
-        rps = round(test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] / time_elapsed, 1)
+        self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] =\
+            self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] + 1
+        time_elapsed = pf.Profiling.get_time_dif(
+            self.test_stats[ModelBackTest.KEY_STATS_START_TEST_TIME], pf.Profiling.stop()
+        )
+        rps = round(self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] / time_elapsed, 1)
         # Time per request in milliseconds
         tpr = round(1000 / rps, 1)
 
-        test_stats[ModelBackTest.KEY_STATS_DF_SCORES] = test_stats[ModelBackTest.KEY_STATS_DF_SCORES].append({
-            'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
-        },
+        self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES] =\
+            self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES].append(
+                {
+                    'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
+                },
             ignore_index=True)
-        lg.Log.debugdebug(test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
+        # lg.Log.debugdebug(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
         if not correct:
             lg.Log.log('Failed Test y: ' + str(y_expected) + ' (' + str(x_features) + ') === ' + str(com_class))
             lg.Log.log(df_match_details)
             lg.Log.log('   Result: ' + str(com_class))
         else:
-            test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] = test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] + 1
+            self.test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] =\
+                self.test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT] + 1
             result_accuracy_in_top_x =\
-                round(100 * test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT]
-                      / test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 2)
+                round(100 * self.test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT]
+                      / self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 2)
             str_result_accuracy = str(result_accuracy_in_top_x) + '%'
 
             if include_detailed_accuracy_stats:
                 # Update the result at the index it appeared
-                test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] =\
-                    test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] + 1
-                test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][com_idx] =\
-                    round(100 * test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx]
-                          / test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 1)
+                self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] =\
+                    self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] + 1
+                self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][com_idx] =\
+                    round(100 * self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx]
+                          / self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 1)
 
                 # Only show 3
                 for iii in range(min(3, ModelBackTest.TEST_TOP_X)):
                     str_result_accuracy = \
                         str_result_accuracy \
                         + ', p' + str(iii + 1) + '='\
-                        + str(test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][iii]) + '%'
+                        + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][iii]) + '%'
 
-            lg.Log.log('Passed ' + str(test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT])
+            lg.Log.log('Passed ' + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT])
                        + ' (' + str_result_accuracy
                        + ', ' + str(rps) + ' rps, ' + str(tpr) + 'ms per/req'
                        + '): ' + str(y_expected) + ':' + str(x_features)

@@ -1,7 +1,10 @@
 {
+  "daehua.patterns": {
+    "info": "대화의 Regex 패턴"
+  },
   "cn": {
     "param_patterns": [
-      "我的<param>是<value>"
+      ".*我的<param>是<value>"
     ]
   },
   "th": {
