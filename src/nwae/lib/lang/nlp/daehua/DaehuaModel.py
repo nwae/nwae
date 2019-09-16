@@ -7,7 +7,7 @@ import nwae.lib.lang.LangFeatures  as lf
 import json
 
 
-class ConversationModel:
+class DaehuaModel:
 
     # No specific value type
     PARAM_GENERAL = 'param_general'
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     cf_obj = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config
     )
-    cm_obj = ConversationModel(
+    cm_obj = DaehuaModel(
         lang = lf.LangFeatures.LANG_CN,
         config = cf_obj
     )
