@@ -317,7 +317,6 @@ class ModelData:
             write_as_json = False,
             log_training = log_training
         )
-
     def load_model_parameters_from_storage(
             self
     ):
@@ -521,6 +520,7 @@ class ModelData:
             for fname in x_clustered_fnames:
                 x_clstrd_fpath = self.model_path_prefix + '/' + fname
                 try:
+                    # TODO Need encoding='utf-8'?
                     with open(x_clstrd_fpath) as x_clstrd_handle:
                         d = json.load(x_clstrd_handle)
                     count += 1

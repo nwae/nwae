@@ -1,0 +1,12 @@
+{
+  "cn": {
+    "param_patterns": [
+      "我的<param>是<value>"
+    ]
+  },
+  "th": {
+    "param_patterns": [
+      "พม<param>คิอ<value>"
+    ]
+  }
+}

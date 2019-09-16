@@ -60,6 +60,15 @@ class Config(baseconfig.BaseConfig):
     #
     # General debug, profiling settings
     #
+    PARAM_NLP_DAEHUA_DIR = 'daehua_dir'
+    DEFAULT_VALUE_DAEHUA_DIR = None
+
+    PARAM_NLP_DAEHUA_PATTERN_JSON_FILE = 'daehua_pattern_filepath'
+    DEFAULT_VALUE_DAEHUA_PATTERN_JSON_FILE = None
+
+    #
+    # General debug, profiling settings
+    #
     PARAM_DEBUG = 'debug'
     DEFAULT_VALUE_DEBUG = False
 
@@ -226,6 +235,18 @@ class Config(baseconfig.BaseConfig):
         self.set_default_value_if_not_exist(
             param         = Config.PARAM_NLP_POSTFIX_SYNONYMLIST,
             default_value = Config.DEFAULT_VALUE_POSTFIX_SYNONYMLIST
+        )
+
+        #
+        # Conversation Model
+        #
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_NLP_DAEHUA_DIR,
+            default_value = topdir + '/nlp.data/daehua'
+        )
+        self.set_default_value_if_not_exist(
+            param         = Config.PARAM_NLP_DAEHUA_PATTERN_JSON_FILE,
+            default_value = self.param_value[Config.PARAM_NLP_DAEHUA_DIR] + '/daehua.pattern.json'
         )
 
         #
