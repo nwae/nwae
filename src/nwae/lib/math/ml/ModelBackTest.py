@@ -32,6 +32,9 @@ class ModelBackTest:
     ):
         self.config = config
 
+        if self.config is None:
+            return
+
         self.include_detailed_accuracy_stats = config.get_config(param=cf.Config.PARAM_MODEL_BACKTEST_DETAILED_STATS)
         self.model_name = config.get_config(param=cf.Config.PARAM_MODEL_NAME)
         self.model_lang = config.get_config(param=cf.Config.PARAM_MODEL_LANG)
@@ -66,7 +69,9 @@ class ModelBackTest:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Could not load PredictClass: ' + str(ex)
             lg.Log.error(errmsg)
-            raise Exception(errmsg)
+            # Don't raise exception
+            # raise Exception(errmsg)
+        return
 
     def reset_test_stats(self):
         self.test_stats = {
@@ -82,7 +87,6 @@ class ModelBackTest:
         for top_i in range(ModelBackTest.TEST_TOP_X):
             self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][top_i] = 0
             self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][top_i] = 0
-
 
     #
     # TODO: Include data that is suppose to fail (e.g. run LeBot through our historical chats to get that data)
@@ -154,12 +158,11 @@ class ModelBackTest:
             str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
             + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
         )
-        lg.Log.log("Score Quantile (0): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0)))
-        lg.Log.log("Score Quantile (5%): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.05)))
-        lg.Log.log("Score Quantile (25%): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.25)))
-        lg.Log.log("Score Quantile (50%): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.5)))
-        lg.Log.log("Score Quantile (75%): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.75)))
-        lg.Log.log("Score Quantile (95%): " + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(0.95)))
+        for q in (0.0, 0.05, 0.25, 0.50, 0.75, 0.75, 0.95):
+            lg.Log.log(
+                'Score Quantile (' + str(q) + '): '
+                + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(q))
+            )
 
         return
 
