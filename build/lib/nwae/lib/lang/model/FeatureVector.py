@@ -17,9 +17,11 @@ from inspect import currentframe, getframeinfo
 #
 class FeatureVector:
 
+    COL_NO = 'No'
     COL_SYMBOL = 'Symbol'
     COL_FREQUENCY = 'Frequency'
     COL_FREQ_NORM = 'FrequencyNormalized'
+    COL_FREQ_WEIGHTED = 'FrequencyWeighted'
 
     def __init__(self):
         self.fv_template = None
@@ -37,7 +39,10 @@ class FeatureVector:
         len_symbols = len(list_symbols)
         no = range(1, len_symbols+1, 1)
 
-        self.fv_template = pd.DataFrame({ 'No': no, 'Symbol':list_symbols })
+        self.fv_template = pd.DataFrame({
+            FeatureVector.COL_NO:     no,
+            FeatureVector.COL_SYMBOL: list_symbols
+        })
         # Default feature weights to 1
         self.set_feature_weights( [1]*len_symbols )
         return
@@ -79,16 +84,16 @@ class FeatureVector:
 
         symbols = [x[0] for x in counter]
         freqs = np.array( [x[1] for x in counter] )
-        presence = (freqs>=1)*1
-        lg.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Symbols ' + str(symbols)
-            + ', Frequencies ' + str(freqs)
-            + ', Presence ' + str(presence)
-        )
+        # lg.Log.debugdebug(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Symbols ' + str(symbols)
+        #     + ', Frequencies ' + str(freqs)
+        #     + ', Presence ' + str(presence)
+        # )
 
         # If <feature_as_presence_only> flag set, we don't count frequency, but presence
         if feature_as_presence_only:
+            presence = (freqs >= 1) * 1
             freqs = presence
         df_counter = pd.DataFrame({
             FeatureVector.COL_SYMBOL: symbols,
@@ -113,25 +118,25 @@ class FeatureVector:
             how = 'left',
             on  = [FeatureVector.COL_SYMBOL]
         )
-        df_merge = df_merge.sort_values(by=['No'], ascending=[True])
+        df_merge = df_merge.sort_values(by=[FeatureVector.COL_NO], ascending=[True])
         # Replace NaN with 0's
         df_merge[FeatureVector.COL_FREQUENCY].fillna(0, inplace=True)
-        lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                          + ': Merged with FV template: ')
-        lg.Log.debugdebug(df_merge)
-        #print(self.fv_weights)
-        #print(df_merge['Frequency'].values)
+        #lg.Log.debugdebug(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #                  + ': Merged with FV template: ')
+
         # Just a simple list multiplication
-        if not (df_merge.shape[0] == len(self.fv_weights)):
-            raise Exception(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Length of merged frequency ' + str(df_merge.shape)
-                            + ' differs from length of FV weights ' + str(len(self.fv_weights))
-                            + '. df_merge ' + str(df_merge) + ', fv weights ' + str(self.fv_weights))
-        df_merge['FrequencyWeighted'] = np.multiply(df_merge['Frequency'].values, self.fv_weights)
-        #print(df_merge['FrequencyWeighted'])
+        if df_merge.shape[0] != len(self.fv_weights):
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Length of merged frequency ' + str(df_merge.shape)
+                + ' differs from length of FV weights ' + str(len(self.fv_weights))
+                + '. df_merge ' + str(df_merge) + ', fv weights ' + str(self.fv_weights)
+            )
+        df_merge[FeatureVector.COL_FREQ_WEIGHTED] =\
+            np.multiply(df_merge[FeatureVector.COL_FREQUENCY].values, self.fv_weights)
 
         # Normalize vector
-        freq_weighted = np.array( df_merge['FrequencyWeighted'] )
+        freq_weighted = np.array( df_merge[FeatureVector.COL_FREQ_WEIGHTED] )
         # TF (Term Frequency)
         if sum(freq_weighted) > 0.000000001:
             normalize_factor = sum(np.multiply(freq_weighted, freq_weighted)) ** 0.5

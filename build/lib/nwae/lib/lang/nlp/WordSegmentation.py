@@ -381,16 +381,22 @@ class WordSegmentation(object):
             return array_words
 
         print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
-        if self.lang==lf.LangFeatures.LANG_CN or self.lang==lf.LangFeatures.LANG_TH:
+        #
+        # TODO
+        #   Standardize all to the same print separator
+        #
+        if self.lang in (lf.LangFeatures.LANG_CN, lf.LangFeatures.LANG_TH):
             print_separator = txtprocessor.TextProcessor.DEFAULT_SPACE_SPLITTER
 
         s = print_separator.join(array_words)
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.critical(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                             + ':      PROFILING Segment Words for [' + text + '] to [' + s
-                             + '] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b))
+            log.Log.critical(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ':      PROFILING Segment Words for [' + text + '] to [' + s
+                + '] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b)
+            )
         return s
 
     def __join_single_alphabets_as_a_word(

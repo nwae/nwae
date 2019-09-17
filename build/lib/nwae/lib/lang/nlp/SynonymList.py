@@ -5,6 +5,7 @@
 
 import re
 import pandas as pd
+import numpy as np
 import nwae.utils.FileUtils as futil
 import nwae.utils.StringUtils as su
 import nwae.lib.lang.nlp.LatinEquivalentForm as lef
@@ -33,6 +34,8 @@ class SynonymList:
         self.postfix_synonymlist = postfix_synonymlist
 
         self.synonymlist = None
+        self.synonymlist_words = None
+        self.synonymlist_rootwords = None
         return
 
     def load_synonymlist(
@@ -46,6 +49,8 @@ class SynonymList:
                 postfix = self.postfix_synonymlist,
                 list_main_words = list_main_words
             )
+            self.synonymlist_words = np.array(self.synonymlist[SynonymList.COL_WORD], dtype=str)
+            self.synonymlist_rootwords = np.array(self.synonymlist[SynonymList.COL_ROOTWORD], dtype=str)
 
         return
 
@@ -156,7 +161,7 @@ class SynonymList:
             SynonymList.COL_WORD_LATIN_NO: measures_latin
         })
         log.Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()))
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Successfully loaded synonym list:\n\r' + str(df_synonyms)
         )
         df_synonyms = df_synonyms.drop_duplicates(subset=[SynonymList.COL_WORD])
@@ -179,9 +184,19 @@ class SynonymList:
             word = text_segmented_array[i]
             if len(word)==0:
                 continue
-            rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
+
+            rootword = []
+            if self.synonymlist_words is not None:
+                rootword = self.synonymlist_rootwords[self.synonymlist_words == word].tolist()
+                # Causes the noisy warning from numpy if dataframe empty,
+                # 'FutureWarning: elementwise comparison failed; returning scalar instead,
+                # but in the future will perform elementwise comparison result = method(y)'
+                # rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
             if len(rootword)==1:
-                # log.Log.log('Rootword of [' + word + '] is [' + rootword + ']')
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Rootword of "' + str(word) + '" is "' + str(rootword[0]) + '"'
+                )
                 words_normalized.append(rootword[0])
             else:
                 words_normalized.append(word)
