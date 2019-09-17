@@ -76,19 +76,33 @@ class WordList:
         return
 
     def update_ngrams(self):
-        # Get the unique length unigrams
-        max_length = max( set(self.wordlist[WordList.COL_NGRAM_LEN]) )
-        max_length = min(max_length, WordList.MAX_NGRAMS)
+        try:
+            # Get the unique length unigrams
+            max_length = int( max( set(self.wordlist[WordList.COL_NGRAM_LEN]) ) )
+            max_length = int( min(max_length, WordList.MAX_NGRAMS ) )
 
-        for i in range(1, max_length+1, 1):
-            condition = self.wordlist[WordList.COL_NGRAM_LEN] == i
-            self.ngrams[i] = self.wordlist[WordList.COL_WORD][condition].tolist()
-            log.Log.debugdebug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Lang "' + str(self.lang)
-                + '" ngrams [' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):\n\r'
-                + str(self.ngrams[i])
-            )
+            if max_length < 1:
+                errmsg =\
+                    ': Lang "' + str(self.lang) + '" have no ngrams!! Max ngram length = ' + str(max_length) + '!!'
+                log.Log.error(errmsg)
+                raise Exception(errmsg)
+
+            for i in range(1, max_length+1, 1):
+                condition = self.wordlist[WordList.COL_NGRAM_LEN] == i
+                self.ngrams[i] = self.wordlist[WordList.COL_WORD][condition].tolist()
+                log.Log.debugdebug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang)
+                    + '" ngrams [' + str(i) + '] (list len = ' + str(len(self.ngrams[i])) + '):\n\r'
+                    + str(self.ngrams[i])
+                )
+        except Exception as ex:
+            errmsg = \
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Exception updating ngrams list for lang "' + str(self.lang)\
+                + '", exception message: ' + str(ex) + '.'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
 
         return
 
@@ -158,10 +172,10 @@ class WordList:
             # "云闪付" or "彩金", etc, which will severely reduce Bot efficiency.
             #
             if len(content) == 0:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                warning_msg =\
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                     + ': Lang "' + str(self.lang) + '" file [' + filepath + '] is empty or non-existent!!'
-                )
+                log.Log.warning(warning_msg)
 
             log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                          + ': Lang "' + str(self.lang) + '" read ' + str(len(content)) + ' lines.')
@@ -197,31 +211,44 @@ class WordList:
 
             measures_latin.append(lc.convert_string_to_number(wordlatin))
 
-        # Convert to pandas data frame
-        df_wordlist = pd.DataFrame({
-            WordList.COL_WORD        : words,
-            WordList.COL_WORD_NUMBER : measures,
-            WordList.COL_LATIN       : words_latin,
-            WordList.COL_LATIN_NUMBER: measures_latin
-        })
-        if self.syl_split_token == '':
-            log.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the WORD length.'
-            )
-            df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.len()
-        else:
-            log.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the SYLLABLE length.'
-            )
-            df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
+        try:
+            # Convert to pandas data frame
+            df_wordlist = pd.DataFrame({
+                WordList.COL_WORD        : words,
+                WordList.COL_WORD_NUMBER : measures,
+                WordList.COL_LATIN       : words_latin,
+                WordList.COL_LATIN_NUMBER: measures_latin
+            })
+            if self.syl_split_token == '':
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the WORD length.'
+                )
+                if df_wordlist.shape[0] > 0:
+                    df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.len()
+                else:
+                    df_wordlist[WordList.COL_NGRAM_LEN] = [0]*0
+            else:
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the SYLLABLE length.'
+                )
+                if df_wordlist.shape[0] > 0:
+                    df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
+                else:
+                    df_wordlist[WordList.COL_NGRAM_LEN] = [0]*0
 
-        df_wordlist = df_wordlist.drop_duplicates(subset=[WordList.COL_WORD])
-        # Need to reset indexes, otherwise some index will be missing
-        df_wordlist = df_wordlist.reset_index(drop=True)
+            df_wordlist = df_wordlist.drop_duplicates(subset=[WordList.COL_WORD])
+            # Need to reset indexes, otherwise some index will be missing
+            df_wordlist = df_wordlist.reset_index(drop=True)
 
-        return df_wordlist
+            return df_wordlist
+        except Exception as ex:
+            errmsg =\
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                + ': Lang ' + str(self.lang) + ' wordlist loading exception: ' + str(ex) + '.'
+            log.Log.error(errmsg)
+            raise Exception(errmsg)
 
 
 
