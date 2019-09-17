@@ -166,7 +166,7 @@ class PredictClass(threading.Thread):
             self,
             inputtext,
             top = MATCH_TOP,
-            match_pct_within_top_score=CONSTANT_PERCENT_WITHIN_TOP_SCORE,
+            match_pct_within_top_score = CONSTANT_PERCENT_WITHIN_TOP_SCORE,
             include_match_details = False,
             chatid = None
     ):
@@ -191,10 +191,9 @@ class PredictClass(threading.Thread):
         text_normalized_arr = self.synonymlist.normalize_text_array(
             text_segmented_array = text_segmented_arr
         )
+
         text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
-        log.Log.debugdebug('#')
-        log.Log.debugdebug('# TEXT NORMALIZATION')
-        log.Log.debugdebug('#')
+
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
