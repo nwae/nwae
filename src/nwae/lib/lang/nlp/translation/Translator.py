@@ -19,6 +19,7 @@ class Translator:
 
             self.dest_lang = dest_lang
             nltk.download('punkt', download_dir=nlp_download_dir)
+            nltk.data.path.append(nlp_download_dir)
 
             self.translator = googletrans.Translator()
         except Exception as ex:
