@@ -22,6 +22,7 @@ class LangFeatures:
     #
     LANG_EN = 'en'
     LANG_CN = 'cn'
+    LANG_ZH_CN = 'zh-cn'
     LANG_TH = 'th'
     LANG_VN = 'vn'
     LANG_IN = 'in'
@@ -29,6 +30,15 @@ class LangFeatures:
     LANG_FR = 'fr'
 
     ERROR_TOLERANCE = 0.000000000001
+
+    @staticmethod
+    def map_to_correct_lang_code(
+            lang_code
+    ):
+        if lang_code == LangFeatures.LANG_CN:
+            return LangFeatures.LANG_ZH_CN
+        else:
+            return lang_code
 
     # Word lists and stopwords are in the same folder
     def __init__(self):
