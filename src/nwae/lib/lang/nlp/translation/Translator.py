@@ -19,7 +19,7 @@ class Translator:
             import googletrans
 
             # Default destination language
-            self.dest_lang = dest_lang
+            self.dest_lang = lf.LangFeatures.map_to_correct_lang_code(dest_lang)
             # The model data required for translation
             nltk.download('punkt', download_dir=nlp_download_dir)
             # Need to add path otherwise nltk will not find it
@@ -99,7 +99,7 @@ class Translator:
 
 if __name__ == '__main__':
     tl = Translator(
-        dest_lang = lf.LangFeatures.LANG_ZH_CN
+        dest_lang = lf.LangFeatures.LANG_CN
     )
 
     # src = 'Today is a rainy day'

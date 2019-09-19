@@ -21,12 +21,19 @@ class LangFeatures:
     #  Move to use ISO 639-2 standard instead of our own
     #
     LANG_EN = 'en'
+    # Simplified Chinese
     LANG_CN = 'cn'
     LANG_ZH_CN = 'zh-cn'
+    # Thai
     LANG_TH = 'th'
+    # Vietnamese
     LANG_VN = 'vn'
+    LANG_VI = 'vi'
+    # Indonesian
     LANG_IN = 'in'
+    # Korean
     LANG_KO = 'ko'
+    # French
     LANG_FR = 'fr'
 
     ERROR_TOLERANCE = 0.000000000001
@@ -37,6 +44,8 @@ class LangFeatures:
     ):
         if lang_code == LangFeatures.LANG_CN:
             return LangFeatures.LANG_ZH_CN
+        elif lang_code == LangFeatures.LANG_VN:
+            return LangFeatures.LANG_VI
         else:
             return lang_code
 
