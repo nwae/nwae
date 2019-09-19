@@ -217,7 +217,8 @@ class WordList:
                 WordList.COL_WORD        : words,
                 WordList.COL_WORD_NUMBER : measures,
                 WordList.COL_LATIN       : words_latin,
-                WordList.COL_LATIN_NUMBER: measures_latin
+                WordList.COL_LATIN_NUMBER: measures_latin,
+                WordList.COL_NGRAM_LEN   : [0] * len(words)
             })
             if self.syl_split_token == '':
                 log.Log.info(
@@ -226,8 +227,6 @@ class WordList:
                 )
                 if df_wordlist.shape[0] > 0:
                     df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.len()
-                else:
-                    df_wordlist[WordList.COL_NGRAM_LEN] = [0]*0
             else:
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -235,8 +234,6 @@ class WordList:
                 )
                 if df_wordlist.shape[0] > 0:
                     df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
-                else:
-                    df_wordlist[WordList.COL_NGRAM_LEN] = [0]*0
 
             df_wordlist = df_wordlist.drop_duplicates(subset=[WordList.COL_WORD])
             # Need to reset indexes, otherwise some index will be missing

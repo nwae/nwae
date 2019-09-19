@@ -1,3 +1,5 @@
 nwae.utils
 tensorflow
 Keras
+nltk
+googletrans
