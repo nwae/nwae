@@ -1,12 +1,11 @@
 # Top level directory where everything is relative to
-topdir=/usr/local/git/nwae/nwae
+topdir=/usr/local/git/mozig/mozg.nlp
 # See mozg.utils.Log.py for log level details
 loglevel=4.0
 # Model directory and key to load
 model_name=hypersphere_metricspace
 model_lang=cn
 model_dir=/usr/local/git/mozig/mozg.nlp/app.data/intent/models
-#model_identifier=botkey_db_mario.production.accountid_3.botid_30.lang_th
 model_identifier=botkey_db_mario.production.accountid_3.botid_4.lang_cn
 # All logs go to stdout
 debug=1

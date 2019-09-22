@@ -13,73 +13,80 @@ class Config(baseconfig.BaseConfig):
 
 
     PARAM_TOPDIR = 'topdir'
-    DEFAULT_VALUE_TOPDIR = None
+    DEFVAL_TOPDIR = '~/nwae'
 
     PARAM_LOG_LEVEL = 'loglevel'
-    DEFAULT_VALUE_LOGLEVEL = lg.Log.LOG_LEVEL_INFO
+    DEFVAL_LOGLEVEL = lg.Log.LOG_LEVEL_INFO
 
     PARAM_MODEL_NAME = 'model_name'
-    DEFAULT_VALUE_MODEL_NAME = None
+    DEFVAL_MODEL_NAME = None
 
     PARAM_MODEL_LANG = 'model_lang'
-    DEFAULT_VALUE_MODEL_LANG = None
+    DEFVAL_MODEL_LANG = None
 
     PARAM_MODEL_DIR = 'model_dir'
-    DEFAULT_VALUE_MODEL_DIR = None
+    DEFVAL_MODEL_DIR = DEFVAL_TOPDIR + '/app.data/models'
 
     PARAM_MODEL_IDENTIFIER = 'model_identifier'
-    DEFAULT_VALUE_MODEL_IDENTIFIER = None
+    DEFVAL_MODEL_IDENTIFIER = None
 
     #
     # NLP Settings
     #
     PARAM_NLP_DIR_WORDLIST = 'dir_wordlist'
-    DEFAULT_VALUE_DIR_WORDLIST = None
+    DEFVAL_NLP_DIR_WORDLIST = None
 
     PARAM_NLP_POSTFIX_WORDLIST = 'postfix_wordlist'
-    DEFAULT_VALUE_POSTFIX_WORDLIST = '-wordlist.txt'
+    DEFVAL_NLP_POSTFIX_WORDLIST = '-wordlist.txt'
 
     PARAM_NLP_POSTFIX_STOPWORDS = 'postfix_stopwords'
-    DEFAULT_VALUE_POSTFIX_STOPWORDS = '-stopwords.txt'
+    DEFVAL_NLP_POSTFIX_STOPWORDS = '-stopwords.txt'
 
     PARAM_NLP_DIR_APP_WORDLIST = 'dir_app_wordlist'
-    DEFAULT_VALUE_DIR_APP_WORDLIST = None
+    DEFVAL_NLP_DIR_APP_WORDLIST = None
 
     PARAM_NLP_POSTFIX_APP_WORDLIST = 'postfix_app_wordlist'
-    DEFAULT_VALUE_POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
+    DEFVAL_NLP_POSTFIX_APP_WORDLIST = '.wordlist.app.txt'
+
+    PARAM_NLP_DIR_APP_STOPWORDS = 'dir_app_stopwords'
+    DEFVAL_NLP_DIR_APP_STOPWORDS = None
 
     PARAM_NLP_POSTFIX_APP_STOPWORDS = 'postfix_app_stopwords'
-    DEFAULT_VALUE_POSTFIX_APP_STOPWORDS = '.stopwords.app.txt'
+    DEFVAL_NLP_POSTFIX_APP_STOPWORDS = '.stopwords.app.txt'
 
     PARAM_NLP_DIR_SYNONYMLIST = 'dir_synonymlist'
-    DEFAULT_VALUE_DIR_SYNONYMLIST = None
+    DEFVAL_NLP_DIR_SYNONYMLIST = None
 
     PARAM_NLP_POSTFIX_SYNONYMLIST = 'postfix_synonymlist'
-    DEFAULT_VALUE_POSTFIX_SYNONYMLIST = '.synonymlist.txt'
+    DEFVAL_NLP_POSTFIX_SYNONYMLIST = '.synonymlist.txt'
+
+    # NLTK or whatever download dir
+    PARAM_NLP_DIR_NLP_DOWNLOAD = 'nlp_dir_download'
+    DEFVAL_NLP_DIR_NLP_DOWNLOAD = None
 
     #
     # General debug, profiling settings
     #
     PARAM_NLP_DAEHUA_DIR = 'daehua_dir'
-    DEFAULT_VALUE_DAEHUA_DIR = None
+    DEFVAL_DAEHUA_DIR = None
 
     PARAM_NLP_DAEHUA_PATTERN_JSON_FILE = 'daehua_pattern_filepath'
-    DEFAULT_VALUE_DAEHUA_PATTERN_JSON_FILE = None
+    DEFVAL_DAEHUA_PATTERN_JSON_FILE = None
 
     #
     # General debug, profiling settings
     #
     PARAM_DEBUG = 'debug'
-    DEFAULT_VALUE_DEBUG = False
+    DEFVAL_DEBUG = False
 
     PARAM_DO_PROFILING = 'do_profiling'
-    DEFAULT_VALUE_DO_PROFILING = False
+    DEFVAL_DO_PROFILING = False
 
     #
     # Model Back Testing
     #
     PARAM_MODEL_BACKTEST_DETAILED_STATS = 'model_backtest_detailed_stats'
-    DEFAULT_VALUE_MODEL_BACKTEST_DETAILED_STATS = True
+    DEFVAL_MODEL_BACKTEST_DETAILED_STATS = True
 
     def __init__(
             self,
@@ -104,12 +111,14 @@ class Config(baseconfig.BaseConfig):
         try:
             self.reset_default_config()
 
+            self.__reconfigure_paths_requiring_topdir()
+
             #
             # This is the part we convert our values to desired types
             #
             self.convert_value_to_float_type(
                 param = Config.PARAM_LOG_LEVEL,
-                default_val = Config.DEFAULT_VALUE_LOGLEVEL
+                default_val = Config.DEFVAL_LOGLEVEL
             )
             lg.Log.LOGLEVEL = self.param_value[Config.PARAM_LOG_LEVEL]
             lg.Log.critical(
@@ -160,102 +169,87 @@ class Config(baseconfig.BaseConfig):
             lg.Log.critical(errmsg)
             raise Exception(errmsg)
 
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_LOG_LEVEL,
-            default_value = Config.DEFAULT_VALUE_LOGLEVEL
-        )
+        param_values_to_set = {
+            # Top directory
+            Config.PARAM_TOPDIR: Config.DEFVAL_TOPDIR,
+            # Logging
+            Config.PARAM_LOG_LEVEL: Config.DEFVAL_LOGLEVEL,
+            #######################################################################
+            # Intent Server Stuff
+            #######################################################################
+            Config.PARAM_DO_PROFILING: Config.DEFVAL_DO_PROFILING,
+            #######################################################################
+            # Models Stuff
+            #######################################################################
+            Config.PARAM_MODEL_DIR: Config.DEFVAL_MODEL_DIR,
+            Config.PARAM_MODEL_NAME: Config.DEFVAL_MODEL_NAME,
+            Config.PARAM_MODEL_LANG: Config.DEFVAL_MODEL_LANG,
+            Config.PARAM_MODEL_IDENTIFIER: Config.DEFVAL_MODEL_IDENTIFIER,
+            #######################################################################
+            # NLP Stuff
+            #######################################################################
+            # Word lists
+            Config.PARAM_NLP_DIR_WORDLIST: Config.DEFVAL_NLP_DIR_WORDLIST,
+            Config.PARAM_NLP_DIR_APP_WORDLIST: Config.DEFVAL_NLP_DIR_APP_WORDLIST,
+            Config.PARAM_NLP_POSTFIX_WORDLIST: Config.DEFVAL_NLP_POSTFIX_WORDLIST,
+            Config.PARAM_NLP_POSTFIX_APP_WORDLIST: Config.DEFVAL_NLP_POSTFIX_APP_WORDLIST,
+            # Synonym lists
+            Config.PARAM_NLP_DIR_SYNONYMLIST: Config.DEFVAL_NLP_DIR_SYNONYMLIST,
+            Config.PARAM_NLP_POSTFIX_SYNONYMLIST: Config.DEFVAL_NLP_POSTFIX_SYNONYMLIST,
+            # Stopwords lists (to be outdated)
+            Config.PARAM_NLP_DIR_APP_STOPWORDS: Config.DEFVAL_NLP_DIR_APP_STOPWORDS,
+            Config.PARAM_NLP_POSTFIX_APP_STOPWORDS: Config.DEFVAL_NLP_POSTFIX_APP_STOPWORDS,
+            # NLTK or whatever download dir
+            Config.PARAM_NLP_DIR_NLP_DOWNLOAD: Config.DEFVAL_NLP_DIR_NLP_DOWNLOAD,
+            #######################################################################
+            # NLP Conversation Model
+            #######################################################################
+            Config.PARAM_NLP_DAEHUA_DIR: Config.DEFVAL_DAEHUA_DIR,
+            Config.PARAM_NLP_DAEHUA_PATTERN_JSON_FILE: Config.DEFVAL_DAEHUA_PATTERN_JSON_FILE,
+            #######################################################################
+            # Model Backtesting
+            #######################################################################
+            Config.PARAM_MODEL_BACKTEST_DETAILED_STATS: Config.DEFVAL_MODEL_BACKTEST_DETAILED_STATS
+        }
 
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_DO_PROFILING,
-            default_value = Config.DEFAULT_VALUE_DO_PROFILING
-        )
+        for param in param_values_to_set.keys():
+            default_value = param_values_to_set[param]
+            self.set_default_value_if_not_exist(
+                param = param,
+                default_value = default_value
+            )
+        return
 
-        #######################################################################
-        # Models Stuff
-        #######################################################################
+    def __reconfigure_paths_requiring_topdir(self):
+        topdir = self.get_config(param=Config.PARAM_TOPDIR)
 
-        # Where to store model files
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_MODEL_NAME,
-            default_value = Config.DEFAULT_VALUE_MODEL_NAME
-        )
-        # Where to store model files
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_MODEL_LANG,
-            default_value = Config.DEFAULT_VALUE_MODEL_LANG
-        )
-        # Where to store model files
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_MODEL_DIR,
-            default_value = topdir + '/app.data/models'
-        )
-        # Where to store model files
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_MODEL_IDENTIFIER,
-            default_value = Config.DEFAULT_VALUE_MODEL_IDENTIFIER
-        )
+        # Model
+        if self.param_value[Config.PARAM_MODEL_DIR] is None:
+            self.param_value[Config.PARAM_MODEL_DIR] = topdir + '/app.data/models'
 
-        #######################################################################
-        # NLP Stuff
-        #######################################################################
-
-        # Built-in Word/Stop lists
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_DIR_WORDLIST,
-            default_value = topdir + '/nlp.data/wordlist'
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_POSTFIX_WORDLIST,
-            default_value = Config.DEFAULT_VALUE_POSTFIX_WORDLIST
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_POSTFIX_STOPWORDS,
-            default_value = Config.DEFAULT_VALUE_POSTFIX_STOPWORDS
-        )
-
-        # Application Word/Stop lists
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_DIR_APP_WORDLIST,
-            default_value = topdir + '/nlp.data/app/chats'
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_POSTFIX_APP_WORDLIST,
-            default_value = Config.DEFAULT_VALUE_POSTFIX_APP_WORDLIST
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_POSTFIX_APP_STOPWORDS,
-            default_value = Config.DEFAULT_VALUE_POSTFIX_APP_STOPWORDS
-        )
+        # Word lists
+        if self.param_value[Config.PARAM_NLP_DIR_WORDLIST] is None:
+            self.param_value[Config.PARAM_NLP_DIR_WORDLIST] = topdir + '/nlp.data/wordlist'
+        if self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST] is None:
+            self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST] = topdir + '/nlp.data/app/chats'
 
         # Synonym lists
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_DIR_SYNONYMLIST,
-            default_value = topdir + '/nlp.data/app/chats'
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_POSTFIX_SYNONYMLIST,
-            default_value = Config.DEFAULT_VALUE_POSTFIX_SYNONYMLIST
-        )
+        if self.param_value[Config.PARAM_NLP_DIR_SYNONYMLIST] is None:
+            self.param_value[Config.PARAM_NLP_DIR_SYNONYMLIST] = topdir + '/nlp.data/app/chats'
 
-        #
-        # Conversation Model
-        #
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_DAEHUA_DIR,
-            default_value = topdir + '/nlp.data/daehua'
-        )
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_NLP_DAEHUA_PATTERN_JSON_FILE,
-            default_value = self.param_value[Config.PARAM_NLP_DAEHUA_DIR] + '/daehua.pattern.json'
-        )
+        # Stopwords lists (to be outdated)
+        if self.param_value[Config.PARAM_NLP_DIR_APP_STOPWORDS] is None:
+            self.param_value[Config.PARAM_NLP_DIR_APP_STOPWORDS] =\
+                self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST]
 
-        #
-        # Model Backtesting
-        #
-        self.set_default_value_if_not_exist(
-            param         = Config.PARAM_MODEL_BACKTEST_DETAILED_STATS,
-            default_value = Config.DEFAULT_VALUE_MODEL_BACKTEST_DETAILED_STATS
-        )
+        # NLTK or whatever download dir
+        if self.param_value[Config.PARAM_NLP_DIR_NLP_DOWNLOAD] is None:
+            self.param_value[Config.PARAM_NLP_DIR_NLP_DOWNLOAD] = topdir + '/nlp.data/download'
+
+        # Daehua
+        if self.param_value[Config.PARAM_NLP_DAEHUA_DIR] is None:
+            self.param_value[Config.PARAM_NLP_DAEHUA_DIR] = topdir + '/nlp.data/daehua'
+
         return
 
 
