@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import nwae.Config as cf
+import nwae.config.Config as cf
 import nwae.lib.lang.nlp.WordSegmentation as ws
 import nwae.lib.lang.LangFeatures as lf
-import nwae.utils.Log as lg
 
 
 #

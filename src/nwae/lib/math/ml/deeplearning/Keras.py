@@ -227,7 +227,7 @@ class Keras(modelIf.ModelInterface):
 
 
 if __name__ == '__main__':
-    import nwae.Config as cf
+    import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config
     )

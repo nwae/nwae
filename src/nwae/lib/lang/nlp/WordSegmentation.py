@@ -3,7 +3,6 @@
 
 # !!! Will work only on Python 3 and above
 
-import re
 import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.WordList as wl
@@ -436,7 +435,7 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
-    import nwae.Config as cf
+    import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config
     )

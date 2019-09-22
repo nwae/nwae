@@ -2,7 +2,7 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
-import nwae.Config as cf
+import nwae.config.Config as cf
 import nwae.lib.lang.LangFeatures  as lf
 import json
 

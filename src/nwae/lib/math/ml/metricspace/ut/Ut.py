@@ -8,7 +8,7 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.NumpyUtil as npUtil
-import nwae.Config as cf
+import nwae.config.Config as cf
 import nwae.utils.Profiling as prf
 
 
