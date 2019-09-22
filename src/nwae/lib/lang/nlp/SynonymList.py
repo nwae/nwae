@@ -41,13 +41,13 @@ class SynonymList:
     def load_synonymlist(
             self,
             # List of words that should be in the first position (index 0)
-            list_main_words = None
+            allowed_root_words = None
     ):
         if self.synonymlist is None:
             self.synonymlist = self.__load_list(
                 dirpath = self.dirpath_synonymlist,
                 postfix = self.postfix_synonymlist,
-                list_main_words = list_main_words
+                allowed_root_words = allowed_root_words
             )
             self.synonymlist_words = np.array(self.synonymlist[SynonymList.COL_WORD], dtype=str)
             self.synonymlist_rootwords = np.array(self.synonymlist[SynonymList.COL_ROOTWORD], dtype=str)
@@ -59,7 +59,7 @@ class SynonymList:
             self,
             dirpath,
             postfix,
-            list_main_words = None
+            allowed_root_words = None
     ):
         lc = langchar.LangCharacters()
 
@@ -75,7 +75,7 @@ class SynonymList:
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Synonym Read ' + str(len(content)) + ' lines.'
-            + ' List of main words (' + str(type(list_main_words)) + '):\n\r' + str(list_main_words)
+            + ' List of main words (' + str(type(allowed_root_words)) + '):\n\r' + str(allowed_root_words)
         )
 
         words = []
@@ -111,11 +111,11 @@ class SynonymList:
                 if len(rootword_test) <= 0:
                     continue
 
-                if list_main_words is not None:
-                    if rootword_test not in list_main_words:
+                if allowed_root_words is not None:
+                    if rootword_test not in allowed_root_words:
                         log.Log.warning(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Word "' + str(rootword_test) + '" is not in main words list! Trying next word in line.'
+                            + ': Word "' + str(rootword_test) + '" is not in allowed root words list! Trying next word in line.'
                         )
                         continue
 
