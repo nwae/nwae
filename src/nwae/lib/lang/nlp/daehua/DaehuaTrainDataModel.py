@@ -12,7 +12,26 @@ import json
 # to encode various information required for reply processing parameters extracted
 # from a question.
 #
+# Daehua Training Language Description
+#   Intent Name can be of the form 'Calculate Energy -*-mass_float,c_float-*-
+#   where 'mass' is a variable name of type float, and 'c' (speed of light) is another
+#   variable name of the same type.
+#   For now we support str, float, int. We don't support specific regex to not complicate
+#   things.
+#
+#   Then training data may be as such:
+#     "Help me calculate energy, my mass is $$mass, and light speed $$c."
+#     "Calculate energy for me, mass $$mass, c $$c."
+#
+#   And the answer may be encoded as such:
+#     Your answer is $$mass * ($$c * $$c)
+#
+#
 class DaehuaTrainDataModel:
+
+    DAEHUA_TR_LANG_MODEL_TYPE_STRING = 'str'
+    DAEHUA_TR_LANG_MODEL_TYPE_FLOAT  = 'float'
+    DAEHUA_TR_LANG_MODEL_TYPE_INT    = 'int'
 
     #
     # Expected columns in a data frame to be passed in to this class
@@ -40,6 +59,9 @@ class DaehuaTrainDataModel:
     # It can also be just plain training data of which we let it pass.
     #
     def process_daehua_training_data(self):
+        #
+        # Process by intent ID
+        #
         return
 
 
