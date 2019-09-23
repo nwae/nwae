@@ -8,7 +8,7 @@ import json
 
 
 #
-# The first thing we need in a conversation model is a "training data language"
+# The first thing we need in a conversation model is a "daehua training data language"
 # to encode various information required for reply processing parameters extracted
 # from a question.
 #
@@ -30,9 +30,16 @@ class DaehuaTrainDataModel:
     def __init__(
             self,
             # In pandas data frame with the above columns
-            training_data
+            daehua_training_data
     ):
-        self.training_data = training_data
+        self.daehua_training_data = daehua_training_data
+        return
+
+    #
+    # Here we decode the daehua training data language.
+    # It can also be just plain training data of which we let it pass.
+    #
+    def process_daehua_training_data(self):
         return
 
 
