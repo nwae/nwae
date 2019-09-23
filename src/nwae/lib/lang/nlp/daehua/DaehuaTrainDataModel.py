@@ -58,11 +58,15 @@ class DaehuaTrainDataModel:
     # Here we decode the daehua training data language.
     # It can also be just plain training data of which we let it pass.
     #
-    def process_daehua_training_data(self):
+    def process_daehua_training_data(
+            self
+    ):
+        df_daehua_processed = self.daehua_training_data
         #
         # Process by intent ID
         #
-        return
+
+        return df_daehua_processed
 
 
 if __name__ == '__main__':
