@@ -71,7 +71,8 @@ class DaehuaTrainDataModel:
             var_list
     ):
         try:
-            clean_list = [re.sub(pattern='[$]{2}[a-z0-9]+', repl='', string=s) for s in var_list]
+            # Remove anything of the form $$var, $$xyz,...
+            clean_list = [re.sub(pattern='[$]{2}[a-z0-9]+', repl='', string=str(s)) for s in var_list]
             clean_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_list]
             clean_list = [su.StringUtils.trim(s) for s in clean_list]
             return clean_list
@@ -86,7 +87,7 @@ class DaehuaTrainDataModel:
             decl_list
     ):
         try:
-            clean_decl_list = [re.sub(pattern='[ ]*[-*-].*[-*-]', repl='', string=s) for s in decl_list]
+            clean_decl_list = [re.sub(pattern='[ ]*[-*-].*[-*-]', repl='', string=str(s)) for s in decl_list]
             clean_decl_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_decl_list]
             clean_decl_list = [su.StringUtils.trim(s) for s in clean_decl_list]
             return clean_decl_list
@@ -130,10 +131,10 @@ class DaehuaTrainDataModel:
         df_daehua_processed[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED] =\
             self.remove_variables_and_variable_declarations(str_list = text_seg_list)
 
-        lg.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Training Data:\n\r' + str(df_daehua_processed.values)
-        )
+        # lg.Log.debugdebug(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Training Data:\n\r' + str(df_daehua_processed.values)
+        # )
 
         return df_daehua_processed
 
