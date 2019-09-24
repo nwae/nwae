@@ -13,6 +13,7 @@ import nwae.utils.StringUtils as su
 # from a question.
 #
 # Daehua Training Language Description
+#   TODO Move the variable description away from the Intent Name column to a separate column
 #   Intent Name can be of the form 'Calculate Energy -*-mass_float,c_float-*-
 #   where 'mass' is a variable name of type float, and 'c' (speed of light) is another
 #   variable name of the same type.
@@ -66,6 +67,10 @@ class DaehuaTrainDataModel:
         )
         return clean_2_list
 
+    #
+    # In the training data, when we want to specify it is a variable, we put "$$" in front
+    # of a variable name. This will remove all variables specified.
+    #
     def remove_variables(
             self,
             var_list
@@ -82,15 +87,28 @@ class DaehuaTrainDataModel:
             lg.Log.error(errmsg)
             raise Exception(errmsg)
 
+    #
+    # Now we encode the variable names, types, etc. together with the intent name.
+    # TODO Move them to a separate column
+    #
     def remove_variable_declaration(
             self,
+            # Can be string or list type
             decl_list
     ):
         try:
+            is_type_str = type(decl_list) is str
+            if is_type_str:
+                decl_list = [decl_list]
+
             clean_decl_list = [re.sub(pattern='[ ]*[-*-].*[-*-]', repl='', string=str(s)) for s in decl_list]
             clean_decl_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_decl_list]
             clean_decl_list = [su.StringUtils.trim(s) for s in clean_decl_list]
-            return clean_decl_list
+
+            if is_type_str:
+                return clean_decl_list[0]
+            else:
+                return clean_decl_list
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Exception "' + str(ex) + '" cleaning var declaration list ' + str(decl_list)
