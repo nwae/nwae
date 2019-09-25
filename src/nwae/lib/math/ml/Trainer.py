@@ -372,6 +372,7 @@ class Trainer(threading.Thread):
         lg.Log.debugdebug('LABELS NAME:\n\r' + str(np_label_name[0:20]))
         lg.Log.debugdebug('np TEXT SEGMENTED:\n\r' + str(np_sentences_list[0:20]))
         lg.Log.debugdebug('TEXT SEGMENTED:\n\r' + str(text_segmented[np_indexes]))
+        lg.Log.debug('NP SENTENCES LIST:\n\r' + str(np_sentences_list.tolist()))
 
         #
         # Finally we have our text data in the desired format

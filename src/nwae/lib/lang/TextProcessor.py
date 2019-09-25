@@ -48,7 +48,7 @@ class TextProcessor:
             split_arr = sent.split(sep)
             if len(split_arr) == 1:
                 split_arr = sent.split(TextProcessor.DEFAULT_SPACE_SPLITTER)
-                lg.Log.debug(
+                lg.Log.warning(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Could not split sentence by default separator "' + str(sep)
                     + '"\n\r   "' + str(sent)
@@ -82,7 +82,7 @@ class TextProcessor:
     ):
         try:
             # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
-            regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')( ])")
+            regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')(])")
             # Split words not already split (e.g. 17. should be '17', '.')
             clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
             # Return non-empty split values, w

@@ -77,7 +77,7 @@ class DaehuaTrainDataModel:
     ):
         try:
             # Remove anything of the form $$var, $$xyz,...
-            clean_list = [re.sub(pattern='[$]{2}[a-z0-9]+', repl='', string=str(s)) for s in var_list]
+            clean_list = [re.sub(pattern='[$]{2}[a-z0-9_]+', repl='', string=str(s)) for s in var_list]
             clean_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_list]
             clean_list = [su.StringUtils.trim(s) for s in clean_list]
             return clean_list
@@ -101,7 +101,7 @@ class DaehuaTrainDataModel:
             if is_type_str:
                 decl_list = [decl_list]
 
-            clean_decl_list = [re.sub(pattern='[ ]*[-*-].*[-*-]', repl='', string=str(s)) for s in decl_list]
+            clean_decl_list = [re.sub(pattern='[ ]*[-][*][-].*[-][*][-]', repl='', string=str(s)) for s in decl_list]
             clean_decl_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_decl_list]
             clean_decl_list = [su.StringUtils.trim(s) for s in clean_decl_list]
 
