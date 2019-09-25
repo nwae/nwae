@@ -30,10 +30,6 @@ import nwae.utils.StringUtils as su
 #
 class DaehuaTrainDataModel:
 
-    DAEHUA_TR_LANG_MODEL_TYPE_STRING = 'str'
-    DAEHUA_TR_LANG_MODEL_TYPE_FLOAT  = 'float'
-    DAEHUA_TR_LANG_MODEL_TYPE_INT    = 'int'
-
     #
     # Expected columns in a data frame to be passed in to this class
     #
