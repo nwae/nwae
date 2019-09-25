@@ -24,8 +24,8 @@ import nwae.utils.StringUtils as su
 #     "Help me calculate energy, my mass is $$mass, and light speed $$c."
 #     "Calculate energy for me, mass $$mass, c $$c."
 #
-#   And the answer may be encoded as such:
-#     Your answer is $$mass * ($$c * $$c)
+#   And the answer may be encoded similarly using "-*-" as delimiter:
+#     Your answer is -*-$$mass * ($$c * $$c)-*-
 #
 #
 class DaehuaTrainDataModel:
