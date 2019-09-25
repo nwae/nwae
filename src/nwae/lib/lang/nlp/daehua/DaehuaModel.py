@@ -32,12 +32,16 @@ class DaehuaModel:
     DAEHUA_MODEL_ENCODING_TYPE = 'type'
     DAEHUA_MODEL_ENCODING_NAMES = 'names'
 
+    # We use '-*-' to open and close the encoding language
+    DAEHUA_MODEL_ENCODING_CHARS_START_END = '[-][*][-](.*)[-][*][-]'
+
     # Separates the different variables definition. e.g. 'm,float,mass&m;c,float,light&speed'
     DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR = ';'
     # Separates the description of the same variable. e.g. 'm,float,mass&m'
     DAEHUA_MODEL_VAR_DESCRIPTION_SEPARATOR = ','
     # Separates the names of a variable. e.g. 'mass&m'
     DAEHUA_MODEL_VAR_NAMES_SEPARATOR = '&'
+    DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION = '[$]{2}'
 
     DAEHUA_MODEL_TYPE_STRING = 'str'
     DAEHUA_MODEL_TYPE_FLOAT  = 'float'
@@ -48,7 +52,7 @@ class DaehuaModel:
             s
     ):
         try:
-            m = re.match(pattern='.*[-][*][-](.*)[-][*][-].*', string=s)
+            m = re.match(pattern='.*'+DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END+'.*', string=s)
             str_encoding = m.group(1)
             return str_encoding
         except Exception as ex:
@@ -116,7 +120,8 @@ class DaehuaModel:
             d = var_values
             for var in var_encoding:
                 formula_str_encoding = re.sub(
-                    pattern = '[$]{2}' + str(var),
+                    # Replace variables in question such as $$mass with a dictionary value d['mass']
+                    pattern = DaehuaModel.DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION + str(var),
                     # 'd' is our default dictionary object, so to make the eval() run, we must
                     # first define d = var_values
                     repl    = 'd[\'' + str(var) + '\']',
@@ -259,4 +264,4 @@ if __name__ == '__main__':
         answer      = answer
     )
     result = cmobj.get_answer()
-    print('Answer = ' + str(result))
+    print('Sphere volume = ' + str(result))

@@ -5,28 +5,11 @@ from inspect import getframeinfo, currentframe
 import re
 import pandas as pd
 import nwae.utils.StringUtils as su
+import nwae.lib.lang.nlp.daehua.DaehuaModel as dhmodel
 
 
 #
-# The first thing we need in a conversation model is a "daehua training data language"
-# to encode various information required for reply processing parameters extracted
-# from a question.
-#
-# Daehua Training Language Description
-#   TODO Move the variable description away from the Intent Name column to a separate column
-#   Intent Name can be of the form 'Calculate Energy -*-mass_float,c_float-*-
-#   where 'mass' is a variable name of type float, and 'c' (speed of light) is another
-#   variable name of the same type.
-#   For now we support str, float, int. We don't support specific regex to not complicate
-#   things.
-#
-#   Then training data may be as such:
-#     "Help me calculate energy, my mass is $$mass, and light speed $$c."
-#     "Calculate energy for me, mass $$mass, c $$c."
-#
-#   And the answer may be encoded similarly using "-*-" as delimiter:
-#     Your answer is -*-$$mass * ($$c * $$c)-*-
-#
+# Mainly to process and clean training data from Daehua Language Encodings
 #
 class DaehuaTrainDataModel:
 
@@ -73,7 +56,15 @@ class DaehuaTrainDataModel:
     ):
         try:
             # Remove anything of the form $$var, $$xyz,...
-            clean_list = [re.sub(pattern='[$]{2}[a-z0-9_]+', repl='', string=str(s)) for s in var_list]
+            clean_list = [
+                re.sub(
+                    pattern = dhmodel.DaehuaModel.DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION+'[a-z0-9_]+',
+                    repl    = '',
+                    string  = str(s)
+                )
+                for s in var_list
+            ]
+            # Replace multiple spaces with a single space
             clean_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_list]
             clean_list = [su.StringUtils.trim(s) for s in clean_list]
             return clean_list
@@ -97,7 +88,15 @@ class DaehuaTrainDataModel:
             if is_type_str:
                 decl_list = [decl_list]
 
-            clean_decl_list = [re.sub(pattern='[ ]*[-][*][-].*[-][*][-]', repl='', string=str(s)) for s in decl_list]
+            clean_decl_list = [
+                re.sub(
+                    pattern = '[ ]*' + dhmodel.DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END,
+                    repl    = '',
+                    string  = str(s)
+                )
+                for s in decl_list
+            ]
+            # Replace multiple spaces with a single space
             clean_decl_list = [re.sub(pattern='[ ]+', repl=' ', string=s) for s in clean_decl_list]
             clean_decl_list = [su.StringUtils.trim(s) for s in clean_decl_list]
 
