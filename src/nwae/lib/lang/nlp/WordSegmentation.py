@@ -294,7 +294,9 @@ class WordSegmentation(object):
                 )
                 match_longest = 0
             # If character is not in language character set
-            elif (len(text_array[curpos]) == 1) and (text_array[curpos] not in lang_charset):
+            elif (len(text_array[curpos]) == 1) \
+                    and (text_array[curpos] not in lang_charset) \
+                    and (self.syl_split_token == ''):       # Only applies to languages with no syllable split token
                 # Look for continuous string of foreign characters, no limit up to the end of word
                 lookforward_window = tlen - curpos
                 match_longest = lookforward_window - 1
@@ -302,8 +304,6 @@ class WordSegmentation(object):
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Lookforward Window = ' + str(lookforward_window)
                 )
-
-                # TODO For Vietnamese, no need to compare until hit space boundary, so can optimize further
 
                 for i in range(curpos, curpos+lookforward_window, 1):
                     # Found a local character or space
