@@ -6,10 +6,38 @@ import nwae.config.Config as cf
 import re
 
 
+#
+# The first thing we need in a conversation model is a "daehua language"
+# to encode various information required for reply processing parameters extracted
+# from a question.
+#
+# Daehua Language Description
+#   Intent Name can be of the form 'Calculate Energy -*-m,float,mass&m;c,float,light&speed-*-
+#   where 'm' is a variable name of type float, and 'c' (speed of light) is another
+#   variable name of the same type.
+#   For now we support str, float, int. We don't support specific regex to not complicate
+#   things.
+#
+#   Then training data may be as such:
+#     "Help me calculate energy, my mass is $$m, and light speed $$c."
+#     "Calculate energy for me, mass $$m, c $$c."
+#
+#   And the answer may be encoded similarly using "-*-" as delimiter:
+#     Your answer is -*-$$m * ($$c * $$c)-*-
+#
+#
+
 class DaehuaModel:
 
     DAEHUA_MODEL_ENCODING_TYPE = 'type'
     DAEHUA_MODEL_ENCODING_NAMES = 'names'
+
+    # Separates the different variables definition. e.g. 'm,float,mass&m;c,float,light&speed'
+    DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR = ';'
+    # Separates the description of the same variable. e.g. 'm,float,mass&m'
+    DAEHUA_MODEL_VAR_DESCRIPTION_SEPARATOR = ','
+    # Separates the names of a variable. e.g. 'mass&m'
+    DAEHUA_MODEL_VAR_NAMES_SEPARATOR = '&'
 
     DAEHUA_MODEL_TYPE_STRING = 'str'
     DAEHUA_MODEL_TYPE_FLOAT  = 'float'
@@ -29,6 +57,19 @@ class DaehuaModel:
             lg.Log.error(errmsg)
             return None
 
+    #
+    # Extract from string encoding 'm,float,mass&m;c,float,light&speed' into something like:
+    #   {
+    #      'm': {
+    #         'type': 'float',
+    #         'names': ['mass', 'm']
+    #      },
+    #      'c': {
+    #         'type': 'float',
+    #         'names': ['speed', 'light']
+    #      }
+    #   }
+    #
     @staticmethod
     def get_var_encoding(
             s
@@ -39,12 +80,16 @@ class DaehuaModel:
             str_encoding = DaehuaModel.get_convmodel_encoding_str(
                 s = s
             )
-            str_encoding = str_encoding.split(';')
+            # Here we split "m,float,mass&m;c,float,light&speed" into ['m,float,mass&m', 'c,float,light&speed']
+            str_encoding = str_encoding.split(DaehuaModel.DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR)
             for varset in str_encoding:
-                var_desc = varset.split(',')
+                # Here we split 'm,float,mass&m' into ['m','float','mass&m']
+                var_desc = varset.split(DaehuaModel.DAEHUA_MODEL_VAR_DESCRIPTION_SEPARATOR)
                 var_encoding[var_desc[0]] = {
+                    # Extract 'float' from ['m','float','mass&m']
                     DaehuaModel.DAEHUA_MODEL_ENCODING_TYPE: var_desc[1],
-                    DaehuaModel.DAEHUA_MODEL_ENCODING_NAMES: var_desc[2].split('&')
+                    # Extract ['mass','m'] from 'mass&m'
+                    DaehuaModel.DAEHUA_MODEL_ENCODING_NAMES: var_desc[2].split(DaehuaModel.DAEHUA_MODEL_VAR_NAMES_SEPARATOR)
                 }
             return var_encoding
         except Exception as ex:
@@ -71,7 +116,9 @@ class DaehuaModel:
             d = var_values
             for var in var_encoding:
                 formula_str_encoding = re.sub(
-                    pattern = '[$]' + str(var),
+                    pattern = '[$]{2}' + str(var),
+                    # 'd' is our default dictionary object, so to make the eval() run, we must
+                    # first define d = var_values
                     repl    = 'd[\'' + str(var) + '\']',
                     string  = formula_str_encoding
                 )
@@ -204,7 +251,7 @@ if __name__ == '__main__':
 
     intent_name = 'Volume of Sphere -*-r,float,radius&r;d,float,diameter&d-*-'
     question = 'What is the volume of a sphere of radius 5?'
-    answer = 'Your answer is -*-(4/3)*(3.141592653589793 * $r*$r*$r)-*-'
+    answer = 'Your answer is -*-(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
 
     cmobj = DaehuaModel(
         intent_name = intent_name,
