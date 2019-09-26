@@ -12,7 +12,10 @@ import re
 # from a question.
 #
 # Daehua Language Description
-#   Intent Name can be of the form 'Calculate Energy -*-m,float,mass&m;c,float,light&speed-*-
+#   Encoding string can be of the form:
+#
+#      'Calculate Energy -*-vars==m,float,mass&m;c,float,light&speed::answer==$$m * ($$c * $$c)-*-
+#
 #   where 'm' is a variable name of type float, and 'c' (speed of light) is another
 #   variable name of the same type.
 #   For now we support str, float, int. We don't support specific regex to not complicate
@@ -29,12 +32,20 @@ import re
 
 class DaehuaModel:
 
-    DAEHUA_MODEL_ENCODING_TYPE = 'type'
-    DAEHUA_MODEL_ENCODING_NAMES = 'names'
+    DAEHUA_MODEL_ENCODE_STR    = 'encode_str'
+    DAEHUA_MODEL_OBJECT_VARS   = 'vars'
+    DAEHUA_MODEL_OBJECT_ANSWER = 'answer'
+
+    DAEHUA_MODEL_OBJECT_VARS_TYPE = 'type'
+    DAEHUA_MODEL_OBJECT_VARS_NAMES = 'names'
 
     # We use '-*-' to open and close the encoding language
     DAEHUA_MODEL_ENCODING_CHARS_START_END = '[-][*][-](.*)[-][*][-]'
 
+    # Separates the vars and answer object. E.g.
+    #    vars==m,float,mass&m;c,float,light&speed::answer==$$m * ($$c * $$c)
+    DAEHUA_MODEL_OBJECT_SEPARATOR = '::'
+    DAEHUA_MODEL_OBJECT_DEFINITION_SYMBOL = '=='
     # Separates the different variables definition. e.g. 'm,float,mass&m;c,float,light&speed'
     DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR = ';'
     # Separates the description of the same variable. e.g. 'm,float,mass&m'
@@ -55,9 +66,31 @@ class DaehuaModel:
             s
     ):
         try:
+            daehua_model_encoding_str = {
+                DaehuaModel.DAEHUA_MODEL_ENCODE_STR: None,
+                DaehuaModel.DAEHUA_MODEL_OBJECT_VARS: None,
+                DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER: None
+            }
+
             m = re.match(pattern='.*'+DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END+'.*', string=s)
-            str_encoding = m.group(1)
-            return str_encoding
+            dh_encode_str = m.group(1)
+            daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR] = dh_encode_str
+
+            # Split by '::'
+            dh_objects_str = dh_encode_str.split(DaehuaModel.DAEHUA_MODEL_OBJECT_SEPARATOR)
+            for dh_obj_str in dh_objects_str:
+                # Break again
+                parts = dh_obj_str.split(sep=DaehuaModel.DAEHUA_MODEL_OBJECT_DEFINITION_SYMBOL)
+                if parts[0] == DaehuaModel.DAEHUA_MODEL_OBJECT_VARS:
+                    daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS] = parts[1]
+                elif parts[0] == DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER:
+                    daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER] = parts[1]
+
+            lg.Log.info(
+                str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Decoded encoding parts string: ' + str(daehua_model_encoding_str)
+            )
+            return daehua_model_encoding_str
         except Exception as ex:
             errmsg = str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Failed to get encoding string for "' + str(s) + '". Exception ' + str(ex) + '.'
@@ -78,26 +111,35 @@ class DaehuaModel:
     #   }
     #
     @staticmethod
-    def get_daehua_model_encoding(
+    def decode_vars_object_str(
             s
     ):
         try:
             var_encoding = {}
 
-            str_encoding = DaehuaModel.get_daehua_model_encoding_str(
-                s = s
-            )
             # Here we split "m,float,mass&m;c,float,light&speed" into ['m,float,mass&m', 'c,float,light&speed']
-            str_encoding = str_encoding.split(DaehuaModel.DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR)
+            str_encoding = s.split(DaehuaModel.DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR)
             for varset in str_encoding:
                 # Here we split 'm,float,mass&m' into ['m','float','mass&m']
                 var_desc = varset.split(DaehuaModel.DAEHUA_MODEL_VAR_DESCRIPTION_SEPARATOR)
-                var_encoding[var_desc[0]] = {
+
+                part_var_id = var_desc[0]
+                part_var_type = var_desc[1]
+                part_var_names = var_desc[2]
+
+                var_encoding[part_var_id] = {
                     # Extract 'float' from ['m','float','mass&m']
-                    DaehuaModel.DAEHUA_MODEL_ENCODING_TYPE: var_desc[1],
+                    DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_TYPE: part_var_type,
                     # Extract ['mass','m'] from 'mass&m'
-                    DaehuaModel.DAEHUA_MODEL_ENCODING_NAMES: var_desc[2].split(DaehuaModel.DAEHUA_MODEL_VAR_NAMES_SEPARATOR)
+                    DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_NAMES: part_var_names.split(
+                        sep = DaehuaModel.DAEHUA_MODEL_VAR_NAMES_SEPARATOR
+                    )
                 }
+                lg.Log.info(
+                    str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Successfully decoded vars object item "'
+                    + str(part_var_id) + '": ' + str(var_encoding[var_desc[0]])
+                )
             return var_encoding
         except Exception as ex:
             errmsg = str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -110,18 +152,16 @@ class DaehuaModel:
     #
     @staticmethod
     def get_formula_code_str(
-            s,
-            var_encoding,
+            daehua_answer_object_str,
             var_values
     ):
         try:
-            code = ''
-            formula_str_encoding = DaehuaModel.get_daehua_model_encoding_str(
-                s = s
-            )
+            formula_str_encoding = daehua_answer_object_str
+            # Replace '|' with divide '/'
+            formula_str_encoding = re.sub(pattern='[|]', repl='/', string=formula_str_encoding)
 
             d = var_values
-            for var in var_encoding:
+            for var in var_values:
                 formula_str_encoding = re.sub(
                     # Replace variables in question such as $$mass with a dictionary value d['mass']
                     pattern = DaehuaModel.DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION + str(var),
@@ -133,15 +173,15 @@ class DaehuaModel:
 
             lg.Log.debug(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Code for s "' + str(s) + '" var encoding ' + str(var_encoding)
-                + ', values ' + str(var_values)
-                + '\n\r   ' + code
+                + ': Code for answer object string "' + str(daehua_answer_object_str)
+                + '", values ' + str(var_values)
+                + '\n\r   ' + str(formula_str_encoding)
             )
 
             return formula_str_encoding
         except Exception as ex:
             errmsg = str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Failed to get formula encoding string for "' + str(s)\
+                     + ': Failed to get formula encoding string for "' + str(daehua_answer_object_str)\
                      + '". Exception ' + str(ex) + '.'
             lg.Log.error(errmsg)
             return None
@@ -165,7 +205,7 @@ class DaehuaModel:
         for var in var_encoding.keys():
             var_values[var] = None
             # Get the names and join them using '|' for matching regex
-            names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_ENCODING_NAMES])
+            names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_NAMES])
             pattern = '.*([0-9]*)[ ]*(' + names + ')[ ]*([0-9]*).*'
             lg.Log.debug(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -198,51 +238,63 @@ class DaehuaModel:
 
     def __init__(
             self,
-            intent_name,
-            question,
-            answer
+            encoding_str,
+            question
     ):
-        self.intent_name = intent_name
+        self.encoding_str = encoding_str
         self.question = question
-        self.answer = answer
         lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-            + '\n\r   Intent Name "' + str(intent_name)
-            + '"\n\r   question "' + str(question)
-            + '"\n\r   answer "' + str(answer) + '"'
+            + ': Daehua Model Encoding "' + str(self.encoding_str)
+            + '" question "' + str(question) + '".'
+        )
+        #
+        # Decode the model variables, answer
+        #
+        self.daehua_model_str = None
+        self.daehua_model_obj_vars = None
+        self.__decode_str()
+        return
+
+    def __decode_str(self):
+        self.daehua_model_str = DaehuaModel.get_daehua_model_encoding_str(
+            s = self.encoding_str
+        )
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': Model Encoding strings: ' + str(self.daehua_model_str)
+        )
+        self.daehua_model_obj_vars = DaehuaModel.decode_vars_object_str(
+            s = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
+        )
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': Model Object vars: ' + str(self.daehua_model_obj_vars)
         )
         return
 
     def get_answer(self):
-        var_encoding = DaehuaModel.get_daehua_model_encoding(
-            s = self.intent_name
-        )
-        lg.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-            + ': Var Encoding:\n\r' + str(var_encoding)
-        )
-
         #
         # Extract variables from question
         #
         var_values = DaehuaModel.extract_variable_values(
             s = self.question,
-            var_encoding = var_encoding
+            var_encoding = self.daehua_model_obj_vars
         )
 
         #
         # Extract formula from answer
         #
         formula_code_str = DaehuaModel.get_formula_code_str(
-            s = self.answer,
-            var_encoding = var_encoding,
+            daehua_answer_object_str = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER],
             var_values = var_values
         )
         calc_result = None
         try:
-            lg.Log.debug(
+            lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': Evaluating code: ' + str(formula_code_str)
+                + ' for variables ' + str(var_values)
             )
             d = var_values
             calc_result = eval(formula_code_str)
@@ -258,22 +310,14 @@ class DaehuaModel:
             lg.Log.error(errmsg)
             calc_result = None
 
-        answer_string = re.sub(
-            pattern = DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END,
-            repl    = str(calc_result),
-            string  = self.answer
-        )
-
         class answer_result:
-            def __init__(self, answer_value, variable_values, answer_str):
+            def __init__(self, answer_value, variable_values):
                 self.answer_value = answer_value
                 self.variable_values = variable_values
-                self.answer_str = answer_str
 
         return answer_result(
             answer_value    = calc_result,
-            variable_values = var_values,
-            answer_str      = answer_string
+            variable_values = var_values
         )
 
 
@@ -284,16 +328,15 @@ if __name__ == '__main__':
     lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
 
-    intent_name = 'Volume of Sphere -*-r,float,radius&r;d,float,diameter&d-*-'
+    encoding = 'Volume of Sphere -*-vars==r,float,radius&r;d,float,diameter&d'\
+                  + '::'\
+                  + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
     question = 'What is the volume of a sphere of radius 5?'
-    answer = 'Your answer is -*-(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
 
     cmobj = DaehuaModel(
-        intent_name = intent_name,
-        question    = question,
-        answer      = answer
+        encoding_str = encoding,
+        question     = question
     )
     result = cmobj.get_answer()
     print('Sphere volume = ' + str(result.answer_value)
-          + ', variables = ' + str(result.variable_values)
-          + ', answer str = "' + str(result.answer_str))
+          + ', variables = ' + str(result.variable_values))
