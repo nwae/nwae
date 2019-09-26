@@ -7,8 +7,7 @@ import time
 import nwae.utils.Profiling as prf
 import nwae.utils.StringUtils as su
 import nwae.lib.lang.model.FeatureVector as fv
-import nwae.lib.lang.nlp.WordSegmentation as ws
-import nwae.lib.lang.nlp.SynonymList as sl
+import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
@@ -69,23 +68,13 @@ class PredictClass(threading.Thread):
         )
         self.model.start()
 
-        self.synonymlist = sl.SynonymList(
-            lang                = self.lang,
-            dirpath_synonymlist = self.dirpath_synonymlist,
-            postfix_synonymlist = self.postfix_synonymlist
-        )
-
-        self.wseg = ws.WordSegmentation(
-            lang             = self.lang,
-            dirpath_wordlist = self.dir_wordlist,
-            postfix_wordlist = self.postfix_wordlist,
-            do_profiling     = self.do_profiling
-        )
-        # Add application wordlist
-        self.wseg.add_wordlist(
-            dirpath = self.dir_wordlist_app,
-            postfix = self.postfix_wordlist_app
-        )
+        #
+        # We initialize word segmenter and synonym list after the model is ready
+        # because it requires the model features so that root words of synonym lists
+        # are only from the model features
+        #
+        self.wseg = None
+        self.synonymlist = None
         self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
@@ -109,25 +98,21 @@ class PredictClass(threading.Thread):
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ": Model " + str(self.model_name) + '" ready. Loading synonym & word lists..'
             )
-            # Model ready we load the other things
-            self.synonymlist.load_synonymlist(
-                list_main_words = self.model.get_model_features().tolist()
-            )
 
-            # Add synonym list to wordlist (just in case they are not synched)
-            len_before = self.wseg.lang_wordlist.wordlist.shape[0]
-            self.wseg.add_wordlist(
-                dirpath     = None,
-                postfix     = None,
-                array_words = list(self.synonymlist.synonymlist[sl.SynonymList.COL_WORD])
+            ret_obj = langhelper.LangHelper.get_word_segmenter(
+                lang                 = self.lang,
+                dirpath_wordlist     = self.dir_wordlist,
+                postfix_wordlist     = self.postfix_wordlist,
+                dirpath_app_wordlist = self.dir_wordlist_app,
+                postfix_app_wordlist = self.postfix_wordlist_app,
+                dirpath_synonymlist  = self.dirpath_synonymlist,
+                postfix_synonymlist  = self.postfix_synonymlist,
+                # We can only allow root words to be words from the model features
+                allowed_root_words   = self.model.get_model_features().tolist(),
+                do_profiling         = self.do_profiling
             )
-            len_after = self.wseg.lang_wordlist.wordlist.shape[0]
-            if len_after - len_before > 0:
-                words_not_synched = self.wseg.lang_wordlist.wordlist[sl.SynonymList.COL_WORD][len_before:len_after]
-                log.Log.warning(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ": Warning. These words not in word list but in synonym list:\n\r" + str(words_not_synched)
-                )
+            self.wseg = ret_obj.wseg
+            self.synonymlist = ret_obj.snnlist
         except Exception as ex:
             errmsg = \
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \

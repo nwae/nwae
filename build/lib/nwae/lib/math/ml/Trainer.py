@@ -10,6 +10,7 @@ import threading
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import nwae.lib.lang.TextProcessor as txtprocessor
+import nwae.lib.lang.nlp.daehua.DaehuaTrainDataModel as dhtdmodel
 
 
 #
@@ -32,14 +33,6 @@ class Trainer(threading.Thread):
     # NLP Training
     #
     TRAIN_MODE_NLP_EIDF = 'train_nlp_eidf'
-
-    #
-    # If passing in text training data, then make sure these columns exist in the
-    # pandas DataFrame passed in.
-    #
-    COL_TEXT_TDATA_INTENT = 'Intent'
-    COL_TEXT_TDATA_INTENT_ID = 'Intent ID'
-    COL_TEXT_TDATA_TEXT_SEGMENTED = 'TextSegmented'
 
     def __init__(
             self,
@@ -315,9 +308,9 @@ class Trainer(threading.Thread):
             keep = -1
     ):
         # Extract these columns
-        classes_id     = td[Trainer.COL_TEXT_TDATA_INTENT_ID]
-        text_segmented = td[Trainer.COL_TEXT_TDATA_TEXT_SEGMENTED]
-        classes_name   = td[Trainer.COL_TEXT_TDATA_INTENT]
+        classes_id     = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_INTENT_ID]
+        text_segmented = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED]
+        classes_name   = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_INTENT_NAME]
 
         lg.Log.debugdebug(
             str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -379,6 +372,7 @@ class Trainer(threading.Thread):
         lg.Log.debugdebug('LABELS NAME:\n\r' + str(np_label_name[0:20]))
         lg.Log.debugdebug('np TEXT SEGMENTED:\n\r' + str(np_sentences_list[0:20]))
         lg.Log.debugdebug('TEXT SEGMENTED:\n\r' + str(text_segmented[np_indexes]))
+        lg.Log.debug('NP SENTENCES LIST:\n\r' + str(np_sentences_list.tolist()))
 
         #
         # Finally we have our text data in the desired format

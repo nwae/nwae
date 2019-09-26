@@ -422,6 +422,9 @@ class ModelInterface(threading.Thread):
         # Write to tmp file first
         #
         filepath_tmp = str(filepath) + '.tmp'
+        # We backup the previous model file just in case
+        filepath_old = str(filepath) + '.old'
+
         try:
             df.to_csv(
                 path_or_buf = filepath_tmp,
@@ -450,15 +453,23 @@ class ModelInterface(threading.Thread):
         # Now try to read it back
         #
         try:
+            # Just take rows
+            nrows_original = df.shape[0]
             df_read_back = pd.read_csv(
                 filepath_or_buffer = filepath_tmp,
                 sep                = DEFAULT_CSV_SEPARATOR,
                 index_col          = index_label
             )
-            log.Log.info(
-                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': TMP File: Successfully read back "' + str(name_df) + '" file "' + str(filepath_tmp)
-            )
+            if df_read_back.shape[0] == nrows_original:
+                log.Log.important(
+                    str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': TMP File: Successfully read back ' + str(df_read_back.shape[0])
+                    + ' rows of "' + str(name_df) + '" file "' + str(filepath_tmp)
+                )
+            else:
+                raise Exception(
+                    'Original rows = ' + str(nrows_original) + ' but read back ' + str(df_read_back.shape[0]) + '.'
+                )
         except Exception as ex:
             errmsg = \
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -469,12 +480,22 @@ class ModelInterface(threading.Thread):
             )
             raise Exception(errmsg)
 
+        time.sleep(0.2)
         #
         # Finally rename the .tmp file
         #
         try:
+            # If old model file exists, backup as .old file
+            if os.path.isfile(filepath):
+                os.rename(src=filepath, dst=filepath_old)
+            log.Log.important(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': BACKUP File: Successfully backed up old model "' + str(name_df)
+                + '" to filepath "' + str(filepath_old) + '"'
+                , log_list = log_training
+            )
             os.rename(src=filepath_tmp, dst=filepath)
-            log.Log.info(
+            log.Log.important(
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': REAL File: Successfully saved data frame "' + str(name_df)
                 + ' filepath "' + str(filepath) + '"'
@@ -510,6 +531,9 @@ class ModelInterface(threading.Thread):
         # Write to tmp file first
         #
         filepath_tmp = str(filepath) + '.tmp'
+        # We backup the previous model file just in case
+        filepath_old = str(filepath) + '.old'
+
         try:
             f = open(file=filepath_tmp, mode='w', encoding=file_encoding)
             if write_as_json:
@@ -519,7 +543,7 @@ class ModelInterface(threading.Thread):
                     line = str(dict_obj[i])
                     f.write(str(line) + '\n\r')
             f.close()
-            log.Log.info(
+            log.Log.important(
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': TMP File: Saved "' + str(name_dict_obj)
                 + '" with ' + str(len(dict_obj.keys())) + ' lines,'
@@ -541,12 +565,22 @@ class ModelInterface(threading.Thread):
         # TODO Now try to read it back
         #
 
+        time.sleep(0.2)
         #
         # Finally rename the .tmp file
         #
         try:
+            # If old model file exists, backup as .old file
+            if os.path.isfile(filepath):
+                os.rename(src=filepath, dst=filepath_old)
+            log.Log.important(
+                str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': BACKUP File: Successfully backed up old model "' + str(name_dict_obj)
+                + '" to filepath "' + str(filepath_old) + '"'
+                , log_list = log_training
+            )
             os.rename(src=filepath_tmp, dst=filepath)
-            log.Log.info(
+            log.Log.important(
                 str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': REAL File: Saved "' + str(name_dict_obj)
                 + '" with ' + str(len(dict_obj.keys())) + ' lines,'

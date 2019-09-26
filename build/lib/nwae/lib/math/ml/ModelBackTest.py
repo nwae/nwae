@@ -4,7 +4,7 @@ import pandas as pd
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as pf
-import nwae.Config as cf
+import nwae.config.Config as cf
 import nwae.lib.math.PredictClass as predictclass
 import nwae.lib.math.NumpyUtil as nputil
 import nwae.lib.math.ml.ModelInterface as modelif
