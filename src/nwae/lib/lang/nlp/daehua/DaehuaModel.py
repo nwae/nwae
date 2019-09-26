@@ -253,9 +253,10 @@ class DaehuaModel:
         except Exception as ex_eval:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ': Error evaluating formula code "' + str(formula_code_str)\
-                     + '". Exception ' + str(ex_eval) + '.'
+                     + '" for var values ' + str(var_values)\
+                     + '. Exception ' + str(ex_eval) + '.'
             lg.Log.error(errmsg)
-            raise Exception(errmsg)
+            calc_result = None
 
         answer_string = re.sub(
             pattern = DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END,
