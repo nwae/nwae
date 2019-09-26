@@ -47,8 +47,11 @@ class DaehuaModel:
     DAEHUA_MODEL_TYPE_FLOAT  = 'float'
     DAEHUA_MODEL_TYPE_INT    = 'int'
 
+    #
+    # Returns the string encoding of the model
+    #
     @staticmethod
-    def get_convmodel_encoding_str(
+    def get_daehua_model_encoding_str(
             s
     ):
         try:
@@ -75,13 +78,13 @@ class DaehuaModel:
     #   }
     #
     @staticmethod
-    def get_var_encoding(
+    def get_daehua_model_encoding(
             s
     ):
         try:
             var_encoding = {}
 
-            str_encoding = DaehuaModel.get_convmodel_encoding_str(
+            str_encoding = DaehuaModel.get_daehua_model_encoding_str(
                 s = s
             )
             # Here we split "m,float,mass&m;c,float,light&speed" into ['m,float,mass&m', 'c,float,light&speed']
@@ -113,7 +116,7 @@ class DaehuaModel:
     ):
         try:
             code = ''
-            formula_str_encoding = DaehuaModel.get_convmodel_encoding_str(
+            formula_str_encoding = DaehuaModel.get_daehua_model_encoding_str(
                 s = s
             )
 
@@ -128,7 +131,7 @@ class DaehuaModel:
                     string  = formula_str_encoding
                 )
 
-            lg.Log.info(
+            lg.Log.debug(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': Code for s "' + str(s) + '" var encoding ' + str(var_encoding)
                 + ', values ' + str(var_values)
@@ -151,7 +154,7 @@ class DaehuaModel:
             s,
             var_encoding
     ):
-        lg.Log.info(
+        lg.Log.debug(
             str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Extracting vars from "' + str(s) + '", using encoding ' + str(var_encoding)
         )
@@ -164,14 +167,14 @@ class DaehuaModel:
             # Get the names and join them using '|' for matching regex
             names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_ENCODING_NAMES])
             pattern = '.*([0-9]*)[ ]*(' + names + ')[ ]*([0-9]*).*'
-            lg.Log.info(
+            lg.Log.debug(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': For var "' + str(var) + '" using match pattern "' + str(pattern) + '"..'
             )
             m = re.match(pattern=pattern, string=s)
             if m:
                 groups = m.groups()
-                lg.Log.info(
+                lg.Log.debug(
                     str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                     + ': For var "' + str(var) + '" found groups ' + str(groups)
                 )
@@ -186,7 +189,7 @@ class DaehuaModel:
                              + '". Exception ' + str(ex_int_conv) + '.'
                     lg.Log.warning(errmsg)
 
-        lg.Log.info(
+        lg.Log.debug(
             str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': For s "' + str(s) + '" var values ' + str(var_values)
         )
@@ -202,7 +205,7 @@ class DaehuaModel:
         self.intent_name = intent_name
         self.question = question
         self.answer = answer
-        lg.Log.info(
+        lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + '\n\r   Intent Name "' + str(intent_name)
             + '"\n\r   question "' + str(question)
@@ -211,10 +214,10 @@ class DaehuaModel:
         return
 
     def get_answer(self):
-        var_encoding = DaehuaModel.get_var_encoding(
+        var_encoding = DaehuaModel.get_daehua_model_encoding(
             s = self.intent_name
         )
-        lg.Log.info(
+        lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Var Encoding:\n\r' + str(var_encoding)
         )
@@ -235,16 +238,42 @@ class DaehuaModel:
             var_encoding = var_encoding,
             var_values = var_values
         )
-        lg.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-            + ': Evaluating code: ' + str(formula_code_str)
+        calc_result = None
+        try:
+            lg.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Evaluating code: ' + str(formula_code_str)
+            )
+            d = var_values
+            calc_result = eval(formula_code_str)
+            lg.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Result = ' + str(calc_result)
+            )
+        except Exception as ex_eval:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Error evaluating formula code "' + str(formula_code_str)\
+                     + '". Exception ' + str(ex_eval) + '.'
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
+
+        answer_string = re.sub(
+            pattern = DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END,
+            repl    = str(calc_result),
+            string  = self.answer
         )
-        d = var_values
-        result = eval(formula_code_str)
-        lg.Log.info(
-            'Result = ' + str(result)
+
+        class answer_result:
+            def __init__(self, answer_value, variable_values, answer_str):
+                self.answer_value = answer_value
+                self.variable_values = variable_values
+                self.answer_str = answer_str
+
+        return answer_result(
+            answer_value    = calc_result,
+            variable_values = var_values,
+            answer_str      = answer_string
         )
-        return result
 
 
 if __name__ == '__main__':
@@ -264,4 +293,6 @@ if __name__ == '__main__':
         answer      = answer
     )
     result = cmobj.get_answer()
-    print('Sphere volume = ' + str(result))
+    print('Sphere volume = ' + str(result.answer_value)
+          + ', variables = ' + str(result.variable_values)
+          + ', answer str = "' + str(result.answer_str))
