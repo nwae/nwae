@@ -157,6 +157,7 @@ class DaehuaModel:
     ):
         try:
             formula_str_encoding = daehua_answer_object_str
+            # TODO This is a hardcode, remove in the future
             # Replace '|' with divide '/'
             formula_str_encoding = re.sub(pattern='[|]', repl='/', string=formula_str_encoding)
 
@@ -206,7 +207,13 @@ class DaehuaModel:
             var_values[var] = None
             # Get the names and join them using '|' for matching regex
             names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_NAMES])
+            data_type = var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_TYPE]
+
+            # Default to int type
             pattern = '.*([0-9]*)[ ]*(' + names + ')[ ]*([0-9]*).*'
+            if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT:
+                pattern = '.*([0-9]*[.]*[0-9]*)[ ]*(' + names + ')[ ]*([0-9]*[.]*[0-9]*).*'
+
             lg.Log.debug(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': For var "' + str(var) + '" using match pattern "' + str(pattern) + '"..'
@@ -219,10 +226,15 @@ class DaehuaModel:
                     + ': For var "' + str(var) + '" found groups ' + str(groups)
                 )
                 try:
+                    group_number = 2
                     if groups[0] != '':
-                        var_values[var] = int(groups[0])
+                        group_number = 0
+                    if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_INT:
+                        var_values[var] = int(groups[group_number])
+                    elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT:
+                        var_values[var] = float(groups[group_number])
                     else:
-                        var_values[var] = int(groups[2])
+                        raise Exception('Unrecognized type "' + str(data_type) + '".')
                 except Exception as ex_int_conv:
                     errmsg = str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                              + ': Failed to extract variable "' + str(var) + '" from "' + str(s)\
@@ -326,12 +338,12 @@ if __name__ == '__main__':
     #     Derived_Class = cf.Config
     # )
     lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
 
     encoding = 'Volume of Sphere -*-vars==r,float,radius&r;d,float,diameter&d'\
                   + '::'\
                   + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
-    question = 'What is the volume of a sphere of radius 5?'
+    question = 'What is the volume of a sphere of radius 5.88?'
 
     cmobj = DaehuaModel(
         encoding_str = encoding,
