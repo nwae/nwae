@@ -278,9 +278,9 @@ class DaehuaModel:
     ):
         # Always check float first
         pattern_check_front_float = '.*[^0-9]+([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_float_start = '$([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_float_start = '^([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
         pattern_check_front_int = '.*[^0-9]+([0-9]+)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_int_start = '$([0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int_start = '^([0-9]+)[ ]*(' + var_type_names + ').*'
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
@@ -388,13 +388,16 @@ class DaehuaModel:
             lg.Log.error(errmsg)
             calc_result = None
 
+        if calc_result is not None:
+            calc_result = round(calc_result, DaehuaModel.DEFAULT_NUMBER_ROUNDING)
+
         class answer_result:
             def __init__(self, answer_value, variable_values):
                 self.answer_value = answer_value
                 self.variable_values = variable_values
 
         return answer_result(
-            answer_value    = round(calc_result,DaehuaModel.DEFAULT_NUMBER_ROUNDING),
+            answer_value    = calc_result,
             variable_values = var_values
         )
 
