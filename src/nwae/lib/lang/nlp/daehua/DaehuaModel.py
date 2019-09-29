@@ -277,12 +277,16 @@ class DaehuaModel:
             var_type_names
     ):
         # Default to int type first
-        pattern_check_front_float = '.*([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_int = '.*([0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_float = '.*[^0-9]+([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_float_start = '$([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int = '.*[^0-9]+([0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int_start = '$([0-9]+)[ ]*(' + var_type_names + ').*'
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
-            patterns_list = (pattern_check_front_float, pattern_check_front_int),
+            patterns_list = (
+                pattern_check_front_float, pattern_check_front_float_start,
+                pattern_check_front_int, pattern_check_front_int_start),
             var_name      = var_name,
             string        = string
         )
