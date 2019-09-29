@@ -276,6 +276,7 @@ class DaehuaModel:
             string,
             var_type_names
     ):
+        var_type_names = var_type_names.lower()
         # Always check float first
         pattern_check_front_float = '.*[^0-9]+([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
         pattern_check_front_float_start = '^([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
@@ -300,6 +301,7 @@ class DaehuaModel:
             string,
             var_type_names
     ):
+        var_type_names = var_type_names.lower()
         # Always check float first
         pattern_check_back_float = '.*(' + var_type_names + ')[ ]*([0-9]+[.][0-9]*).*'
         pattern_check_back_int = '.*(' + var_type_names + ')[ ]*([0-9]+).*'
