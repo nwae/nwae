@@ -31,6 +31,7 @@ import re
 #
 
 class DaehuaModel:
+    DEFAULT_NUMBER_ROUNDING = 5
 
     DAEHUA_MODEL_ENCODE_STR    = 'encode_str'
     DAEHUA_MODEL_OBJECT_VARS   = 'vars'
@@ -54,7 +55,6 @@ class DaehuaModel:
     DAEHUA_MODEL_VAR_NAMES_SEPARATOR = '&'
     DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION = '[$]{2}'
 
-    DAEHUA_MODEL_TYPE_STRING = 'str'
     DAEHUA_MODEL_TYPE_FLOAT  = 'float'
     DAEHUA_MODEL_TYPE_INT    = 'int'
 
@@ -394,7 +394,7 @@ class DaehuaModel:
                 self.variable_values = variable_values
 
         return answer_result(
-            answer_value    = calc_result,
+            answer_value    = round(calc_result,DaehuaModel.DEFAULT_NUMBER_ROUNDING),
             variable_values = var_values
         )
 
