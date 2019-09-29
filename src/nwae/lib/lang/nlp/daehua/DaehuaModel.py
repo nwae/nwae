@@ -195,6 +195,8 @@ class DaehuaModel:
             s,
             var_encoding
     ):
+        s = str(s).lower()
+
         lg.Log.debug(
             str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Extracting vars from "' + str(s) + '", using encoding ' + str(var_encoding)
@@ -209,30 +211,28 @@ class DaehuaModel:
             names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_NAMES])
             data_type = var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_TYPE]
 
-            # Default to int type
-            pattern = '.*([0-9]*)[ ]*(' + names + ')[ ]*([0-9]*).*'
-            if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT:
-                pattern = '.*([0-9]*[.]*[0-9]*)[ ]*(' + names + ')[ ]*([0-9]*[.]*[0-9]*).*'
-
-            lg.Log.debug(
-                str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': For var "' + str(var) + '" using match pattern "' + str(pattern) + '"..'
+            value = DaehuaModel.get_var_value_front(
+                var_name = var,
+                string = s,
+                var_type_names = names
             )
-            m = re.match(pattern=pattern, string=s)
-            if m:
-                groups = m.groups()
+            if not value:
+                value = DaehuaModel.get_var_value_back(
+                    var_name = var,
+                    string = s,
+                    var_type_names = names
+                )
+
+            if value:
                 lg.Log.debug(
                     str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                    + ': For var "' + str(var) + '" found groups ' + str(groups)
+                    + ': For var "' + str(var) + '" found value ' + str(value)
                 )
                 try:
-                    group_number = 2
-                    if groups[0] != '':
-                        group_number = 0
                     if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_INT:
-                        var_values[var] = int(groups[group_number])
+                        var_values[var] = int(value)
                     elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT:
-                        var_values[var] = float(groups[group_number])
+                        var_values[var] = float(value)
                     else:
                         raise Exception('Unrecognized type "' + str(data_type) + '".')
                 except Exception as ex_int_conv:
@@ -247,6 +247,68 @@ class DaehuaModel:
         )
 
         return var_values
+
+    @staticmethod
+    def get_var_value_regex(
+            patterns_list,
+            var_name,
+            string
+    ):
+        lg.Log.debug(
+            str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': For var "' + str(var_name)
+            + '" using match patterns list ' + str(patterns_list)
+        )
+        for pattern in patterns_list:
+            m = re.match(pattern=pattern, string=string)
+            if m:
+                lg.Log.debug(
+                    str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': For var "' + str(var_name) + '" using pattern "' + str(pattern)
+                    + '", found groups ' + str(m.groups())
+                )
+                return m
+        return None
+
+    @staticmethod
+    def get_var_value_front(
+            var_name,
+            string,
+            var_type_names
+    ):
+        # Default to int type first
+        pattern_check_front_float = '.*([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int = '.*([0-9]+)[ ]*(' + var_type_names + ').*'
+
+        m = DaehuaModel.get_var_value_regex(
+            # Always check float first
+            patterns_list = (pattern_check_front_float, pattern_check_front_int),
+            var_name      = var_name,
+            string        = string
+        )
+        if m:
+            return m.group(1)
+        return None
+
+    @staticmethod
+    def get_var_value_back(
+            var_name,
+            string,
+            var_type_names
+    ):
+        # Default to int type first
+        pattern_check_back_float = '.*(' + var_type_names + ')[ ]*([0-9]+[.][0-9]*).*'
+        pattern_check_back_int = '.*(' + var_type_names + ')[ ]*([0-9]+).*'
+
+        m = DaehuaModel.get_var_value_regex(
+            # Always check float first
+            patterns_list = (pattern_check_back_float, pattern_check_back_int),
+            var_name      = var_name,
+            string        = string
+        )
+        if m:
+            return m.group(2)
+        return None
 
     def __init__(
             self,
@@ -344,11 +406,15 @@ if __name__ == '__main__':
                   + '::'\
                   + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
     question = 'What is the volume of a sphere of radius 5.88?'
+    encoding = '-*-vars==odds,float,odds&odd&hk::answer==$$odds+1-*-'
+    question = 'What is 1.5 HK 1.9 in decimal?'
 
     cmobj = DaehuaModel(
         encoding_str = encoding,
         question     = question
     )
     result = cmobj.get_answer()
-    print('Sphere volume = ' + str(result.answer_value)
-          + ', variables = ' + str(result.variable_values))
+    print(
+        'Answer = ' + str(result.answer_value)
+        + ', variables = ' + str(result.variable_values)
+    )
