@@ -278,10 +278,10 @@ class DaehuaModel:
     ):
         var_type_names = var_type_names.lower()
         # Always check float first
-        pattern_check_front_float = '.*[^0-9]+([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_float_start = '^([0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_int = '.*[^0-9]+([0-9]+)[ ]*(' + var_type_names + ').*'
-        pattern_check_front_int_start = '^([0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_float = '.*[^0-9\-]+([+\-]*[0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_float_start = '^([+\-]*[0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int = '.*[^0-9\-]+([+\-]*[0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_int_start = '^([+\-]*[0-9]+)[ ]*(' + var_type_names + ').*'
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
@@ -303,8 +303,8 @@ class DaehuaModel:
     ):
         var_type_names = var_type_names.lower()
         # Always check float first
-        pattern_check_back_float = '.*(' + var_type_names + ')[ ]*([0-9]+[.][0-9]*).*'
-        pattern_check_back_int = '.*(' + var_type_names + ')[ ]*([0-9]+).*'
+        pattern_check_back_float = '.*(' + var_type_names + ')[ ]*([+\-]*[0-9]+[.][0-9]*).*'
+        pattern_check_back_int = '.*(' + var_type_names + ')[ ]*([+\-]*[0-9]+).*'
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
@@ -416,7 +416,7 @@ if __name__ == '__main__':
                   + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
     question = 'What is the volume of a sphere of radius 5.88?'
     encoding = '-*-vars==odds,float,odds&odd&hk::answer==$$odds+1-*-'
-    question = 'What is 1.5 HK 1.9 in decimal?'
+    question = 'What is -1.5 HK 1.9 in decimal?'
 
     cmobj = DaehuaModel(
         encoding_str = encoding,
