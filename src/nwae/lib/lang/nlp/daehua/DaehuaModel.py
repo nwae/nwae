@@ -160,6 +160,10 @@ class DaehuaModel:
             # TODO This is a hardcode, remove in the future
             # Replace '|' with divide '/'
             formula_str_encoding = re.sub(pattern='[|]', repl='/', string=formula_str_encoding)
+            # Replace '-lt' with '<'
+            formula_str_encoding = re.sub(pattern='-lt', repl='<', string=formula_str_encoding)
+            # Replace '-gt' with '>'
+            formula_str_encoding = re.sub(pattern='-gt', repl='>', string=formula_str_encoding)
 
             d = var_values
             for var in var_values:
@@ -415,15 +419,25 @@ if __name__ == '__main__':
                   + '::'\
                   + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
     question = 'What is the volume of a sphere of radius 5.88?'
-    encoding = '-*-vars==odds,float,odds&odd&hk::answer==$$odds+1-*-'
-    question = 'What is -1.5 HK 1.9 in decimal?'
+    encoding = '-*-'\
+               + 'vars==id,float,id&indo' \
+               + '::'\
+               + 'answer==('\
+               + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
+               + '+ ($$id -gt 0)*1*(1 + $$id)'\
+               + ')-*-'
+    questions = [
+        'What is -2.6 indo odds?',
+        'What is +1.2 indo odds?',
+    ]
 
-    cmobj = DaehuaModel(
-        encoding_str = encoding,
-        question     = question
-    )
-    result = cmobj.get_answer()
-    print(
-        'Answer = ' + str(result.answer_value)
-        + ', variables = ' + str(result.variable_values)
-    )
+    for question in questions:
+        cmobj = DaehuaModel(
+            encoding_str = encoding,
+            question     = question
+        )
+        result = cmobj.get_answer()
+        print(
+            'Answer = ' + str(result.answer_value)
+            + ', variables = ' + str(result.variable_values)
+        )
