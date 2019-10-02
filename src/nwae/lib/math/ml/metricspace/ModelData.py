@@ -127,7 +127,7 @@ class ModelData:
 
     def check_if_model_updated(self):
         updated_time = os.path.getmtime(self.fpath_updated_file)
-        log.Log.debug(
+        log.Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model identifier "' + str(self.identifier_string)
             + '" last updated time ' + str(self.model_updated_time)
