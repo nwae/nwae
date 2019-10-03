@@ -68,10 +68,10 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #    75% quartile score = 42
     #    95% quartile score = 58
     # Using the above information, we set
-    CONFIDENCE_LEVEL_5_SCORE = 50
-    CONFIDENCE_LEVEL_4_SCORE = 40
-    CONFIDENCE_LEVEL_3_SCORE = 30
-    CONFIDENCE_LEVEL_2_SCORE = 20   # Means <1% of non-related data will go above it
+    CONFIDENCE_LEVEL_5_SCORE = 45
+    CONFIDENCE_LEVEL_4_SCORE = 35
+    CONFIDENCE_LEVEL_3_SCORE = 25
+    CONFIDENCE_LEVEL_2_SCORE = 15   # Means <1% of non-related data will go above it
     CONFIDENCE_LEVEL_1_SCORE = 10   # This means 25% of non-related data will go above it
 
 
@@ -118,7 +118,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
             # If we will create an "IDF" based on the initial features
-            weigh_idf = True,
+            weigh_idf = False,
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
@@ -874,7 +874,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         x_name = self.training_data.get_x_name()
                     )
             else:
-                self.model_data.idf = np.array([1]*self.training_data.get_x_name().shape[0])
+                self.model_data.idf = np.array([1.0]*self.training_data.get_x_name().shape[0], dtype=float)
 
             # Standardize to at least 2-dimensional, easier when weighting x
             self.model_data.idf = npUtil.NumpyUtil.convert_dimension(
