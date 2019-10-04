@@ -135,7 +135,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
             self.confidence_level_scores = MetricSpaceModel.CONFIDENCE_LEVEL_SCORES_DEFAULT
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Using confidence level scores ' + str(self.confidence_level_scores)
+            + ': For identifier "' + str(self.identifier_string)
+            + '", using confidence level scores ' + str(self.confidence_level_scores)
         )
         self.y_id = None
 
