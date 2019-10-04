@@ -18,6 +18,7 @@ class ModelHelper:
             identifier_string,
             dir_path_model,
             training_data,
+            confidence_level_scores = None,
             do_profiling = False,
             is_partial_training = False
     ):
@@ -32,10 +33,11 @@ class ModelHelper:
             return kr_model
         else:
             ms_model = msModel.MetricSpaceModel(
-                identifier_string   = identifier_string,
-                dir_path_model      = dir_path_model,
-                training_data       = training_data,
-                is_partial_training = is_partial_training,
-                do_profiling        = do_profiling
+                identifier_string       = identifier_string,
+                dir_path_model          = dir_path_model,
+                training_data           = training_data,
+                is_partial_training     = is_partial_training,
+                confidence_level_scores = confidence_level_scores,
+                do_profiling            = do_profiling
             )
             return ms_model
