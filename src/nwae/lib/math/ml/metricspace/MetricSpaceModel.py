@@ -68,7 +68,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #    75% quartile score = 42
     #    95% quartile score = 58
     # Using the above information, we set
-    CONFIDENCE_LEVEL_SCORES_DEFAULT = {1: 10, 2: 20, 3: 30, 4:40, 5:50}
+    CONFIDENCE_LEVEL_SCORES_DEFAULT = {1: 10, 2: 15, 3: 20, 4:30, 5:40}
 
     # Our modified IDF that is much better than the IDF in literature
     # TODO For now it is unusable in production because it is too slow!
