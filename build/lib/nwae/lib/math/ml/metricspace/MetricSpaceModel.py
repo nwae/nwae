@@ -68,12 +68,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
     #    75% quartile score = 42
     #    95% quartile score = 58
     # Using the above information, we set
-    CONFIDENCE_LEVEL_5_SCORE = 50
-    CONFIDENCE_LEVEL_4_SCORE = 40
-    CONFIDENCE_LEVEL_3_SCORE = 30
-    CONFIDENCE_LEVEL_2_SCORE = 20   # Means <1% of non-related data will go above it
-    CONFIDENCE_LEVEL_1_SCORE = 10   # This means 25% of non-related data will go above it
-
+    CONFIDENCE_LEVEL_SCORES_DEFAULT = {1: 10, 2: 15, 3: 20, 4:30, 5:40}
 
     # Our modified IDF that is much better than the IDF in literature
     # TODO For now it is unusable in production because it is too slow!
@@ -113,12 +108,14 @@ class MetricSpaceModel(modelIf.ModelInterface):
             training_data,
             # Train only by y/labels and store model files in separate y_id directories
             is_partial_training,
+            # Confidence scores for class detection
+            confidence_level_scores = None,
             # From all the initial features, how many we should remove by quartile. If 0 means remove nothing.
             key_features_remove_quartile = 0,
             # Initial features to remove, should be an array of numbers (0 index) indicating column to delete in training data
             stop_features = (),
-            # If we will create an "IDF" based on the initial features
-            weigh_idf = True,
+            # If we will create an "EIDF" based on the initial features
+            weigh_idf = False,
             do_profiling = False
     ):
         super(MetricSpaceModel, self).__init__(
@@ -133,6 +130,14 @@ class MetricSpaceModel(modelIf.ModelInterface):
         self.dir_path_model = dir_path_model
         self.training_data = training_data
         self.is_partial_training = is_partial_training
+        self.confidence_level_scores = confidence_level_scores
+        if self.confidence_level_scores is None:
+            self.confidence_level_scores = MetricSpaceModel.CONFIDENCE_LEVEL_SCORES_DEFAULT
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': For identifier "' + str(self.identifier_string)
+            + '", using confidence level scores ' + str(self.confidence_level_scores)
+        )
         self.y_id = None
 
         if self.is_partial_training:
@@ -272,11 +277,11 @@ class MetricSpaceModel(modelIf.ModelInterface):
         df_score[MetricSpaceModel.TERM_SCORE] = score_vec
         # Maximum confidence level is 5, minimum 0
         score_confidence_level_vec = \
-            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_1_SCORE) * 1 + \
-            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_2_SCORE) * 1 + \
-            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_3_SCORE) * 1 + \
-            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_4_SCORE) * 1 + \
-            (score_vec >= MetricSpaceModel.CONFIDENCE_LEVEL_5_SCORE) * 1
+            (score_vec >= self.confidence_level_scores[1]) * 1 + \
+            (score_vec >= self.confidence_level_scores[2]) * 1 + \
+            (score_vec >= self.confidence_level_scores[3]) * 1 + \
+            (score_vec >= self.confidence_level_scores[4]) * 1 + \
+            (score_vec >= self.confidence_level_scores[5]) * 1
         df_score[MetricSpaceModel.TERM_CONFIDENCE] = score_confidence_level_vec
 
         # Finally sort by Score
@@ -874,7 +879,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
                         x_name = self.training_data.get_x_name()
                     )
             else:
-                self.model_data.idf = np.array([1]*self.training_data.get_x_name().shape[0])
+                self.model_data.idf = np.array([1.0]*self.training_data.get_x_name().shape[0], dtype=float)
 
             # Standardize to at least 2-dimensional, easier when weighting x
             self.model_data.idf = npUtil.NumpyUtil.convert_dimension(

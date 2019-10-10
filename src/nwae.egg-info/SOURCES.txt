@@ -13,6 +13,7 @@ src/nwae/lib/lang/model/FeatureVector.py
 src/nwae/lib/lang/nlp/Corpora.py
 src/nwae/lib/lang/nlp/LatinEquivalentForm.py
 src/nwae/lib/lang/nlp/PosTagging.py
+src/nwae/lib/lang/nlp/SpellingCorrection.py
 src/nwae/lib/lang/nlp/SynonymList.py
 src/nwae/lib/lang/nlp/WordList.py
 src/nwae/lib/lang/nlp/WordSegmentation.py

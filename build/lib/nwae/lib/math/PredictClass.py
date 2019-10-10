@@ -42,6 +42,7 @@ class PredictClass(threading.Thread):
             postfix_wordlist,
             dir_wordlist_app,
             postfix_wordlist_app,
+            confidence_level_scores = None,
             do_profiling = False
     ):
         super(PredictClass, self).__init__()
@@ -60,11 +61,12 @@ class PredictClass(threading.Thread):
         self.do_profiling = do_profiling
 
         self.model = modelHelper.ModelHelper.get_model(
-            model_name        = self.model_name,
-            identifier_string = self.identifier_string,
-            dir_path_model    = self.dir_path_model,
-            training_data     = None,
-            do_profiling      = self.do_profiling
+            model_name              = self.model_name,
+            identifier_string       = self.identifier_string,
+            dir_path_model          = self.dir_path_model,
+            training_data           = None,
+            confidence_level_scores = confidence_level_scores,
+            do_profiling            = self.do_profiling
         )
         self.model.start()
 

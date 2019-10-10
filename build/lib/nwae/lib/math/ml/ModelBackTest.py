@@ -158,7 +158,7 @@ class ModelBackTest:
             str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
             + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
         )
-        for q in (0.0, 0.05, 0.25, 0.50, 0.75, 0.75, 0.95):
+        for q in (0.0, 0.05, 0.1, 0.25, 0.50, 0.75, 0.9, 0.95):
             lg.Log.log(
                 'Score Quantile (' + str(q) + '): '
                 + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(q))
