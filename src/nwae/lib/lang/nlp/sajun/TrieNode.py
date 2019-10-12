@@ -106,14 +106,18 @@ class TrieNode:
             max_cost
     ):
         columns = len( word ) + 1
+        # West, north-west don't exist, so take only north
         currentRow = [ previousRow[0] + 1 ]
 
         # Build one row for the letter, with a column for each letter in the target
         # word, plus one for the empty string at column 0
         for column in range( 1, columns ):
+            # west
             insertCost = currentRow[column - 1] + 1
+            # north
             deleteCost = previousRow[column] + 1
 
+            # north-west
             if word[column - 1] != letter:
                 replaceCost = previousRow[ column - 1 ] + 1
             else:
@@ -138,6 +142,7 @@ class TrieNode:
                     results     = results,
                     max_cost    = max_cost
                 )
+        return
 
 
 if __name__ == '__main__':
