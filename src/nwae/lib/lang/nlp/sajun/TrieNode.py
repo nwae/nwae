@@ -4,7 +4,8 @@
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import time
-import sys
+import nwae.lib.lang.nlp.WordList as wl
+import nwae.lib.lang.LangFeatures as langfeatures
 
 
 #
@@ -20,19 +21,28 @@ class TrieNode:
 
     @staticmethod
     def build_trie_node(
-            word_list
+            words
     ):
-        # read dictionary file into a trie
         trie = TrieNode()
-        for word in word_list:
+        # read dictionary file into a trie
+        for word in words:
             TrieNode.WORD_COUNT += 1
             trie.insert(word)
+        lg.Log.important(
+            str(TrieNode.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully build Trie Node of ' + str(TrieNode.NODE_COUNT)
+            + ' nodes, and ' + str(TrieNode.WORD_COUNT) + ' total words.'
+        )
         return trie
 
-    def __init__(self):
+    def __init__(
+            self
+    ):
+        # Some nodes are not words (e.g. "w", "wo", "wor" from "word"), so default to None
         self.word = None
-        # Branch off here
+        # Branch off here with more TrieNode class objects
         self.children = {}
+        # Need to count using global variable as this is a linked set of TrieNode objects
         TrieNode.NODE_COUNT += 1
         return
 
@@ -41,6 +51,9 @@ class TrieNode:
             word
     ):
         node = self
+        #
+        # Create new nodes if needed, and at the end record the word
+        #
         for letter in word:
             if letter not in node.children:
                 # New branch
@@ -123,20 +136,31 @@ class TrieNode:
 
 
 if __name__ == '__main__':
-    DICTIONARY = "/usr/share/dict/words"
-    TARGET = sys.argv[1]
-    MAX_COST = int(sys.argv[2])
+    import nwae.config.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
+
+    lang = langfeatures.LangFeatures.LANG_TH
 
     # read dictionary file into a trie
-    trie = TrieNode()
-    for word in open(DICTIONARY, "rt").read().split():
-        TrieNode.WORD_COUNT += 1
-        trie.insert(word)
+    wl_obj = wl.WordList(
+        lang             = lang,
+        dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+    )
+    words = wl_obj.wordlist[wl.WordList.COL_WORD].tolist()
 
+    trie = TrieNode.build_trie_node(
+        words = words
+    )
     print("Read %d words into %d nodes" % (TrieNode.WORD_COUNT, TrieNode.NODE_COUNT))
 
     start = time.time()
-    results = trie.search( TARGET, MAX_COST )
+    results = trie.search(
+        word = 'เงน',
+        maxCost = 1
+    )
     end = time.time()
 
     for result in results:
