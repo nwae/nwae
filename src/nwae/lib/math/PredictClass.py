@@ -8,6 +8,8 @@ import nwae.utils.Profiling as prf
 import nwae.utils.StringUtils as su
 import nwae.lib.lang.model.FeatureVector as fv
 import nwae.lib.lang.LangHelper as langhelper
+import nwae.lib.lang.LangFeatures as langfeatures
+import nwae.lib.lang.nlp.sajun.TrieNode as trienod
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
@@ -43,6 +45,7 @@ class PredictClass(threading.Thread):
             dir_wordlist_app,
             postfix_wordlist_app,
             confidence_level_scores = None,
+            do_spelling_correction = False,
             do_profiling = False
     ):
         super(PredictClass, self).__init__()
@@ -58,6 +61,7 @@ class PredictClass(threading.Thread):
         self.postfix_wordlist = postfix_wordlist
         self.dir_wordlist_app = dir_wordlist_app
         self.postfix_wordlist_app = postfix_wordlist_app
+        self.do_spelling_correction = do_spelling_correction
         self.do_profiling = do_profiling
 
         self.model = modelHelper.ModelHelper.get_model(
@@ -70,6 +74,9 @@ class PredictClass(threading.Thread):
         )
         self.model.start()
 
+        # After loading model, we still need to load word lists, etc.
+        self.is_all_initializations_done = False
+
         #
         # We initialize word segmenter and synonym list after the model is ready
         # because it requires the model features so that root words of synonym lists
@@ -77,6 +84,8 @@ class PredictClass(threading.Thread):
         #
         self.wseg = None
         self.synonymlist = None
+        # For spelling correction
+        self.trie = None
         self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
@@ -115,6 +124,31 @@ class PredictClass(threading.Thread):
             )
             self.wseg = ret_obj.wseg
             self.synonymlist = ret_obj.snnlist
+
+            #
+            # For spelling correction
+            #
+            if self.do_spelling_correction:
+                try:
+                    self.trie = trienod.TrieNode.build_trie_node(
+                        words = self.model.get_model_features()
+                    )
+                    log.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Read ' + str(trienod.TrieNode.WORD_COUNT) + str(trienod.TrieNode.NODE_COUNT)
+                    )
+                except Exception as ex_trie:
+                    self.trie = None
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Error initializing trie node for model "' + str(self.identifier_string)\
+                             + '", got exception "' + str(ex_trie) + '".'
+                    log.Log.error(errmsg)
+
+            self.is_all_initializations_done = True
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': All initializations done for model "' + str(self.identifier_string) + '".'
+            )
         except Exception as ex:
             errmsg = \
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -145,6 +179,39 @@ class PredictClass(threading.Thread):
                 raise Exception(errmsg)
             time.sleep(sleep_time_wait_model)
             count = count + 1
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model "' + str(self.identifier_string) + '" READY.'
+        )
+        return
+
+    def wait_for_all_initializations_to_be_done(
+            self,
+            wait_max_time = 10
+    ):
+        if self.is_all_initializations_done:
+            return
+
+        count = 1
+        sleep_time_wait_initializations = 0.1
+        while not self.is_all_initializations_done:
+            log.Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Model not yet fully initialized, sleep for '
+                + str(count * sleep_time_wait_initializations) + ' secs now..'
+            )
+            if count * sleep_time_wait_initializations > wait_max_time:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Waited too long ' + str(count * sleep_time_wait_initializations)\
+                         + ' secs. Raising exception..'
+                raise Exception(errmsg)
+            time.sleep(sleep_time_wait_initializations)
+            count = count + 1
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Initializations all done for model "' + str(self.identifier_string) + '" READY.'
+        )
+        return
 
     #
     # A helper class to predict class given text sentence instead of a nice array
@@ -158,6 +225,7 @@ class PredictClass(threading.Thread):
             chatid = None
     ):
         self.wait_for_model_to_be_ready()
+        self.wait_for_all_initializations_to_be_done()
 
         starttime_prf = prf.Profiling.start()
         space_profiling = '      '
@@ -195,6 +263,27 @@ class PredictClass(threading.Thread):
                 + prf.Profiling.get_time_dif_str(starttime_prf, prf.Profiling.stop())
             )
 
+        #
+        # TODO Do spelling correction here
+        #
+        if (self.do_spelling_correction) and (self.trie is not None):
+            # Get the list of words in the model
+            features_model = list(self.model.get_model_features())
+            for w in text_normalized_arr_lower:
+                if w not in features_model:
+                    log.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Word "' + str(w) + '" not found in features model. Searching trie node...'
+                    )
+                    results = trienod.TrieNode.search(
+                        trie = self.trie,
+                        word = w
+                    )
+                    log.Log.info(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': For word "' + str(w) + '", found trie node matches ' + str(results)
+                    )
+
         return self.predict_class_features(
             v_feature_segmented = text_normalized_arr_lower,
             id                  = chatid,
@@ -217,13 +306,21 @@ class PredictClass(threading.Thread):
             id = None
     ):
         self.wait_for_model_to_be_ready()
+        self.wait_for_all_initializations_to_be_done()
 
         self.count_predict_calls = self.count_predict_calls + 1
 
         starttime_predict_class = prf.Profiling.start()
 
+        #
+        # This could be numbers, words, etc.
+        #
         features_model = list(self.model.get_model_features())
-        log.Log.debugdebug('Using model features:\n\r' + str(features_model))
+        #log.Log.debug(
+        #    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #    + ': Predicting v = ' + str(v_feature_segmented)
+        #    + ' using model features:\n\r' + str(features_model)
+        #)
 
         #
         # Convert sentence to a mathematical object (feature vector)
@@ -297,23 +394,35 @@ class PredictClass(threading.Thread):
 
 
 if __name__ == '__main__':
-    import mozg.ConfigFile as cf
-    cf.ConfigFile.get_cmdline_params_and_init_config()
+    import nwae.config.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config
+    )
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     pc = PredictClass(
         model_name           = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
-        identifier_string    = '',
-        dir_path_model       = '',
-        lang                 = 'cn',
-        dirpath_synonymlist  = cf.ConfigFile.DIR_SYNONYMLIST,
-        postfix_synonymlist  = cf.ConfigFile.POSTFIX_SYNONYMLIST,
-        dir_wordlist         = cf.ConfigFile.DIR_WORDLIST,
-        postfix_wordlist     = cf.ConfigFile.POSTFIX_WORDLIST,
-        dir_wordlist_app     = cf.ConfigFile.DIR_APP_WORDLIST,
-        postfix_wordlist_app = cf.ConfigFile.POSTFIX_APP_WORDLIST,
+        identifier_string    = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
+        dir_path_model       = '/usr/local/git/mozig/mozg.nlp/app.data/intent/models',
+        lang                 = langfeatures.LangFeatures.LANG_TH,
+        dir_wordlist         = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dir_wordlist_app     = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_wordlist_app = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         do_profiling         = True
     )
+
+    # Return all results in the top 5
+    res = pc.predict_class_text_features(
+        inputtext                  = 'ฝากเงนที่ไหน',
+        match_pct_within_top_score = 0,
+        include_match_details      = True,
+        top = 5
+    )
+    print(res.match_details)
+    exit(0)
 
     # Return all results in the top 5
     res = pc.predict_class_text_features(
