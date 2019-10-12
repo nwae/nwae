@@ -7,6 +7,7 @@ from inspect import currentframe, getframeinfo
 import time
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.LangFeatures as langfeatures
+import nwae.lib.lang.LangHelper as langhelper
 
 
 #
@@ -72,8 +73,9 @@ class TrieNode:
 
     # The search function returns a list of all words that are less than the given
     # maximum distance from the target word
+    @staticmethod
     def search(
-            self,
+            trie,
             word,
             max_cost = 1
     ):
@@ -84,7 +86,7 @@ class TrieNode:
 
         # recursively search each branch of the trie
         for letter in trie.children:
-            self.searchRecursive(
+            TrieNode.searchRecursive(
                 node        = trie.children[letter],
                 letter      = letter,
                 word        = word,
@@ -97,8 +99,8 @@ class TrieNode:
 
     # This recursive helper is used by the search function above. It assumes that
     # the previousRow has been filled in already.
+    @staticmethod
     def searchRecursive(
-            self,
             node,
             letter,
             word,
@@ -135,7 +137,7 @@ class TrieNode:
         # recursively search each branch of the trie
         if min( currentRow ) <= max_cost:
             for letter in node.children:
-                self.searchRecursive(
+                TrieNode.searchRecursive(
                     node        = node.children[letter],
                     letter      = letter,
                     word        = word,
@@ -154,6 +156,25 @@ if __name__ == '__main__':
 
     lang = langfeatures.LangFeatures.LANG_TH
 
+    ret_obj = langhelper.LangHelper.get_word_segmenter(
+        lang             = lang,
+        dirpath_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        # We can only allow root words to be words from the model features
+        allowed_root_words   = None,
+        do_profiling         = False
+    )
+    wseg = ret_obj.wseg
+    synonymlist = ret_obj.snnlist
+
+    s = 'ฝากเงนที่ไหน'
+    s_tok = wseg.segment_words(text = s, return_array_of_split_words=True)
+    print('Segmented "' + s + '" to ' + str(s_tok))
+
     # read dictionary file into a trie
     wl_obj = wl.WordList(
         lang             = lang,
@@ -167,13 +188,18 @@ if __name__ == '__main__':
     )
     print("Read %d words into %d nodes" % (TrieNode.WORD_COUNT, TrieNode.NODE_COUNT))
 
-    start = time.time()
-    results = trie.search(
-        word = 'เงน'
-    )
-    end = time.time()
+    for w in s_tok:
+        if w not in words:
+            print('Word "' + w + '" not found. Searching...')
+            start = time.time()
+            results = TrieNode.search(
+                trie = trie,
+                word = w
+            )
+            end = time.time()
 
-    for result in results:
-        print(result)
+            for result in results:
+                print(result)
 
-    print("Search took " + str(end - start) + 's.')
+            print("Search took " + str(end - start) + 's.')
+
