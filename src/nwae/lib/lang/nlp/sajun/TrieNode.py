@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-#By Steve Hanov, 2011. Released to the public domain
+# By Steve Hanov, 2011. Released to the public domain
+# Code modified from http://stevehanov.ca/blog/?id=114
 
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
