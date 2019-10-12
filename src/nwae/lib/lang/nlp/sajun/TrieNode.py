@@ -23,15 +23,20 @@ class TrieNode:
     def build_trie_node(
             words
     ):
+        start = time.time()
+
         trie = TrieNode()
         # read dictionary file into a trie
         for word in words:
             TrieNode.WORD_COUNT += 1
             trie.insert(word)
+
+        end = time.time()
         lg.Log.important(
             str(TrieNode.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Successfully build Trie Node of ' + str(TrieNode.NODE_COUNT)
-            + ' nodes, and ' + str(TrieNode.WORD_COUNT) + ' total words.'
+            + ' nodes, and ' + str(TrieNode.WORD_COUNT) + ' total words. Took '
+            + str(round((end - start), 5)) + ' secs.'
         )
         return trie
 
@@ -69,9 +74,9 @@ class TrieNode:
     def search(
             self,
             word,
-            maxCost
+            max_cost = 1
     ):
-        # build first row
+        # build first row. 0,1,2,3...,len(word)
         currentRow = range( len(word) + 1 )
 
         results = []
@@ -84,7 +89,7 @@ class TrieNode:
                 word        = word,
                 previousRow = currentRow,
                 results     = results,
-                maxCost     = maxCost
+                max_cost    = max_cost
             )
 
         return results
@@ -98,7 +103,7 @@ class TrieNode:
             word,
             previousRow,
             results,
-            maxCost
+            max_cost
     ):
         columns = len( word ) + 1
         currentRow = [ previousRow[0] + 1 ]
@@ -118,20 +123,20 @@ class TrieNode:
 
         # if the last entry in the row indicates the optimal cost is less than the
         # maximum cost, and there is a word in this trie node, then add it.
-        if currentRow[-1] <= maxCost and node.word != None:
+        if currentRow[-1] <= max_cost and node.word != None:
             results.append( (node.word, currentRow[-1] ) )
 
         # if any entries in the row are less than the maximum cost, then
         # recursively search each branch of the trie
-        if min( currentRow ) <= maxCost:
+        if min( currentRow ) <= max_cost:
             for letter in node.children:
                 self.searchRecursive(
-                    node.children[letter],
-                    letter,
-                    word,
-                    currentRow,
-                    results,
-                    maxCost
+                    node        = node.children[letter],
+                    letter      = letter,
+                    word        = word,
+                    previousRow = currentRow,
+                    results     = results,
+                    max_cost    = max_cost
                 )
 
 
@@ -158,12 +163,11 @@ if __name__ == '__main__':
 
     start = time.time()
     results = trie.search(
-        word = 'เงน',
-        maxCost = 1
+        word = 'เงน'
     )
     end = time.time()
 
     for result in results:
         print(result)
 
-    print("Search took %g s" % (end - start))
+    print("Search took " + str(end - start) + 's.')
