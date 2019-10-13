@@ -253,7 +253,7 @@ class PredictClass(threading.Thread):
 
         text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
 
-        log.Log.debug(
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
@@ -368,10 +368,10 @@ class PredictClass(threading.Thread):
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
 
-        log.Log.debugdebug(
+        log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-            + ': Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
-            + ', Top Class Distance: ' + str(top_class_distance)
+            + ': Feature ' + str(v_feature_segmented) + ', observed class: ' + str(y_observed)
+            + ', top distance: ' + str(top_class_distance)
         )
 
         if self.do_profiling:
