@@ -486,7 +486,7 @@ if __name__ == '__main__':
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
-    text = '限額'
+    text = '怎么称呼'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 
