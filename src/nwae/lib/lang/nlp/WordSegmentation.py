@@ -253,12 +253,16 @@ class WordSegmentation(object):
 
         if self.lang == lf.LangFeatures.LANG_CN:
             text_simplified = self.convert_to_simplified_chinese(text = text)
-            if self.do_profiling:
+            if text != text_simplified:
                 log.Log.important(
-                    'Convert to simplified chinese for "' + str(text) + '" to "' + str(text_simplified)
-                    + '" took ' + str(prf.Profiling.get_time_dif_str(start=a, stop=prf.Profiling.stop()))
-                    + ' secs.'
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Converted to simplified chinese for "' + str(text) + '" to "' + str(text_simplified) + '".'
                 )
+                if self.do_profiling:
+                    log.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Took ' + str(prf.Profiling.get_time_dif_str(start=a, stop=prf.Profiling.stop())) + ' secs.'
+                    )
             text = text_simplified
 
         text_array = text
