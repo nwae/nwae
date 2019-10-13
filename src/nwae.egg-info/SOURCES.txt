@@ -19,6 +19,7 @@ src/nwae/lib/lang/nlp/WordList.py
 src/nwae/lib/lang/nlp/WordSegmentation.py
 src/nwae/lib/lang/nlp/daehua/DaehuaModel.py
 src/nwae/lib/lang/nlp/daehua/DaehuaTrainDataModel.py
+src/nwae/lib/lang/nlp/sajun/TrieNode.py
 src/nwae/lib/lang/nlp/translation/Translator.py
 src/nwae/lib/lang/stats/LangStats.py
 src/nwae/lib/math/Cluster.py
