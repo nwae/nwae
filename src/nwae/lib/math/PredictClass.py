@@ -9,7 +9,7 @@ import nwae.utils.StringUtils as su
 import nwae.lib.lang.model.FeatureVector as fv
 import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.lang.LangFeatures as langfeatures
-import nwae.lib.lang.nlp.sajun.TrieNode as trienod
+import nwae.lib.lang.nlp.SpellingCorrection as spellcor
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
@@ -84,8 +84,7 @@ class PredictClass(threading.Thread):
         #
         self.wseg = None
         self.synonymlist = None
-        # For spelling correction
-        self.trie = None
+        self.spell_correction = None
         self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
@@ -130,18 +129,23 @@ class PredictClass(threading.Thread):
             #
             if self.do_spelling_correction:
                 try:
-                    self.trie = trienod.TrieNode.build_trie_node(
-                        words = self.model.get_model_features()
+                    self.spell_correction = spellcor.SpellingCorrection(
+                        words_list        = self.model.get_model_features(),
+                        dir_path_model    = self.dir_path_model,
+                        identifier_string = self.identifier_string,
+                        do_profiling      = self.do_profiling
                     )
                     log.Log.important(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Read ' + str(trienod.TrieNode.WORD_COUNT) + str(trienod.TrieNode.NODE_COUNT)
+                        + ': Spelling Correction for model "' + str(self.identifier_string)
+                        + '" initialized successfully.'
                     )
-                except Exception as ex_trie:
-                    self.trie = None
+                except Exception as ex_spellcor:
+                    self.spell_correction = None
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Error initializing trie node for model "' + str(self.identifier_string)\
-                             + '", got exception "' + str(ex_trie) + '".'
+                             + ': Error initializing spelling correction for model "'\
+                             + str(self.identifier_string)\
+                             + '", got exception "' + str(ex_spellcor) + '".'
                     log.Log.error(errmsg)
 
             self.is_all_initializations_done = True
@@ -264,25 +268,12 @@ class PredictClass(threading.Thread):
             )
 
         #
-        # TODO Do spelling correction here
+        # Spelling correction
         #
-        if (self.do_spelling_correction) and (self.trie is not None):
-            # Get the list of words in the model
-            features_model = list(self.model.get_model_features())
-            for w in text_normalized_arr_lower:
-                if w not in features_model:
-                    log.Log.info(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Word "' + str(w) + '" not found in features model. Searching trie node...'
-                    )
-                    results = trienod.TrieNode.search(
-                        trie = self.trie,
-                        word = w
-                    )
-                    log.Log.info(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': For word "' + str(w) + '", found trie node matches ' + str(results)
-                    )
+        if self.do_spelling_correction:
+            text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
+                text_segmented_arr = text_normalized_arr_lower
+            )
 
         return self.predict_class_features(
             v_feature_segmented = text_normalized_arr_lower,
@@ -411,6 +402,7 @@ if __name__ == '__main__':
         postfix_wordlist_app = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
         dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        do_spelling_correction = True,
         do_profiling         = True
     )
 
