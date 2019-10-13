@@ -65,7 +65,8 @@ class SpellingCorrection:
 
     def do_spelling_correction(
             self,
-            text_segmented_arr
+            text_segmented_arr,
+            max_cost = 1
     ):
         start_prf = prf.Profiling.start()
 
@@ -80,7 +81,8 @@ class SpellingCorrection:
                 )
                 results = trienod.TrieNode.search(
                     trie = self.trie,
-                    word = w
+                    word = w,
+                    max_cost = max_cost
                 )
                 lg.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
