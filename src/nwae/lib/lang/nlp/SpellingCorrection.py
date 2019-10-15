@@ -6,6 +6,7 @@ import nwae.utils.Profiling as prf
 import nwae.lib.lang.nlp.sajun.TrieNode as trienod
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.LangFeatures as langfeatures
+import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.math.optimization.Eidf as eidf
 import numpy as np
 
@@ -121,6 +122,37 @@ if __name__ == '__main__':
         Derived_Class = cf.Config
     )
     lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_INFO
+
+    lang = langfeatures.LangFeatures.LANG_TH
+
+    ret_obj = langhelper.LangHelper.get_word_segmenter(
+        lang             = lang,
+        dirpath_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        # We can only allow root words to be words from the model features
+        allowed_root_words   = None,
+        do_profiling         = False
+    )
+    wseg = ret_obj.wseg
+    synonymlist = ret_obj.snnlist
+
+    test_sent = [
+        'ขอทราบ ว่ามีโปรไหนใช้ได้กัลยุสนี้',
+        'ฝากเงนที่ไหน'
+    ]
+
+    for s in test_sent:
+        seg = wseg.segment_words(
+            text = s,
+            return_array_of_split_words = True
+        )
+        print('"' + s + '" segmented to ' + str(seg))
+
+    exit(0)
 
     wl_obj = wl.WordList(
         lang             = langfeatures.LangFeatures.LANG_TH,
