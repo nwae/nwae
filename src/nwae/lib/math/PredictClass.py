@@ -130,6 +130,7 @@ class PredictClass(threading.Thread):
             if self.do_spelling_correction:
                 try:
                     self.spell_correction = spellcor.SpellingCorrection(
+                        lang              = self.lang,
                         words_list        = self.model.get_model_features(),
                         dir_path_model    = self.dir_path_model,
                         identifier_string = self.identifier_string,

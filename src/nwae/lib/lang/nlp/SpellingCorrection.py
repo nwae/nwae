@@ -18,11 +18,13 @@ class SpellingCorrection:
 
     def __init__(
             self,
+            lang,
             words_list,
             dir_path_model,
             identifier_string,
             do_profiling = False
     ):
+        self.lang = lang
         self.words_list = words_list
         self.dir_path_model = dir_path_model
         self.identifier_string = identifier_string
@@ -52,7 +54,11 @@ class SpellingCorrection:
             )
             lg.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Successfully Read EIDF from file. ' + str(df_eidf_file)
+                + ': Successfully Read EIDF from file for model "' + str(self.identifier_string) + '".'
+            )
+            lg.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': EIDF:' + str(df_eidf_file)
             )
             self.eidf_words = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_X_NAME], dtype=str)
             self.eidf_value = np.array(df_eidf_file[eidf.Eidf.STORAGE_COL_EIDF], dtype=float)
@@ -76,7 +82,7 @@ class SpellingCorrection:
         for i in range(len(text_segmented_arr)):
             w = text_segmented_arr[i]
             if w not in self.words_list:
-                lg.Log.info(
+                lg.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Word "' + str(w) + '" not found in features model. Searching trie node...'
                 )
@@ -102,7 +108,7 @@ class SpellingCorrection:
                     corrected_text_arr[i] = best_word
                     lg.Log.info(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Corrected word "' + str(w) + '" to "' + str(best_word)
+                        + ': Corrected word "' + str(w) + '" using best EIDF value to "' + str(best_word)
                         + '" in sentence ' + str(text_segmented_arr) + '.'
                     )
 
@@ -145,6 +151,21 @@ if __name__ == '__main__':
         'ฝากเงนที่ไหน'
     ]
 
+    wl_obj = wl.WordList(
+        lang             = lang,
+        dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+    )
+    words = wl_obj.wordlist[wl.WordList.COL_WORD].tolist()
+
+    obj = SpellingCorrection(
+        lang              = lang,
+        words_list        = words,
+        dir_path_model    = '/usr/local/git/mozig/mozg.nlp/app.data/intent/models',
+        identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
+        do_profiling      = True
+    )
+
     for s in test_sent:
         seg = wseg.segment_words(
             text = s,
@@ -152,26 +173,9 @@ if __name__ == '__main__':
         )
         print('"' + s + '" segmented to ' + str(seg))
 
-    exit(0)
-
-    wl_obj = wl.WordList(
-        lang             = langfeatures.LangFeatures.LANG_TH,
-        dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),
-        postfix_wordlist = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
-    )
-    words = wl_obj.wordlist[wl.WordList.COL_WORD].tolist()
-    s = ['ฝาก','เงน','ที่','ไหน']
-
-    obj = SpellingCorrection(
-        words_list = words,
-        dir_path_model = '/usr/local/git/mozig/mozg.nlp/app.data/intent/models',
-        identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
-        do_profiling = True
-    )
-
-    correction = obj.do_spelling_correction(
-        text_segmented_arr = s
-    )
-    print(correction)
+        correction = obj.do_spelling_correction(
+            text_segmented_arr = seg
+        )
+        print(correction)
 
     exit(0)
