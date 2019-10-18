@@ -16,9 +16,19 @@ import numpy as np
 #
 class SpellingCorrection:
 
+    NO_SPACE_DELIMITER_LANGUAGES = (
+        langfeatures.LangFeatures.LANG_TH
+    )
+
     def __init__(
             self,
             lang,
+            # This words list can be a full dictionary (for languages with natural space
+            # as word separator) or just a common words list in our usage application context
+            # for languages without a natural space as word separator.
+            # This is because for languages without space, the word splitting itself might
+            # be wrong, and the spelling correction algorithm might need to look at previous
+            # or subsequent words.
             words_list,
             dir_path_model,
             identifier_string,
@@ -77,40 +87,71 @@ class SpellingCorrection:
     ):
         start_prf = prf.Profiling.start()
 
-        corrected_text_arr = text_segmented_arr.copy()
+        #
+        # For languages with no space as word/syllable delimiter like Thai, if we detect
+        # single character words, no point to look for matches, instead we need to join
+        # them to either the previous word or next word.
+        #
+
+        corrected_text_arr = []
         # Get the list of words in the model
         for i in range(len(text_segmented_arr)):
             w = text_segmented_arr[i]
-            if w not in self.words_list:
-                lg.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Word "' + str(w) + '" not found in features model. Searching trie node...'
-                )
-                results = trienod.TrieNode.search(
-                    trie = self.trie,
-                    word = w,
-                    max_cost = max_cost
-                )
-                lg.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': For word "' + str(w) + '", found trie node matches ' + str(results)
-                )
-                best_eidf = np.infty
-                best_word = None
-                for word_dist in results:
-                    eidf_val = self.eidf_value[self.eidf_words==word_dist[0]]
-                    if len(eidf_val) != 1:
-                        continue
-                    if eidf_val[0] < best_eidf:
-                        best_eidf = eidf_val[0]
-                        best_word = word_dist[0]
-                if best_word is not None:
-                    corrected_text_arr[i] = best_word
+            if (w is None) or (len(w) == 0):
+                continue
+
+            #
+            # We join words only for alphabet type languages without space as word separator
+            # The concept works as follows, take for example this Thai sentence
+            #  ['ฝาก', 'เงน', 'ที่', 'ไหน']
+            # The word 'เงน' has been split means this word is either in the full dictionary or
+            # they are separate single alphabets joined together by the word tokenizer.
+            # We then compare this to our common words list to get the best match.
+            #
+            possible_words = [w]
+            if self.lang in SpellingCorrection.NO_SPACE_DELIMITER_LANGUAGES:
+                if len(w) == 1:
+                    possible_words = []
+                    if i>0 is not None:
+                        possible_words.append(text_segmented_arr[i-1]+w)
+                    if i < len(text_segmented_arr)-1:
+                        possible_words.append(w+text_segmented_arr[i+1])
                     lg.Log.info(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Corrected word "' + str(w) + '" using best EIDF value to "' + str(best_word)
-                        + '" in sentence ' + str(text_segmented_arr) + '.'
+                        + ': Checking appended words "' + str(possible_words) + '".'
                     )
+
+            best_word_final = w
+            best_eidf_final = 99999
+            for w_possible in possible_words:
+                if w_possible not in self.words_list:
+                    lg.Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Word "' + str(w_possible) + '" not found in features model. Searching trie node...'
+                    )
+                    (best_word, best_eidf) = self.find_best_match(
+                        w = w_possible,
+                        max_cost = max_cost
+                    )
+                    if best_word is not None:
+                        if best_eidf_final > best_eidf:
+                            # If same with previous word, ignore
+                            if (i>0) and (best_word == text_segmented_arr[i-1]):
+                                continue
+                            # If same with next word, ignore
+                            if (i<len(text_segmented_arr)-1) and (best_word == text_segmented_arr[i+1]):
+                                continue
+                            best_eidf_final = best_eidf
+                            best_word_final = best_word
+                            lg.Log.info(
+                                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                                + ': Corrected word "' + str(w_possible) + '" using best EIDF value '
+                                + str(best_eidf) + ' to "' + str(best_word)
+                                + '" in sentence ' + str(text_segmented_arr) + '.'
+                            )
+                else:
+                    best_word_final = w_possible
+            corrected_text_arr.append(best_word_final)
 
         if self.do_profiling:
             lg.Log.important(
@@ -120,6 +161,34 @@ class SpellingCorrection:
                 + str(prf.Profiling.get_time_dif_str(start=start_prf, stop=prf.Profiling.stop()))
             )
         return corrected_text_arr
+
+    def find_best_match(
+            self,
+            w,
+            max_cost
+    ):
+        results = trienod.TrieNode.search(
+            trie     = self.trie,
+            word     = w,
+            max_cost = max_cost
+        )
+        if (results is None) or (len(results) == 0):
+            return None
+
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': For word "' + str(w) + '", found trie node matches ' + str(results)
+        )
+        best_eidf = np.infty
+        best_word = None
+        for word_dist in results:
+            eidf_val = self.eidf_value[self.eidf_words == word_dist[0]]
+            if len(eidf_val) != 1:
+                continue
+            if eidf_val[0] < best_eidf:
+                best_eidf = eidf_val[0]
+                best_word = word_dist[0]
+        return (best_word, round(best_eidf,2))
 
 
 if __name__ == '__main__':
