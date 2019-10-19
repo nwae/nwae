@@ -272,9 +272,10 @@ class PredictClass(threading.Thread):
         # Spelling correction
         #
         if self.do_spelling_correction:
-            text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
-                text_segmented_arr = text_normalized_arr_lower
-            )
+            if self.spell_correction is not None:
+                text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
+                    text_segmented_arr = text_normalized_arr_lower
+                )
 
         return self.predict_class_features(
             v_feature_segmented = text_normalized_arr_lower,
