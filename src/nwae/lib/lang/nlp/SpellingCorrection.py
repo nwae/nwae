@@ -117,7 +117,7 @@ class SpellingCorrection:
                         possible_words.append(text_segmented_arr[i-1]+w)
                     if i < len(text_segmented_arr)-1:
                         possible_words.append(w+text_segmented_arr[i+1])
-                    lg.Log.info(
+                    lg.Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Checking appended words "' + str(possible_words) + '".'
                     )
@@ -182,7 +182,7 @@ class SpellingCorrection:
         if (results is None) or (len(results) == 0):
             return None
 
-        lg.Log.info(
+        lg.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': For word "' + str(w) + '", found trie node matches ' + str(results)
         )
