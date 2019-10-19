@@ -16,7 +16,7 @@ import numpy as np
 #
 class SpellingCorrection:
 
-    NO_SPACE_DELIMITER_LANGUAGES = (
+    NO_SPACE_DELIMITER_LANGUAGES_WITH_NO_SINGLE_ALPHABET_AS_WORD = (
         langfeatures.LangFeatures.LANG_TH
     )
 
@@ -93,9 +93,11 @@ class SpellingCorrection:
         # them to either the previous word or next word.
         #
 
+        len_text = len(text_segmented_arr)
         corrected_text_arr = []
+        text_eidf_arr = []
         # Get the list of words in the model
-        for i in range(len(text_segmented_arr)):
+        for i in range(len_text):
             w = text_segmented_arr[i]
             if (w is None) or (len(w) == 0):
                 continue
@@ -110,12 +112,12 @@ class SpellingCorrection:
             #
             possible_words = [w]
             is_concatenate_single_alphabet_to_neighboring_words = False
-            if self.lang in SpellingCorrection.NO_SPACE_DELIMITER_LANGUAGES:
+            if self.lang in SpellingCorrection.NO_SPACE_DELIMITER_LANGUAGES_WITH_NO_SINGLE_ALPHABET_AS_WORD:
                 if len(w) == 1:
                     possible_words = []
                     if i>0 is not None:
                         possible_words.append(text_segmented_arr[i-1]+w)
-                    if i < len(text_segmented_arr)-1:
+                    if i < len_text-1:
                         possible_words.append(w+text_segmented_arr[i+1])
                     lg.Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -125,11 +127,13 @@ class SpellingCorrection:
 
             best_word_final = w
             best_eidf_final = 99999
+            best_word_index_of_possible_words = -1
             #
             # There can only be multiple possibilities if we are concatenating single alphabets in
             # languages without space delimiter to previous & next word
             #
-            for w_possible in possible_words:
+            for j in range(len(possible_words)):
+                w_possible = possible_words[j]
                 if w_possible not in self.words_list:
                     lg.Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -150,6 +154,7 @@ class SpellingCorrection:
                                     continue
                             best_eidf_final = best_eidf
                             best_word_final = best_word
+                            best_word_index_of_possible_words = j
                             lg.Log.info(
                                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                                 + ': Corrected word "' + str(w_possible) + '" using best EIDF value '
@@ -159,6 +164,28 @@ class SpellingCorrection:
                 else:
                     best_word_final = w_possible
             corrected_text_arr.append(best_word_final)
+            text_eidf_arr.append(best_eidf_final)
+
+            #
+            # This part we remove words if a single alphabet word is involved
+            #
+            if is_concatenate_single_alphabet_to_neighboring_words:
+                # Choose to remove previous or current word based on EIDF
+                if (best_word_index_of_possible_words == 0) and (i > 0):
+                    if best_eidf_final < text_eidf_arr[i-1]:
+                        del corrected_text_arr[i-1]
+                        del text_eidf_arr[i-1]
+                    else:
+                        del corrected_text_arr[i]
+                        del text_eidf_arr[i]
+                # Choose to remove next or current word based on EIDF
+                elif (best_word_index_of_possible_words == 1) and (i < len_text-1):
+                    if best_eidf_final < text_eidf_arr[i+1]:
+                        del corrected_text_arr[i+1]
+                        del text_eidf_arr[i+1]
+                    else:
+                        del corrected_text_arr[i]
+                        del text_eidf_arr[i]
 
         if self.do_profiling:
             lg.Log.important(
