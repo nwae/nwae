@@ -222,6 +222,10 @@ class SpellingCorrection:
             if eidf_val[0] < best_eidf:
                 best_eidf = eidf_val[0]
                 best_word = word_dist[0]
+        lg.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': For word "' + str(w) + '", best word "' + str(best_word) + ', EIDF ' + str(best_eidf) + '.'
+        )
         return (best_word, round(best_eidf,2))
 
 
