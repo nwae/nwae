@@ -109,6 +109,7 @@ class SpellingCorrection:
             # We then compare this to our common words list to get the best match.
             #
             possible_words = [w]
+            is_concatenate_single_alphabet_to_neighboring_words = False
             if self.lang in SpellingCorrection.NO_SPACE_DELIMITER_LANGUAGES:
                 if len(w) == 1:
                     possible_words = []
@@ -120,9 +121,14 @@ class SpellingCorrection:
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Checking appended words "' + str(possible_words) + '".'
                     )
+                    is_concatenate_single_alphabet_to_neighboring_words = True
 
             best_word_final = w
             best_eidf_final = 99999
+            #
+            # There can only be multiple possibilities if we are concatenating single alphabets in
+            # languages without space delimiter to previous & next word
+            #
             for w_possible in possible_words:
                 if w_possible not in self.words_list:
                     lg.Log.debug(
@@ -135,12 +141,13 @@ class SpellingCorrection:
                     )
                     if best_word is not None:
                         if best_eidf_final > best_eidf:
-                            # If same with previous word, ignore
-                            if (i>0) and (best_word == text_segmented_arr[i-1]):
-                                continue
-                            # If same with next word, ignore
-                            if (i<len(text_segmented_arr)-1) and (best_word == text_segmented_arr[i+1]):
-                                continue
+                            if is_concatenate_single_alphabet_to_neighboring_words:
+                                # If same with previous word due to single alphabet concatenation, ignore
+                                if (i>0) and (best_word == text_segmented_arr[i-1]):
+                                    continue
+                                # If same with next word due to concatenating single alphabet, ignore
+                                if (i<len(text_segmented_arr)-1) and (best_word == text_segmented_arr[i+1]):
+                                    continue
                             best_eidf_final = best_eidf
                             best_word_final = best_word
                             lg.Log.info(
@@ -216,7 +223,7 @@ if __name__ == '__main__':
     synonymlist = ret_obj.snnlist
 
     test_sent = [
-        'ขอทราบ ว่ามีโปรไหนใช้ได้กัลยุสนี้',
+        'มีโปรไหนใช้ได้กัลยุสนี้',
         'ฝากเงนที่ไหน'
     ]
 
