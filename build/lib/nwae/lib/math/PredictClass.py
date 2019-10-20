@@ -130,6 +130,7 @@ class PredictClass(threading.Thread):
             if self.do_spelling_correction:
                 try:
                     self.spell_correction = spellcor.SpellingCorrection(
+                        lang              = self.lang,
                         words_list        = self.model.get_model_features(),
                         dir_path_model    = self.dir_path_model,
                         identifier_string = self.identifier_string,
@@ -253,7 +254,7 @@ class PredictClass(threading.Thread):
 
         text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
 
-        log.Log.debug(
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
@@ -271,9 +272,10 @@ class PredictClass(threading.Thread):
         # Spelling correction
         #
         if self.do_spelling_correction:
-            text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
-                text_segmented_arr = text_normalized_arr_lower
-            )
+            if self.spell_correction is not None:
+                text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
+                    text_segmented_arr = text_normalized_arr_lower
+                )
 
         return self.predict_class_features(
             v_feature_segmented = text_normalized_arr_lower,
@@ -368,10 +370,10 @@ class PredictClass(threading.Thread):
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
 
-        log.Log.debugdebug(
+        log.Log.info(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
-            + ': Point v ' + str(v) + '\n\rObserved Class: ' + str(y_observed)
-            + ', Top Class Distance: ' + str(top_class_distance)
+            + ': Feature ' + str(v_feature_segmented) + ', observed class: ' + str(y_observed)
+            + ', top distance: ' + str(top_class_distance)
         )
 
         if self.do_profiling:

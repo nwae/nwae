@@ -82,8 +82,15 @@ class WordSegmentation(object):
         return
 
     def convert_to_simplified_chinese(self, text):
-        text_sim = hzc.HanziConv.toSimplified(text)
-        return text_sim
+        try:
+            text_sim = hzc.HanziConv.toSimplified(text)
+            return text_sim
+        except Exception as ex:
+            log.Log.error(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Error converting "' + str(text) + '" to simplified chinese. Exception ' + str(ex) + '.'
+            )
+            return text
 
     def add_wordlist(
             self,
@@ -197,7 +204,6 @@ class WordSegmentation(object):
 
     #
     # Segment words based on highest likelihood of all possible segmentations.
-    # Make sure to call convert_to_simplified_chinese() first for traditional Chinese
     #
     def segment_words_ml(
             self,
@@ -232,7 +238,6 @@ class WordSegmentation(object):
             return False
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
-    # Make sure to call convert_to_simplified_chinese() first for traditional Chinese
     #
     def segment_words(
             self,
@@ -245,6 +250,20 @@ class WordSegmentation(object):
             return_array_of_split_words = False
     ):
         a = prf.Profiling.start()
+
+        if self.lang == lf.LangFeatures.LANG_CN:
+            text_simplified = self.convert_to_simplified_chinese(text = text)
+            if text != text_simplified:
+                log.Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Converted to simplified chinese for "' + str(text) + '" to "' + str(text_simplified) + '".'
+                )
+                if self.do_profiling:
+                    log.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Took ' + str(prf.Profiling.get_time_dif_str(start=a, stop=prf.Profiling.stop())) + ' secs.'
+                    )
+            text = text_simplified
 
         text_array = text
         if self.syl_split_token != '':
@@ -440,8 +459,8 @@ if __name__ == '__main__':
         Derived_Class = cf.Config
     )
 
-    lang = lf.LangFeatures.LANG_TH
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    lang = lf.LangFeatures.LANG_CN
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
 
     synonymlist_ro = slist.SynonymList(
         lang                = lang,
@@ -471,7 +490,7 @@ if __name__ == '__main__':
     text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
     #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
 
-    text = 'ขอเปลี่ยนรหัสผ่านของพันธมิตร'
+    text = '怎么称呼'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 
