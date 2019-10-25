@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import pickle
-import re
 from collections import Counter
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
-import hanziconv as hzc
 import nwae.lib.lang.TextProcessor as txtprocessor
 import nltk
 
@@ -15,6 +13,17 @@ class Corpora:
     NLTK_COMTRANS = 'comtrans'
 
     CORPORA_NLTK_TRANSLATED_SENTENCES_EN_DE = 'alignment-de-en.txt'
+
+    _PAD = '_PAD'
+    _GO  = '_GO'
+    _EOS = '_EOS'
+    _UNK = '_UNK'
+    _START_VOCAB = [_PAD, _GO, _EOS, _UNK]
+    PAD_ID = 0
+    GO_ID  = 1
+    EOS_ID = 2
+    UNK_ID = 3
+    OP_DICT_IDS = [PAD_ID, GO_ID, EOS_ID, UNK_ID]
 
     def __init__(
             self
@@ -49,6 +58,8 @@ class Corpora:
             max_len,
             min_len = 0
     ):
+        assert len(sentences_arr_l1) == len(sentences_arr_l2)
+
         filtered_sentences_l1 = []
         filtered_sentences_l2 = []
 
@@ -61,6 +72,33 @@ class Corpora:
                 filtered_sentences_l2.append(sent2)
 
         return (filtered_sentences_l1, filtered_sentences_l2)
+
+    def create_indexed_dictionary(
+            self,
+            sentences,
+            dict_size = 100,
+            storage_path = None
+    ):
+        count_words = Counter()
+        dict_words = {}
+        opt_dict_size_initial = len(Corpora.OP_DICT_IDS)
+        for sen in sentences:
+            for word in sen:
+                count_words[word] += 1
+
+        dict_words[Corpora._PAD] = Corpora.PAD_ID
+        dict_words[Corpora._GO] = Corpora.GO_ID
+        dict_words[Corpora._EOS] = Corpora.EOS_ID
+        dict_words[Corpora._UNK] = Corpora.UNK_ID
+
+        # Add to dictionary of words starting from highest term frequency
+        for idx, item in enumerate(count_words.most_common(dict_size)):
+            Log.info('Doing idx ' + str(idx) + ', item ' + str(item))
+            dict_words[item[0]] = idx + opt_dict_size_initial
+
+        if storage_path:
+            pickle.dump(dict_words, open(storage_path, 'wb'))
+        return dict_words
 
 
 if __name__ == '__main__':
@@ -78,3 +116,8 @@ if __name__ == '__main__':
     clean_sen_l2 = [tp_obj.clean_punctuations_and_convert_to_lowercase(sentence=s) for s in sen_l2]
     print(clean_sen_l1[0:10])
     print(clean_sen_l2[0:10])
+
+    dict_words = obj.create_indexed_dictionary(
+        sentences = clean_sen_l1
+    )
+    print(dict_words)
