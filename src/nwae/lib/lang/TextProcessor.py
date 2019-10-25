@@ -82,6 +82,9 @@ class TextProcessor:
     ):
         try:
             # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
+            # Don't include space separator, if you need to split by space, do it before coming here,
+            # as we are only cleaning here, and may include languages like Vietnamese, so if we include
+            # space here, we are splitting the word into syllables, which will be wrong.
             regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')(])")
             # Split words not already split (e.g. 17. should be '17', '.')
             clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]

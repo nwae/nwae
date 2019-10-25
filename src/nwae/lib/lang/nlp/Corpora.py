@@ -3,7 +3,7 @@
 import pickle
 import re
 from collections import Counter
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import hanziconv as hzc
 import nwae.lib.lang.TextProcessor as txtprocessor
@@ -30,8 +30,37 @@ class Corpora:
         als = comtrans.aligned_sents(corpora_name)
         sentences_l1 = [sent.words for sent in als]
         sentences_l2 = [sent.mots for sent in als]
+        Log.info('Sentences length = ' + str(len(sentences_l1)))
+
+        # Filter length
+        (sentences_l1, sentences_l2) = self.filter_pair_sentence_length(
+            sentences_arr_l1 = sentences_l1,
+            sentences_arr_l2 = sentences_l2,
+            max_len = 20
+        )
+        Log.info('Sentences length after filtering = ' + str(len(sentences_l1)))
         assert len(sentences_l1) == len(sentences_l2)
         return (sentences_l1, sentences_l2)
+
+    def filter_pair_sentence_length(
+            self,
+            sentences_arr_l1,
+            sentences_arr_l2,
+            max_len,
+            min_len = 0
+    ):
+        filtered_sentences_l1 = []
+        filtered_sentences_l2 = []
+
+        for i in range(len(sentences_arr_l1)):
+            sent1 = sentences_arr_l1[i]
+            sent2 = sentences_arr_l2[i]
+            if min_len <= len(sent1) <= max_len and \
+                    min_len <= len(sent2) <= max_len:
+                filtered_sentences_l1.append(sent1)
+                filtered_sentences_l2.append(sent2)
+
+        return (filtered_sentences_l1, filtered_sentences_l2)
 
 
 if __name__ == '__main__':
