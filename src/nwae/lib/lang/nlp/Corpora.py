@@ -73,6 +73,9 @@ class Corpora:
 
         return (filtered_sentences_l1, filtered_sentences_l2)
 
+    #
+    # Order words from highest to lowest frequency, and assign a number to each number
+    #
     def create_indexed_dictionary(
             self,
             sentences,
@@ -100,6 +103,49 @@ class Corpora:
             pickle.dump(dict_words, open(storage_path, 'wb'))
         return dict_words
 
+    def sentences_to_indexes(
+            self,
+            sentences,
+            indexed_dict
+    ):
+        indexed_sentences = []
+        not_found_counter = 0
+        for sent in sentences:
+            idx_sent = []
+            for word in sent:
+                try:
+                    idx_sent.append(indexed_dict[word])
+                except Exception as ex:
+                    idx_sent.append(Corpora.UNK_ID)
+                    not_found_counter += 1
+            indexed_sentences.append(idx_sent)
+
+        return indexed_sentences
+
+    def extract_max_length(self, corpora):
+        return max([len(sentence) for sentence in corpora])
+
+    def prepare_sentences(
+            self,
+            sentences_l1,
+            sentences_l2,
+            len_l1,
+            len_l2
+    ):
+        assert(len(sentences_l1) == len(sentences_l2))
+        data_set = []
+
+        for i in range(len(sentences_l1)):
+            padding_l1 = len_l1 - len(sentences_l1[i])
+            pad_sentence_l1 = ([Corpora.PAD_ID]*padding_l1) + sentences_l1[i]
+
+            padding_l2 = len_l2 - len(sentences_l2[i])
+            pad_sentence_l2 = [Corpora.GO_ID] + sentences_l2[i] + [Corpora.EOS_ID]\
+                              + ([Corpora.PAD_ID] * padding_l2)
+            data_set.append([pad_sentence_l1, pad_sentence_l2])
+
+        return data_set
+
 
 if __name__ == '__main__':
     obj = Corpora()
@@ -117,7 +163,35 @@ if __name__ == '__main__':
     print(clean_sen_l1[0:10])
     print(clean_sen_l2[0:10])
 
-    dict_words = obj.create_indexed_dictionary(
+    dict_words_l1 = obj.create_indexed_dictionary(
         sentences = clean_sen_l1
     )
-    print(dict_words)
+    print(dict_words_l1)
+    dict_words_l2 = obj.create_indexed_dictionary(
+        sentences = clean_sen_l2
+    )
+    print(dict_words_l2)
+
+    idx_sentences_l1 = obj.sentences_to_indexes(
+        sentences = clean_sen_l1,
+        indexed_dict = dict_words_l1
+    )
+    print(idx_sentences_l1[1:10])
+    idx_sentences_l2 = obj.sentences_to_indexes(
+        sentences = clean_sen_l2,
+        indexed_dict = dict_words_l2
+    )
+    print(idx_sentences_l2[1:10])
+
+    max_len_l1 = obj.extract_max_length(corpora=idx_sentences_l1)
+    max_len_l2 = obj.extract_max_length(corpora=idx_sentences_l2)
+    print('Max length l1 = ' + str(max_len_l1) + ', max length l2 = ' + str(max_len_l2))
+
+    data_set = obj.prepare_sentences(
+        sentences_l1 = idx_sentences_l1,
+        sentences_l2 = idx_sentences_l2,
+        len_l1 = max_len_l1,
+        len_l2 = max_len_l2
+    )
+    print(data_set[1:10])
+
