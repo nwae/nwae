@@ -1,0 +1,2 @@
+This directory MUST NOT contain the __init__.py file, otherwise referring to other directories
+will fail.
