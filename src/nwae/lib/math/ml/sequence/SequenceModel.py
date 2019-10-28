@@ -199,3 +199,6 @@ class SequenceModel(modelIf.ModelInterface):
 
 if __name__ == '__main__':
     import nwae.lib.lang.nlp.Corpora as corpora
+
+    data_set = corpora.Corpora().build_data_set()
+    print('Prepared data set of length ' + str(len(data_set)))
