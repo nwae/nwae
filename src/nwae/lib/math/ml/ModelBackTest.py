@@ -231,8 +231,7 @@ class ModelBackTest:
                         score_pos_1 = df_match_details[modelif.ModelInterface.TERM_SCORE].loc[0]
                         ratio_score_answer_not_at_top1 = round(100*score_expected_answer/score_pos_1, 2)
 
-        self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] =\
-            self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] + 1
+        self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL] += 1
         time_elapsed = pf.Profiling.get_time_dif(
             self.test_stats[ModelBackTest.KEY_STATS_START_TEST_TIME], pf.Profiling.stop()
         )
@@ -271,8 +270,7 @@ class ModelBackTest:
 
             if include_detailed_accuracy_stats:
                 # Update the result at the index it appeared
-                self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] =\
-                    self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] + 1
+                self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx] += 1
                 self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][com_idx] =\
                     round(100 * self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][com_idx]
                           / self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOTAL], 1)
