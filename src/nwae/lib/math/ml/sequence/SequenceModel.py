@@ -12,7 +12,6 @@ import pickle
 import glob
 import os
 import tensorflow as tf
-from nwae.lib.math.ml.sequence.tensorflow_makefile.seq2seq_model import Seq2SeqModel
 
 
 #
