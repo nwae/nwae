@@ -95,6 +95,7 @@ class TextProcessor:
     #
     def clean_punctuations_and_convert_to_lowercase(
             self,
+            # list of words
             sentence
     ):
         try:
@@ -129,6 +130,7 @@ class TextProcessor:
     #
     def create_indexed_dictionary(
             self,
+            # List of sentences (each sentence is a list of words)
             sentences,
             dict_size = 100,
             storage_path = None
@@ -168,6 +170,7 @@ class TextProcessor:
     #
     def sentences_to_indexes(
             self,
+            # List of sentences (each sentence is a list of words)
             sentences,
             indexed_dict
     ):
