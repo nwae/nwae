@@ -102,7 +102,7 @@ class Corpora:
         max_len_l2 = tp_obj.extract_max_length(corpora=idx_sentences_l2)
         Log.info('Max length l1 = ' + str(max_len_l1) + ', max length l2 = ' + str(max_len_l2))
 
-        data_set = tp_obj.prepare_sentences(
+        data_set = tp_obj.prepare_sentence_pairs(
             sentences_l1 = idx_sentences_l1,
             sentences_l2 = idx_sentences_l2,
             len_l1       = max_len_l1,

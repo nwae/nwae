@@ -99,7 +99,6 @@ class TextProcessor:
             sentence
     ):
         try:
-            # It is easy to split words in English/German, compared to Chinese, Thai, Vietnamese, etc.
             # Don't include space separator, if you need to split by space, do it before coming here,
             # as we are only cleaning here, and may include languages like Vietnamese, so if we include
             # space here, we are splitting the word into syllables, which will be wrong.
@@ -132,7 +131,7 @@ class TextProcessor:
             self,
             # List of sentences (each sentence is a list of words)
             sentences,
-            dict_size = 100,
+            dict_size = 10000,
             storage_path = None
     ):
         count_words = collections.Counter()
@@ -152,7 +151,7 @@ class TextProcessor:
 
         # Add to dictionary of words starting from highest term frequency
         for idx, item in enumerate(count_words.most_common(dict_size)):
-            lg.Log.info('Doing idx ' + str(idx) + ', item ' + str(item))
+            lg.Log.debugdebug('Doing idx ' + str(idx) + ', item ' + str(item))
             dict_words[item[0]] = idx + opt_dict_size_initial
 
         if storage_path:
@@ -194,8 +193,9 @@ class TextProcessor:
     ):
         return max([len(sentence) for sentence in corpora])
 
-    def prepare_sentences(
+    def prepare_sentence_pairs(
             self,
+            # List of sentences (each sentence is a list of words)
             sentences_l1,
             sentences_l2,
             len_l1,
@@ -206,9 +206,11 @@ class TextProcessor:
 
         for i in range(len(sentences_l1)):
             padding_l1 = len_l1 - len(sentences_l1[i])
+            # For left pair, pad from left
             pad_sentence_l1 = ([TextProcessor.PAD_ID]*padding_l1) + sentences_l1[i]
 
             padding_l2 = len_l2 - len(sentences_l2[i])
+            # For right pair, pad from right
             pad_sentence_l2 = [TextProcessor.GO_ID] + sentences_l2[i] + [TextProcessor.EOS_ID]\
                               + ([TextProcessor.PAD_ID] * padding_l2)
             data_set.append([pad_sentence_l1, pad_sentence_l2])
@@ -227,3 +229,17 @@ if __name__ == '__main__':
     )
     sent_list_list = obj.convert_segmented_text_to_array_form()
     print(sent_list_list)
+
+    clean_sent = [obj.clean_punctuations_and_convert_to_lowercase(sentence=s) for s in sent_list_list]
+    lg.Log.info('Cleaned sentence: ' + str(clean_sent[0:10]))
+
+    dict_words = obj.create_indexed_dictionary(
+        sentences = clean_sent
+    )
+    lg.Log.info('Dict words lang 1: ' + str(dict_words))
+
+    idx_sentences = obj.sentences_to_indexes(
+        sentences    = clean_sent,
+        indexed_dict = dict_words
+    )
+    print('Indexed sentences: ' + str(idx_sentences))
