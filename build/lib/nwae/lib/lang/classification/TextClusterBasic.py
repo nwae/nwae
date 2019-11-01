@@ -405,21 +405,20 @@ class TextClusterBasic:
     # TODO
     #   This method already broken
     #
-    def cluster(
+    def cluster_text(
             self,
             ncenters,
-            iterations=50,
-            feature_presence_only=False,
-            freq_measure='tf',
-            weigh_idf=False,
-            optimal_cluster_threshold_change=clst.Cluster.THRESHOLD_CHANGE_DIST_TO_CENTROIDS,
-            verbose=0
+            iterations            = 50,
+            feature_presence_only = False,
+            freq_measure          = 'tf',
+            weigh_idf             = False,
+            optimal_cluster_threshold_change = clst.Cluster.THRESHOLD_CHANGE_DIST_TO_CENTROIDS
     ):
         # Model sentences into feature vectors
         self.calculate_sentence_matrix(
-            freq_measure=freq_measure,
-            feature_presence_only=feature_presence_only,
-            idf_matrix=None
+            freq_measure          = freq_measure,
+            feature_presence_only = feature_presence_only,
+            idf_matrix            = None
         )
 
         #
@@ -431,9 +430,9 @@ class TextClusterBasic:
             self.calculate_idf()
             # Recalculate sentence matrix
             self.calculate_sentence_matrix(
-                freq_measure=freq_measure,
-                feature_presence_only=feature_presence_only,
-                idf_matrix=self.idf_matrix.copy()
+                freq_measure          = freq_measure,
+                feature_presence_only = feature_presence_only,
+                idf_matrix            = self.idf_matrix.copy()
             )
 
         #
@@ -452,17 +451,15 @@ class TextClusterBasic:
                 log.Log.log('Optimal Clusters = ' + str(optimal_clusters))
 
         retval_cluster = clst.Cluster.cluster(
-            matx=sentence_matrix,
-            feature_names=self.keywords_for_fv,
-            ncenters=ncenters,
-            iterations=iterations
+            matx          = sentence_matrix,
+            feature_names = self.keywords_for_fv,
+            ncenters      = ncenters,
+            iterations    = iterations
         )
-        df_cluster_matrix = retval_cluster['ClusterMatrix']
-        df_point_cluster_info = retval_cluster['PointClusterInfo']
-
-        # Add column of cluster number to text data frame
-        df_point_cluster_info['Text'] = self.sentences_list
-        return { 'ClusterMatrix': df_cluster_matrix, 'TextClusterInfo': df_point_cluster_info }
+        log.Log.debug(
+            'Return cluster: ' + str(retval_cluster.np_cluster_labels)
+        )
+        return retval_cluster.np_cluster_labels
 
 
     #
@@ -477,25 +474,27 @@ class TextClusterBasic:
             self.verbose = verbose
             return
 
-        def do_clustering(self,
-                          text,
-                          stopwords,
-                          ncenters,
-                          feature_presence_only=False,
-                          freq_measure='tf',
-                          weigh_idf=False):
+        def do_clustering(
+                self,
+                text,
+                stopwords,
+                ncenters,
+                feature_presence_only = False,
+                freq_measure = 'tf',
+                weigh_idf    = False
+        ):
 
             tc = TextClusterBasic(text, stopwords)
             tc.calculate_top_keywords(remove_quartile=50)
 
-            retval = tc.cluster(ncenters      = ncenters,
-                                iterations    = 50,
-                                freq_measure  = freq_measure,
-                                weigh_idf     = weigh_idf,
-                                feature_presence_only = feature_presence_only,
-                                verbose=self.verbose)
-            df_text_cluster = retval['TextClusterInfo']
-            print(list(df_text_cluster['ClusterNo']))
+            cluster_labels = tc.cluster_text(
+                ncenters      = ncenters,
+                iterations    = 50,
+                freq_measure  = freq_measure,
+                weigh_idf     = weigh_idf,
+                feature_presence_only = feature_presence_only
+            )
+            print(cluster_labels)
 
             return
 
@@ -531,25 +530,34 @@ class TextClusterBasic:
                 'who', 'while', 'they', 'could', 'these', 'those', 'has', 'have', 'through', 'some', 'other', 'way'
             ]
 
+            import nwae.lib.lang.TextProcessor as txtprc
+            txt_processor_obj = txtprc.TextProcessor(
+                text_segmented_list = text
+            )
+            text_sentences_arr = txt_processor_obj.convert_segmented_text_to_array_form(
+                sep = ' '
+            )
+            print(text_sentences_arr)
+
             # This example is too small in sample size to weigh by IDF (which will instead lower the accuracy)
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=3,
-                freq_measure='normalized',
-                weigh_idf=False
+                text         = text_sentences_arr,
+                stopwords    = stopwords,
+                ncenters     = 3,
+                freq_measure = 'normalized',
+                weigh_idf    = False
             )
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, freq_measure='frequency', weigh_idf=False, verbose=0)
 
             # Now weigh IDF
             print('Weighing by IDF..')
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=3,
-                freq_measure='normalized',
-                weigh_idf=True
+                text         = text_sentences_arr,
+                stopwords    = stopwords,
+                ncenters     = 3,
+                freq_measure = 'normalized',
+                weigh_idf    = True
             )
 
             print('Now using only feature presence (means freq is 0 or 1 only)')
@@ -559,24 +567,24 @@ class TextClusterBasic:
             # This example is too small in sample size to weigh by IDF (which will instead lower the accuracy)
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, feature_presence_only=True, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=3,
-                feature_presence_only=True,
-                freq_measure='normalized',
-                weigh_idf=False
+                text      = text_sentences_arr,
+                stopwords = stopwords,
+                ncenters  = 3,
+                feature_presence_only = True,
+                freq_measure          = 'normalized',
+                weigh_idf = False
             )
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, feature_presence_only=True, freq_measure='frequency', weigh_idf=False, verbose=0)
 
             # Now weigh IDF
             print('Weighing by IDF..')
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=3,
-                feature_presence_only=True,
-                freq_measure='normalized',
-                weigh_idf=True
+                text      = text_sentences_arr,
+                stopwords = stopwords,
+                ncenters  = 3,
+                feature_presence_only = True,
+                freq_measure          = 'normalized',
+                weigh_idf = True
             )
             return
 
@@ -602,25 +610,34 @@ class TextClusterBasic:
                 '在', '年', '是', '说', '的', '和', '已经'
             ]
 
+            import nwae.lib.lang.TextProcessor as txtprc
+            txt_processor_obj = txtprc.TextProcessor(
+                text_segmented_list = text
+            )
+            text_sentences_arr = txt_processor_obj.convert_segmented_text_to_array_form(
+                sep = ' '
+            )
+            print(text_sentences_arr)
+
             # This example is too small in sample size to weigh by IDF (which will instead lower the accuracy)
             # do_clustering(text=text, stopwords=stopwords, ncenters=2, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=2,
-                freq_measure='normalized',
-                weigh_idf=False
+                text         = text_sentences_arr,
+                stopwords    = stopwords,
+                ncenters     = 2,
+                freq_measure = 'normalized',
+                weigh_idf    = False
             )
             # do_clustering(text=text, stopwords=stopwords, ncenters=2, freq_measure='frequency', weigh_idf=False, verbose=0)
 
             # Now weigh IDF
             print('Weighing by IDF..')
             self.do_clustering(
-                text=text,
-                stopwords=stopwords,
-                ncenters=2,
-                freq_measure='normalized',
-                weigh_idf=True
+                text         = text_sentences_arr,
+                stopwords    = stopwords,
+                ncenters     = 2,
+                freq_measure = 'normalized',
+                weigh_idf    = True
             )
             return
 

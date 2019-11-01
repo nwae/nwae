@@ -24,7 +24,9 @@ class PredictClass(threading.Thread):
     #
     # This is to decide how many top answers to keep.
     # If this value is say 70%, and our top scores are 70, 60, 40, 20, then
-    # 70% * 70 is 49, thus only scores 70, 60 will be kept as it is higher than 49
+    # 70% * 70 is 49, thus only scores 70, 60 will be kept as it is higher than 49.
+    # This value should not be very high as it is the first level filtering, as
+    # applications might apply their own filtering some more.
     #
     CONSTANT_PERCENT_WITHIN_TOP_SCORE = 0.6
     MAX_QUESTION_LENGTH = 100
@@ -355,7 +357,7 @@ class PredictClass(threading.Thread):
         )
 
         #
-        # Choose which scores to keep.
+        # Choose which scores to keep, we only have scores if we included the match details
         #
         if include_match_details:
             df_match = predict_result.match_details
