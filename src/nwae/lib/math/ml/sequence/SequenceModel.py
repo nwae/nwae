@@ -5,12 +5,6 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.ml.ModelInterface as modelIf
-import time
-import math
-import sys
-import pickle
-import glob
-import os
 import tensorflow as tf
 
 

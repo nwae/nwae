@@ -57,6 +57,8 @@ class DaehuaModel:
 
     DAEHUA_MODEL_TYPE_FLOAT  = 'float'
     DAEHUA_MODEL_TYPE_INT    = 'int'
+    # e.g. 10:12:36, 12:15
+    DAEHUA_MODEL_TYPE_TIME   = 'time'
 
     #
     # Returns the string encoding of the model
@@ -215,16 +217,22 @@ class DaehuaModel:
             names = '|'.join(var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_NAMES])
             data_type = var_encoding[var][DaehuaModel.DAEHUA_MODEL_OBJECT_VARS_TYPE]
 
+            #
+            # Default to search the front value first
+            # TODO Make this more intelligent
+            #
             value = DaehuaModel.get_var_value_front(
                 var_name = var,
                 string = s,
-                var_type_names = names
+                var_type_names = names,
+                data_type = data_type
             )
             if not value:
                 value = DaehuaModel.get_var_value_back(
                     var_name = var,
                     string = s,
-                    var_type_names = names
+                    var_type_names = names,
+                    data_type = data_type
                 )
 
             if value:
@@ -237,6 +245,8 @@ class DaehuaModel:
                         var_values[var] = int(value)
                     elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT:
                         var_values[var] = float(value)
+                    elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
+                        var_values[var] = value
                     else:
                         raise Exception('Unrecognized type "' + str(data_type) + '".')
                 except Exception as ex_int_conv:
@@ -278,7 +288,8 @@ class DaehuaModel:
     def get_var_value_front(
             var_name,
             string,
-            var_type_names
+            var_type_names,
+            data_type
     ):
         var_type_names = var_type_names.lower()
         # Always check float first
@@ -286,12 +297,26 @@ class DaehuaModel:
         pattern_check_front_float_start = '^([+\-]*[0-9]+[.][0-9]*)[ ]*(' + var_type_names + ').*'
         pattern_check_front_int = '.*[^0-9\-]+([+\-]*[0-9]+)[ ]*(' + var_type_names + ').*'
         pattern_check_front_int_start = '^([+\-]*[0-9]+)[ ]*(' + var_type_names + ').*'
+        # Time pattern. e.g. 12:30:59, 23:45
+        # Check HHMMSS first, if that fails then only HHMM
+        pattern_check_front_time_HHMMSS = '.*[^0-9]+([0-9]+[:][0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_time_start_HHMMSS = '^([0-9]+[:][0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_time_HHMM = '.*[^0-9]+([0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
+        pattern_check_front_time_start_HHMM = '^([0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
+
+        patterns_list = (
+                pattern_check_front_float, pattern_check_front_float_start,
+                pattern_check_front_int, pattern_check_front_int_start
+        )
+        if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
+            patterns_list = (
+                pattern_check_front_time_HHMMSS, pattern_check_front_time_start_HHMMSS,
+                pattern_check_front_time_HHMM, pattern_check_front_time_start_HHMM
+            )
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
-            patterns_list = (
-                pattern_check_front_float, pattern_check_front_float_start,
-                pattern_check_front_int, pattern_check_front_int_start),
+            patterns_list = patterns_list,
             var_name      = var_name,
             string        = string
         )
@@ -303,16 +328,25 @@ class DaehuaModel:
     def get_var_value_back(
             var_name,
             string,
-            var_type_names
+            var_type_names,
+            data_type
     ):
         var_type_names = var_type_names.lower()
         # Always check float first
         pattern_check_back_float = '.*(' + var_type_names + ')[ ]*([+\-]*[0-9]+[.][0-9]*).*'
         pattern_check_back_int = '.*(' + var_type_names + ')[ ]*([+\-]*[0-9]+).*'
+        # Time pattern. e.g. 12:30:59, 23:45
+        # Check HHMMSS first, if that fails then only HHMM
+        pattern_check_back_time_HHMMSS = '.*(' + var_type_names + ')[ ]*([0-9]+[:][0-9]+[:][0-9]+).*'
+        pattern_check_back_time_HHMM = '.*(' + var_type_names + ')[ ]*([0-9]+[:][0-9]+).*'
+
+        patterns_list = (pattern_check_back_float, pattern_check_back_int)
+        if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
+            patterns_list = (pattern_check_back_time_HHMMSS, pattern_check_back_time_HHMM)
 
         m = DaehuaModel.get_var_value_regex(
             # Always check float first
-            patterns_list = (pattern_check_back_float, pattern_check_back_int),
+            patterns_list = patterns_list,
             var_name      = var_name,
             string        = string
         )
@@ -413,31 +447,51 @@ if __name__ == '__main__':
     #     Derived_Class = cf.Config
     # )
     lg.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_2
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_INFO
 
-    encoding = 'Volume of Sphere -*-vars==r,float,radius&r;d,float,diameter&d'\
-                  + '::'\
-                  + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-'
-    question = 'What is the volume of a sphere of radius 5.88?'
-    encoding = '-*-'\
-               + 'vars==id,float,id&indo' \
-               + '::'\
-               + 'answer==('\
-               + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
-               + '+ ($$id -gt 0)*1*(1 + $$id)'\
-               + ')-*-'
-    questions = [
-        'What is -2.6 indo odds?',
-        'What is +1.2 indo odds?',
+    tests = [
+        {
+            'encoding': 'Volume of Sphere -*-vars==r,float,radius&r;d,float,diameter&d' \
+                        + '::' + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-',
+            'questions': [
+                'What is the volume of a sphere of radius 5.88?'
+            ]
+        },
+        {
+            'encoding': '-*-'\
+                   + 'vars==id,float,id&indo' \
+                   + '::'\
+                   + 'answer==('\
+                   + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
+                   + '+ ($$id -gt 0)*1*(1 + $$id)'\
+                   + ')-*-',
+            'questions': [
+                'What is -2.6 indo odds?',
+                'What is +1.2 indo odds?'
+            ]
+        },
+        {
+            'encoding': '-*-vars==acc,int,尾号&账号;m,int,月;d,int,日;t,time,完成;amt,float,民币&币;bal,float,余额::answer==$$amt-*-',
+            'questions': [
+                '【中国农业银行】您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】您尾号0579账户10月17日完成09:27代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】您尾号0579账户10月17日完成09:27:55代付交易人民币2309.95，余额2932.80。'
+            ]
+        }
     ]
 
-    for question in questions:
-        cmobj = DaehuaModel(
-            encoding_str = encoding,
-            question     = question
-        )
-        result = cmobj.get_answer()
-        print(
-            'Answer = ' + str(result.answer_value)
-            + ', variables = ' + str(result.variable_values)
-        )
+    for test in tests:
+        encoding = test['encoding']
+        questions = test['questions']
+
+        for question in questions:
+            cmobj = DaehuaModel(
+                encoding_str = encoding,
+                question     = question
+            )
+            result = cmobj.get_answer()
+            print(
+                'Answer = ' + str(result.answer_value)
+                + ', variables = ' + str(result.variable_values)
+            )
