@@ -162,8 +162,8 @@ class DaehuaModel:
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
         self.mex_obj = mex.MatchExpression(
-            encoding_str = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
-            sentence     = self.question
+            pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
+            sentence = self.question
         )
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
