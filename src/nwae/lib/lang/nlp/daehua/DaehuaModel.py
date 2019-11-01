@@ -48,18 +48,7 @@ class DaehuaModel:
     #    vars==m,float,mass&m;c,float,light&speed::answer==$$m * ($$c * $$c)
     DAEHUA_MODEL_OBJECT_SEPARATOR = '::'
     DAEHUA_MODEL_OBJECT_DEFINITION_SYMBOL = '=='
-    # Separates the different variables definition. e.g. 'm,float,mass&m;c,float,light&speed'
-    DAEHUA_MODEL_VAR_DEFINITION_SEPARATOR = ';'
-    # Separates the description of the same variable. e.g. 'm,float,mass&m'
-    DAEHUA_MODEL_VAR_DESCRIPTION_SEPARATOR = ','
-    # Separates the names of a variable. e.g. 'mass&m'
-    DAEHUA_MODEL_VAR_NAMES_SEPARATOR = '&'
     DAEHUA_MODEL_VAR_MARKUP_IN_QUESTION = '[$]{2}'
-
-    DAEHUA_MODEL_TYPE_FLOAT  = 'float'
-    DAEHUA_MODEL_TYPE_INT    = 'int'
-    # e.g. 10:12:36, 12:15
-    DAEHUA_MODEL_TYPE_TIME   = 'time'
 
     #
     # Returns the string encoding of the model
