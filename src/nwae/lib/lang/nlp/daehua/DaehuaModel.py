@@ -273,6 +273,14 @@ class DaehuaModel:
             + ': For var "' + str(var_name)
             + '" using match patterns list ' + str(patterns_list)
         )
+        if patterns_list is None:
+            lg.Log.error(
+                str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': No patterns list provided for string "' + str(string)
+                + '", var name "' + str(var_name) + '".'
+            )
+            return None
+
         for pattern in patterns_list:
             m = re.match(pattern=pattern, string=string)
             if m:
@@ -304,11 +312,13 @@ class DaehuaModel:
         pattern_check_front_time_HHMM = '.*[^0-9]+([0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
         pattern_check_front_time_start_HHMM = '^([0-9]+[:][0-9]+)[ ]*(' + var_type_names + ').*'
 
-        patterns_list = (
-                pattern_check_front_float, pattern_check_front_float_start,
-                pattern_check_front_int, pattern_check_front_int_start
-        )
-        if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
+        patterns_list = None
+        if data_type in (DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT, DaehuaModel.DAEHUA_MODEL_TYPE_INT):
+            patterns_list = (
+                    pattern_check_front_float, pattern_check_front_float_start,
+                    pattern_check_front_int, pattern_check_front_int_start
+            )
+        elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
             patterns_list = (
                 pattern_check_front_time_HHMMSS, pattern_check_front_time_start_HHMMSS,
                 pattern_check_front_time_HHMM, pattern_check_front_time_start_HHMM
@@ -340,8 +350,10 @@ class DaehuaModel:
         pattern_check_back_time_HHMMSS = '.*(' + var_type_names + ')[ ]*([0-9]+[:][0-9]+[:][0-9]+).*'
         pattern_check_back_time_HHMM = '.*(' + var_type_names + ')[ ]*([0-9]+[:][0-9]+).*'
 
-        patterns_list = (pattern_check_back_float, pattern_check_back_int)
-        if data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
+        patterns_list = None
+        if data_type in (DaehuaModel.DAEHUA_MODEL_TYPE_FLOAT, DaehuaModel.DAEHUA_MODEL_TYPE_INT):
+            patterns_list = (pattern_check_back_float, pattern_check_back_int)
+        elif data_type == DaehuaModel.DAEHUA_MODEL_TYPE_TIME:
             patterns_list = (pattern_check_back_time_HHMMSS, pattern_check_back_time_HHMM)
 
         m = DaehuaModel.get_var_value_regex(
