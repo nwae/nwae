@@ -38,9 +38,6 @@ class DaehuaModel:
     DAEHUA_MODEL_OBJECT_VARS   = 'vars'
     DAEHUA_MODEL_OBJECT_ANSWER = 'answer'
 
-    DAEHUA_MODEL_OBJECT_VARS_TYPE = 'type'
-    DAEHUA_MODEL_OBJECT_VARS_NAMES = 'names'
-
     # We use '-*-' to open and close the encoding language
     DAEHUA_MODEL_ENCODING_CHARS_START_END = '[-][*][-](.*)[-][*][-]'
 
