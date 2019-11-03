@@ -3,8 +3,9 @@
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
+import nwae.utils.MatchExpression as mexp
 import re
-import nwae.utils.MatchExpression as mex
+import nwae.utils.StringUtils as su
 
 
 #
@@ -38,9 +39,6 @@ class DaehuaModel:
     DAEHUA_MODEL_OBJECT_VARS   = 'vars'
     DAEHUA_MODEL_OBJECT_ANSWER = 'answer'
 
-    DAEHUA_MODEL_OBJECT_VARS_TYPE = 'type'
-    DAEHUA_MODEL_OBJECT_VARS_NAMES = 'names'
-
     # We use '-*-' to open and close the encoding language
     DAEHUA_MODEL_ENCODING_CHARS_START_END = '[-][*][-](.*)[-][*][-]'
 
@@ -66,13 +64,15 @@ class DaehuaModel:
 
             m = re.match(pattern='.*'+DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END+'.*', string=s)
             dh_encode_str = m.group(1)
-            daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR] = dh_encode_str
+            daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR] = su.StringUtils.trim(dh_encode_str)
 
             # Split by '::'
             dh_objects_str = dh_encode_str.split(DaehuaModel.DAEHUA_MODEL_OBJECT_SEPARATOR)
             for dh_obj_str in dh_objects_str:
                 # Break again
                 parts = dh_obj_str.split(sep=DaehuaModel.DAEHUA_MODEL_OBJECT_DEFINITION_SYMBOL)
+                parts = [su.StringUtils.trim(p) for p in parts]
+
                 if parts[0] == DaehuaModel.DAEHUA_MODEL_OBJECT_VARS:
                     daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS] = parts[1]
                 elif parts[0] == DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER:
@@ -161,7 +161,7 @@ class DaehuaModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
-        self.mex_obj = mex.MatchExpression(
+        self.mex_obj = mexp.MatchExpression(
             pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
             sentence = self.question
         )
@@ -175,7 +175,10 @@ class DaehuaModel:
         #
         # Extract variables from question
         #
-        var_values = self.mex_obj.get_params()
+        var_values = self.mex_obj.get_params(
+            return_one_value      = True,
+            return_value_priority = mexp.MatchExpression.TERM_LEFT
+        )
 
         #
         # Extract formula from answer
@@ -183,6 +186,10 @@ class DaehuaModel:
         formula_code_str = DaehuaModel.get_formula_code_str(
             daehua_answer_object_str = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER],
             var_values = var_values
+        )
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': Formula code string: "' + str(formula_code_str) + '".'
         )
         calc_result = None
         try:
@@ -228,15 +235,19 @@ if __name__ == '__main__':
 
     tests = [
         {
-            'encoding': 'Volume of Sphere -*-vars==r,float,radius&r;d,float,diameter&d' \
-                        + '::' + 'answer==(4/3)*(3.141592653589793 * $$r*$$r*$$r)-*-',
+            'encoding': 'Volume of Sphere -*-'
+                        'vars=='
+                        'r, float, radius & r   ;'
+                        'd, float, diameter & d'
+                        '::' + 'answer == (4/3) * (3.141592653589793 * $$r * $$r * $$r)'
+                        '-*-',
             'questions': [
                 'What is the volume of a sphere of radius 5.88?'
             ]
         },
         {
             'encoding': '-*-'\
-                   + 'vars==id,float,id&indo' \
+                   + 'vars==id, float, id & indo' \
                    + '::'\
                    + 'answer==('\
                    + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
@@ -248,7 +259,12 @@ if __name__ == '__main__':
             ]
         },
         {
-            'encoding': '-*-vars==acc,number,尾号&账号;m,int,月;d,int,日;t,time,完成;amt,float,民币&币;bal,float,余额::answer==$$amt-*-',
+            'encoding': '-*-'
+                        'vars == acc, number, 尾号 & 账号   ;'
+                        'm, int, 月   ;   d, int, 日   ;   t, time, 完成   ;'
+                        'amt, float, 民币 & 币   ;   '
+                        'bal, float, 余额'
+                        '::  answer == $$amt  -*-',
             'questions': [
                 '【中国农业银行】您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
                 '【中国农业银行】您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
