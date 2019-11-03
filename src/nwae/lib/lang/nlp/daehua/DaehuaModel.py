@@ -175,7 +175,10 @@ class DaehuaModel:
         #
         # Extract variables from question
         #
-        var_values = self.mex_obj.get_params()
+        var_values = self.mex_obj.get_params(
+            return_one_value      = True,
+            return_value_priority = mexp.MatchExpression.TERM_LEFT
+        )
 
         #
         # Extract formula from answer
@@ -183,6 +186,10 @@ class DaehuaModel:
         formula_code_str = DaehuaModel.get_formula_code_str(
             daehua_answer_object_str = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER],
             var_values = var_values
+        )
+        lg.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+            + ': Formula code string: "' + str(formula_code_str) + '".'
         )
         calc_result = None
         try:
