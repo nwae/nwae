@@ -3,8 +3,8 @@
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
+import nwae.utils.MatchExpression as mexp
 import re
-import nwae.utils.MatchExpression as mex
 import nwae.utils.StringUtils as su
 
 
@@ -161,7 +161,7 @@ class DaehuaModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
-        self.mex_obj = mex.MatchExpression(
+        self.mex_obj = mexp.MatchExpression(
             pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
             sentence = self.question
         )
