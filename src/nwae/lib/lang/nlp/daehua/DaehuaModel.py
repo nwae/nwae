@@ -161,10 +161,21 @@ class DaehuaModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
-        self.mex_obj = mexp.MatchExpression(
-            pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
-            sentence = self.question
-        )
+        try:
+            import mex.MatchExpression as mex
+            self.mex_obj = mex.MatchExpression(
+                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
+                sentence=self.question
+            )
+        except Exception as ex_no_mex:
+            warn_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                       + ': Cannot find mex module, new enhancements will be done there, no longer in nwae.utils.'\
+                       + ' Using nwae.utils version (no longer maintained).'
+            lg.Log.warning(warn_msg)
+            self.mex_obj = mexp.MatchExpression(
+                pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
+                sentence = self.question
+            )
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Object vars: ' + str(self.mex_obj.mex_obj_vars)
@@ -260,18 +271,20 @@ if __name__ == '__main__':
         },
         {
             'encoding': '-*-'
-                        'vars == acc, number, 尾号 & 账号   ;'
+                        'vars == '
+                        'sendername, str-cn, 您尾号   ;'
+                        'acc, number, 尾号 & 账号   ;'
                         'm, int, 月   ;   d, int, 日   ;   t, time, 完成   ;'
                         'amt, float, 民币 & 币   ;   '
                         'bal, float, 余额'
                         '::  answer == $$amt  -*-',
             'questions': [
-                '【中国农业银行】您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日完成09:27代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日完成09:27:55代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】 您尾号 0579 账户 10月 17日 完成 09:27 代付交易 人民币 2309.95，余额 2932.80。',
-                '【中国农业银行】 您尾号  0579 账户 10月 17日 完成 09:27:55 代付交易 人民币 2309.95，余额 2932.80。',
+                '【中国农业银行】 习近平 您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日完成09:27代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日完成09:27:55代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】 习近平 您尾号 0579 账户 10月 17日 完成 09:27 代付交易 人民币 2309.95，余额 2932.80。',
+                '【中国农业银行】 习近平 您尾号  0579 账户 10月 17日 完成 09:27:55 代付交易 人民币 2309.95，余额 2932.80。',
             ]
         }
     ]
