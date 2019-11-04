@@ -187,8 +187,7 @@ class DaehuaModel:
         # Extract variables from question
         #
         var_values = self.mex_obj.get_params(
-            return_one_value      = True,
-            return_value_priority = mexp.MatchExpression.TERM_LEFT
+            return_one_value = True
         )
 
         #
@@ -272,7 +271,7 @@ if __name__ == '__main__':
         {
             'encoding': '-*-'
                         'vars == '
-                        'sendername, str-zh-cn, 您尾号   ;'
+                        'sendername, str-zh-cn, 】, right   ;'
                         'acc, number, 尾号 / 账号   ;'
                         'm, int, 月   ;   d, int, 日   ;   t, time, 完成   ;'
                         'amt, float, 民币 / 币   ;   '
