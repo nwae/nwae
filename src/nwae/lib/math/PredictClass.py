@@ -178,11 +178,13 @@ class PredictClass(threading.Thread):
         while not self.model.is_model_ready():
             log.Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Model not yet ready, sleep for ' + str(count * sleep_time_wait_model) + ' secs now..'
+                + ': Model "' + str(self.identifier_string) + '" not yet ready, sleep for '
+                + str(count * sleep_time_wait_model) + ' secs now..'
             )
             if count * sleep_time_wait_model > wait_max_time:
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                         + ': Waited too long ' + str(count * sleep_time_wait_model) + ' secs. Raising exception..'
+                         + ': Waited for model "' + str(self.identifier_string)\
+                         + '" too long ' + str(count * sleep_time_wait_model) + ' secs. Raising exception..'
                 raise Exception(errmsg)
             time.sleep(sleep_time_wait_model)
             count = count + 1
