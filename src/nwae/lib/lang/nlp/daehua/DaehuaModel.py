@@ -248,8 +248,8 @@ if __name__ == '__main__':
         {
             'encoding': 'Volume of Sphere -*-'
                         'vars=='
-                        'r, float, radius & r   ;'
-                        'd, float, diameter & d'
+                        'r, float, radius / r   ;'
+                        'd, float, diameter / d'
                         '::' + 'answer == (4/3) * (3.141592653589793 * $$r * $$r * $$r)'
                         '-*-',
             'questions': [
@@ -258,7 +258,7 @@ if __name__ == '__main__':
         },
         {
             'encoding': '-*-'\
-                   + 'vars==id, float, id & indo' \
+                   + 'vars==id, float, id / indo' \
                    + '::'\
                    + 'answer==('\
                    + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
@@ -272,10 +272,10 @@ if __name__ == '__main__':
         {
             'encoding': '-*-'
                         'vars == '
-                        'sendername, str-cn, 您尾号   ;'
-                        'acc, number, 尾号 & 账号   ;'
+                        'sendername, str-zh-cn, 您尾号   ;'
+                        'acc, number, 尾号 / 账号   ;'
                         'm, int, 月   ;   d, int, 日   ;   t, time, 完成   ;'
-                        'amt, float, 民币 & 币   ;   '
+                        'amt, float, 民币 / 币   ;   '
                         'bal, float, 余额'
                         '::  answer == $$amt  -*-',
             'questions': [
