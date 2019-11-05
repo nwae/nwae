@@ -3,7 +3,6 @@
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
-import nwae.utils.MatchExpression as mexp
 import re
 import nwae.utils.StringUtils as su
 
@@ -164,18 +163,14 @@ class DaehuaModel:
         try:
             import mex.MatchExpression as mex
             self.mex_obj = mex.MatchExpression(
-                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
-                sentence=self.question
+                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
             )
         except Exception as ex_no_mex:
             warn_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                       + ': Cannot find mex module, new enhancements will be done there, no longer in nwae.utils.'\
-                       + ' Using nwae.utils version (no longer maintained).'
+                       + ': Cannot find mex module! Exception: ' + str(ex_no_mex) + '.'
             lg.Log.warning(warn_msg)
-            self.mex_obj = mexp.MatchExpression(
-                pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
-                sentence = self.question
-            )
+            self.mex_obj = None
+
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Object vars: ' + str(self.mex_obj.mex_obj_vars)
@@ -186,8 +181,15 @@ class DaehuaModel:
         #
         # Extract variables from question
         #
+        if self.mex_obj is None:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': No mex object initialized'
+            )
+
         var_values = self.mex_obj.get_params(
-            return_one_value = True
+            return_one_value = True,
+            sentence         = self.question
         )
 
         #
