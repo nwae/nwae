@@ -61,10 +61,22 @@ class DaehuaModel:
                 DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER: None
             }
 
+            #
+            # Decode entire Daehua pattern
+            #
             m = re.match(pattern='.*'+DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END+'.*', string=s)
+            if (not m) or (len(m.groups())<1):
+                raise Exception('Cannot find daehua encoding in "' + str(s) + '".')
             dh_encode_str = m.group(1)
             daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR] = su.StringUtils.trim(dh_encode_str)
+            lg.Log.info(
+                str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Decoded mex part: ' + str(daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR])
+            )
 
+            #
+            # Decode the mex pattern part and formula pattern part
+            #
             # Split by '::'
             dh_objects_str = dh_encode_str.split(DaehuaModel.DAEHUA_MODEL_OBJECT_SEPARATOR)
             for dh_obj_str in dh_objects_str:
@@ -79,7 +91,7 @@ class DaehuaModel:
 
             lg.Log.info(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Decoded encoding parts string: ' + str(daehua_model_encoding_str)
+                + ': Decoded mex pattern & formula pattern: ' + str(daehua_model_encoding_str)
             )
             return daehua_model_encoding_str
         except Exception as ex:
