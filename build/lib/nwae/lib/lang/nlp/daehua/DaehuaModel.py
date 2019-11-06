@@ -3,7 +3,6 @@
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
-import nwae.utils.MatchExpression as mexp
 import re
 import nwae.utils.StringUtils as su
 
@@ -161,10 +160,17 @@ class DaehuaModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
-        self.mex_obj = mexp.MatchExpression(
-            pattern  = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS],
-            sentence = self.question
-        )
+        try:
+            import mex.MatchExpression as mex
+            self.mex_obj = mex.MatchExpression(
+                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
+            )
+        except Exception as ex_no_mex:
+            warn_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                       + ': Cannot find mex module! Exception: ' + str(ex_no_mex) + '.'
+            lg.Log.warning(warn_msg)
+            self.mex_obj = None
+
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
             + ': Model Object vars: ' + str(self.mex_obj.mex_obj_vars)
@@ -175,9 +181,15 @@ class DaehuaModel:
         #
         # Extract variables from question
         #
+        if self.mex_obj is None:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': No mex object initialized'
+            )
+
         var_values = self.mex_obj.get_params(
-            return_one_value      = True,
-            return_value_priority = mexp.MatchExpression.TERM_LEFT
+            return_one_value = True,
+            sentence         = self.question
         )
 
         #
@@ -237,17 +249,18 @@ if __name__ == '__main__':
         {
             'encoding': 'Volume of Sphere -*-'
                         'vars=='
-                        'r, float, radius & r   ;'
-                        'd, float, diameter & d'
+                        'r, float, radius / r   ;'
+                        'd, float, diameter / d'
                         '::' + 'answer == (4/3) * (3.141592653589793 * $$r * $$r * $$r)'
                         '-*-',
             'questions': [
-                'What is the volume of a sphere of radius 5.88?'
+                'What is the volume of a sphere of radius 5.88?',
+                'Radius is 5.88?',
             ]
         },
         {
             'encoding': '-*-'\
-                   + 'vars==id, float, id & indo' \
+                   + 'vars==id, float, id / indo' \
                    + '::'\
                    + 'answer==('\
                    + '  ($$id -lt 0)*1*(1 + (1 | (-$$id)))'\
@@ -255,23 +268,26 @@ if __name__ == '__main__':
                    + ')-*-',
             'questions': [
                 'What is -2.6 indo odds?',
-                'What is +1.2 indo odds?'
+                'What is +1.2 indo odds?',
+                'Indo is 1.678'
             ]
         },
         {
             'encoding': '-*-'
-                        'vars == acc, number, 尾号 & 账号   ;'
+                        'vars == '
+                        'sendername, str-zh-cn, 】, right   ;'
+                        'acc, number, 尾号 / 账号   ;'
                         'm, int, 月   ;   d, int, 日   ;   t, time, 完成   ;'
-                        'amt, float, 民币 & 币   ;   '
+                        'amt, float, 民币 / 币   ;   '
                         'bal, float, 余额'
                         '::  answer == $$amt  -*-',
             'questions': [
-                '【中国农业银行】您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日完成09:27代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】您尾号0579账户10月17日完成09:27:55代付交易人民币2309.95，余额2932.80。',
-                '【中国农业银行】 您尾号 0579 账户 10月 17日 完成 09:27 代付交易 人民币 2309.95，余额 2932.80。',
-                '【中国农业银行】 您尾号  0579 账户 10月 17日 完成 09:27:55 代付交易 人民币 2309.95，余额 2932.80。',
+                '【中国农业银行】 习近平 您尾号0579账户10月17日09:27完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日09:27:55完成代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日完成09:27代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】习近平 您尾号0579账户10月17日完成09:27:55代付交易人民币2309.95，余额2932.80。',
+                '【中国农业银行】 习近平 您尾号 0579 账户 10月 17日 完成 09:27 代付交易 人民币 2309.95，余额 2932.80。',
+                '【中国农业银行】 习近平 您尾号  0579 账户 10月 17日 完成 09:27:55 代付交易 人民币 2309.95，余额 2932.80。',
             ]
         }
     ]

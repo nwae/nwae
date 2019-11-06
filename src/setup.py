@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.1.1',
+    version='1.1.2',
     packages=[
         'nwae.lib.math',
         'nwae.lib.math.ml',
@@ -30,6 +30,6 @@ setup(
     url='',
     license='',
     author='NWAE',
-    author_email='705270564@qq.com',
+    author_email='m5251@naver.com',
     description='ML'
 )

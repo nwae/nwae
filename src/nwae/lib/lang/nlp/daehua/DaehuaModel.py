@@ -254,7 +254,8 @@ if __name__ == '__main__':
                         '::' + 'answer == (4/3) * (3.141592653589793 * $$r * $$r * $$r)'
                         '-*-',
             'questions': [
-                'What is the volume of a sphere of radius 5.88?'
+                'What is the volume of a sphere of radius 5.88?',
+                'Radius is 5.88?',
             ]
         },
         {
@@ -267,7 +268,8 @@ if __name__ == '__main__':
                    + ')-*-',
             'questions': [
                 'What is -2.6 indo odds?',
-                'What is +1.2 indo odds?'
+                'What is +1.2 indo odds?',
+                'Indo is 1.678'
             ]
         },
         {
