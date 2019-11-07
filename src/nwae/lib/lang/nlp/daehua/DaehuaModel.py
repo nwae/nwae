@@ -5,6 +5,7 @@ from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
 import re
 import nwae.utils.StringUtils as su
+import mex.MatchExpression as mex
 
 
 #
@@ -142,7 +143,7 @@ class DaehuaModel:
                      + ': Failed to get formula encoding string for "' + str(daehua_answer_object_str)\
                      + '". Exception ' + str(ex) + '.'
             lg.Log.error(errmsg)
-            return None
+            raise Exception(errmsg)
 
     def __init__(
             self,
@@ -161,10 +162,7 @@ class DaehuaModel:
         #
         self.daehua_model_str = None
         self.mex_obj = None
-        self.__decode_str()
-        return
 
-    def __decode_str(self):
         self.daehua_model_str = DaehuaModel.get_daehua_model_encoding_str(
             s = self.encoding_str
         )
@@ -173,15 +171,16 @@ class DaehuaModel:
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
         try:
-            import mex.MatchExpression as mex
             self.mex_obj = mex.MatchExpression(
-                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
+                pattern = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
             )
         except Exception as ex_no_mex:
-            warn_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                       + ': Cannot find mex module! Exception: ' + str(ex_no_mex) + '.'
-            lg.Log.warning(warn_msg)
-            self.mex_obj = None
+            error_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                       + ': Cannot compile mex pattern "'\
+                       + str(self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]) \
+                       + '". Exception: ' + str(ex_no_mex) + '.'
+            lg.Log.error(error_msg)
+            raise Exception(error_msg)
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
