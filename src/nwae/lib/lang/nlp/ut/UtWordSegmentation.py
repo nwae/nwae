@@ -148,19 +148,6 @@ class testNLP:
         )
         return
 
-        text = 'Hoặc nếu ông Thăng không bị kỷ luật, cây bút Tâm Chánh nêu giả thiết Tổng Bí thư Nguyễn Phú Trọng sẽ có thể "huy động sự tham gia của người dân vào cuộc đấu tranh sinh tử này".'.lower()
-        print('"' + ws_vn.segment_words(text=text, return_array_of_split_words=False) + '"')
-        print('"' + str(ws_vn.segment_words(text=text, return_array_of_split_words=True)) + '"')
-
-        text = '3 lần rồi sao chưa nhận được tiền thưởng'
-        print('"' + ws_vn.segment_words(text=text, return_array_of_split_words=False) + '"')
-        print('"' + str(ws_vn.segment_words(text=text, return_array_of_split_words=True)) + '"')
-
-        text = 'lịch sử tiền gửi ở đâu'
-        print('"' + ws_vn.segment_words(text=text, return_array_of_split_words=False) + '"')
-        print('"' + str(ws_vn.segment_words(text=text, return_array_of_split_words=True)) + '"')
-        return
-
     def test_ml(self):
         ws_cn = ws.WordSegmentation(
             lang             = 'cn',
