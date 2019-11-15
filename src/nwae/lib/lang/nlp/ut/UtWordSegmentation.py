@@ -24,6 +24,31 @@ class testNLP:
         self.test_ml()
         return
 
+    def do_unit_test(
+            self,
+            word_segmenter,
+            # Sentence with expected split sentence
+            list_sent_exp
+    ):
+        count_ok = 0
+        count_fail = 0
+        for sent_exp in list_sent_exp:
+            sent = sent_exp[0]
+            exp_sent = sent_exp[1]
+            sent_split = word_segmenter.segment_words(
+                text = sent,
+                return_array_of_split_words = True
+            )
+            print('Sentence "' + str(sent) + '" split to ' + str(sent_split))
+            ok = (sent_split == exp_sent)
+            count_ok += 1*ok
+            count_fail += 1*(not ok)
+            if not ok:
+                print('FAILED test "' + str(sent))
+
+        print('***** PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
+        return
+
     def test_chinese(self):
         ws_cn = ws.WordSegmentation(
             lang             = lf.LangFeatures.LANG_CN,
@@ -37,25 +62,29 @@ class testNLP:
             postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
         )
 
-        # Simplified Chinese
-        # TODO: '多乐币' is split wrongly.
-        text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
-        print('"' + ws_cn.segment_words(text=text) + '"')
-        # Test against jieba
-        # text_segmented = jieba.cut(text, cut_all=False)
-        # print( ' '.join(text_segmented) )
+        list_sent_exp = [
+            # TODO Need to add '淡定' to word list
+            ['中美人工智能竞赛 AI鼻祖称白宫可以更淡定',
+             ['中','美','人工智能','竞赛','AI','鼻祖','称','白宫','可以','更','淡','定']],
+            ['1997年，米切尔出版《机器学习》',
+             ['1997','年','，','米切尔','出版','《','机器','学习','》']],
+            # TODO Split out the punctuations also
+            ['米切尔（Tom Michell）教授被称为机器学习之父',
+             ['米切尔','（Tom','Michell）','教授','被','称为','机器','学习','之','父']],
+            ['美国有更多研发人工智能训练和经验积累的公司',
+             ['美国','有','更','多','研发','人工智能','训练','和','经验','积累','的','公司']],
+            ['一旦政府决定建立覆盖全国的医疗记录电子文档数据库…',
+             ['一旦','政府','决定','建立','覆盖','全国','的','医疗','记录','电子','文档','数据库','…']],
+            # Other languages
+            ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
+             ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
+        ]
+        self.do_unit_test(
+            word_segmenter = ws_cn,
+            list_sent_exp  = list_sent_exp
+        )
 
-        # Traditional Chinese
-        text = '榖歌和臉書成瞭冤大頭？我有多樂幣 hello world 兩間公司閤共被騙一億美元剋裏斯。happy當隻剩兩名玩傢時，無論是第幾輪都可以比牌。'
-        print('Converting [' + text + '] to Simplified Chinese..')
-        text_sim = ws_cn.convert_to_simplified_chinese(text)
-        print(text_sim)
-        print('"' + ws_cn.segment_words(text=text_sim) + '"')
-
-        text = ' Cooper，test'
-        print('"' + ws_cn.segment_words(text=text) + '"')
-
-        return 0
+        return
 
     def test_thai(self):
         ws_th = ws.WordSegmentation(
@@ -70,19 +99,27 @@ class testNLP:
             postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
         )
 
-        text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
-        print('"' + ws_th.segment_words(text=text) + '"')
-
-        # This checks that 'รอการ' is correctly split into 'รอ การ' and not 'รอก า', using the language rule.
-        text = 'ผมแจ้งฝากไปสำเร็จ. รอการดำเนินการอยู่ขณะนี้อยากทราบว่าที่ล่าช้าเป็นเพราะผมฝากผ่านตู้เงินสดไทยพณิชหรือเปล่า.'
-        print('"' + ws_th.segment_words(text=text) + '"')
-
-        # This checks that sequences of single alphabets are joined together
-        text = 'ผจ้งฝากปสเร็รดำเ่า.'
-        print('"' + ws_th.segment_words(text=text) + '"')
-        text = 'จำ ยุ ส เซ อร์  ไม่ ได้'
-        print('"' + ws_th.segment_words(text=text) + '"')
-
+        list_sent_exp = [
+            # TODO Add 'ผิดหวัง' to dictionary
+            ['บัวขาว บัญชาเมฆ ไม่ทำให้แฟนมวยชาวไทยผิดหวัง',
+             ['บัว','ขาว','บัญชา','เมฆ','ไม่','ทำ','ให้','แฟน','มวย','ชาว','ไทย','ผิด','หวัง']],
+            ['วันที่ 27 ต.ค. ศึก Mas Fight ที่กรุงพนมเปญ ประเทศกัมพูชา คู่เอก',
+             ['วัน','ที่','27','ต','.','ค','.','ศึก','Mas','Fight','ที่','กรุง','พนม','เปญ','ประเทศ','กัมพูชา','คู่','เอก']],
+            # TODO Fix this 'น็อก' should be one word
+            ['ผลตัดสินแพ้ชนะอยู่ที่การน็อก หรือขอยอมแพ้เท่านั้น',
+             ['ผล','ตัด','สิน','แพ้','ชนะ','อยู่','ที่','การ','น็','อก','หรือ','ขอ','ยอม','แพ้','เท่า','นั้น']],
+            ['เนื่องจากสภาพแวดล้อมแห้งแล้งมาก อากาศร้อนและกระแสลมแรง',
+             ['เนื่อง','จาก','สภาพ','แวด','ล้อม','แห้ง','แล้ง','มาก','อากาศ','ร้อน','และ','กระแส','ลม','แรง']],
+            ['ซึ่งอยู่ห่างจากตอนเหนือของเมืองบริสเบน ประมาณ 650 กิโลเมตร,',
+             ['ซึ่ง','อยู่','ห่าง','จาก','ตอน','เหนือ','ของ','เมือง','บ','ริ','ส','เบน','ประมาณ','650','กิโล','เมตร',',']],
+            # Other languages
+            ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
+             ['English', 'Test', '+', '中文很难', '+', 'ภาษา','ไทย', 'and', '한국어', '.', '.']]
+        ]
+        self.do_unit_test(
+            word_segmenter = ws_th,
+            list_sent_exp  = list_sent_exp
+        )
         return
 
     def test_viet(self):
@@ -92,6 +129,24 @@ class testNLP:
             postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
             do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
         )
+
+        list_sent_exp = [
+            # TODO Split out the comma from 'trắng,'
+            ['bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
+             ['bơi','cùng','cá mập','trắng,','vảy','núi lửa','âm ỉ']],
+            ['Disney đã sản xuất một vài bộ phim đình đám vào thời điểm đó',
+             ['Disney','đã','sản xuất','một vài','bộ','phim','đình đám','vào','thời điểm','đó']],
+            ['nhưng Frozen là một trong những thành công đáng kinh ngạc nhất',
+             ['nhưng','Frozen','là','một','trong','những','thành công','đáng','kinh ngạc','nhất']],
+            # Other languages
+            ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
+             ['English', 'Test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '..']]
+        ]
+        self.do_unit_test(
+            word_segmenter = ws_vn,
+            list_sent_exp  = list_sent_exp
+        )
+        return
 
         text = 'Hoặc nếu ông Thăng không bị kỷ luật, cây bút Tâm Chánh nêu giả thiết Tổng Bí thư Nguyễn Phú Trọng sẽ có thể "huy động sự tham gia của người dân vào cuộc đấu tranh sinh tử này".'.lower()
         print('"' + ws_vn.segment_words(text=text, return_array_of_split_words=False) + '"')
@@ -144,6 +199,6 @@ if __name__ == '__main__':
     tst.test_chinese()
     tst.test_thai()
     tst.test_viet()
-    tst.test_ml()
+    # tst.test_ml()
 
 
