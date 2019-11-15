@@ -5,6 +5,7 @@ from inspect import getframeinfo, currentframe
 import nwae.config.Config as cf
 import re
 import nwae.utils.StringUtils as su
+import mex.MatchExpression as mex
 
 
 #
@@ -61,10 +62,22 @@ class DaehuaModel:
                 DaehuaModel.DAEHUA_MODEL_OBJECT_ANSWER: None
             }
 
+            #
+            # Decode entire Daehua pattern
+            #
             m = re.match(pattern='.*'+DaehuaModel.DAEHUA_MODEL_ENCODING_CHARS_START_END+'.*', string=s)
+            if (not m) or (len(m.groups())<1):
+                raise Exception('Cannot find daehua encoding in "' + str(s) + '".')
             dh_encode_str = m.group(1)
             daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR] = su.StringUtils.trim(dh_encode_str)
+            lg.Log.info(
+                str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Decoded mex part: ' + str(daehua_model_encoding_str[DaehuaModel.DAEHUA_MODEL_ENCODE_STR])
+            )
 
+            #
+            # Decode the mex pattern part and formula pattern part
+            #
             # Split by '::'
             dh_objects_str = dh_encode_str.split(DaehuaModel.DAEHUA_MODEL_OBJECT_SEPARATOR)
             for dh_obj_str in dh_objects_str:
@@ -79,7 +92,7 @@ class DaehuaModel:
 
             lg.Log.info(
                 str(DaehuaModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Decoded encoding parts string: ' + str(daehua_model_encoding_str)
+                + ': Decoded mex pattern & formula pattern: ' + str(daehua_model_encoding_str)
             )
             return daehua_model_encoding_str
         except Exception as ex:
@@ -130,7 +143,7 @@ class DaehuaModel:
                      + ': Failed to get formula encoding string for "' + str(daehua_answer_object_str)\
                      + '". Exception ' + str(ex) + '.'
             lg.Log.error(errmsg)
-            return None
+            raise Exception(errmsg)
 
     def __init__(
             self,
@@ -149,10 +162,7 @@ class DaehuaModel:
         #
         self.daehua_model_str = None
         self.mex_obj = None
-        self.__decode_str()
-        return
 
-    def __decode_str(self):
         self.daehua_model_str = DaehuaModel.get_daehua_model_encoding_str(
             s = self.encoding_str
         )
@@ -161,15 +171,16 @@ class DaehuaModel:
             + ': Model Encoding strings: ' + str(self.daehua_model_str)
         )
         try:
-            import mex.MatchExpression as mex
             self.mex_obj = mex.MatchExpression(
-                pattern=self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
+                pattern = self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]
             )
         except Exception as ex_no_mex:
-            warn_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                       + ': Cannot find mex module! Exception: ' + str(ex_no_mex) + '.'
-            lg.Log.warning(warn_msg)
-            self.mex_obj = None
+            error_msg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                       + ': Cannot compile mex pattern "'\
+                       + str(self.daehua_model_str[DaehuaModel.DAEHUA_MODEL_OBJECT_VARS]) \
+                       + '". Exception: ' + str(ex_no_mex) + '.'
+            lg.Log.error(error_msg)
+            raise Exception(error_msg)
 
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \

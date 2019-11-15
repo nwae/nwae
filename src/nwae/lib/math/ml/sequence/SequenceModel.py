@@ -166,6 +166,9 @@ class SequenceModel(modelIf.ModelInterface):
             # Option to train a single y ID/label
             y_id=None
     ):
+        #
+        #
+        #
         raise Exception(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Template Model only, not a real model!'

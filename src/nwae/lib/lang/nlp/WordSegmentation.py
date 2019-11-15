@@ -16,7 +16,7 @@ import nwae.utils.Profiling as prf
 
 
 #
-# Word Segmentation
+# Word Segmentation for languages whose word separator is not a space (e.g. Chinese, Thai, Vietnamese)
 #   Reason we don't use open source libraries
 #     - We don't need perfect word segmentation, and for non-Thai languages, we actually don't need word
 #       segmentation at all if Intent Detection is our only goal. However we include for higher accuracy.

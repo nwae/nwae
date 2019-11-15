@@ -38,6 +38,19 @@ class LangFeatures:
 
     ERROR_TOLERANCE = 0.000000000001
 
+    C_LANG_ID       = 'Language'
+    C_LANG_NAME     = 'LanguageName'
+    C_HAVE_ALPHABET = 'Alphabet'
+    C_CHAR_TYPE     = 'CharacterType'
+    C_HAVE_SYL_SEP  = 'SyllableSep'
+    C_SYL_SEP_TYPE  = 'SyllableSepType'
+    C_HAVE_WORD_SEP = 'WordSep'
+    C_WORD_SEP_TYPE = 'WordSepType'
+
+    T_NONE = ''
+    T_CHAR = 'character'
+    T_SPACE = 'space'
+
     @staticmethod
     def map_to_correct_lang_code(
             lang_code
@@ -57,16 +70,70 @@ class LangFeatures:
         # The most NLP-inconvenient languages are those without word boundary, obviously.
         # Name, Code, Alphabet, CharacterType, SyllableSeparator, SyllableSeparatorType, WordSeparator, WordSeparatorType
         #
-        self.langfeatures = pd.DataFrame({
-            'Language':        [ 'cn'       , 'th'  , 'vn'        , 'in'        , 'ko'        ],
-            'LanguageName':    [ 'Chinese'  , 'Thai', 'Vietnamese', 'Indonesian', 'Hangul'    ],
-            'Alphabet':        [ False      , True  , True        , True        , True        ],
-            'CharacterType':   [ 'cn'       , 'th'  , 'latin'     , 'latin'     , 'ko'        ],
-            'SyllableSep':     [ True       , False , True        , False       , True        ],
-            'SyllableSepType': [ 'character', ''    , 'space'     , ''          , 'character' ],
-            'WordSep':         [ False      , False , False       , True        , True        ],
-            'WordSepType':     [ ''         , ''    , ''          , 'space'     , 'space'     ]
-        })
+        lang_en = {
+            LangFeatures.C_LANG_ID:       'en',
+            LangFeatures.C_LANG_NAME:     'English',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+        }
+        lang_ko = {
+            LangFeatures.C_LANG_ID:       'ko',
+            LangFeatures.C_LANG_NAME:     'Hangul',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'ko',
+            LangFeatures.C_HAVE_SYL_SEP:  True,
+            # TODO Not really right to say it is char but rather a "syllable_character"
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+        }
+        lang_cn = {
+            LangFeatures.C_LANG_ID:       'cn',
+            LangFeatures.C_LANG_NAME:     'Chinese',
+            LangFeatures.C_HAVE_ALPHABET: False,
+            LangFeatures.C_CHAR_TYPE:     'cn',
+            LangFeatures.C_HAVE_SYL_SEP:  True,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
+            LangFeatures.C_HAVE_WORD_SEP: False,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+        }
+        lang_th = {
+            LangFeatures.C_LANG_ID:       'th',
+            LangFeatures.C_LANG_NAME:     'Thai',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'th',
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: False,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+        }
+        lang_vn = {
+            LangFeatures.C_LANG_ID:       'vn',
+            LangFeatures.C_LANG_NAME:     'Vietnamese',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_HAVE_SYL_SEP:  True,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_WORD_SEP: False,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+        }
+        lang_in = {
+            LangFeatures.C_LANG_ID:       'in',
+            LangFeatures.C_LANG_NAME:     'Indonesian',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+        }
+        self.langfeatures = pd.DataFrame([
+            lang_en, lang_ko, lang_cn, lang_th, lang_vn, lang_in
+        ])
 
         return
 
@@ -76,20 +143,26 @@ class LangFeatures:
         lf = self.langfeatures
         len = lf.shape[0]
         # First it must not have a word separator
-        langindexes = [ x for x in range(0,len,1) if lf['WordSep'][x]==False ]
+        langindexes = [ x for x in range(0,len,1) if lf[LangFeatures.C_HAVE_WORD_SEP][x]==False ]
         # Second condition is that it doesn't have a syllable separator, or it has a syllable separator which is a character
-        langs = [ lf['Language'][x] for x in langindexes if
-                  ( lf['SyllableSep'][x]==False or (lf['SyllableSep'][x]==True and lf['SyllableSepType'][x]=='character') ) ]
+        langs = [
+            lf[LangFeatures.C_LANG_ID][x] for x in langindexes if (
+                    lf[LangFeatures.C_HAVE_SYL_SEP][x]==False or
+                    ( lf[LangFeatures.C_HAVE_SYL_SEP][x]==True and lf[LangFeatures.C_SYL_SEP_TYPE][x]==LangFeatures.T_CHAR )
+            )
+        ]
         return lang in langs
 
     def get_languages_with_word_separator(self):
         len = self.langfeatures.shape[0]
-        langs = [ self.langfeatures['Language'][x] for x in range(0,len,1) if self.langfeatures['WordSep'][x]==True ]
+        langs = [ self.langfeatures[LangFeatures.C_LANG_ID][x] for x in range(0,len,1)
+                  if self.langfeatures[LangFeatures.C_HAVE_WORD_SEP][x]==True ]
         return langs
 
     def get_languages_with_syllable_separator(self):
         len = self.langfeatures.shape[0]
-        langs = [ self.langfeatures['Language'][x] for x in range(0, len, 1) if self.langfeatures['SyllableSep'][x]==True ]
+        langs = [ self.langfeatures[LangFeatures.C_LANG_ID][x] for x in range(0, len, 1)
+                  if self.langfeatures[LangFeatures.C_HAVE_SYL_SEP][x]==True ]
         return langs
 
     def get_languages_with_only_syllable_separator(self):
@@ -105,16 +178,16 @@ class LangFeatures:
     #
     def get_split_token(self, lang, level):
         # Language index
-        lang_index = self.langfeatures.index[self.langfeatures['Language']==lang].tolist()
+        lang_index = self.langfeatures.index[self.langfeatures[LangFeatures.C_LANG_ID]==lang].tolist()
         if len(lang_index) == 0:
             return None
         lang_index = lang_index[0]
 
-        have_alphabet = self.langfeatures['Alphabet'][lang_index]
-        syl_sep = self.langfeatures['SyllableSep'][lang_index]
-        syl_sep_type = self.langfeatures['SyllableSepType'][lang_index]
-        word_sep = self.langfeatures['WordSep'][lang_index]
-        word_sep_type = self.langfeatures['WordSepType'][lang_index]
+        have_alphabet = self.langfeatures[LangFeatures.C_HAVE_ALPHABET][lang_index]
+        syl_sep = self.langfeatures[LangFeatures.C_HAVE_SYL_SEP][lang_index]
+        syl_sep_type = self.langfeatures[LangFeatures.C_SYL_SEP_TYPE][lang_index]
+        word_sep = self.langfeatures[LangFeatures.C_HAVE_WORD_SEP][lang_index]
+        word_sep_type = self.langfeatures[LangFeatures.C_WORD_SEP_TYPE][lang_index]
 
         if level == 'alphabet':
             # If a language has alphabets, the separator is by character, otherwise return NA
@@ -124,9 +197,9 @@ class LangFeatures:
                 return None
         elif level == 'syllable':
             if syl_sep == True:
-                if syl_sep_type == 'character':
+                if syl_sep_type == LangFeatures.T_CHAR:
                     return u''
-                elif syl_sep_type == 'space':
+                elif syl_sep_type == LangFeatures.T_SPACE:
                     return u' '
                 else:
                     return None
@@ -134,17 +207,17 @@ class LangFeatures:
             # Return language specific word separator if exists.
             # Return language specific syllable separator if exists.
             if word_sep == True:
-                if word_sep_type == 'character':
+                if word_sep_type == LangFeatures.T_CHAR:
                     return u''
-                elif word_sep_type == 'space':
+                elif word_sep_type == LangFeatures.T_SPACE:
                     return u' '
                 else:
                     return None
             elif syl_sep == True:
                 if syl_sep == True:
-                    if syl_sep_type == 'character':
+                    if syl_sep_type == LangFeatures.T_CHAR:
                         return u''
-                    elif syl_sep_type == 'space':
+                    elif syl_sep_type == LangFeatures.T_SPACE:
                         return u' '
                     else:
                         return None
@@ -153,53 +226,12 @@ class LangFeatures:
 
     def get_alphabet_type(self, lang):
         # Language index
-        lang_index = self.langfeatures.index[self.langfeatures['Language']==lang].tolist()
+        lang_index = self.langfeatures.index[self.langfeatures[LangFeatures.C_LANG_ID]==lang].tolist()
         if len(lang_index) == 0:
             return None
         lang_index = lang_index[0]
 
-        return self.langfeatures['CharacterType'][lang_index]
-
-    #
-    # Alphabet/Syllable detection is the first step in any language detection.
-    # Only if alphabet detection is ambiguous, it will resort to unigrams/etc.
-    # e.g. Other languages written in Latin characters,
-    #       - tummai on ngern mai dai?
-    #       - eulmanah ohreh gulrijyo?
-    #
-    @staticmethod
-    def get_alphabet_syllable():
-        # We can't use all CJK characters, so we use only the top 120 most frequent Chinese characters
-        zhongwen = list(
-            (u'的一是不了在人有我他这个们中来上大为和国地到以说时要就出会可' +
-            u'也你对生能而子那得于着下自之年过发后作里用道行所然家种事成方' +
-            u'多经么去法学如都同现当没动面起看定天分还进好小部其些主样理心' +
-            u'她本前开但因只从想实日军者意无力它与长把机十民第公此已工使情')
-        )
-        rep_cn = []
-        for i in range(0, len(zhongwen), 1): rep_cn.append('cn')
-
-        # Most common Korean syllables, because hangul characters are inconvenient to split programmatically.
-        # In fact the Hangul syllables made up of Hangul alphabets have their own Unicode, making it separate/unsplittable.
-        # These Hangul syllables are inferred from this program, from our own training material
-        hangul_syllables = list(
-            (u'이다는을가고에지어기스의하통를로은대있테해인도서')
-        )
-        rep_ko = []
-        for i in range(0, len(hangul_syllables), 1): rep_ko.append('ko')
-
-        thai = ie.lang.characters.LangCharacters.LangCharacters.UNICODE_BLOCK_THAI
-        rep_th = []
-        for i in range(0, len(thai), 1): rep_th.append('th')
-
-        latin = ie.lang.characters.LangCharacters.LangCharacters.UNICODE_BLOCK_LATIN_ALL
-        rep_la = []
-        for i in range(0, len(latin), 1): rep_la.append('latin')
-
-        return {
-            'Token':zhongwen + thai + hangul_syllables + latin,
-            'Type':rep_cn + rep_th + rep_ko + rep_la
-        }
+        return self.langfeatures[LangFeatures.C_CHAR_TYPE][lang_index]
 
 
 if __name__ == '__main__':
@@ -211,7 +243,7 @@ if __name__ == '__main__':
     def demo_2():
         lf = LangFeatures()
 
-        for lang in lf.langfeatures['Language']:
+        for lang in lf.langfeatures[LangFeatures.C_LANG_ID]:
             print ( lang + ':alphabet=[' + str(lf.get_split_token(lang, 'alphabet')) + ']' )
             print ( lang + ':syllable=[' + str(lf.get_split_token(lang, 'syllable')) + ']' )
             print ( lang + ':unigram=[' + str(lf.get_split_token(lang, 'unigram')) + ']' )
