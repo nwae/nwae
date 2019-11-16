@@ -261,8 +261,8 @@ class LangStats:
         text = u''.join(contents)
         # Convert to list
         token_list = []
-        sylsep = self.lang_features.get_split_token(lang, 'syllable')
-        wordsep = self.lang_features.get_split_token(lang, 'unigram')
+        sylsep = self.lang_features.get_split_token(lang, langfeatures.LangFeatures.LEVEL_SYLLABLE)
+        wordsep = self.lang_features.get_split_token(lang, langfeatures.LangFeatures.LEVEL_UNIGRAM)
         # If either syllable or unigram is split by space
         if  sylsep == ' ' or wordsep == ' ':
             token_list = text.split(' ')

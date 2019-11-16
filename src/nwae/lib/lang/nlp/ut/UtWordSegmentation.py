@@ -58,8 +58,6 @@ class testNLP:
         ).wseg
 
     def test_chinese(self):
-        ws_cn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_CN)
-
         list_sent_exp = [
             # TODO Need to add '淡定' to word list
             ['中美人工智能竞赛 AI鼻祖称白宫可以更淡定',
@@ -79,15 +77,13 @@ class testNLP:
              ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = ws_cn,
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_CN),
             list_sent_exp  = list_sent_exp
         )
 
         return retv
 
     def test_thai(self):
-        ws_th = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH)
-
         list_sent_exp = [
             # TODO Add 'ผิดหวัง' to dictionary
             ['บัวขาว บัญชาเมฆ ไม่ทำให้แฟนมวยชาวไทยผิดหวัง',
@@ -106,14 +102,12 @@ class testNLP:
              ['English', 'Test', '+', '中文很难', '+', 'ภาษา','ไทย', 'and', '한국어', '.', '.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = ws_th,
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH),
             list_sent_exp  = list_sent_exp
         )
         return retv
 
     def test_viet(self):
-        ws_vn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN)
-
         list_sent_exp = [
             # TODO Split out the comma from 'trắng,'
             ['bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
@@ -127,14 +121,22 @@ class testNLP:
              ['English', 'Test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '..']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = ws_vn,
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN),
             list_sent_exp  = list_sent_exp
         )
         return retv
 
     def test_en(self):
-        ws_cn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_EN)
-        return
+        list_sent_exp = [
+            ['async worker such as gevent/meinheld/eventlet',
+             ['async','worker','such','as','gevent','/','meinheld','/','eventlet']],
+            ['it doesn\'t feature the terms "capture group".',
+             ['it','doesn\'t','feature','the','terms','"','capture','group','"','.']]
+        ]
+        return self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_EN),
+            list_sent_exp  = list_sent_exp
+        )
 
 
 if __name__ == '__main__':
@@ -149,9 +151,12 @@ if __name__ == '__main__':
     res_cn = tst.test_chinese()
     res_th = tst.test_thai()
     res_vi = tst.test_viet()
+    res_en = tst.test_en()
+
+    total_ok = res_cn.count_ok + res_th.count_ok + res_vi.count_ok + res_en.count_ok
+    total_fail = res_cn.count_fail + res_th.count_fail + res_vi.count_fail + res_en.count_fail
 
     print('***** RESULT *****')
-    print("PASSED " + str(res_cn.count_ok + res_th.count_ok + res_vi.count_ok)
-          + ', FAILED ' + str(res_cn.count_fail + res_th.count_fail + res_vi.count_fail))
+    print("PASSED " + str(total_ok) + ', FAILED ' + str(total_fail))
 
 

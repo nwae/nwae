@@ -10,6 +10,7 @@ from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
 import nwae.utils.Profiling as prf
+import re
 
 
 #
@@ -55,26 +56,45 @@ class WordSegmentation(object):
         self.lang = lang
         self.do_profiling = do_profiling
 
-        self.lang_stats = lang_stats
-        self.lang_characters = lc.LangCharacters()
+        self.have_simple_word_separator = False
+        self.simple_word_separator = None
 
-        self.lang_wordlist = wl.WordList(
-            lang             = lang,
-            dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = postfix_wordlist
-        )
-
-        #
-        # We need the language syllable split token. If '' means we look for longest matching
-        # by character, else we first split the sentence by the syllable split token first.
-        #
         self.lang_features = lf.LangFeatures()
-        self.syl_split_token = self.lang_features.get_split_token(
-            lang  = self.lang,
-            level = 'syllable'
-        )
-        if self.syl_split_token is None:
-            self.syl_split_token = ''
+        word_sep_type = self.lang_features.get_word_separator_type(lang = self.lang)
+        #
+        # If the language unigram/word separator is a space, then it is just a simple re.split(),
+        # no need to load word lists, etc.
+        #
+        if word_sep_type == lf.LangFeatures.T_SPACE:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Ignoring word list for simple language "' + str(self.lang) + '"..'
+            )
+            self.have_simple_word_separator = True
+            self.simple_word_separator = ' '
+            self.lang_wordlist = None
+            self.syl_split_token = None
+        else:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading word list for complex language "' + str(self.lang) + '"..'
+            )
+            self.lang_wordlist = wl.WordList(
+                lang             = lang,
+                dirpath_wordlist = dirpath_wordlist,
+                postfix_wordlist = postfix_wordlist
+            )
+
+            #
+            # We need the language syllable split token. If '' means we look for longest matching
+            # by character, else we first split the sentence by the syllable split token first.
+            #
+            self.syl_split_token = self.lang_features.get_split_token(
+                lang  = self.lang,
+                level = lf.LangFeatures.LEVEL_SYLLABLE
+            )
+            if self.syl_split_token is None:
+                self.syl_split_token = ''
 
         return
 
@@ -233,6 +253,27 @@ class WordSegmentation(object):
             return True
         else:
             return False
+
+    def segment_words_simple(
+            self,
+            text,
+            return_array_of_split_words = False
+    ):
+        # Add a space around punctuations so it won't stick to the word
+        text_x = re.sub(
+            pattern = '([.,?!/;:"，。])',
+            repl    = ' \\1 ',
+            string  = text
+        )
+        text_array = text_x.split(sep=self.simple_word_separator)
+        # Remove empty '' or None
+        text_array = [x for x in text_array if x]
+
+        if return_array_of_split_words:
+            return text_array
+        else:
+            return self.__return_array_words_as_string(array_words=text_array)
+
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
     #
@@ -247,6 +288,12 @@ class WordSegmentation(object):
             join_single_meaningless_alphabets_as_one = True,
             return_array_of_split_words = False
     ):
+        if self.have_simple_word_separator:
+            return self.segment_words_simple(
+                text = text,
+                return_array_of_split_words = return_array_of_split_words
+            )
+
         a = prf.Profiling.start()
 
         if self.lang == lf.LangFeatures.LANG_CN:
@@ -401,6 +448,10 @@ class WordSegmentation(object):
 
         if return_array_of_split_words:
             return array_words
+        else:
+            return self.__return_array_words_as_string(array_words = array_words)
+
+    def __return_array_words_as_string(self, array_words):
 
         print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
         #
