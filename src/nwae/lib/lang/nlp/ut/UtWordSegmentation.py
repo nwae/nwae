@@ -3,6 +3,7 @@
 import nwae.config.Config as cf
 import nwae.lib.lang.nlp.WordSegmentation as ws
 import nwae.lib.lang.LangFeatures as lf
+import nwae.utils.UnitTest as ut
 
 
 #
@@ -30,24 +31,21 @@ class testNLP:
             # Sentence with expected split sentence
             list_sent_exp
     ):
-        count_ok = 0
-        count_fail = 0
+        test_results = []
         for sent_exp in list_sent_exp:
             sent = sent_exp[0]
-            exp_sent = sent_exp[1]
             sent_split = word_segmenter.segment_words(
                 text = sent,
                 return_array_of_split_words = True
             )
-            print('Sentence "' + str(sent) + '" split to ' + str(sent_split))
-            ok = (sent_split == exp_sent)
-            count_ok += 1*ok
-            count_fail += 1*(not ok)
-            if not ok:
-                print('FAILED test "' + str(sent))
+            test_results.append(sent_split)
 
-        print('***** PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
-        return
+        res = ut.UnitTest.get_unit_test_result(
+            input_x         = [x[0] for x in list_sent_exp],
+            result_test     = test_results,
+            result_expected = [x[1] for x in list_sent_exp]
+        )
+        return res
 
     def test_chinese(self):
         ws_cn = ws.WordSegmentation(
@@ -68,9 +66,8 @@ class testNLP:
              ['中','美','人工智能','竞赛','AI','鼻祖','称','白宫','可以','更','淡','定']],
             ['1997年，米切尔出版《机器学习》',
              ['1997','年','，','米切尔','出版','《','机器','学习','》']],
-            # TODO Split out the punctuations also
             ['米切尔（Tom Michell）教授被称为机器学习之父',
-             ['米切尔','（Tom','Michell）','教授','被','称为','机器','学习','之','父']],
+             ['米切尔','（','Tom','Michell','）','教授','被','称为','机器','学习','之','父']],
             ['美国有更多研发人工智能训练和经验积累的公司',
              ['美国','有','更','多','研发','人工智能','训练','和','经验','积累','的','公司']],
             ['一旦政府决定建立覆盖全国的医疗记录电子文档数据库…',
@@ -79,12 +76,12 @@ class testNLP:
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
              ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
         ]
-        self.do_unit_test(
+        retv = self.do_unit_test(
             word_segmenter = ws_cn,
             list_sent_exp  = list_sent_exp
         )
 
-        return
+        return retv
 
     def test_thai(self):
         ws_th = ws.WordSegmentation(
@@ -105,7 +102,7 @@ class testNLP:
              ['บัว','ขาว','บัญชา','เมฆ','ไม่','ทำ','ให้','แฟน','มวย','ชาว','ไทย','ผิด','หวัง']],
             ['วันที่ 27 ต.ค. ศึก Mas Fight ที่กรุงพนมเปญ ประเทศกัมพูชา คู่เอก',
              ['วัน','ที่','27','ต','.','ค','.','ศึก','Mas','Fight','ที่','กรุง','พนม','เปญ','ประเทศ','กัมพูชา','คู่','เอก']],
-            # TODO Fix this 'น็อก' should be one word
+            # TODO Fix this 'น็อก' should be one word, this is tricky because we look from longest to shortest
             ['ผลตัดสินแพ้ชนะอยู่ที่การน็อก หรือขอยอมแพ้เท่านั้น',
              ['ผล','ตัด','สิน','แพ้','ชนะ','อยู่','ที่','การ','น็','อก','หรือ','ขอ','ยอม','แพ้','เท่า','นั้น']],
             ['เนื่องจากสภาพแวดล้อมแห้งแล้งมาก อากาศร้อนและกระแสลมแรง',
@@ -116,11 +113,11 @@ class testNLP:
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
              ['English', 'Test', '+', '中文很难', '+', 'ภาษา','ไทย', 'and', '한국어', '.', '.']]
         ]
-        self.do_unit_test(
+        retv = self.do_unit_test(
             word_segmenter = ws_th,
             list_sent_exp  = list_sent_exp
         )
-        return
+        return retv
 
     def test_viet(self):
         ws_vn = ws.WordSegmentation(
@@ -142,11 +139,11 @@ class testNLP:
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
              ['English', 'Test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '..']]
         ]
-        self.do_unit_test(
+        retv = self.do_unit_test(
             word_segmenter = ws_vn,
             list_sent_exp  = list_sent_exp
         )
-        return
+        return retv
 
     def test_ml(self):
         ws_cn = ws.WordSegmentation(
@@ -183,9 +180,13 @@ if __name__ == '__main__':
     tst = testNLP(
         config = config
     )
-    tst.test_chinese()
-    tst.test_thai()
-    tst.test_viet()
+    res_cn = tst.test_chinese()
+    res_th = tst.test_thai()
+    res_vi = tst.test_viet()
     # tst.test_ml()
+
+    print('***** RESULT *****')
+    print("PASSED " + str(res_cn.count_ok + res_th.count_ok + res_vi.count_ok)
+          + ', FAILED ' + str(res_cn.count_fail + res_th.count_fail + res_vi.count_fail))
 
 

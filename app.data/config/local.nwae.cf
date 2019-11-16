@@ -1,7 +1,7 @@
 # Top level directory where everything is relative to
 topdir=/usr/local/git/nwae/nwae
 # See mozg.utils.Log.py for log level details
-loglevel=4.0
+loglevel=3.0
 # Model directory and key to load
 model_name=hypersphere_metricspace
 model_lang=cn
