@@ -18,13 +18,6 @@ class testNLP:
         self.config = config
         return
 
-    def test_word_segmentation(self):
-        self.test_chinese()
-        self.test_thai()
-        self.test_viet()
-        self.test_ml()
-        return
-
     def do_unit_test(
             self,
             word_segmenter,
