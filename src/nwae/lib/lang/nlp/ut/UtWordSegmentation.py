@@ -72,6 +72,8 @@ class testNLP:
              ['美国','有','更','多','研发','人工智能','训练','和','经验','积累','的','公司']],
             ['一旦政府决定建立覆盖全国的医疗记录电子文档数据库…',
              ['一旦','政府','决定','建立','覆盖','全国','的','医疗','记录','电子','文档','数据库','…']],
+            ['香港抗议 盘点本周最新出现的五个重大情况',
+             ['香港','抗议','盘点','本周','最新','出现','的','五个','重大','情况']],
             # Other languages
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
              ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
@@ -174,7 +176,8 @@ class testNLP:
 
 if __name__ == '__main__':
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
     tst = testNLP(

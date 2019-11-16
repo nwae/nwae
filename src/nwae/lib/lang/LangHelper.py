@@ -69,3 +69,31 @@ class LangHelper:
             snnlist = sl_obj
         )
 
+
+if __name__ == '__main__':
+    import nwae.config.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config,
+        default_config_file='/usr/local/git/nwae/nwae/app.data/config/default.cf'
+    )
+    retobj = LangHelper.get_word_segmenter(
+        lang = 'cn',
+        dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        # During training, we don't care about allowed root words
+        # We just take the first word in the synonym list as root
+        # word. Only during detection, we need to do this to make
+        # sure that whatever word we replace is in the feature list.
+        allowed_root_words = None,
+        do_profiling = False
+    )
+    ws = retobj.wseg
+    synonymlist = retobj.snnlist
+
+    text = '香港抗议 盘点本周最新出现的五个重大情况'
+    print(ws.segment_words(text=text, return_array_of_split_words=True, look_from_longest=True))
+
