@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import nwae.config.Config as cf
-import nwae.lib.lang.nlp.WordSegmentation as ws
 import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
+import nwae.lib.lang.LangHelper as langhelper
 
 
 #
@@ -47,18 +47,25 @@ class testNLP:
         )
         return res
 
+    def get_word_segmenter(self, lang):
+        return langhelper.LangHelper.get_word_segmenter(
+            lang = lang,
+            dirpath_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+            postfix_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+            dirpath_app_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+            postfix_app_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+            dirpath_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+            postfix_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+            # During training, we don't care about allowed root words
+            # We just take the first word in the synonym list as root
+            # word. Only during detection, we need to do this to make
+            # sure that whatever word we replace is in the feature list.
+            allowed_root_words = None,
+            do_profiling = False
+        ).wseg
+
     def test_chinese(self):
-        ws_cn = ws.WordSegmentation(
-            lang             = lf.LangFeatures.LANG_CN,
-            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
-            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
-        )
-        # Add application wordlist
-        ws_cn.add_wordlist(
-            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
-        )
+        ws_cn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_CN)
 
         list_sent_exp = [
             # TODO Need to add '淡定' to word list
@@ -86,17 +93,7 @@ class testNLP:
         return retv
 
     def test_thai(self):
-        ws_th = ws.WordSegmentation(
-            lang             = lf.LangFeatures.LANG_TH,
-            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
-            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
-        )
-        # Add application wordlist
-        ws_th.add_wordlist(
-            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
-        )
+        ws_th = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH)
 
         list_sent_exp = [
             # TODO Add 'ผิดหวัง' to dictionary
@@ -122,12 +119,7 @@ class testNLP:
         return retv
 
     def test_viet(self):
-        ws_vn = ws.WordSegmentation(
-            lang             = lf.LangFeatures.LANG_VN,
-            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
-            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
-        )
+        ws_vn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN)
 
         list_sent_exp = [
             # TODO Split out the comma from 'trắng,'
@@ -147,30 +139,8 @@ class testNLP:
         )
         return retv
 
-    def test_ml(self):
-        ws_cn = ws.WordSegmentation(
-            lang             = 'cn',
-            dirpath_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
-            do_profiling     = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
-        )
-        # Add application wordlist
-        ws_cn.add_wordlist(
-            dirpath = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST)
-        )
-
-        print(
-            ws_cn.get_possible_word_separators_from_start(
-                text_array = "谷歌和脸书成了冤大头？我有多乐币", max_lookforward_chars=0
-            )
-        )
-        print(
-            ws_cn.get_possible_word_separators_from_start(
-                text_array = "冤大头？我有多乐币", max_lookforward_chars=0
-            )
-        )
-
+    def test_en(self):
+        ws_cn = self.get_word_segmenter(lang = lf.LangFeatures.LANG_EN)
         return
 
 
@@ -186,7 +156,6 @@ if __name__ == '__main__':
     res_cn = tst.test_chinese()
     res_th = tst.test_thai()
     res_vi = tst.test_viet()
-    # tst.test_ml()
 
     print('***** RESULT *****')
     print("PASSED " + str(res_cn.count_ok + res_th.count_ok + res_vi.count_ok)
