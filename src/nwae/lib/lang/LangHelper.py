@@ -28,7 +28,16 @@ class LangHelper:
             postfix_wordlist = postfix_wordlist,
             do_profiling     = do_profiling
         )
-        sl_obj = None
+
+        # We need synonyms to normalize all text with "rootwords"
+        sl_obj = sl.SynonymList(
+            lang=lang,
+            dirpath_synonymlist = dirpath_synonymlist,
+            postfix_synonymlist = postfix_synonymlist
+        )
+        sl_obj.load_synonymlist(
+            allowed_root_words = allowed_root_words
+        )
 
         if not wseg_obj.have_simple_word_separator:
             # Add application wordlist
@@ -36,16 +45,6 @@ class LangHelper:
                 dirpath = dirpath_app_wordlist,
                 # This is a general application wordlist file, shared between all
                 postfix = postfix_app_wordlist,
-            )
-
-            # We need synonyms to normalize all text with "rootwords"
-            sl_obj = sl.SynonymList(
-                lang                = lang,
-                dirpath_synonymlist = dirpath_synonymlist,
-                postfix_synonymlist = postfix_synonymlist
-            )
-            sl_obj.load_synonymlist(
-                allowed_root_words = allowed_root_words
             )
 
             len_before = wseg_obj.lang_wordlist.wordlist.shape[0]
