@@ -1,7 +1,4 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-# !!! Will work only on Python 3 and above
 
 import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.LangFeatures as lf
@@ -13,6 +10,7 @@ from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
 import nwae.utils.Profiling as prf
+import re
 
 
 #
@@ -58,26 +56,45 @@ class WordSegmentation(object):
         self.lang = lang
         self.do_profiling = do_profiling
 
-        self.lang_stats = lang_stats
-        self.lang_characters = lc.LangCharacters()
+        self.have_simple_word_separator = False
+        self.simple_word_separator = None
 
-        self.lang_wordlist = wl.WordList(
-            lang             = lang,
-            dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = postfix_wordlist
-        )
-
-        #
-        # We need the language syllable split token. If '' means we look for longest matching
-        # by character, else we first split the sentence by the syllable split token first.
-        #
         self.lang_features = lf.LangFeatures()
-        self.syl_split_token = self.lang_features.get_split_token(
-            lang  = self.lang,
-            level = 'syllable'
-        )
-        if self.syl_split_token is None:
-            self.syl_split_token = ''
+        word_sep_type = self.lang_features.get_word_separator_type(lang = self.lang)
+        #
+        # If the language unigram/word separator is a space, then it is just a simple re.split(),
+        # no need to load word lists, etc.
+        #
+        if word_sep_type == lf.LangFeatures.T_SPACE:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Ignoring word list for simple language "' + str(self.lang) + '"..'
+            )
+            self.have_simple_word_separator = True
+            self.simple_word_separator = ' '
+            self.lang_wordlist = None
+            self.syl_split_token = None
+        else:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading word list for complex language "' + str(self.lang) + '"..'
+            )
+            self.lang_wordlist = wl.WordList(
+                lang             = lang,
+                dirpath_wordlist = dirpath_wordlist,
+                postfix_wordlist = postfix_wordlist
+            )
+
+            #
+            # We need the language syllable split token. If '' means we look for longest matching
+            # by character, else we first split the sentence by the syllable split token first.
+            #
+            self.syl_split_token = self.lang_features.get_split_token(
+                lang  = self.lang,
+                level = lf.LangFeatures.LEVEL_SYLLABLE
+            )
+            if self.syl_split_token is None:
+                self.syl_split_token = ''
 
         return
 
@@ -228,19 +245,41 @@ class WordSegmentation(object):
 
     def __is_natural_word_separator(
             self,
-            chr
+            c
     ):
         # Space always represents a word separator (not true for Vietnamese!)
-        if (chr in (' ','，','。','？','?','"',':',';')) or\
-                (chr in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
+        if (c in (' ','，','。','？','?','"',':',';')) or\
+                (c in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS):
             return True
         else:
             return False
+
+    def segment_words_simple(
+            self,
+            text,
+            return_array_of_split_words = False
+    ):
+        # Add a space around punctuations so it won't stick to the word
+        text_x = re.sub(
+            pattern = '([.,?!/;:"，。])',
+            repl    = ' \\1 ',
+            string  = text
+        )
+        text_array = text_x.split(sep=self.simple_word_separator)
+        # Remove empty '' or None
+        text_array = [x for x in text_array if x]
+
+        if return_array_of_split_words:
+            return text_array
+        else:
+            return self.__return_array_words_as_string(array_words=text_array)
+
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
     #
     def segment_words(
             self,
+            # String type
             text,
             look_from_longest = True,
             # For certain languages like Thai, if a word is split into a single alphabet
@@ -249,6 +288,12 @@ class WordSegmentation(object):
             join_single_meaningless_alphabets_as_one = True,
             return_array_of_split_words = False
     ):
+        if self.have_simple_word_separator:
+            return self.segment_words_simple(
+                text = text,
+                return_array_of_split_words = return_array_of_split_words
+            )
+
         a = prf.Profiling.start()
 
         if self.lang == lf.LangFeatures.LANG_CN:
@@ -265,9 +310,15 @@ class WordSegmentation(object):
                     )
             text = text_simplified
 
+        # string type
         text_array = text
+
+        #
+        # If a language has syllables split by a non-empty character, each "character"
+        # becomes the syllable, and we split them into a list.
+        #
         if self.syl_split_token != '':
-            # E.g. For Vietnamese we break syllbles by spaces
+            # E.g. For Vietnamese we break syllables by spaces
             text_array = text.split(sep=self.syl_split_token)
 
         # Get language charset
@@ -306,7 +357,7 @@ class WordSegmentation(object):
             match_longest = -1
 
             # Check if this character is a natural word separator in this language
-            if self.__is_natural_word_separator(chr = text_array[curpos]):
+            if self.__is_natural_word_separator(c=text_array[curpos]):
                 log.Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '  Word separator true for character "' + str(text_array[curpos]) + '".'
@@ -330,7 +381,7 @@ class WordSegmentation(object):
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + '   Text "' + str(i) + '"="' + text_array[i]+'"'
                     )
-                    if (text_array[i] in lang_charset) or (self.__is_natural_word_separator(chr = text_array[i])):
+                    if (text_array[i] in lang_charset) or (self.__is_natural_word_separator(c=text_array[i])):
                         # Don't include the local character or space
                         match_longest = i - curpos - 1
                         break
@@ -397,6 +448,10 @@ class WordSegmentation(object):
 
         if return_array_of_split_words:
             return array_words
+        else:
+            return self.__return_array_words_as_string(array_words = array_words)
+
+    def __return_array_words_as_string(self, array_words):
 
         print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
         #
@@ -429,14 +484,14 @@ class WordSegmentation(object):
             word = array_words[i]
             if join_word == '':
                 # Previously no single alphabet
-                if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
+                if (len(word) > 1) or (self.__is_natural_word_separator(c=word)):
                     array_words_redo.append(word)
                 else:
                     # Single alphabet word found, join them to previous
                     join_word = join_word + word
             else:
                 # Previously has single alphabet
-                if (len(word) > 1) or (self.__is_natural_word_separator(chr=word)):
+                if (len(word) > 1) or (self.__is_natural_word_separator(c=word)):
                     # Write the joined alphabets, as the sequence has ended
                     array_words_redo.append(join_word)
                     array_words_redo.append(word)
@@ -460,7 +515,7 @@ if __name__ == '__main__':
     )
 
     lang = lf.LangFeatures.LANG_CN
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     synonymlist_ro = slist.SynonymList(
         lang                = lang,
@@ -487,10 +542,7 @@ if __name__ == '__main__':
         words_not_synched = ws.lang_wordlist.wordlist['Word'][len_before:len_after]
         print(words_not_synched)
 
-    text = '谷歌和脸书成了冤大头？我有多乐币 hello world 两间公司合共被骗一亿美元克里斯。happy当只剩两名玩家时，无论是第几轮都可以比牌。'
-    #text = 'งานนี้เมื่อต้องขึ้นแท่นเป็นผู้บริหาร แหวนแหวน จึงมุมานะไปเรียนต่อเรื่องธุ'
-
-    text = '怎么称呼'
+    text = '米切尔（Tom Michell）教'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 

@@ -53,7 +53,7 @@ class WordList:
         self.lang_feature = lf.LangFeatures()
         self.syl_split_token = self.lang_feature.get_split_token(
             lang  = self.lang,
-            level = 'syllable'
+            level = lf.LangFeatures.LEVEL_SYLLABLE
         )
         if self.syl_split_token is None:
             self.syl_split_token = ''

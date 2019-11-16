@@ -124,15 +124,22 @@ class LangCharacters(object):
     UNICODE_BLOCK_ORDINAL_THAI_CONSONANTS = list( range(0x0E01, 0x0E2E+1, 1) )
     UNICODE_BLOCK_THAI_CONSONANTS = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_CONSONANTS]
 
-    UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT = list( range(0x0E30, 0x0E3A+1, 1) ) +\
-                                                        list( range(0x0E47, 0x0E47+1, 1) )
+    # The character ' ็' or chr(0x0E47) is unique, a consonant must appear before it, and another consonant after it
+    # ['ะ', 'ั', 'า', 'ำ', 'ิ', 'ี', 'ึ', 'ื', 'ุ', 'ู', 'ฺ', '็']
+    UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT = \
+        list( range(0x0E30, 0x0E3A+1, 1) ) + list( range(0x0E47, 0x0E47+1, 1) )
     UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT =\
         [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_VOWELS_AFTER_CONSONANT]
 
-    UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT = list( range(0x0E40, 0x0E44+1, 1) )
+    # The character ' ็' or chr(0x0E47) is unique, a consonant must appear before it, and another consonant after it
+    # ['เ', 'แ', 'โ', 'ใ', 'ไ', '็']
+    UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT = \
+        list( range(0x0E40, 0x0E44+1, 1) ) + list( range(0x0E47, 0x0E47+1, 1) )
     UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT = \
         [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_VOWELS_BEFORE_CONSONANT]
 
+    # Tone marks cannot be start of word (same with "vowels-after-consonant")
+    # ['่', '้', '๊', '๋']
     UNICODE_BLOCK_ORDINAL_THAI_TONEMARKS = list( range(0x0E48, 0x0E4B+1, 1) )
     UNICODE_BLOCK_THAI_TONEMARKS = \
         [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_THAI_TONEMARKS]
@@ -159,10 +166,10 @@ class LangCharacters(object):
     # Punctuations, etc.
     #
     UNICODE_BLOCK_WORD_SEPARATORS =\
-        list(u' ,!.?') + list( chr(0xFF0C) + chr(0xFF01) + chr(0xFF0E) + chr(0xFF1F) )
+        list(u' ,!.?()[]:;"\'') + list(u'？。，（）') + [chr(0xFF0C),chr(0xFF01),chr(0xFF0E),chr(0xFF1F)]
 
     UNICODE_BLOCK_SENTENCE_SEPARATORS =\
-        list(u' !.?') + list( chr(0xFF01) + chr(0xFF0E) + chr(0xFF1F) )
+        list(u' !.?') + [chr(0xFF01),chr(0xFF0E),chr(0xFF1F)]
     #
     # Numbers: normal Latin and CJK halfwidth/fullwidth
     #
