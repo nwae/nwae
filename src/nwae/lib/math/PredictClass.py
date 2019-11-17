@@ -10,6 +10,7 @@ import nwae.lib.lang.model.FeatureVector as fv
 import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.lang.LangFeatures as langfeatures
 import nwae.lib.lang.nlp.SpellingCorrection as spellcor
+import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
@@ -48,6 +49,7 @@ class PredictClass(threading.Thread):
             postfix_wordlist_app,
             confidence_level_scores = None,
             do_spelling_correction = False,
+            do_word_stemming = False,
             do_profiling = False
     ):
         super(PredictClass, self).__init__()
@@ -64,6 +66,7 @@ class PredictClass(threading.Thread):
         self.dir_wordlist_app = dir_wordlist_app
         self.postfix_wordlist_app = postfix_wordlist_app
         self.do_spelling_correction = do_spelling_correction
+        self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
 
         self.model = modelHelper.ModelHelper.get_model(
@@ -87,6 +90,9 @@ class PredictClass(threading.Thread):
         self.wseg = None
         self.synonymlist = None
         self.spell_correction = None
+        # Stemmer/Lemmatizer
+        self.lang_have_verb_conj = False
+        self.word_stemmer_lemmatizer = None
         self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
@@ -150,6 +156,33 @@ class PredictClass(threading.Thread):
                              + str(self.identifier_string)\
                              + '", got exception "' + str(ex_spellcor) + '".'
                     log.Log.error(errmsg)
+
+            #
+            # For stemmer / lemmatization
+            #
+            if self.do_word_stemming:
+                lfobj = langfeatures.LangFeatures()
+                self.lang_have_verb_conj = lfobj.have_verb_conjugation(lang=self.lang)
+                log.Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '" verb conjugation = ' + str(self.lang_have_verb_conj) + '.'
+                )
+                self.word_stemmer_lemmatizer = None
+                if self.lang_have_verb_conj:
+                    try:
+                        self.word_stemmer_lemmatizer = lmtz.Lemmatizer(
+                            lang=self.lang
+                        )
+                        log.Log.important(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Lang "' + str(self.lang) + '" stemmer/lemmatizer initialized successfully.'
+                        )
+                    except Exception as ex_stemmer:
+                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                                 + ': Lang "' + str(self.lang) + ' stemmer/lemmatizer failed to initialize: ' \
+                                 + str(ex_stemmer) + '.'
+                        log.Log.error(errmsg)
+                        self.word_stemmer_lemmatizer = None
 
             self.is_all_initializations_done = True
             log.Log.important(
@@ -279,6 +312,25 @@ class PredictClass(threading.Thread):
             if self.spell_correction is not None:
                 text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
                     text_segmented_arr = text_normalized_arr_lower
+                )
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+                    + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
+                )
+        #
+        # Stemming / Lemmatization
+        #
+        if self.do_word_stemming and self.lang_have_verb_conj:
+            if self.word_stemmer_lemmatizer:
+                for i in range(len(text_normalized_arr_lower)):
+                    text_normalized_arr_lower[i] = self.word_stemmer_lemmatizer.stem(
+                        word = text_normalized_arr_lower[i]
+                    )
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+                    + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
 
         return self.predict_class_features(
