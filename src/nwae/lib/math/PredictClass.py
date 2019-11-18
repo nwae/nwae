@@ -5,16 +5,13 @@ import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import time
 import nwae.utils.Profiling as prf
-import nwae.utils.StringUtils as su
 import nwae.lib.lang.model.FeatureVector as fv
-import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.lang.LangFeatures as langfeatures
-import nwae.lib.lang.nlp.SpellingCorrection as spellcor
-import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
 import threading
+import nwae.lib.math.PredictClassTxtProcessor as pctxtprocessor
 
 
 #
@@ -87,12 +84,8 @@ class PredictClass(threading.Thread):
         # because it requires the model features so that root words of synonym lists
         # are only from the model features
         #
-        self.wseg = None
-        self.synonymlist = None
-        self.spell_correction = None
-        # Stemmer/Lemmatizer
-        self.lang_have_verb_conj = False
-        self.word_stemmer_lemmatizer = None
+        self.predict_class_txt_processor = None
+
         self.count_predict_calls = 0
 
         # Wait for model to be ready to load synonym & word lists
@@ -117,72 +110,21 @@ class PredictClass(threading.Thread):
                 + ": Model " + str(self.model_name) + '" ready. Loading synonym & word lists..'
             )
 
-            ret_obj = langhelper.LangHelper.get_word_segmenter(
-                lang                 = self.lang,
-                dirpath_wordlist     = self.dir_wordlist,
-                postfix_wordlist     = self.postfix_wordlist,
-                dirpath_app_wordlist = self.dir_wordlist_app,
-                postfix_app_wordlist = self.postfix_wordlist_app,
-                dirpath_synonymlist  = self.dirpath_synonymlist,
-                postfix_synonymlist  = self.postfix_synonymlist,
-                # We can only allow root words to be words from the model features
-                allowed_root_words   = self.model.get_model_features().tolist(),
-                do_profiling         = self.do_profiling
+            self.predict_class_txt_processor = pctxtprocessor.PredictClassTxtProcessor(
+                identifier_string      = self.identifier_string,
+                dir_path_model         = self.dir_path_model,
+                model_features_list    = self.model.get_model_features().tolist(),
+                lang                   = self.lang,
+                dirpath_synonymlist    = self.dirpath_synonymlist,
+                postfix_synonymlist    = self.postfix_synonymlist,
+                dir_wordlist           = self.dir_wordlist,
+                postfix_wordlist       = self.postfix_wordlist,
+                dir_wordlist_app       = self.dir_wordlist_app,
+                postfix_wordlist_app   = self.postfix_wordlist_app,
+                do_spelling_correction = self.do_spelling_correction,
+                do_word_stemming       = self.do_word_stemming,
+                do_profiling           = self.do_profiling
             )
-            self.wseg = ret_obj.wseg
-            self.synonymlist = ret_obj.snnlist
-
-            #
-            # For spelling correction
-            #
-            if self.do_spelling_correction:
-                try:
-                    self.spell_correction = spellcor.SpellingCorrection(
-                        lang              = self.lang,
-                        words_list        = self.model.get_model_features(),
-                        dir_path_model    = self.dir_path_model,
-                        identifier_string = self.identifier_string,
-                        do_profiling      = self.do_profiling
-                    )
-                    log.Log.important(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Spelling Correction for model "' + str(self.identifier_string)
-                        + '" initialized successfully.'
-                    )
-                except Exception as ex_spellcor:
-                    self.spell_correction = None
-                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Error initializing spelling correction for model "'\
-                             + str(self.identifier_string)\
-                             + '", got exception "' + str(ex_spellcor) + '".'
-                    log.Log.error(errmsg)
-
-            #
-            # For stemmer / lemmatization
-            #
-            if self.do_word_stemming:
-                lfobj = langfeatures.LangFeatures()
-                self.lang_have_verb_conj = lfobj.have_verb_conjugation(lang=self.lang)
-                log.Log.important(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Lang "' + str(self.lang) + '" verb conjugation = ' + str(self.lang_have_verb_conj) + '.'
-                )
-                self.word_stemmer_lemmatizer = None
-                if self.lang_have_verb_conj:
-                    try:
-                        self.word_stemmer_lemmatizer = lmtz.Lemmatizer(
-                            lang=self.lang
-                        )
-                        log.Log.important(
-                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Lang "' + str(self.lang) + '" stemmer/lemmatizer initialized successfully.'
-                        )
-                    except Exception as ex_stemmer:
-                        errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                                 + ': Lang "' + str(self.lang) + ' stemmer/lemmatizer failed to initialize: ' \
-                                 + str(ex_stemmer) + '.'
-                        log.Log.error(errmsg)
-                        self.word_stemmer_lemmatizer = None
 
             self.is_all_initializations_done = True
             log.Log.important(
@@ -269,72 +211,12 @@ class PredictClass(threading.Thread):
         self.wait_for_model_to_be_ready()
         self.wait_for_all_initializations_to_be_done()
 
-        starttime_prf = prf.Profiling.start()
-        space_profiling = '      '
-
-        # Segment words first
-        inputtext_trim = su.StringUtils.trim(inputtext)
-        # Returns a word array, e.g. ['word1', 'word2', 'x', 'y',...]
-        text_segmented_arr = self.wseg.segment_words(
-            text = su.StringUtils.trim(inputtext_trim),
-            return_array_of_split_words = True
+        processed_txt_array = self.predict_class_txt_processor.process_text(
+            inputtext = inputtext
         )
-
-        #
-        # Replace words with root words
-        # This step uses synonyms and replaces say "красивая", "милая", "симпатичная", all with "красивая"
-        # This will reduce training data without needing to put all versions of the same thing.
-        #
-        text_normalized_arr = self.synonymlist.normalize_text_array(
-            text_segmented_array = text_segmented_arr
-        )
-
-        text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
-
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
-            + '", normalized to "' + str(text_normalized_arr_lower) + '"'
-        )
-        if self.do_profiling:
-            log.Log.info(
-                '.' + space_profiling
-                + 'Chat ID="' + str(chatid) + '", Txt="' + str(text_segmented_arr) + '"'
-                + ' to "' + str(text_normalized_arr_lower) + '"'
-                + ' PROFILING Predict Class Text Features (replace root words): '
-                + prf.Profiling.get_time_dif_str(starttime_prf, prf.Profiling.stop())
-            )
-
-        #
-        # Spelling correction
-        #
-        if self.do_spelling_correction:
-            if self.spell_correction is not None:
-                text_normalized_arr_lower = self.spell_correction.do_spelling_correction(
-                    text_segmented_arr = text_normalized_arr_lower
-                )
-                log.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
-                    + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
-                )
-        #
-        # Stemming / Lemmatization
-        #
-        if self.do_word_stemming and self.lang_have_verb_conj:
-            if self.word_stemmer_lemmatizer:
-                for i in range(len(text_normalized_arr_lower)):
-                    text_normalized_arr_lower[i] = self.word_stemmer_lemmatizer.stem(
-                        word = text_normalized_arr_lower[i]
-                    )
-                log.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
-                    + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
-                )
 
         return self.predict_class_features(
-            v_feature_segmented = text_normalized_arr_lower,
+            v_feature_segmented = processed_txt_array,
             id                  = chatid,
             top                 = top,
             match_pct_within_top_score = match_pct_within_top_score,
@@ -445,7 +327,8 @@ class PredictClass(threading.Thread):
 if __name__ == '__main__':
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
