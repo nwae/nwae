@@ -140,7 +140,7 @@ class PredictClassTxtProcessor:
         inputtext_trim = su.StringUtils.trim(inputtext)
         # Returns a word array, e.g. ['word1', 'word2', 'x', 'y',...]
         text_segmented_arr = self.wseg.segment_words(
-            text = su.StringUtils.trim(inputtext_trim),
+            text = inputtext_trim,
             return_array_of_split_words = True
         )
 
