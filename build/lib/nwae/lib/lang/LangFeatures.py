@@ -40,14 +40,15 @@ class LangFeatures:
 
     ERROR_TOLERANCE = 0.000000000001
 
-    C_LANG_ID       = 'Language'
-    C_LANG_NAME     = 'LanguageName'
-    C_HAVE_ALPHABET = 'Alphabet'
-    C_CHAR_TYPE     = 'CharacterType'
-    C_HAVE_SYL_SEP  = 'SyllableSep'
-    C_SYL_SEP_TYPE  = 'SyllableSepType'
-    C_HAVE_WORD_SEP = 'WordSep'
-    C_WORD_SEP_TYPE = 'WordSepType'
+    C_LANG_ID        = 'Language'
+    C_LANG_NAME      = 'LanguageName'
+    C_HAVE_ALPHABET  = 'Alphabet'
+    C_CHAR_TYPE      = 'CharacterType'
+    C_HAVE_SYL_SEP   = 'SyllableSep'
+    C_SYL_SEP_TYPE   = 'SyllableSepType'
+    C_HAVE_WORD_SEP  = 'WordSep'
+    C_WORD_SEP_TYPE  = 'WordSepType'
+    C_HAVE_VERB_CONJ = 'HaveVerbConjugation'
 
     T_NONE = ''
     T_CHAR = 'character'
@@ -84,7 +85,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
         }
         lang_ko = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_KO,
@@ -95,7 +97,8 @@ class LangFeatures:
             # TODO Not really right to say it is char but rather a "syllable_character"
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
             LangFeatures.C_HAVE_WORD_SEP: True,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
         }
         lang_cn = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_CN,
@@ -105,7 +108,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_SYL_SEP:  True,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
             LangFeatures.C_HAVE_WORD_SEP: False,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_VERB_CONJ: False
         }
         lang_th = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_TH,
@@ -115,7 +119,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: False,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_VERB_CONJ: False
         }
         lang_vn = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_VN,
@@ -125,7 +130,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_SYL_SEP:  True,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_WORD_SEP: False,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_VERB_CONJ: False
         }
         lang_in = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_IN,
@@ -135,7 +141,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
         }
         self.langs = {
             LangFeatures.LANG_EN: lang_en,
@@ -165,6 +172,13 @@ class LangFeatures:
         lang_dict = self.langs[lang]
         return lang_dict[LangFeatures.C_WORD_SEP_TYPE]
 
+    def have_verb_conjugation(
+            self,
+            lang
+    ):
+        self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang]
+        return lang_dict[LangFeatures.C_HAVE_VERB_CONJ]
 
     def is_lang_token_same_with_charset(self, lang):
         # Languages that have the tokens as the character set, or languages with no syllable or unigram separator
@@ -286,7 +300,6 @@ if __name__ == '__main__':
         print ( 'Languages with word separator: ' + str(lf.get_languages_with_word_separator()) )
         print ( 'Languages with syllable separator:' + str(lf.get_languages_with_syllable_separator()) )
         print ( 'Languages with only syllable separator:' + str(lf.get_languages_with_only_syllable_separator()))
-
 
     demo_1()
     demo_2()

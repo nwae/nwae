@@ -7,19 +7,35 @@ import nltk.stem.snowball as snowball
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.utils.Profiling as prf
+import nwae.lib.lang.LangFeatures as lf
 
 
+#
+# TODO Support other languages, currently only English
+#
 class Lemmatizer:
 
     TYPE_PORTER_STEMMER = 'porter-stemmer'
     TYPE_SNOWBALL_STEMMER = 'snowball-stemmer'
     TYPE_WORDNET_LEMMATIZER = 'wordnet-lemmatizer'
 
+    SUPPORTED_LANGUAGES = [
+        lf.LangFeatures.LANG_EN
+    ]
+
     def __init__(
             self,
+            lang = lf.LangFeatures.LANG_EN,
             stemmer_type = TYPE_PORTER_STEMMER
     ):
+        self.lang = lang
         self.stemmer_type = stemmer_type
+
+        if lang not in Lemmatizer.SUPPORTED_LANGUAGES:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Language "' + str(lang) + '" not supported.'
+            )
 
         self.stemmer = None
 
@@ -34,7 +50,8 @@ class Lemmatizer:
             )
         else:
             raise Exception(
-                'Unrecognized stemmer type "' + str(self.stemmer_type) + '".'
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ':Unrecognized stemmer type "' + str(self.stemmer_type) + '".'
             )
 
         # Call once, because only the first one is slow
