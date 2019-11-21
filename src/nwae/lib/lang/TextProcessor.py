@@ -19,14 +19,14 @@ class TextProcessor:
     DEFAULT_SPACE_SPLITTER = ' '
 
     # Sentence padding if shorter than min length
-    _PAD = '_PAD'
+    W_PAD = '_PAD'
     # Start of sentence
-    _GO  = '_GO'
+    W_GO  = '_GO'
     # End of sentence
-    _EOS = '_EOS'
+    W_EOS = '_EOS'
     # Unknown word
-    _UNK = '_UNK'
-    _START_VOCAB = [_PAD, _GO, _EOS, _UNK]
+    W_UNK = '_UNK'
+    _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
     PAD_ID = 0
     GO_ID  = 1
     EOS_ID = 2
@@ -144,10 +144,10 @@ class TextProcessor:
         #
         # Map words to number
         #
-        dict_words[TextProcessor._PAD] = TextProcessor.PAD_ID
-        dict_words[TextProcessor._GO] = TextProcessor.GO_ID
-        dict_words[TextProcessor._EOS] = TextProcessor.EOS_ID
-        dict_words[TextProcessor._UNK] = TextProcessor.UNK_ID
+        dict_words[TextProcessor.W_PAD] = TextProcessor.PAD_ID
+        dict_words[TextProcessor.W_GO] = TextProcessor.GO_ID
+        dict_words[TextProcessor.W_EOS] = TextProcessor.EOS_ID
+        dict_words[TextProcessor.W_UNK] = TextProcessor.UNK_ID
 
         # Add to dictionary of words starting from highest term frequency
         for idx, item in enumerate(count_words.most_common(dict_size)):

@@ -378,7 +378,9 @@ class TrainingDataModel:
             stopwords      = stopwords
         )
         textcluster.calculate_top_keywords(
-            remove_quartile = keywords_remove_quartile
+            remove_quartile = keywords_remove_quartile,
+            # Add an unknown symbol together with the keywords, this is for handling words outside of the vocabulary
+            add_unknown_word_in_list = True
         )
         log.Log.info(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)

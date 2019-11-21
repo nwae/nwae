@@ -153,7 +153,8 @@ class TextClusterBasic:
     #
     def calculate_top_keywords(
             self,
-            remove_quartile=0
+            remove_quartile=0,
+            add_unknown_word_in_list=False
     ):
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -209,6 +210,15 @@ class TextClusterBasic:
 
         self.df_keywords_for_fv = df_word_freq_qt
         self.keywords_for_fv = list(df_word_freq_qt['Word'])
+
+        if add_unknown_word_in_list:
+            if txtprc.TextProcessor.W_UNK not in self.keywords_for_fv:
+                self.keywords_for_fv.append(txtprc.TextProcessor.W_UNK)
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Appended SYMBOL "' + str(txtprc.TextProcessor.W_UNK)
+                    + '" to keywords list for the purpose of unknown words.'
+                )
 
         return
 

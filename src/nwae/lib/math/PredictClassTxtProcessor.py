@@ -7,6 +7,7 @@ import nwae.lib.lang.LangHelper as langhelper
 import nwae.lib.lang.LangFeatures as langfeatures
 import nwae.lib.lang.nlp.SpellingCorrection as spellcor
 import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
+import nwae.lib.lang.TextProcessor as txtpcsr
 
 
 class PredictClassTxtProcessor:
@@ -188,5 +189,18 @@ class PredictClassTxtProcessor:
                     + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
+
+        #
+        # If not in model features, need to replace with '_UNK'
+        #
+        for i in range(len(text_normalized_arr_lower)):
+            if text_normalized_arr_lower[i] not in self.model_features_list:
+                text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_UNK
+
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Done text processing to: ' + str(text_normalized_arr_lower)
+            + ' from "' + str(inputtext) + '".'
+        )
 
         return text_normalized_arr_lower
