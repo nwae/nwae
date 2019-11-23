@@ -9,15 +9,15 @@ import nwae.lib.math.NumpyUtil as npUtil
 
 
 #
-# 데이터는 np array 형식으로 필요합니다
+# 데이터는 np array 타입으로 필요합니다
 #
 class TrainingDataModel:
 
     def __init__(
             self,
-            # np array 형식으호. Keras 라이브러리에서 x는 데이터를 의미해, Normalized data
+            # np array 타입. Keras 라이브러리에서 x는 데이터를 의미해, Normalized data
             x,
-            # np array 형식으호. Keras 라이브러리에서 y는 태그를 의미해
+            # np array 타입. Keras 라이브러리에서 y는 태그를 의미해
             y,
             # REMEMBER that x_name, y_name are informative & supplementary only,
             # major operations MUST only use x & y

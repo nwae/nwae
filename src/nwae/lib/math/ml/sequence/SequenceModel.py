@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import threading
 import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.ml.ModelInterface as modelIf
-import tensorflow as tf
+import collections
+import matplotlib.pyplot as plt
+import numpy as np
+# Tensorflow stuff
+from tensorflow import keras
 
 
 #
@@ -40,6 +46,19 @@ class SequenceModel(modelIf.ModelInterface):
         self.dir_path_model = dir_path_model
         self.training_data = training_data
         self.is_partial_training = is_partial_training
+
+        #
+        # TODO: Add option to select our own model, or keras/tf model
+        #
+        self.lstm_model = keras.Sequential()
+        # Add an Embedding layer expecting input vocab of size 1000, and
+        # output embedding dimension of size 64.
+        self.lstm_model.add(keras.layers.Embedding(input_dim=1000, output_dim=64))
+        # Add a LSTM layer with 128 internal units.
+        self.lstm_model.add(keras.layers.LSTM(128))
+        # Add a Dense layer with 10 units and softmax activation.
+        self.lstm_model.add(keras.layers.Dense(10, activation='softmax'))
+        self.lstm_model.summary()
 
         if self.is_partial_training:
             # In this case training data must exist
@@ -195,7 +214,20 @@ class SequenceModel(modelIf.ModelInterface):
 
 
 if __name__ == '__main__':
-    import nwae.lib.lang.nlp.Corpora as corpora
+    import nwae.config.Config as cf
+    config = cf.Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
+    )
 
+    obj = SequenceModel(
+        identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
+        dir_path_model    = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
+        training_data     = None,
+        is_partial_training = False
+    )
+    exit(0)
+
+    import nwae.lib.lang.nlp.Corpora as corpora
     data_set = corpora.Corpora().build_data_set()
     print('Prepared data set of length ' + str(len(data_set)))
