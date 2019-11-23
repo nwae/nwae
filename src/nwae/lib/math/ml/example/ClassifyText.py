@@ -5,12 +5,9 @@
 #
 
 from numpy import array
-from keras.preprocessing.text import one_hot
-from keras.preprocessing.sequence import pad_sequences
+import keras.preprocessing as kerasprep
+import keras.layers as keraslay
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers.embeddings import Embedding
 
 
 # Training data or Documents
@@ -34,12 +31,14 @@ lbls = array([1,1,1,1,1,0,0,0,0,0])
 #
 # Vocabulary dimension
 vs = 50
-enc_docs = [one_hot(d, vs) for d in docs]
+enc_docs = [kerasprep.text.one_hot(d, vs) for d in docs]
+print('Encoded Sentences:')
 print(enc_docs)
 
 # pad documents to a max length of 4 words
 max_length = 4
-p_docs = pad_sequences(enc_docs, maxlen=max_length, padding='post')
+p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding='post')
+print('Padded Encoded Sentences:')
 print(p_docs)
 
 #
@@ -47,15 +46,18 @@ print(p_docs)
 #
 # define the model
 modelEmb = Sequential()
-modelEmb.add(
-    Embedding(
+embedding_layer = keraslay.embeddings.Embedding(
         input_dim    = vs,
+        # Standardizes the vocabulary into 8 dims, just like our
+        # Metric Space Model that uses the vocabulary as dim by default
         output_dim   = 8,
         input_length = max_length
     )
-)
-modelEmb.add(Flatten())
-modelEmb.add(Dense(1, activation='sigmoid'))
+
+# Model
+modelEmb.add(embedding_layer)
+modelEmb.add(keraslay.Flatten())
+modelEmb.add(keraslay.Dense(1, activation='sigmoid'))
 # compile the model
 modelEmb.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
 # summarize the model
@@ -68,3 +70,6 @@ modelEmb.fit(p_docs, lbls, epochs=150, verbose=0)
 #
 loss, accuracy = modelEmb.evaluate(p_docs, lbls, verbose=2)
 print('Accuracy: %f' % (accuracy*100))
+
+embeddings = modelEmb.predict(p_docs)
+print(embeddings)
