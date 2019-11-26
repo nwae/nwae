@@ -67,7 +67,8 @@ class Translator:
 
             lg.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Source language "' + str(src_lang) + '", destination lang "' + str(des_lang) + '".'
+                + ': Source language "' + str(src_lang) + '", destination lang "' + str(des_lang)
+                + '". Tokens ' + str(token)
             )
 
             s = ''
