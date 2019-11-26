@@ -53,11 +53,20 @@ class SequenceModel(modelIf.ModelInterface):
         self.lstm_model = keras.Sequential()
         # Add an Embedding layer expecting input vocab of size 1000, and
         # output embedding dimension of size 64.
-        self.lstm_model.add(keras.layers.Embedding(input_dim=1000, output_dim=64))
+        self.lstm_model.add(
+            keras.layers.Embedding(
+                input_dim  = 1000,
+                output_dim = 64
+            )
+        )
         # Add a LSTM layer with 128 internal units.
-        self.lstm_model.add(keras.layers.LSTM(128))
+        self.lstm_model.add(
+            keras.layers.LSTM(128)
+        )
         # Add a Dense layer with 10 units and softmax activation.
-        self.lstm_model.add(keras.layers.Dense(10, activation='softmax'))
+        self.lstm_model.add(
+            keras.layers.Dense(10, activation='softmax')
+        )
         self.lstm_model.summary()
 
         if self.is_partial_training:

@@ -48,8 +48,7 @@ print(p_docs)
 modelEmb = Sequential()
 embedding_layer = keraslay.embeddings.Embedding(
         input_dim    = vs,
-        # Standardizes the vocabulary into 8 dims, just like our
-        # Metric Space Model that uses the vocabulary as dim by default
+        # Standardizes the vocabulary into 8 dims
         output_dim   = 8,
         input_length = max_length
     )

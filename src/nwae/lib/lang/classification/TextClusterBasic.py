@@ -226,8 +226,7 @@ class TextClusterBasic:
             self,
             freq_measure          = 'tf',
             feature_presence_only = False,
-            idf_matrix            = None,
-            split_sentence_by     = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
+            idf_matrix            = None
     ):
         #
         # 3. Model the sentences into a feature vector, using word frequency, relative positions, etc. as features
