@@ -26,6 +26,9 @@ class TextProcessor:
     W_EOS = '_EOS'
     # Unknown word
     W_UNK = '_UNK'
+    # Number
+    W_NUM = '_NUM'
+
     _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
     PAD_ID = 0
     GO_ID  = 1

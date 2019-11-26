@@ -211,14 +211,16 @@ class PredictClassTxtProcessor:
         #
         for i in range(len(text_normalized_arr_lower)):
             word = text_normalized_arr_lower[i]
-            # Ignore numbers
-            if re.match(pattern='[0-9]+', string=word):
-                continue
-            # Ignore punctuations, etc.
-            if word in self.words_no_replace_with_unk:
-                continue
+            # Check numbers first, re.match() is fast enough
+            # Replace numbers with separate symbol
+            if re.match(pattern='^[0-9]+$', string=word):
+                text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_NUM
             if word not in self.model_features_list:
-                text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_UNK
+                # Check punctuations last, because the probability of coming in here
+                # is very small, thus we speed things up
+                # Ignore punctuations, etc.
+                if word not in self.words_no_replace_with_unk:
+                    text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_UNK
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
