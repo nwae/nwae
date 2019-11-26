@@ -381,8 +381,7 @@ class ModelData:
 
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': x_name Data: Read ' + str(df_x_name.shape[0]) + ' lines'
-                + '\n\r' + str(self.x_name)
+                + ': x_name Data: Read ' + str(df_x_name.shape[0]) + ' lines: ' + str(self.x_name)
             )
 
             df_idf = pd.read_csv(
@@ -398,8 +397,7 @@ class ModelData:
                 self.idf = np.array([self.idf])
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': IDF Data: Read ' + str(df_idf.shape[0]) + ' lines'
-                + '\n\r' + str(self.idf)
+                + ': IDF Data: Read ' + str(df_idf.shape[0]) + ' lines: ' + str(self.idf)
             )
 
             df_x_ref = pd.read_csv(

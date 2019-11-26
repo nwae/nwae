@@ -10,6 +10,9 @@ import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
 import nwae.lib.lang.TextProcessor as txtpcsr
 
 
+#
+# When model updates, this also need to update. So be careful.
+#
 class PredictClassTxtProcessor:
 
     def __init__(
