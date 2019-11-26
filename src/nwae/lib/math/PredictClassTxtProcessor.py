@@ -215,7 +215,7 @@ class PredictClassTxtProcessor:
             # Replace numbers with separate symbol
             if re.match(pattern='^[0-9]+$', string=word):
                 text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_NUM
-            if word not in self.model_features_list:
+            elif word not in self.model_features_list:
                 # Check punctuations last, because the probability of coming in here
                 # is very small, thus we speed things up
                 # Ignore punctuations, etc.
