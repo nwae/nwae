@@ -4,11 +4,17 @@ import nwae.utils.Log as log
 import nwae.utils.StringUtils as su
 from inspect import currentframe, getframeinfo
 import nwae.lib.lang.LangHelper as langhelper
+import nwae.lib.lang.characters.LangCharacters as langchar
 import nwae.lib.lang.LangFeatures as langfeatures
 import nwae.lib.lang.nlp.SpellingCorrection as spellcor
 import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
+import nwae.lib.lang.TextProcessor as txtpcsr
+import re
 
 
+#
+# When model updates, this also need to update. So be careful.
+#
 class PredictClassTxtProcessor:
 
     def __init__(
@@ -43,6 +49,17 @@ class PredictClassTxtProcessor:
         self.do_spelling_correction = do_spelling_correction
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
+
+        self.words_no_replace_with_unk = \
+            langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS + \
+            langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS + \
+            langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS
+        self.words_no_replace_with_unk = list(set(self.words_no_replace_with_unk))
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': For model "' + str(self.identifier_string)
+            + '", words that will not replace with _UNK symbol: ' + str(self.words_no_replace_with_unk)
+        )
 
         #
         # We initialize word segmenter and synonym list after the model is ready
@@ -188,5 +205,27 @@ class PredictClassTxtProcessor:
                     + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
+
+        #
+        # If not in model features, need to replace with '_UNK'
+        #
+        for i in range(len(text_normalized_arr_lower)):
+            word = text_normalized_arr_lower[i]
+            # Check numbers first, re.match() is fast enough
+            # Replace numbers with separate symbol
+            if re.match(pattern='^[0-9]+$', string=word):
+                text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_NUM
+            elif word not in self.model_features_list:
+                # Check punctuations last, because the probability of coming in here
+                # is very small, thus we speed things up
+                # Ignore punctuations, etc.
+                if word not in self.words_no_replace_with_unk:
+                    text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_UNK
+
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Done text processing to: ' + str(text_normalized_arr_lower)
+            + ' from "' + str(inputtext) + '".'
+        )
 
         return text_normalized_arr_lower

@@ -84,6 +84,11 @@ class ModelInterface(threading.Thread):
         # This value must be initialized by the derived class
         self.y_id = None
 
+        # We keep the count of how many times model reloaded for wrapper classes
+        # update themselves (e.g. text processors, words segmenters, vocabulary
+        # from model features, etc.
+        self.model_reload_counter = 0
+
         return
 
     def initialize_training_data_paths(self):
@@ -160,6 +165,7 @@ class ModelInterface(threading.Thread):
         )
         if not self.is_model_ready():
             self.load_model_parameters()
+            self.model_reload_counter += 1
 
         sleep_time = 10
         while True:
@@ -179,6 +185,8 @@ class ModelInterface(threading.Thread):
                             + ': Model "' + self.identifier_string
                             + '" failed to load. Try again in ' + str(sleep_time) + ' secs..'
                         )
+                    else:
+                        self.model_reload_counter += 1
                 finally:
                     self.__mutex_load_model.release()
             time.sleep(sleep_time)
@@ -206,6 +214,9 @@ class ModelInterface(threading.Thread):
                 raise Exception(errmsg)
             time.sleep(sleep_time_wait_rfv)
             count = count + 1
+
+    def get_model_reloaded_counter(self):
+        return self.model_reload_counter
 
     def get_model_features(
             self

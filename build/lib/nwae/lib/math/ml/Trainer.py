@@ -116,7 +116,8 @@ class Trainer(threading.Thread):
                 raise Exception(errmsg)
 
         #
-        # If not in proper TrainingDataModel type, we assume the training data is legacy text form
+        # If not in proper TrainingDataModel type, we assume the training data is legacy
+        # pandas DataFrame type.
         #
         if type(self.training_data) is pd.DataFrame:
             lg.Log.info(

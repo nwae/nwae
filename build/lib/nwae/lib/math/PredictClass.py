@@ -75,6 +75,9 @@ class PredictClass(threading.Thread):
             do_profiling            = self.do_profiling
         )
         self.model.start()
+        # Keep track if model reloaded. This counter is manually updated by this class.
+        self.model_last_reloaded_counter = 0
+        self.load_text_processor_mutex = threading.Lock()
 
         # After loading model, we still need to load word lists, etc.
         self.is_all_initializations_done = False
@@ -104,10 +107,23 @@ class PredictClass(threading.Thread):
             log.Log.critical(errmsg)
             raise Exception(errmsg)
 
+        self.load_text_processor()
+        return
+
+    def load_text_processor(self):
         try:
+            self.load_text_processor_mutex.acquire()
+            # Don't allow to load again
+            if self.model_last_reloaded_counter == self.model.get_model_reloaded_counter():
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Model "' + str(self.identifier_string) + '" not reloading PredictClassTxtProcessor.'
+                )
+                return
+
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ": Model " + str(self.model_name) + '" ready. Loading synonym & word lists..'
+                + ': Model "' + str(self.model_name) + '" ready. Loading synonym & word lists..'
             )
 
             self.predict_class_txt_processor = pctxtprocessor.PredictClassTxtProcessor(
@@ -127,16 +143,23 @@ class PredictClass(threading.Thread):
             )
 
             self.is_all_initializations_done = True
+            # Manually update this model last reloaded counter
+            self.model_last_reloaded_counter = self.model.get_model_reloaded_counter()
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': All initializations done for model "' + str(self.identifier_string) + '".'
+                + ': Model "' + str(self.identifier_string)
+                + '" All initializations done for model "' + str(self.identifier_string)
+                + '". Model Reload counter = ' + str(self.model_last_reloaded_counter)
             )
         except Exception as ex:
             errmsg = \
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Exception initializing synonym & word lists: ' + str(ex)
+                + ': Model "' + str(self.identifier_string)\
+                + '" Exception initializing synonym & word lists: ' + str(ex)
             log.Log.critical(errmsg)
             raise Exception(errmsg)
+        finally:
+            self.load_text_processor_mutex.release()
 
     #
     # Two things need to be ready, the model and our synonym list that depends on x_name from the model
@@ -145,6 +168,19 @@ class PredictClass(threading.Thread):
             self,
             wait_max_time = 10
     ):
+        #
+        # Model reloaded without us knowing, e.g. user trained it, etc.
+        #
+        if self.model_last_reloaded_counter != self.model.get_model_reloaded_counter():
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + 'Model "' + str(self.identifier_string) + '" last counter '
+                + str(self.model_last_reloaded_counter) + ' not equal to model counter '
+                + str(self.model.get_model_reloaded_counter())
+                + '. Model updated, thus we must update our text processor.'
+            )
+            self.load_text_processor()
+
         if self.model.is_model_ready():
             return
 
