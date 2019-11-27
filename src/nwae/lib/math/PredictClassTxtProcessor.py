@@ -154,7 +154,8 @@ class PredictClassTxtProcessor:
     #
     def process_text(
             self,
-            inputtext
+            inputtext,
+            return_as_string = False
     ):
         # Segment words first
         inputtext_trim = su.StringUtils.trim(inputtext)
@@ -232,4 +233,10 @@ class PredictClassTxtProcessor:
             + ' from "' + str(inputtext) + '".'
         )
 
-        return text_normalized_arr_lower
+        if return_as_string:
+            print_separator = txtpcsr.TextProcessor.get_word_separator(
+                lang=self.lang
+            )
+            return print_separator.join(text_normalized_arr_lower)
+        else:
+            return text_normalized_arr_lower

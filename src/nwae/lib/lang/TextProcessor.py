@@ -5,6 +5,7 @@ import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import collections
 import pickle
+import nwae.lib.lang.LangFeatures as lf
 
 
 #
@@ -35,6 +36,15 @@ class TextProcessor:
     EOS_ID = 2
     UNK_ID = 3
     OP_DICT_IDS = [PAD_ID, GO_ID, EOS_ID, UNK_ID]
+
+    @staticmethod
+    def get_word_separator(
+            lang
+    ):
+        word_separator = TextProcessor.DEFAULT_WORD_SPLITTER
+        if lang in (lf.LangFeatures.LANG_CN, lf.LangFeatures.LANG_TH):
+            word_separator = TextProcessor.DEFAULT_SPACE_SPLITTER
+        return word_separator
 
     def __init__(
             self,

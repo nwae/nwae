@@ -453,13 +453,9 @@ class WordSegmentation(object):
 
     def __return_array_words_as_string(self, array_words):
 
-        print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
-        #
-        # TODO
-        #   Standardize all to the same print separator
-        #
-        if self.lang in (lf.LangFeatures.LANG_CN, lf.LangFeatures.LANG_TH):
-            print_separator = txtprocessor.TextProcessor.DEFAULT_SPACE_SPLITTER
+        print_separator = txtprocessor.TextProcessor.get_word_separator(
+            lang = self.lang
+        )
 
         s = print_separator.join(array_words)
 
