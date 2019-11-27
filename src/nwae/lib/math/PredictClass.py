@@ -251,13 +251,23 @@ class PredictClass(threading.Thread):
             inputtext = inputtext
         )
 
-        return self.predict_class_features(
+        predict_result = self.predict_class_features(
             v_feature_segmented = processed_txt_array,
             id                  = chatid,
             top                 = top,
             match_pct_within_top_score = match_pct_within_top_score,
             include_match_details = include_match_details
         )
+
+        class retclass:
+            def __init__(self, predict_result, processed_text_arr):
+                self.predict_result = predict_result
+                self.processed_text_arr = processed_text_arr
+        retobj = retclass(
+            predict_result = predict_result,
+            processed_text_arr = processed_txt_array
+        )
+        return retobj
 
     #
     # A helper class to predict class given features instead of a nice array
@@ -357,6 +367,7 @@ class PredictClass(threading.Thread):
                 + ' PROFILING predict class: '
                 + prf.Profiling.get_time_dif_str(starttime_predict_class, prf.Profiling.stop())
             )
+
         return predict_result
 
 
