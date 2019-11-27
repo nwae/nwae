@@ -20,15 +20,15 @@ class TextProcessor:
     DEFAULT_SPACE_SPLITTER = ' '
 
     # Sentence padding if shorter than min length
-    W_PAD = '_PAD'
+    W_PAD = '_pad'
     # Start of sentence
-    W_GO  = '_GO'
+    W_GO  = '_go'
     # End of sentence
-    W_EOS = '_EOS'
+    W_EOS = '_eos'
     # Unknown word
-    W_UNK = '_UNK'
+    W_UNK = '_unk'
     # Number
-    W_NUM = '_NUM'
+    W_NUM = '_num'
 
     _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
     PAD_ID = 0
