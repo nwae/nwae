@@ -16,33 +16,46 @@ class LatinEquivalentForm:
         return
 
     @staticmethod
+    def have_latin_equivalent_form(
+            lang
+    ):
+        return lang in [
+            lf.LangFeatures.LANG_VI,
+            lf.LangFeatures.LANG_VN
+        ]
+
+    @staticmethod
     def get_latin_equivalent_form(
             # Language is just to speed up the function so that
             # it does not do anything if not required, you may pass None
             lang,
             word
     ):
-        wordlatin = word
-        # For Vietnamese, we add a Latin column mapping (actually we can also do this for other languages)
         if lang in [lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN]:
-            # Map [ăâ àằầ ảẳẩ ãẵẫ áắấ ạặậ] to latin 'a', [ê èề ẻể ẽễ éế ẹệ] to 'e', [ì ỉ ĩ í ị] to 'i',
-            # [ôơ òồờ ỏổở õỗỡ óốớ ọộợ] to 'o', [ư ùừ ủử ũữ úứ ụự] to u, [đ] to 'd'
-            wordlatin = re.sub('[ăâàằầảẳẩãẵẫáắấạặậ]', 'a', wordlatin)
-            wordlatin = re.sub('[ĂÂÀẰẦẢẲẨÃẴẪÁẮẤẠẶẬ]', 'A', wordlatin)
-            wordlatin = re.sub('[êèềẻểẽễéếẹệ]', 'e', wordlatin)
-            wordlatin = re.sub('[ÊÈỀẺỂẼỄÉẾẸỆ]', 'E', wordlatin)
-            wordlatin = re.sub('[ìỉĩíị]', 'i', wordlatin)
-            wordlatin = re.sub('[ÌỈĨÍỊ]', 'I', wordlatin)
-            wordlatin = re.sub('[ôơòồờỏổởõỗỡóốớọộợ]', 'o', wordlatin)
-            wordlatin = re.sub('[ÔƠÒỒỜỎỔỞÕỖỠÓỐỚỌỘỢ]', 'O', wordlatin)
-            wordlatin = re.sub('[ưùừủửũữúứụự]', 'u', wordlatin)
-            wordlatin = re.sub('[ƯÙỪỦỬŨỮÚỨỤỰ]', 'U', wordlatin)
-            wordlatin = re.sub('[đ]', 'd', wordlatin)
-            wordlatin = re.sub('[Đ]', 'D', wordlatin)
-            wordlatin = re.sub('[ýỳỷỹỵ]', 'y', wordlatin)
+            return LatinEquivalentForm.get_latin_equivalent_form_vietnamese(word=word)
         else:
-            # TODO: Convert to latin equivalent for other languages
-            wordlatin = word
+            return word
+
+    @staticmethod
+    def get_latin_equivalent_form_vietnamese(
+            word
+    ):
+        wordlatin = word
+        # Map [ăâ àằầ ảẳẩ ãẵẫ áắấ ạặậ] to latin 'a', [ê èề ẻể ẽễ éế ẹệ] to 'e', [ì ỉ ĩ í ị] to 'i',
+        # [ôơ òồờ ỏổở õỗỡ óốớ ọộợ] to 'o', [ư ùừ ủử ũữ úứ ụự] to u, [đ] to 'd'
+        wordlatin = re.sub('[ăâàằầảẳẩãẵẫáắấạặậ]', 'a', wordlatin)
+        wordlatin = re.sub('[ĂÂÀẰẦẢẲẨÃẴẪÁẮẤẠẶẬ]', 'A', wordlatin)
+        wordlatin = re.sub('[êèềẻểẽễéếẹệ]', 'e', wordlatin)
+        wordlatin = re.sub('[ÊÈỀẺỂẼỄÉẾẸỆ]', 'E', wordlatin)
+        wordlatin = re.sub('[ìỉĩíị]', 'i', wordlatin)
+        wordlatin = re.sub('[ÌỈĨÍỊ]', 'I', wordlatin)
+        wordlatin = re.sub('[ôơòồờỏổởõỗỡóốớọộợ]', 'o', wordlatin)
+        wordlatin = re.sub('[ÔƠÒỒỜỎỔỞÕỖỠÓỐỚỌỘỢ]', 'O', wordlatin)
+        wordlatin = re.sub('[ưùừủửũữúứụự]', 'u', wordlatin)
+        wordlatin = re.sub('[ƯÙỪỦỬŨỮÚỨỤỰ]', 'U', wordlatin)
+        wordlatin = re.sub('[đ]', 'd', wordlatin)
+        wordlatin = re.sub('[Đ]', 'D', wordlatin)
+        wordlatin = re.sub('[ýỳỷỹỵ]', 'y', wordlatin)
 
         return wordlatin
 
