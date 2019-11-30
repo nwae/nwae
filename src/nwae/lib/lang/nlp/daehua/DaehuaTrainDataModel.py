@@ -134,15 +134,11 @@ class DaehuaTrainDataModel:
             self.remove_variable_declaration(decl_list = intent_names_list)
 
         #
-        # Clean variables from txt and txt segmented
+        # Clean variables from txt
         #
         text_list = df_daehua_processed[DaehuaTrainDataModel.COL_TDATA_TEXT].tolist()
         df_daehua_processed[DaehuaTrainDataModel.COL_TDATA_TEXT] =\
             self.remove_variables_and_variable_declarations(str_list = text_list)
-
-        text_seg_list = df_daehua_processed[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].tolist()
-        df_daehua_processed[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED] =\
-            self.remove_variables_and_variable_declarations(str_list = text_seg_list)
 
         # lg.Log.debugdebug(
         #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
