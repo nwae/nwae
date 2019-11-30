@@ -62,7 +62,7 @@ class LangCharacters(object):
 
     # Just Latin specific to Vietnamese
     UNICODE_BLOCK_LATIN_VIETNAMESE =\
-        list(u'ăâàằầảẳẩãẵẫáắấạặậêèềẻểẽễéếẹệìỉĩíịôơòồờỏổởõỗỡóốớọộợưùừủửũữúứụựđ')
+        list(u'ăâàằầảẳẩãẵẫáắấạặậêèềẻểẽễéếẹệìỉĩíịôơòồờỏổởõỗỡóốớọộợưùừủửũữúứụựđýỳỷỹỵ')
 
     #
     # CJK
