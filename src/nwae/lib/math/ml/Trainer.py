@@ -115,21 +115,6 @@ class Trainer(threading.Thread):
                 lg.Log.error(errmsg)
                 raise Exception(errmsg)
 
-        #
-        # If not in proper TrainingDataModel type, we assume the training data is legacy
-        # pandas DataFrame type.
-        #
-        if type(self.training_data) is pd.DataFrame:
-            lg.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Convert pandas DataFrame type to TrainingDataModel type...'
-            )
-            tdm_object = Trainer.convert_to_training_data_model_type(
-                td = self.training_data
-            )
-            # Reassign back to training data
-            self.training_data = tdm_object
-
         if type(self.training_data) is not tdm.TrainingDataModel:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -305,6 +290,7 @@ class Trainer(threading.Thread):
     @staticmethod
     def convert_to_training_data_model_type(
             td,
+            lang = None,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
     ):
@@ -350,6 +336,7 @@ class Trainer(threading.Thread):
         np_label_id = np.array(list(classes_id[np_indexes]))
         # Convert text to usable array form for further NLP processing
         txtprocessor_obj = txtprocessor.TextProcessor(
+            lang = lang,
             text_segmented_list = list(text_segmented[np_indexes])
         )
         text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()

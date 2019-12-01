@@ -86,6 +86,7 @@ class SynonymList:
         words_latin = []
         measures_latin = []
         for line in content:
+            line = str(line)
             line = su.StringUtils.trim(line)
             # Remove empty lines
             if len(line)<=0: continue
