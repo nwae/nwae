@@ -27,8 +27,11 @@ class TextProcessor:
     W_EOS = '_eos'
     # Unknown word
     W_UNK = '_unk'
+    # Other common symbols
     # Number
     W_NUM = '_num'
+    # URL
+    W_URI = '_uri'
 
     _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
     PAD_ID = 0
@@ -95,7 +98,7 @@ class TextProcessor:
                 + ': Could not clean punctuations and convert to lowercase for sentence "'\
                 + str(sentence) + '" exception message: ' + str(ex) + '.'
             lg.Log.error(errmsg)
-            raise Exception(errmsg)
+            return None
 
     #
     # We want to convert a list of segmented text:
@@ -123,12 +126,6 @@ class TextProcessor:
                 + '"\n\r   "' + str(sent)
                 + '" to:\n\r   ' + str(split_arr)
             )
-            # Do some separation of punctuations stuck to a word
-            split_arr = TextProcessor.clean_punctuations(
-                sentence = split_arr
-            )
-            # Remove empty string ''
-            split_arr = [ x for x in split_arr if x!='' ]
             # Append to return array
             sentences_list.append(split_arr)
 
@@ -245,6 +242,9 @@ if __name__ == '__main__':
 
     clean_sent = [TextProcessor.clean_punctuations(sentence=s) for s in sent_list_list]
     lg.Log.info('Cleaned sentence: ' + str(clean_sent[0:10]))
+
+    clean_empty_sent = [x for x in clean_sent if x != '']
+    lg.Log.info('Final Cleaned sentence: ' + str(clean_sent[0:10]))
 
     dict_words = obj.create_indexed_dictionary(
         sentences = clean_sent

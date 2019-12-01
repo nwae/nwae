@@ -10,6 +10,7 @@ import nwae.lib.lang.nlp.SpellingCorrection as spellcor
 import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
 import nwae.lib.lang.TextProcessor as txtpcsr
 import re
+from mex.MexBuiltInTypes import MexBuiltInTypes
 
 
 #
@@ -157,12 +158,50 @@ class PredictClassTxtProcessor:
             inputtext,
             return_as_string = False
     ):
-        # Segment words first
-        inputtext_trim = su.StringUtils.trim(inputtext)
+        #
+        # 1st Round replace with very special symbols first.
+        # There will be multiple rounds for this.
+        #
+        pat_rep_list = [
+            # {'pattern': '[0-9]+[.,][0-9]+', 'repl': ' ' + txtpcsr.TextProcessor.W_NUM + ' '},
+            {
+                'pattern': MexBuiltInTypes.REGEX_URI,
+                'repl': ' ' + txtpcsr.TextProcessor.W_URI + ' '
+            },
+        ]
+        inputtext_sym =  su.StringUtils.trim(str(inputtext))
+        for pat_rep in pat_rep_list:
+            inputtext_sym = re.sub(
+                pattern = pat_rep['pattern'],
+                repl    = pat_rep['repl'],
+                string  = inputtext_sym
+            )
+
+        #
+        # Segment words
+        #
         # Returns a word array, e.g. ['word1', 'word2', 'x', 'y',...]
         text_segmented_arr = self.wseg.segment_words(
-            text = inputtext_trim,
+            text = inputtext_sym,
             return_array_of_split_words = True
+        )
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text "' + str(inputtext) + '" segmented to: ' + str(text_segmented_arr)
+        )
+
+        #
+        # Remove basic punctuations stuck to word
+        #
+        # Will return None on error
+        tmp_arr = txtpcsr.TextProcessor.clean_punctuations(
+            sentence = text_segmented_arr
+        )
+        if type(tmp_arr) in [list, tuple]:
+            text_segmented_arr = tmp_arr
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text "' + str(inputtext) + '" clean punctuations to: ' + str(text_segmented_arr)
         )
 
         #
@@ -178,7 +217,7 @@ class PredictClassTxtProcessor:
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+            + ': Text "' + str(inputtext)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
         )
 
@@ -192,7 +231,7 @@ class PredictClassTxtProcessor:
                 )
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+                    + ': Text "' + str(inputtext)
                     + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
                 )
         #
@@ -206,18 +245,22 @@ class PredictClassTxtProcessor:
                     )
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext) + '" segmented to "' + str(text_segmented_arr)
+                    + ': Text "' + str(inputtext)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
 
         #
-        # If not in model features, need to replace with '_UNK'
+        # 2nd round replace with special symbols for numbers, unrecognized vocabulary, etc.
         #
         for i in range(len(text_normalized_arr_lower)):
             word = text_normalized_arr_lower[i]
             # Check numbers first, re.match() is fast enough
             # Replace numbers with separate symbol
             if re.match(pattern='^[0-9]+$', string=word):
+                log.Log.debugdebug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Found for number in word "' + str(word) + '"'
+                )
                 text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_NUM
             elif self.model_features_list is not None:
                 if word not in self.model_features_list:
@@ -226,6 +269,9 @@ class PredictClassTxtProcessor:
                     # Ignore punctuations, etc.
                     if word not in self.words_no_replace_with_unk:
                         text_normalized_arr_lower[i] = txtpcsr.TextProcessor.W_UNK
+
+        # Finally remove empty words in array
+        text_normalized_arr_lower = [x for x in text_normalized_arr_lower if x != '']
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -240,3 +286,36 @@ class PredictClassTxtProcessor:
             return print_separator.join(text_normalized_arr_lower)
         else:
             return text_normalized_arr_lower
+
+
+if __name__ == '__main__':
+    from nwae.config.Config import Config
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
+    )
+    lang = 'th'
+
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+
+    obj = PredictClassTxtProcessor(
+        identifier_string      = 'test',
+        # Don't need directory path for model, as we will not do spelling correction
+        dir_path_model         = None,
+        # Don't need features/vocabulary list from model
+        model_features_list    = None,
+        lang                   = lang,
+        dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist       = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dir_wordlist_app       = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_wordlist_app   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        do_spelling_correction = False,
+        do_word_stemming       = False,
+        do_profiling           = False
+    )
+    obj.process_text(
+        inputtext = 'ปั่นสล็อต100ครั้ง'
+    )
+
