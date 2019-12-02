@@ -10,7 +10,6 @@ import nwae.lib.math.Cluster as clst
 import collections
 import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.LangFeatures as lf
-import nwae.utils.StringUtils as su
 import nwae.lib.lang.model.FeatureVector as fv
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
@@ -33,70 +32,13 @@ from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 class TextClusterBasic:
 
     #
-    # Do some basic filtering like removing numbers, punctuations, etc.
-    # So that we can proceed to get keywords or other NLP stuff.
-    #
-    @staticmethod
-    def filter_words_array(
-            words_array,
-            stopwords,
-            sep = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
-    ):
-        try:
-            # Remove empty string ''
-            all_words_split = [ x for x in words_array if x!='' ]
-
-            if len(all_words_split) == 0:
-                return ''
-
-            # Remove numbers, or just fullstop/commas
-            df_tmp = pd.DataFrame({'Word':all_words_split})
-            is_number = df_tmp['Word'].str.match(pat='^[0-9.,]+$', case=False)
-            df_tmp = df_tmp[~is_number]
-
-            sentence_txt_prefiltered = list(df_tmp['Word'])
-            new_sentence = []
-            for word in sentence_txt_prefiltered:
-                word = word.lower()
-                # Ignore empty string
-                if word == '':
-                    continue
-
-                # Remove word/sentence separators, punctuations
-                if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
-                        or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
-                        or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
-                    continue
-                # Clean up punctuations at the end of a word
-                word = re.sub('[.,:;\[\]{}\-"'']$', '', word)
-
-                #
-                # Remove stopwords, quite an important step to improve clustering accuracy.
-                # TODO: Once we have an efficient keyword extraction algorithm, we won't need stopwords anymore.
-                #
-                if (word in stopwords):
-                    log.Log.debug('Stopword [' + word + '] ignored..')
-                    continue
-                new_sentence.append(word)
-
-            return new_sentence
-        except Exception as ex:
-            errmsg = str(TextClusterBasic.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Error filtering sentence "' + str(words_array)\
-                     + '", stopwords ' + str(stopwords) + ', using separator "' + str(sep) + '".'\
-                     + ' Got exception ' + str(ex) + '.'
-            log.Log.error(errmsg)
-            raise Exception(errmsg)
-
-    #
     # Initialize with a list of text, assumed to be already word separated by space.
-    # TODO: Can't default to just [space] as word separator for languages like Vietnamese.
     #
     def __init__(
             self,
             # A list of text sentences in list type, already in lowercase and cleaned of None or ''.
-            sentences_list,
-            stopwords
+            # Preprocessing assumed to be done and no text processing will be done here.
+            sentences_list
     ):
         self.sentences_list = sentences_list
         log.Log.debug(
@@ -104,9 +46,6 @@ class TextClusterBasic:
             + ': Sentences list (before filter):\n\r' + str(self.sentences_list)
         )
         self.__sanity_check()
-
-        # Since we use automated IDF already, stopwords are not really needed anymore
-        self.stopwords = stopwords
 
         # First we need the keywords for feature vector, then the sentence matrix based on these keywords
         self.df_keywords_for_fv = None
@@ -149,6 +88,20 @@ class TextClusterBasic:
         self.keywords_for_fv = list(df_keywords['Word'])
         return
 
+    def remove_non_keywords(
+            self,
+            words_list
+    ):
+        words_list_pure = []
+        for word in words_list:
+            # Ignore word/sentence separators, punctuations
+            if (word in lc.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) \
+                    or (word in lc.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) \
+                    or (word in lc.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS):
+                continue
+            words_list_pure.append(word)
+        return words_list_pure
+
     #
     # TODO: Add POS tagging to word segmentation so that POS tag will be another feature,
     # TODO: and use some kind of keyword extraction algorithm.
@@ -161,23 +114,14 @@ class TextClusterBasic:
     ):
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ' : Calculating Top Keywords. Using the following stopwords:' + str(self.stopwords)
+            + ' : Calculating Top Keywords..'
         )
-
-        #
-        # Get highest frequency words from the split sentences, and remove stop words
-        #
 
         # Paste all sentences into a single huge vector
-        all_words = [su.StringUtils.trim(w).lower() for sent in self.sentences_list for w in sent]
+        all_words = [w for sent in self.sentences_list for w in sent]
+        all_words_pure = self.remove_non_keywords(words_list=all_words)
+        col = collections.Counter(all_words_pure)
 
-        all_words_split = TextClusterBasic.filter_words_array(
-            words_array   = all_words,
-            stopwords     = self.stopwords,
-            sep           = txtprc.TextProcessor.DEFAULT_WORD_SPLITTER
-        )
-
-        col = collections.Counter(all_words_split)
         # Order by top frequency keywords, and also convert to a Dictionary type (otherwise we can't extract
         # into DataFrame columns later)
         col = col.most_common()
@@ -492,14 +436,13 @@ class TextClusterBasic:
         def do_clustering(
                 self,
                 text,
-                stopwords,
                 ncenters,
                 feature_presence_only = False,
                 freq_measure = 'tf',
                 weigh_idf    = False
         ):
 
-            tc = TextClusterBasic(text, stopwords)
+            tc = TextClusterBasic(text)
             tc.calculate_top_keywords(remove_quartile=50)
 
             cluster_labels = tc.cluster_text(
@@ -515,6 +458,11 @@ class TextClusterBasic:
 
         def test_textcluster_english(self):
             lang = lf.LangFeatures.LANG_EN
+            stopwords = [
+                'the', 'of', 'in', 'on', 'and', 'or', 'to', 'be', 'a', 'is', 'are', 'at', 'as', 'for', 'this', 'that',
+                'was', 'were', 'which', 'when', 'where', 'will', 'would', 'with', 'his', 'her', 'it', 'from', 'than',
+                'who', 'while', 'they', 'could', 'these', 'those', 'has', 'have', 'through', 'some', 'other', 'way'
+            ]
             self.txt_preprocessor = TxtPreprocessor(
                 identifier_string      = str(lang) + ' test',
                 # Don't need directory path for model, as we will not do spelling correction
@@ -528,6 +476,7 @@ class TextClusterBasic:
                 postfix_wordlist       = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
                 dir_wordlist_app       = self.config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
                 postfix_wordlist_app   = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+                stopwords_list         = stopwords,
                 do_spelling_correction = False,
                 do_word_stemming       = lf.LangFeatures().have_verb_conjugation(lang=lang),
                 do_profiling           = False
@@ -558,11 +507,6 @@ class TextClusterBasic:
                 'The proliferation of different models of concurrency has motivated some researchers to develop ways to unify these different theoretical models.',
                 'The Concurrency Representation Theorem in the actor model provides a fairly general way to represent concurrent systems that are closed in the sense that they do not receive communications from outside.'
             ]
-            stopwords = [
-                'the', 'of', 'in', 'on', 'and', 'or', 'to', 'be', 'a', 'is', 'are', 'at', 'as', 'for', 'this', 'that',
-                'was', 'were', 'which', 'when', 'where', 'will', 'would', 'with', 'his', 'her', 'it', 'from', 'than',
-                'who', 'while', 'they', 'could', 'these', 'those', 'has', 'have', 'through', 'some', 'other', 'way'
-            ]
 
             text_sentences_arr = [self.txt_preprocessor.process_text(inputtext=x) for x in text]
             print('PRE-PROCESSED ' + str(lang) + ' SENTENCES:\n\r' + str(text_sentences_arr))
@@ -571,7 +515,6 @@ class TextClusterBasic:
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
                 text         = text_sentences_arr,
-                stopwords    = stopwords,
                 ncenters     = 3,
                 freq_measure = 'normalized',
                 weigh_idf    = False
@@ -582,7 +525,6 @@ class TextClusterBasic:
             print('Weighing by IDF..')
             self.do_clustering(
                 text         = text_sentences_arr,
-                stopwords    = stopwords,
                 ncenters     = 3,
                 freq_measure = 'normalized',
                 weigh_idf    = True
@@ -596,7 +538,6 @@ class TextClusterBasic:
             # do_clustering(text=text, stopwords=stopwords, ncenters=3, feature_presence_only=True, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
                 text      = text_sentences_arr,
-                stopwords = stopwords,
                 ncenters  = 3,
                 feature_presence_only = True,
                 freq_measure          = 'normalized',
@@ -608,7 +549,6 @@ class TextClusterBasic:
             print('Weighing by IDF..')
             self.do_clustering(
                 text      = text_sentences_arr,
-                stopwords = stopwords,
                 ncenters  = 3,
                 feature_presence_only = True,
                 freq_measure          = 'normalized',
@@ -631,6 +571,7 @@ class TextClusterBasic:
                 postfix_wordlist       = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
                 dir_wordlist_app       = self.config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
                 postfix_wordlist_app   = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+                stopwords_list         = ['在', '年', '是', '说', '的', '和', '已经'],
                 do_spelling_correction = False,
                 do_word_stemming       = lf.LangFeatures().have_verb_conjugation(lang=lang),
                 do_profiling           = False
@@ -652,9 +593,6 @@ class TextClusterBasic:
                 '他 还 说 ， 在 1月 6日 发动 攻击 的 技术 评估 显示 ，" 在 世界 所有 其他 地方 使用 无人机 发动 恐怖 攻击 已经 成为 现实 威胁"'
                 # Article 3
             ]
-            stopwords = [
-                '在', '年', '是', '说', '的', '和', '已经'
-            ]
 
             text_sentences_arr = [self.txt_preprocessor.process_text(inputtext=x) for x in text]
             print('PRE-PROCESSED ' + str(lang) + ' SENTENCES:\n\r' + str(text_sentences_arr))
@@ -663,7 +601,6 @@ class TextClusterBasic:
             # do_clustering(text=text, stopwords=stopwords, ncenters=2, freq_measure='tf', weigh_idf=False, verbose=0)
             self.do_clustering(
                 text         = text_sentences_arr,
-                stopwords    = stopwords,
                 ncenters     = 2,
                 freq_measure = 'normalized',
                 weigh_idf    = False
@@ -674,7 +611,6 @@ class TextClusterBasic:
             print('Weighing by IDF..')
             self.do_clustering(
                 text         = text_sentences_arr,
-                stopwords    = stopwords,
                 ncenters     = 2,
                 freq_measure = 'normalized',
                 weigh_idf    = True
