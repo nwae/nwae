@@ -2,7 +2,6 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
-import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as sl
 import nwae.lib.lang.nlp.WordSegmentation as ws
 
