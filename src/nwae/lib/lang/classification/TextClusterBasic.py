@@ -2,8 +2,7 @@
 
 # !!! Will work only on Python 3 and above
 
-import nwae.lib.lang.TextProcessor as txtprc
-import re
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 import numpy as np
 import pandas as pd
 import nwae.lib.math.Cluster as clst
@@ -159,11 +158,11 @@ class TextClusterBasic:
         self.keywords_for_fv = list(df_word_freq_qt['Word'])
 
         if add_unknown_word_in_list:
-            if txtprc.TextProcessor.W_UNK not in self.keywords_for_fv:
-                self.keywords_for_fv.append(txtprc.TextProcessor.W_UNK)
+            if BasicPreprocessor.W_UNK not in self.keywords_for_fv:
+                self.keywords_for_fv.append(BasicPreprocessor.W_UNK)
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Appended SYMBOL "' + str(txtprc.TextProcessor.W_UNK)
+                    + ': Appended SYMBOL "' + str(BasicPreprocessor.W_UNK)
                     + '" to keywords list for the purpose of unknown words.'
                 )
 
