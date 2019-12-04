@@ -259,36 +259,46 @@ class TrDataPreprocessor:
                 + str(self.df_training_data.loc[idx_row]) + '"'
             )
 
+            if type(text_from_db) is not str:
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Text from DB "' + str(text_from_db) + '" not string type.'
+                )
+                text_from_db = str(text_from_db)
             if (text_processed_from_db is None) or (str(text_processed_from_db).lower() == 'none'):
                 text_processed_from_db = ''
+
             #
             # Sanity check only. Should not happen since after every training data update,
             # NULL would be written back to the TextSegmented column.
+            # Because we don't want to reprocess all text which takes time, so we guess first
             #
-            is_segmented_shorter_len = len(text_processed_from_db) < len(text_from_db)
+            is_likely_processed_text_changed = len(text_processed_from_db) < len(text_from_db)
             # If a language has verb conjugation, we cannot just compare length as the original text could be longer
             if self.lang_have_verb_conj:
                 # So we just hardcode
-                is_segmented_shorter_len = len(text_processed_from_db) <= 8
+                is_likely_processed_text_changed = len(text_processed_from_db) <= 8
 
-            if is_segmented_shorter_len:
-                log.Log.warning(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(text_from_db)
-                    + '" likely has incorrect segmentation "' + str(text_processed_from_db) + '".'
-                )
+            if is_likely_processed_text_changed:
+                if (intent_td_id is not None) and (intent_td_id > 0):
+                    # Warn only if it is not our own inserted data
+                    log.Log.warning(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Text "' + str(text_from_db)
+                        + '" likely has incorrect segmentation "' + str(text_processed_from_db) + '".'
+                    )
 
-            if self.reprocess_all_text or is_segmented_shorter_len:
-                text = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT].loc[idx_row]
-                text = str(text)
-
+            #
+            # We only reprocess the text if there is some likelihood of change
+            #
+            if self.reprocess_all_text or is_likely_processed_text_changed:
                 processed_text_str = self.txt_preprocessor.process_text(
-                    inputtext = text,
+                    inputtext = text_from_db,
                     return_as_string = True
                 )
-                log.Log.info(
+                log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(text) + '" processed text "' + str(processed_text_str) + '".'
+                    + ': Text "' + str(text_from_db) + '" processed text "' + str(processed_text_str) + '".'
                 )
 
                 is_text_processed_changed = not (text_processed_from_db == processed_text_str)
@@ -297,7 +307,7 @@ class TrDataPreprocessor:
                     + ': No ' + str(count) + ' of ' + str(td_total_rows)
                     + ': Tr Data ID "' + str(intent_td_id)
                     + '". Force segment = ' + str(self.reprocess_all_text)
-                    + '\n\r   Text "' + str(text) + '". Processed to "' + str(processed_text_str) + '"'
+                    + '\n\r   Text "' + str(text_from_db) + '". Processed to "' + str(processed_text_str) + '"'
                     + ', changed = ' + str(is_text_processed_changed)
                 )
 
@@ -311,7 +321,7 @@ class TrDataPreprocessor:
                     if (intent_td_id is not None) and (intent_td_id > 0):
                         log.Log.warning(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Processed text different. Text "' + str(text)
+                            + ': Processed text different. Text "' + str(text_from_db)
                             + '\n\r   new processed text "' + str(processed_text_str) + '"'
                             + '\n\r   old processed text "' + str(text_processed_from_db) + '"'
                         )
@@ -327,6 +337,12 @@ class TrDataPreprocessor:
                         log.Log.important(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + ': Appended changed row: ' + str(row_changed)
+                        )
+                    else:
+                        log.Log.important(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Processed text "' + str(processed_text_str)
+                            + '" ok from "' + str(text_from_db) + '"'
                         )
             else:
                 log.Log.info(
