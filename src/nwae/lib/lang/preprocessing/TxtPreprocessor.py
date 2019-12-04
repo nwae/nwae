@@ -188,7 +188,7 @@ class TxtPreprocessor:
             text = inputtext_sym,
             return_array_of_split_words = True
         )
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext) + '" segmented to: ' + str(text_segmented_arr)
         )
@@ -202,7 +202,7 @@ class TxtPreprocessor:
         )
         if type(tmp_arr) in [list, tuple]:
             text_segmented_arr = tmp_arr
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext) + '" clean punctuations to: ' + str(text_segmented_arr)
         )
@@ -218,7 +218,7 @@ class TxtPreprocessor:
 
         text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
 
-        log.Log.info(
+        log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(inputtext)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
@@ -246,7 +246,7 @@ class TxtPreprocessor:
             for w in text_normalized_arr_lower:
                 if w not in self.stopwords_list:
                     text_remove_stopwords_arr.append(w)
-            log.Log.info(
+            log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Text "' + str(inputtext)
                 + '", removed stopwords to "' + str(text_remove_stopwords_arr) + '".'
@@ -262,7 +262,7 @@ class TxtPreprocessor:
                     text_normalized_arr_lower[i] = self.word_stemmer_lemmatizer.stem(
                         word = text_normalized_arr_lower[i]
                     )
-                log.Log.info(
+                log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Text "' + str(inputtext)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'

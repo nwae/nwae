@@ -260,9 +260,8 @@ class TrDataPreprocessor:
             if (text_processed_from_db is None) or (str(text_processed_from_db).lower() == 'none'):
                 text_processed_from_db = ''
             #
-            # This is a more general check than checking for None type, because it can happen such
-            # that DB gives me "None" string instead of None type!
-            # TODO What about user just update the training data? This also need to resegment right?
+            # Sanity check only. Should not happen since after every training data update,
+            # NULL would be written back to the TextSegmented column.
             #
             is_segmented_shorter_len = len(text_processed_from_db) < len(text_from_db)
             # If a language has verb conjugation, we cannot just compare length as the original text could be longer
@@ -271,10 +270,10 @@ class TrDataPreprocessor:
                 is_segmented_shorter_len = len(text_processed_from_db) <= 8
 
             if is_segmented_shorter_len:
-                log.Log.info(
+                log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Text "' + str(text_from_db)
-                    + '" has incorrect segmentation "' + str(text_processed_from_db) + '".'
+                    + '" likely has incorrect segmentation "' + str(text_processed_from_db) + '".'
                 )
 
             if self.reprocess_all_text or is_segmented_shorter_len:
@@ -294,8 +293,8 @@ class TrDataPreprocessor:
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': No ' + str(count) + ' of ' + str(td_total_rows)
-                    + ': Training Data ID "' + str(intent_td_id)
-                    + '". Force segment all = ' + str(self.reprocess_all_text)
+                    + ': Tr Data ID "' + str(intent_td_id)
+                    + '". Force segment = ' + str(self.reprocess_all_text)
                     + '\n\r   Text "' + str(text) + '". Processed to "' + str(processed_text_str) + '"'
                     + ', changed = ' + str(is_text_processed_changed)
                 )
