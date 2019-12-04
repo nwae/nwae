@@ -50,10 +50,10 @@ class SampleTextClassificationData:
             texts_str.append(word_sep.join(txt))
 
         return {
-            SampleTextClassificationData.COL_CLASS_ID: range(SampleTextClassificationData.DATA_Y.shape[0]),
+            SampleTextClassificationData.COL_CLASS_ID: range(1000,1000+SampleTextClassificationData.DATA_Y.shape[0],1),
             SampleTextClassificationData.COL_CLASS: SampleTextClassificationData.DATA_Y,
             SampleTextClassificationData.COL_TEXT: texts_str,
-            SampleTextClassificationData.COL_TEXT_ID: range(SampleTextClassificationData.DATA_Y.shape[0])
+            SampleTextClassificationData.COL_TEXT_ID: range(2000,2000+SampleTextClassificationData.DATA_Y.shape[0],1)
         }
 
 
