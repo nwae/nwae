@@ -16,6 +16,9 @@ import nwae.lib.math.ml.Trainer as nwaeTrainer
 #
 class TrDataPreprocessor:
 
+    TRDATA_ID_INTENT_NAME = -1
+    TRDATA_ID_LATIN_FORM = -2
+
     def __init__(
             self,
             model_identifier,
@@ -135,7 +138,7 @@ class TrDataPreprocessor:
                         intent_id      = [intId],
                         intent_name    = [int_name],
                         text           = [int_name],
-                        text_id        = [0],
+                        text_id        = [TrDataPreprocessor.TRDATA_ID_INTENT_NAME],
                         # Make sure to write back this value with processed text
                         processed_text = [None]
                 ))
@@ -409,7 +412,7 @@ class TrDataPreprocessor:
                         intent_id      = [int_id],
                         intent_name    = [int_name],
                         text           = [text],
-                        text_id        = [0],
+                        text_id        = [TrDataPreprocessor.TRDATA_ID_LATIN_FORM],
                         processed_text = [latin_form_sentence_txt]
                     ))
                 #
