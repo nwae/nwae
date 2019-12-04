@@ -34,9 +34,7 @@ class TrDataPreprocessor:
             dirpath_synonymlist,
             postfix_synonymlist,
             # Do word processing for all sentences, when word/synonym list changes
-            resegment_all_words = False,
-            # If processed text different from DB, do we write to DB or not
-            write_segmented_text_to_db = True
+            reprocess_all_text = False
     ):
         self.model_identifier = model_identifier
         self.language = language
@@ -48,8 +46,7 @@ class TrDataPreprocessor:
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
 
-        self.resegment_all_words = resegment_all_words
-        self.write_segmented_text_to_db = write_segmented_text_to_db
+        self.reprocess_all_text = reprocess_all_text
         # The caller might want to update his DB
         self.list_of_rows_with_changed_processed_text = []
 
@@ -235,15 +232,13 @@ class TrDataPreprocessor:
             self,
     ):
         # The algorithm to segment words works as follows:
-        #   If segmented text returned from DB is None or shorter than text, we will segment the text.
-        #   However if the flag self.resegment_all_words == True, we segment no matter what.
-        #   After segmentation, we will write to DB if this flag "write_segmented_text_to_db" == True
-        #   This flag is only for us to change to False when running as test below, otherwise in production
-        #   it is never touched.
+        #   If segmented text returned from DB is None or shorter than text, we will process the text.
+        #   However if the flag self.reprocess_all_text == True, we segment no matter what.
 
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': START SEGMENT & STEM DB TRAINING DATA, FORCE RESEGMENT ALL = ' + str(self.resegment_all_words)
+            + ': START SEGMENT & STEM DB TRAINING DATA, FORCE RESEGMENT ALL = '
+            + str(self.reprocess_all_text)
         )
 
         td_total_rows = self.df_training_data.shape[0]
@@ -282,7 +277,7 @@ class TrDataPreprocessor:
                     + '" has incorrect segmentation "' + str(text_processed_from_db) + '".'
                 )
 
-            if self.resegment_all_words or is_segmented_shorter_len:
+            if self.reprocess_all_text or is_segmented_shorter_len:
                 text = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT].loc[idx_row]
                 text = str(text)
 
@@ -296,40 +291,40 @@ class TrDataPreprocessor:
                 )
 
                 is_text_processed_changed = not (text_processed_from_db == processed_text_str)
+                log.Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': No ' + str(count) + ' of ' + str(td_total_rows)
+                    + ': Training Data ID "' + str(intent_td_id)
+                    + '". Force segment all = ' + str(self.reprocess_all_text)
+                    + '\n\r   Text "' + str(text) + '". Processed to "' + str(processed_text_str) + '"'
+                    + ', changed = ' + str(is_text_processed_changed)
+                )
+
                 if is_text_processed_changed:
                     # For intent name we inserted, no need to warn
                     if (intent_td_id is not None) and (intent_td_id > 0):
                         log.Log.warning(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Segmented/Processed text different. Text "' + str(text)
-                            + '\n\r   new segmentation "' + str(processed_text_str) + '"'
-                            + '\n\r   old segmentation "' + str(text_processed_from_db) + '"'
+                            + ': Processed text different. Text "' + str(text)
+                            + '\n\r   new processed text "' + str(processed_text_str) + '"'
+                            + '\n\r   old processed text "' + str(text_processed_from_db) + '"'
                         )
 
-                log.Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': No ' + str(count) + ' of ' + str(td_total_rows)
-                    + ': Training Data ID "' + str(intent_td_id)
-                    + '". Force segment all = ' + str(self.resegment_all_words)
-                    + '\n\r   Text "' + str(text) + '". Segmented to "' + str(processed_text_str) + '"'
-                    + ', change from processed DB data = ' + str(is_text_processed_changed)
-                )
+                    self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].at[idx_row] = \
+                        processed_text_str
 
-                self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].at[idx_row] = \
-                    processed_text_str
-
-                row_changed = self.__get_row_to_append_to_training_data(
-                        intent_id      = intent_id,
-                        intent_name    = intent_name,
-                        text           = text_from_db,
-                        text_id        = intent_td_id,
-                        processed_text = processed_text_str
-                )
-                self.list_of_rows_with_changed_processed_text.append(row_changed)
-                log.Log.important(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Appended changed row: ' + str(row_changed)
-                )
+                    row_changed = self.__get_row_to_append_to_training_data(
+                        intent_id=intent_id,
+                        intent_name=intent_name,
+                        text=text_from_db,
+                        text_id=intent_td_id,
+                        processed_text=processed_text_str
+                    )
+                    self.list_of_rows_with_changed_processed_text.append(row_changed)
+                    log.Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Appended changed row: ' + str(row_changed)
+                    )
             else:
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -454,8 +449,7 @@ if __name__ == '__main__':
         postfix_app_wordlist   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
         dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-        resegment_all_words    = True,
-        write_segmented_text_to_db = False
+        reprocess_all_text     = True,
     )
 
     td = ctdata.preprocess_training_data_text()
