@@ -341,8 +341,8 @@ class TrDataPreprocessor:
                     else:
                         log.Log.important(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Processed text "' + str(processed_text_str)
-                            + '" ok from "' + str(text_from_db) + '"'
+                            + ': Processed text ok "' + str(processed_text_str)
+                            + '" from "' + str(text_from_db) + '"'
                         )
             else:
                 log.Log.info(
