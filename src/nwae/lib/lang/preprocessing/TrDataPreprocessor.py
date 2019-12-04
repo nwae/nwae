@@ -150,7 +150,7 @@ class TrDataPreprocessor:
                     row_to_append,
                     sort = True
                 )
-                log.Log.info(
+                log.Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Appended intent name "' + str(int_name) + '" with intent ID ' + str(intId)
                     + ' to list of training data. Row appended = ' + str(row_to_append)
@@ -422,7 +422,7 @@ class TrDataPreprocessor:
                     row_to_append,
                     sort = True
                 )
-                log.Log.info(
+                log.Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Appended latin equivalent form "' + str(latin_form_sentence_txt)
                     + '" with intent ID ' + str(int_id)
