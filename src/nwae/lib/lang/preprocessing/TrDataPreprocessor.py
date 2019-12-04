@@ -100,7 +100,7 @@ class TrDataPreprocessor:
     #
     # Our interface to external objects so that they can start this lengthy process in the background
     #
-    def preprocess_training_data_text(self):
+    def go(self):
         self.add_intent_name_to_training_data()
         self.process_text_training_data()
         self.add_latin_form_to_training_data()
@@ -452,7 +452,7 @@ if __name__ == '__main__':
         reprocess_all_text     = True,
     )
 
-    td = ctdata.preprocess_training_data_text()
+    td = ctdata.go()
 
     print('*********** FINAL SEGMENTED DATA (' + str(ctdata.df_training_data.shape[0]) + ' sentences)')
     print(ctdata.df_training_data.columns)
