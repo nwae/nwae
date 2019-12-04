@@ -14,7 +14,6 @@ from inspect import getframeinfo, currentframe
 #
 #   Helper class to define language properties, such as containing word/syllable separators,
 #   alphabet type, etc.
-#   Also helps to grab word lists, dictionaries, stop words, of a language.
 #
 class LangFeatures:
 
@@ -37,8 +36,8 @@ class LangFeatures:
     LANG_KO = 'ko'
     # French
     LANG_FR = 'fr'
-
-    ERROR_TOLERANCE = 0.000000000001
+    # Russian
+    LANG_RU = 'ru'
 
     C_LANG_ID        = 'Language'
     C_LANG_NAME      = 'LanguageName'
@@ -111,6 +110,17 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
+        lang_ru = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_RU,
+            LangFeatures.C_LANG_NAME:     'Russian',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     'cyrillic',
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
+        }
         lang_th = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_TH,
             LangFeatures.C_LANG_NAME:     'Thai',
@@ -148,13 +158,14 @@ class LangFeatures:
             LangFeatures.LANG_EN: lang_en,
             LangFeatures.LANG_KO: lang_ko,
             LangFeatures.LANG_CN: lang_cn,
+            LangFeatures.LANG_RU: lang_ru,
             LangFeatures.LANG_TH: lang_th,
             LangFeatures.LANG_VN: lang_vn,
             LangFeatures.LANG_IN: lang_in
         }
-        self.langfeatures = pd.DataFrame([
-            lang_en, lang_ko, lang_cn, lang_th, lang_vn, lang_in
-        ])
+        self.langfeatures = pd.DataFrame(
+            self.langs.values()
+        )
         return
 
     def __check_lang(self, lang):

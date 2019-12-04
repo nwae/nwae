@@ -9,6 +9,7 @@ import numpy as np
 import nwae.lib.math.ml.TrainingDataModel as tdm
 import os
 import json
+import re
 
 
 #
@@ -416,6 +417,30 @@ class ModelInterface(threading.Thread):
             log.Log.critical(errmsg)
             raise Exception(errmsg)
 
+    @ staticmethod
+    def get_backup_filepath(
+            filepath
+    ):
+        # Default to Linux file system
+        sep = '/'
+        filepath_old = re.sub(pattern='(.*)'+sep+'(.*)', repl='\\1'+sep+'bak'+sep+'\\2', string=str(filepath))
+
+        if filepath_old == filepath:
+            # Means it is Windows
+            sep = '\\\\'
+            filepath_old = re.sub(pattern='(.*)'+sep+'(.*)', repl='\\1'+sep+'bak'+sep+'\\2', string=str(filepath))
+
+        if filepath_old == filepath:
+            # Some error, just make sure it is a different file
+            filepath_old = str(filepath) + '.old'
+
+        log.Log.important(
+            str(ModelInterface.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Backup filepath set to "' + str(filepath_old) + '".'
+        )
+
+        return filepath_old
+
     #
     # Write to .tmp file, read back, then only write to desired file
     #
@@ -434,7 +459,7 @@ class ModelInterface(threading.Thread):
         #
         filepath_tmp = str(filepath) + '.tmp'
         # We backup the previous model file just in case
-        filepath_old = str(filepath) + '.old'
+        filepath_old = ModelInterface.get_backup_filepath(filepath=filepath)
 
         try:
             df.to_csv(
@@ -496,7 +521,7 @@ class ModelInterface(threading.Thread):
         # Finally rename the .tmp file
         #
         try:
-            # If old model file exists, backup as .old file
+            # If old model file exists, backup the file
             if os.path.isfile(filepath):
                 os.rename(src=filepath, dst=filepath_old)
             log.Log.important(
@@ -543,7 +568,7 @@ class ModelInterface(threading.Thread):
         #
         filepath_tmp = str(filepath) + '.tmp'
         # We backup the previous model file just in case
-        filepath_old = str(filepath) + '.old'
+        filepath_old = ModelInterface.get_backup_filepath(filepath=filepath)
 
         try:
             f = open(file=filepath_tmp, mode='w', encoding=file_encoding)
@@ -581,7 +606,7 @@ class ModelInterface(threading.Thread):
         # Finally rename the .tmp file
         #
         try:
-            # If old model file exists, backup as .old file
+            # If old model file exists, backup the file
             if os.path.isfile(filepath):
                 os.rename(src=filepath, dst=filepath_old)
             log.Log.important(
