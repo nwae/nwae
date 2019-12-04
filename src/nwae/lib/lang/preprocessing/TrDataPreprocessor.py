@@ -129,13 +129,15 @@ class TrDataPreprocessor:
             try:
                 int_name = str(df_intent_id_name[DaehuaTrainDataModel.COL_TDATA_INTENT_NAME].loc[idx])
 
+                # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
-                    data=self.__get_row_to_append_to_training_data(
-                        intent_id   = intId,
-                        intent_name = int_name,
-                        text = int_name,
-                        text_id = 0,
-                        processed_text = None
+                    data = self.__get_row_to_append_to_training_data(
+                        intent_id      = [intId],
+                        intent_name    = [int_name],
+                        text           = [int_name],
+                        text_id        = [0],
+                        # Make sure to write back this value with processed text
+                        processed_text = [None]
                 ))
 
                 #
@@ -154,11 +156,11 @@ class TrDataPreprocessor:
                     + ' to list of training data. Row appended = ' + str(row_to_append)
                 )
             except Exception as ex:
-                log.Log.warning(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Could not append to dataframe or could not get intent name for intent ID '
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Could not append to dataframe or could not get intent name for intent ID ' \
                     + str(intId) + '. Exception ' + str(ex)
-                )
+                log.Log.warning(errmsg)
+                raise Exception(errmsg)
 
         self.__process_training_data_index()
 
@@ -299,7 +301,12 @@ class TrDataPreprocessor:
                     + ', changed = ' + str(is_text_processed_changed)
                 )
 
+                # Training ID 0 are those we inserted ourselves so no need to update anything
                 if is_text_processed_changed:
+                    # Update the column
+                    self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].at[idx_row] = \
+                        processed_text_str
+
                     # For intent name we inserted, no need to warn
                     if (intent_td_id is not None) and (intent_td_id > 0):
                         log.Log.warning(
@@ -309,21 +316,18 @@ class TrDataPreprocessor:
                             + '\n\r   old processed text "' + str(text_processed_from_db) + '"'
                         )
 
-                    self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].at[idx_row] = \
-                        processed_text_str
-
-                    row_changed = self.__get_row_to_append_to_training_data(
-                        intent_id=intent_id,
-                        intent_name=intent_name,
-                        text=text_from_db,
-                        text_id=intent_td_id,
-                        processed_text=processed_text_str
-                    )
-                    self.list_of_rows_with_changed_processed_text.append(row_changed)
-                    log.Log.important(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Appended changed row: ' + str(row_changed)
-                    )
+                        row_changed = self.__get_row_to_append_to_training_data(
+                            intent_id      = intent_id,
+                            intent_name    = intent_name,
+                            text           = text_from_db,
+                            text_id        = intent_td_id,
+                            processed_text = processed_text_str
+                        )
+                        self.list_of_rows_with_changed_processed_text.append(row_changed)
+                        log.Log.important(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Appended changed row: ' + str(row_changed)
+                        )
             else:
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -381,16 +385,17 @@ class TrDataPreprocessor:
             )
             int_id = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_ID].loc[idx]
             int_name = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_NAME].loc[idx]
+            row_to_append = None
             try:
+                # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
                     data = self.__get_row_to_append_to_training_data(
-                        intent_id   = int_id,
-                        intent_name = int_name,
-                        text = text,
-                        text_id = 0,
-                        processed_text = latin_form_sentence_txt
-                ))
-
+                        intent_id      = [int_id],
+                        intent_name    = [int_name],
+                        text           = [text],
+                        text_id        = [0],
+                        processed_text = [latin_form_sentence_txt]
+                    ))
                 #
                 # We are appending to a dataframe that might have different columns ordering
                 # So we make sure they are in the same order, to avoid all the sort=False/True
@@ -408,11 +413,11 @@ class TrDataPreprocessor:
                     + ' to list of training data. Row appended = ' + str(row_to_append)
                 )
             except Exception as ex:
-                log.Log.warning(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Could not append to dataframe or could not get latin equivalent form for intent ID '
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Could not append row ' + str(row_to_append) + ' to dataframe for intent ID ' \
                     + str(int_id) + '. Exception ' + str(ex)
-                )
+                log.Log.warning(errmsg)
+                raise Exception(errmsg)
         self.__process_training_data_index()
         return
 

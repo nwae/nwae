@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import re
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import collections
@@ -23,6 +22,10 @@ class TextProcessor:
     ):
         self.lang = lang
         self.text_segmented_list = text_segmented_list
+        lg.Log.debugdebug(
+            str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text segmented list: ' + str(self.text_segmented_list)
+        )
         return
 
     #
@@ -43,6 +46,11 @@ class TextProcessor:
         # A list of sentences in list format
         sentences_list = []
         for sent in self.text_segmented_list:
+            if type(sent) is not str:
+                raise Exception(
+                    str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Sentence "' + str(sent) + '" not string'
+                )
             # Try to split by default splitter
             split_arr = sent.split(sep)
             lg.Log.debug(
