@@ -50,24 +50,7 @@ class SequenceModel(modelIf.ModelInterface):
         #
         # TODO: Add option to select our own model, or keras/tf model
         #
-        self.lstm_model = keras.Sequential()
-        # Add an Embedding layer expecting input vocab of size 1000, and
-        # output embedding dimension of size 64.
-        self.lstm_model.add(
-            keras.layers.Embedding(
-                input_dim  = 1000,
-                output_dim = 64
-            )
-        )
-        # Add a LSTM layer with 128 internal units.
-        self.lstm_model.add(
-            keras.layers.LSTM(128)
-        )
-        # Add a Dense layer with 10 units and softmax activation.
-        self.lstm_model.add(
-            keras.layers.Dense(10, activation='softmax')
-        )
-        self.lstm_model.summary()
+        self.lstm_model = self.__load_sample_model()
 
         if self.is_partial_training:
             # In this case training data must exist
@@ -100,6 +83,30 @@ class SequenceModel(modelIf.ModelInterface):
         self.__mutex_training = threading.Lock()
 
         return
+
+    #
+    # Test model only, not for production use
+    #
+    def __load_sample_model(self):
+        lstm_model = keras.Sequential()
+        # Add an Embedding layer expecting input vocab of size 1000, and
+        # output embedding dimension of size 64.
+        lstm_model.add(
+            keras.layers.Embedding(
+                input_dim  = 1000,
+                output_dim = 64
+            )
+        )
+        # Add a LSTM layer with 128 internal units.
+        lstm_model.add(
+            keras.layers.LSTM(128)
+        )
+        # Add a Dense layer with 10 units and softmax activation.
+        lstm_model.add(
+            keras.layers.Dense(10, activation='softmax')
+        )
+        lstm_model.summary()
+        return lstm_model
 
     #
     # Model interface override

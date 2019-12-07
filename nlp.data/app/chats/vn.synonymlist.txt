@@ -1,0 +1,7 @@
+# General
+alo,hi,hello,chào,xin chào,e ơi, em ơi, có ai ko, ad ơi, admin, 
+# Website
+Trang web, website, địa chỉ web
+# Profanities
+Dm, con cac, cho an cuc, suc sinh, lu cho
+

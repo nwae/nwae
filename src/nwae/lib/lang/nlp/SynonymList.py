@@ -4,8 +4,6 @@
 # !!! Will work only on Python 3 and above
 
 import re
-import pandas as pd
-import numpy as np
 import nwae.utils.FileUtils as futil
 import nwae.utils.StringUtils as su
 import nwae.lib.lang.nlp.LatinEquivalentForm as lef
@@ -16,26 +14,20 @@ from inspect import getframeinfo, currentframe
 
 class SynonymList:
 
-    COL_ROOTWORD      = 'RootWord'
-    COL_WORD          = 'Word'
-    COL_WORD_NO       = 'WordNumber'
-    COL_WORD_LATIN    = 'WordLatin'
-    COL_WORD_LATIN_NO = 'WordLatinNumber'
-
     def __init__(
             self,
             lang,
             dirpath_synonymlist,
-            postfix_synonymlist
+            postfix_synonymlist,
+            add_latin_equiv_words = False
     ):
         self.lang = lang
 
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
+        self.add_latin_equiv_words = add_latin_equiv_words
 
-        self.synonymlist = None
-        self.synonymlist_words = None
-        self.synonymlist_rootwords = None
+        self.map_word_to_rootword = {}
         return
 
     def load_synonymlist(
@@ -43,15 +35,11 @@ class SynonymList:
             # List of words that should be in the first position (index 0)
             allowed_root_words = None
     ):
-        if self.synonymlist is None:
-            self.synonymlist = self.__load_list(
-                dirpath = self.dirpath_synonymlist,
-                postfix = self.postfix_synonymlist,
-                allowed_root_words = allowed_root_words
-            )
-            self.synonymlist_words = np.array(self.synonymlist[SynonymList.COL_WORD], dtype=str)
-            self.synonymlist_rootwords = np.array(self.synonymlist[SynonymList.COL_ROOTWORD], dtype=str)
-
+        self.map_word_to_rootword = self.__load_list(
+            dirpath = self.dirpath_synonymlist,
+            postfix = self.postfix_synonymlist,
+            allowed_root_words = allowed_root_words
+        )
         return
 
     # General function to load wordlist or stopwords
@@ -78,13 +66,8 @@ class SynonymList:
             + ' List of main words (' + str(type(allowed_root_words)) + '):\n\r' + str(allowed_root_words)
         )
 
-        words = []
-        rootwords = []
-        # Convert words to some number
-        measures = []
-        # In Latin form
-        words_latin = []
-        measures_latin = []
+        map_word_rootword = {}
+
         for line in content:
             line = str(line)
             line = su.StringUtils.trim(line)
@@ -101,30 +84,39 @@ class SynonymList:
                     + str(type(linewords)) + '.'
                 )
                 continue
+            # Trim and convert to lowercase
+            linewords = [su.StringUtils.trim(str(x).lower()) for x in linewords]
+            # Remove empty string
+            linewords = [x for x in linewords if x]
+            if len(linewords) == 0:
+                continue
+            # Add latin equivalent forms here
+            if self.add_latin_equiv_words:
+                linewords_lef = [
+                    lef.LatinEquivalentForm.get_latin_equivalent_form(lang=self.lang, word=x) for x in linewords
+                ]
+                for w in linewords_lef:
+                    if w not in linewords:
+                        linewords.append(w)
 
-            log.Log.debugdebug(
+            log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Processing line "' + str(linewords) + '".'
             )
             rootword = None
-            for i in range(len(linewords)):
-                rootword_test = su.StringUtils.trim(linewords[i]).lower()
-                if len(rootword_test) <= 0:
-                    continue
-
+            for rootword_test in linewords:
                 if allowed_root_words is not None:
                     if rootword_test not in allowed_root_words:
                         log.Log.warning(
                             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                            + ': Word "' + str(rootword_test) + '" is not in allowed root words list! Trying next word in line.'
+                            + ': Word "' + str(rootword_test) + '" not in allowed root words! Trying next word..'
                         )
                         continue
-
                 # root word is in list of main words, or list main words is None
                 rootword = rootword_test
                 break
 
-            # If 1st word is empty, ignore entire line
+            # If no allowed rootwords found, ignore entire line
             if rootword is None:
                 log.Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -137,39 +129,21 @@ class SynonymList:
                 + ': Line "' + str(linewords) + '" root word "' + str(rootword) + '"'
             )
 
-            for j in range(0, len(linewords), 1):
-                word = su.StringUtils.trim(linewords[j]).lower()
-                # Make sure to convert all to Unicode
-                # word = unicode(word, encoding='utf-8')
-                # Remove empty words
-                if len(word)<=0: continue
+            for word in linewords:
+                if word in map_word_rootword.keys():
+                    warnmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                              + ': Duplicate word "' + str(word) + '" in synonym list!'
+                    log.Log.warning(warnmsg)
+                map_word_rootword[word] = rootword
 
-                rootwords.append(rootword)
-                words.append(word)
-                measures.append(lc.convert_string_to_number(word))
-
-                wordlatin = lef.LatinEquivalentForm.get_latin_equivalent_form(lang=self.lang, word=word)
-                words_latin.append(wordlatin)
-
-                measures_latin.append(lc.convert_string_to_number(wordlatin))
-
-        # Convert to pandas data frame
-        df_synonyms = pd.DataFrame({
-            SynonymList.COL_ROOTWORD:      rootwords,
-            SynonymList.COL_WORD:          words,
-            SynonymList.COL_WORD_NO:       measures,
-            SynonymList.COL_WORD_LATIN:    words_latin,
-            SynonymList.COL_WORD_LATIN_NO: measures_latin
-        })
-        log.Log.debugdebug(
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully loaded synonym list:\n\r' + str(df_synonyms)
+            + ': Successfully loaded synonym list:\n\r' + str(map_word_rootword)
         )
-        df_synonyms = df_synonyms.drop_duplicates(subset=[SynonymList.COL_WORD])
-        # Need to reset indexes, otherwise some index will be missing
-        df_synonyms = df_synonyms.reset_index(drop=True)
+        return map_word_rootword
 
-        return df_synonyms
+    def get_synonym_list_words(self):
+        return list(self.map_word_to_rootword.keys())
 
     # Replace with root words, thus normalizing the text
     def normalize_text_array(
@@ -181,24 +155,14 @@ class SynonymList:
         #
         # Replace words with root words
         #
-        for i in range(0, len(text_segmented_array), 1):
-            word = text_segmented_array[i]
-            if len(word)==0:
+        wordkeys = self.map_word_to_rootword.keys()
+        for word in text_segmented_array:
+            if not word:
                 continue
 
-            rootword = []
-            if self.synonymlist_words is not None:
-                rootword = self.synonymlist_rootwords[self.synonymlist_words == word].tolist()
-                # Causes the noisy warning from numpy if dataframe empty,
-                # 'FutureWarning: elementwise comparison failed; returning scalar instead,
-                # but in the future will perform elementwise comparison result = method(y)'
-                # rootword = self.synonymlist[self.synonymlist[SynonymList.COL_WORD]==word][SynonymList.COL_ROOTWORD].values
-            if len(rootword)==1:
-                log.Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Rootword of "' + str(word) + '" is "' + str(rootword[0]) + '"'
-                )
-                words_normalized.append(rootword[0])
+            if word in wordkeys:
+                rootword = self.map_word_to_rootword[word]
+                words_normalized.append(rootword)
             else:
                 words_normalized.append(word)
 
@@ -208,15 +172,22 @@ class SynonymList:
 if __name__ == '__main__':
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
 
-    for lang in ['cn', 'th']:
+    from nwae.lib.lang.LangFeatures import LangFeatures
+    for lang in [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]:
         sl = SynonymList(
             lang                = lang,
             dirpath_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
             postfix_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
         )
         sl.load_synonymlist()
-        print(sl.synonymlist)
+
+        sentences = [
+            ['试试','这个','提钱','入钱','代理','好','พม','คับ','คะ', 'alo', 'dm', 'con cac']
+        ]
+        for s in sentences:
+            print(sl.normalize_text_array(text_segmented_array=s))
 

@@ -2,6 +2,7 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
+import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as sl
 import nwae.lib.lang.nlp.WordSegmentation as ws
 
@@ -65,11 +66,11 @@ class LangHelper:
             wseg_obj.add_wordlist(
                 dirpath     = None,
                 postfix     = None,
-                array_words = list(sl_obj.synonymlist[sl.SynonymList.COL_WORD])
+                array_words = sl_obj.get_synonym_list_words()
             )
             len_after = wseg_obj.lang_wordlist.wordlist.shape[0]
             if len_after - len_before > 0:
-                words_not_synched = wseg_obj.lang_wordlist.wordlist[sl.SynonymList.COL_WORD][len_before:len_after]
+                words_not_synched = wseg_obj.lang_wordlist.wordlist[wl.WordList.COL_WORD][len_before:len_after]
                 lg.Log.warning(
                     str(LangHelper.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Lang "' + str(lang) + '". These words not in word list but in model features & synonym list: '
