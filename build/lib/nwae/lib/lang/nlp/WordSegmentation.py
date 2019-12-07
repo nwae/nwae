@@ -4,7 +4,7 @@ import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as slist
-import nwae.lib.lang.TextProcessor as txtprocessor
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
@@ -452,14 +452,10 @@ class WordSegmentation(object):
             return self.__return_array_words_as_string(array_words = array_words)
 
     def __return_array_words_as_string(self, array_words):
-
-        print_separator = txtprocessor.TextProcessor.DEFAULT_WORD_SPLITTER
-        #
-        # TODO
-        #   Standardize all to the same print separator
-        #
-        if self.lang in (lf.LangFeatures.LANG_CN, lf.LangFeatures.LANG_TH):
-            print_separator = txtprocessor.TextProcessor.DEFAULT_SPACE_SPLITTER
+        a = prf.Profiling.start()
+        print_separator = BasicPreprocessor.get_word_separator(
+            lang = self.lang
+        )
 
         s = print_separator.join(array_words)
 
@@ -511,7 +507,8 @@ class WordSegmentation(object):
 if __name__ == '__main__':
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
 
     lang = lf.LangFeatures.LANG_CN
@@ -534,7 +531,7 @@ if __name__ == '__main__':
     ws.add_wordlist(
         dirpath = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
         postfix = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
-        array_words=list(synonymlist_ro.synonymlist[slist.SynonymList.COL_WORD])
+        array_words=list(synonymlist_ro.get_synonym_list_words())
     )
     len_after = ws.lang_wordlist.wordlist.shape[0]
     if len_after - len_before > 0:

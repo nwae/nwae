@@ -48,17 +48,33 @@ class LangHelper:
             )
 
             len_before = wseg_obj.lang_wordlist.wordlist.shape[0]
+
+            # We assume words from model features are the same with allowed root words
+            words_from_model_features = allowed_root_words
+            if words_from_model_features is not None:
+                wseg_obj.add_wordlist(
+                    dirpath     = None,
+                    postfix     = None,
+                    array_words = words_from_model_features
+                )
+                lg.Log.important(
+                    str(LangHelper.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(lang) + '". Added ' + str(len(words_from_model_features))
+                    + ' words from model features to wordlist.'
+                )
+
             wseg_obj.add_wordlist(
                 dirpath     = None,
                 postfix     = None,
-                array_words = list(sl_obj.synonymlist[sl.SynonymList.COL_WORD])
+                array_words = sl_obj.get_synonym_list_words()
             )
             len_after = wseg_obj.lang_wordlist.wordlist.shape[0]
             if len_after - len_before > 0:
-                words_not_synched = wseg_obj.lang_wordlist.wordlist[sl.SynonymList.COL_WORD][len_before:len_after]
+                words_not_synched = wseg_obj.lang_wordlist.wordlist[wl.WordList.COL_WORD][len_before:len_after]
                 lg.Log.warning(
                     str(LangHelper.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': These words not in word list but in synonym list:\n\r' + str(words_not_synched)
+                    + ': Lang "' + str(lang) + '". These words not in word list but in model features & synonym list: '
+                    + str(words_not_synched.values)
                 )
 
         class retclass:

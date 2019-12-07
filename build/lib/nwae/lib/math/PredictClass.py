@@ -11,7 +11,7 @@ import nwae.lib.math.NumpyUtil as npUtil
 import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
 import threading
-import nwae.lib.math.PredictClassTxtProcessor as pctxtprocessor
+from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 
 
 #
@@ -126,7 +126,7 @@ class PredictClass(threading.Thread):
                 + ': Model "' + str(self.model_name) + '" ready. Loading synonym & word lists..'
             )
 
-            self.predict_class_txt_processor = pctxtprocessor.PredictClassTxtProcessor(
+            self.predict_class_txt_processor = TxtPreprocessor(
                 identifier_string      = self.identifier_string,
                 dir_path_model         = self.dir_path_model,
                 model_features_list    = self.model.get_model_features().tolist(),
@@ -251,13 +251,23 @@ class PredictClass(threading.Thread):
             inputtext = inputtext
         )
 
-        return self.predict_class_features(
+        predict_result = self.predict_class_features(
             v_feature_segmented = processed_txt_array,
             id                  = chatid,
             top                 = top,
             match_pct_within_top_score = match_pct_within_top_score,
             include_match_details = include_match_details
         )
+
+        class retclass:
+            def __init__(self, predict_result, processed_text_arr):
+                self.predict_result = predict_result
+                self.processed_text_arr = processed_text_arr
+        retobj = retclass(
+            predict_result = predict_result,
+            processed_text_arr = processed_txt_array
+        )
+        return retobj
 
     #
     # A helper class to predict class given features instead of a nice array
@@ -357,6 +367,7 @@ class PredictClass(threading.Thread):
                 + ' PROFILING predict class: '
                 + prf.Profiling.get_time_dif_str(starttime_predict_class, prf.Profiling.stop())
             )
+
         return predict_result
 
 
@@ -390,7 +401,7 @@ if __name__ == '__main__':
         include_match_details      = True,
         top = 5
     )
-    print(res.match_details)
+    print(res.predict_result.match_details)
     exit(0)
 
     # Return all results in the top 5
@@ -400,7 +411,7 @@ if __name__ == '__main__':
         include_match_details      = True,
         top = 5
     )
-    print(res.match_details)
+    print(res.predict_result.match_details)
 
     # Return only those results with score at least 70% of top score
     res = pc.predict_class_text_features(
@@ -409,4 +420,4 @@ if __name__ == '__main__':
         include_match_details      = True,
         top = 5
     )
-    print(res.match_details)
+    print(res.predict_result.match_details)

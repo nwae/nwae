@@ -177,8 +177,11 @@ class WordList:
                     + ': Lang "' + str(self.lang) + '" file [' + filepath + '] is empty or non-existent!!'
                 log.Log.warning(warning_msg)
 
-            log.Log.info(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                         + ': Lang "' + str(self.lang) + '" read ' + str(len(content)) + ' lines.')
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(self.lang) + '" read from file "' + str(filepath)
+                + '" ' + str(len(content)) + ' lines.'
+            )
 
         words = []
         # Convert words to some number
@@ -190,6 +193,7 @@ class WordList:
         # TODO Don't loop
         #
         for line in content:
+            line = str(line)
             line = sutil.StringUtils.trim(line)
             # Remove empty lines
             if len(line)<=0: continue
@@ -208,7 +212,6 @@ class WordList:
 
             wordlatin = lef.LatinEquivalentForm.get_latin_equivalent_form(lang=self.lang, word=word)
             words_latin.append(wordlatin)
-
             measures_latin.append(lc.convert_string_to_number(wordlatin))
 
         try:
@@ -252,10 +255,11 @@ class WordList:
 if __name__ == '__main__':
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/mozig/mozg.nlp/app.data/config/local.cf'
     )
 
-    for lang in ['cn', 'th']:
+    for lang in ['vn']:
         wl = WordList(
             lang             = lang,
             dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),

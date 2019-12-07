@@ -328,7 +328,6 @@ class TrainingDataModel:
             # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
             label_name,
             keywords_remove_quartile,
-            stopwords = (),
             is_convert_y_label_to_str_type = False
     ):
         log_training = []
@@ -351,8 +350,7 @@ class TrainingDataModel:
 
         log.Log.info(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + '. Using keywords remove quartile = ' + str(keywords_remove_quartile)
-            + ', stopwords = ' + str(stopwords) + '.'
+            + '. Using keywords remove quartile = ' + str(keywords_remove_quartile) + '.'
             , log_list = log_training
         )
 
@@ -374,8 +372,7 @@ class TrainingDataModel:
             , log_list = log_training
         )
         textcluster = tcb.TextClusterBasic(
-            sentences_list = sentences_list,
-            stopwords      = stopwords
+            sentences_list = sentences_list
         )
         textcluster.calculate_top_keywords(
             remove_quartile = keywords_remove_quartile,

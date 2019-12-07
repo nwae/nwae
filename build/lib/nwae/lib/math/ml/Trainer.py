@@ -115,21 +115,6 @@ class Trainer(threading.Thread):
                 lg.Log.error(errmsg)
                 raise Exception(errmsg)
 
-        #
-        # If not in proper TrainingDataModel type, we assume the training data is legacy
-        # pandas DataFrame type.
-        #
-        if type(self.training_data) is pd.DataFrame:
-            lg.Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Convert pandas DataFrame type to TrainingDataModel type...'
-            )
-            tdm_object = Trainer.convert_to_training_data_model_type(
-                td = self.training_data
-            )
-            # Reassign back to training data
-            self.training_data = tdm_object
-
         if type(self.training_data) is not tdm.TrainingDataModel:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -305,6 +290,7 @@ class Trainer(threading.Thread):
     @staticmethod
     def convert_to_training_data_model_type(
             td,
+            lang = None,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
     ):
@@ -313,7 +299,7 @@ class Trainer(threading.Thread):
         text_segmented = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED]
         classes_name   = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_INTENT_NAME]
 
-        lg.Log.debugdebug(
+        lg.Log.info(
             str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Columns: ' + str(td.columns)
             + '\n\rClasses ID:\n\r' + str(classes_id)
@@ -327,7 +313,6 @@ class Trainer(threading.Thread):
             'name': classes_name
         })
 
-        # For unit testing purpose, keep only 10 classes
         unique_classes_id = list(set(classes_id))
         if keep <= 0:
             keep = len(unique_classes_id)
@@ -335,21 +320,43 @@ class Trainer(threading.Thread):
             keep = min(keep, len(unique_classes_id))
         unique_classes_trimmed = list(set(classes_id))[0:keep]
         np_unique_classes_trimmed = np.array(unique_classes_trimmed)
+        lg.Log.important(
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Total unique classes = ' + str(np_unique_classes_trimmed.shape[0])
+            + ': ' + str(np_unique_classes_trimmed)
+        )
 
         # True/False series, filter out those x not needed for testing
         np_indexes = np.isin(element=classes_id, test_elements=np_unique_classes_trimmed)
+        lg.Log.debugdebug(
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Total unique indexes = ' + str(np_indexes.shape[0])
+            + ': ' + str(np_indexes)
+        )
 
         df_classes_id_name = df_classes_id_name[np_indexes]
         # This dataframe becomes our map to get the name of y/classes
         df_classes_id_name.drop_duplicates(inplace=True)
 
-        lg.Log.debugdebug('y FILTERED:\n\r' + str(np_unique_classes_trimmed))
-        lg.Log.debugdebug('y DF FILTERED:\n\r:' + str(df_classes_id_name))
+        lg.Log.info(
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': y FILTERED: ' + str(np_unique_classes_trimmed.tolist())
+        )
+        lg.Log.debugdebug('y DF FILTERED: :' + str(df_classes_id_name))
 
         # By creating a new np array, we ensure the indexes are back to the normal 0,1,2...
         np_label_id = np.array(list(classes_id[np_indexes]))
+        lg.Log.info(
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': np_label_id: ' + str(np_label_id.tolist())
+        )
+        lg.Log.info(
+            str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': text segmented list: ' + str(list(text_segmented[np_indexes]))
+        )
         # Convert text to usable array form for further NLP processing
         txtprocessor_obj = txtprocessor.TextProcessor(
+            lang = lang,
             text_segmented_list = list(text_segmented[np_indexes])
         )
         text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()

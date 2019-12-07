@@ -27,7 +27,6 @@ src/nwae/lib/math/Cluster.py
 src/nwae/lib/math/Constants.py
 src/nwae/lib/math/NumpyUtil.py
 src/nwae/lib/math/PredictClass.py
-src/nwae/lib/math/PredictClassTxtProcessor.py
 src/nwae/lib/math/ml/ModelBackTest.py
 src/nwae/lib/math/ml/ModelHelper.py
 src/nwae/lib/math/ml/ModelInterface.py

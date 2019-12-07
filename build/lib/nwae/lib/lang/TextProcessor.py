@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import re
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import collections
 import pickle
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
 #
@@ -12,38 +12,20 @@ import pickle
 #
 class TextProcessor:
 
-    #
-    # Our own default word delimiter
-    #
-    DEFAULT_WORD_SPLITTER = '--||--'
-    DEFAULT_SPACE_SPLITTER = ' '
-
-    # Sentence padding if shorter than min length
-    W_PAD = '_PAD'
-    # Start of sentence
-    W_GO  = '_GO'
-    # End of sentence
-    W_EOS = '_EOS'
-    # Unknown word
-    W_UNK = '_UNK'
-    # Number
-    W_NUM = '_NUM'
-
-    _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
-    PAD_ID = 0
-    GO_ID  = 1
-    EOS_ID = 2
-    UNK_ID = 3
-    OP_DICT_IDS = [PAD_ID, GO_ID, EOS_ID, UNK_ID]
-
     def __init__(
             self,
+            lang,
             # A list of sentences in str format, but split by words either with our
             # default word delimiter DEFAULT_WORD_SPLITTER or space or whatever.
             # Or can also be a list of sentences in already split list format
             text_segmented_list
     ):
+        self.lang = lang
         self.text_segmented_list = text_segmented_list
+        lg.Log.debugdebug(
+            str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Text segmented list: ' + str(self.text_segmented_list)
+        )
         return
 
     #
@@ -58,72 +40,29 @@ class TextProcessor:
     #     ... ]
     #
     def convert_segmented_text_to_array_form(
-            self,
-            sep = DEFAULT_WORD_SPLITTER
+            self
     ):
+        sep = BasicPreprocessor.get_word_separator(lang = self.lang)
         # A list of sentences in list format
         sentences_list = []
         for sent in self.text_segmented_list:
+            if type(sent) is not str:
+                raise Exception(
+                    str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Sentence "' + str(sent) + '" not string'
+                )
             # Try to split by default splitter
             split_arr = sent.split(sep)
-            if len(split_arr) == 1:
-                split_arr = sent.split(TextProcessor.DEFAULT_SPACE_SPLITTER)
-                lg.Log.warning(
-                    str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Could not split sentence by default separator "' + str(sep)
-                    + '"\n\r   "' + str(sent)
-                    + '"\n\rSplitting by space to:\n\r   ' + str(split_arr) + '.'
-                )
-            else:
-                lg.Log.debugdebug(
-                    str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Split sentence by default separator "' + str(sep)
-                    + '"\n\r   "' + str(sent)
-                    + '" to:\n\r   ' + str(split_arr)
-                )
-            # Do some separation of punctuations stuck to a word
-            split_arr = self.clean_punctuations_and_convert_to_lowercase(
-                sentence = split_arr
+            lg.Log.debug(
+                str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Split sentence by word separator "' + str(sep)
+                + '"\n\r   "' + str(sent)
+                + '" to:\n\r   ' + str(split_arr)
             )
-            # Remove empty string ''
-            split_arr = [ x for x in split_arr if x!='' ]
             # Append to return array
             sentences_list.append(split_arr)
 
         return sentences_list
-
-    #
-    # This is just a very basic function to do some cleaning, it is expected that
-    # fundamental cleaning has already been done before coming here.
-    #
-    def clean_punctuations_and_convert_to_lowercase(
-            self,
-            # list of words
-            sentence
-    ):
-        try:
-            # Don't include space separator, if you need to split by space, do it before coming here,
-            # as we are only cleaning here, and may include languages like Vietnamese, so if we include
-            # space here, we are splitting the word into syllables, which will be wrong.
-            regex_word_split = re.compile(pattern="([!?.,？。，:;$\"')(])")
-            # Split words not already split (e.g. 17. should be '17', '.')
-            clean_words = [re.split(regex_word_split, word.lower()) for word in sentence]
-            # Return non-empty split values, w
-            # Same as:
-            # for words in clean_words:
-            #     for w in words:
-            #         if words:
-            #             if w:
-            #                 w
-            # All None and '' will be filtered out
-            return [w for words in clean_words for w in words if words if w]
-        except Exception as ex:
-            errmsg =\
-                str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                + ': Could not clean punctuations and convert to lowercase for sentence "'\
-                + str(sentence) + '" exception message: ' + str(ex) + '.'
-            lg.Log.error(errmsg)
-            raise Exception(errmsg)
 
     #
     # Order words from highest to lowest frequency, and assign a number to each word
@@ -139,7 +78,7 @@ class TextProcessor:
     ):
         count_words = collections.Counter()
         dict_words = {}
-        opt_dict_size_initial = len(TextProcessor.OP_DICT_IDS)
+        opt_dict_size_initial = len(BasicPreprocessor.OP_DICT_IDS)
         for sen in sentences:
             for word in sen:
                 count_words[word] += 1
@@ -147,10 +86,10 @@ class TextProcessor:
         #
         # Map words to number
         #
-        dict_words[TextProcessor.W_PAD] = TextProcessor.PAD_ID
-        dict_words[TextProcessor.W_GO] = TextProcessor.GO_ID
-        dict_words[TextProcessor.W_EOS] = TextProcessor.EOS_ID
-        dict_words[TextProcessor.W_UNK] = TextProcessor.UNK_ID
+        dict_words[BasicPreprocessor.W_PAD] = BasicPreprocessor.PAD_ID
+        dict_words[BasicPreprocessor.W_GO] = BasicPreprocessor.GO_ID
+        dict_words[BasicPreprocessor.W_EOS] = BasicPreprocessor.EOS_ID
+        dict_words[BasicPreprocessor.W_UNK] = BasicPreprocessor.UNK_ID
 
         # Add to dictionary of words starting from highest term frequency
         for idx, item in enumerate(count_words.most_common(dict_size)):
@@ -184,7 +123,7 @@ class TextProcessor:
                 try:
                     idx_sent.append(indexed_dict[word])
                 except Exception as ex:
-                    idx_sent.append(TextProcessor.UNK_ID)
+                    idx_sent.append(BasicPreprocessor.UNK_ID)
                     not_found_counter += 1
             indexed_sentences.append(idx_sent)
 
@@ -210,12 +149,12 @@ class TextProcessor:
         for i in range(len(sentences_l1)):
             padding_l1 = len_l1 - len(sentences_l1[i])
             # For left pair, pad from left
-            pad_sentence_l1 = ([TextProcessor.PAD_ID]*padding_l1) + sentences_l1[i]
+            pad_sentence_l1 = ([BasicPreprocessor.PAD_ID]*padding_l1) + sentences_l1[i]
 
             padding_l2 = len_l2 - len(sentences_l2[i])
             # For right pair, pad from right
-            pad_sentence_l2 = [TextProcessor.GO_ID] + sentences_l2[i] + [TextProcessor.EOS_ID]\
-                              + ([TextProcessor.PAD_ID] * padding_l2)
+            pad_sentence_l2 = [BasicPreprocessor.GO_ID] + sentences_l2[i] + [BasicPreprocessor.EOS_ID]\
+                              + ([BasicPreprocessor.PAD_ID] * padding_l2)
             data_set.append([pad_sentence_l1, pad_sentence_l2])
 
         return data_set
@@ -228,13 +167,17 @@ if __name__ == '__main__':
         ]
 
     obj = TextProcessor(
+        lang = 'ru',
         text_segmented_list = sent_list
     )
     sent_list_list = obj.convert_segmented_text_to_array_form()
     print(sent_list_list)
 
-    clean_sent = [obj.clean_punctuations_and_convert_to_lowercase(sentence=s) for s in sent_list_list]
+    clean_sent = [BasicPreprocessor.clean_punctuations(sentence=s) for s in sent_list_list]
     lg.Log.info('Cleaned sentence: ' + str(clean_sent[0:10]))
+
+    clean_empty_sent = [x for x in clean_sent if x != '']
+    lg.Log.info('Final Cleaned sentence: ' + str(clean_sent[0:10]))
 
     dict_words = obj.create_indexed_dictionary(
         sentences = clean_sent
