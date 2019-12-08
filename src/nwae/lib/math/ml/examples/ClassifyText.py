@@ -11,20 +11,14 @@ from keras.models import Sequential
 
 
 # Training data or Documents
-docs = [
-    'Well done!',
-    'Good work',
-    'Great effort',
-    'nice work',
-    'Excellent!',
-    'Weak',
-    'Poor effort!',
-    'not good',
-    'poor work',
-    'Could have done better.'
+docs_label = [
+    ('잘 했어!',1), ('잘했어요!',1), ('잘한다!',1),
+    ('Молодец!',1), ('Супер!',1), ('Хорошо!',1),
+    ('Плохо!',0), ('Дурак!',0),
+    ('나쁜!',0), ('바보!',0), ('백치!',0), ('얼간이!',0)
 ]
-# Class labels
-lbls = array([1,1,1,1,1,0,0,0,0,0])
+docs = [x[0] for x in docs_label]
+labels = [x[1] for x in docs_label]
 
 #
 # Process sentences into numbers, with padding
@@ -32,13 +26,13 @@ lbls = array([1,1,1,1,1,0,0,0,0,0])
 # Vocabulary dimension
 vs = 50
 enc_docs = [kerasprep.text.one_hot(d, vs) for d in docs]
-print('Encoded Sentences:')
+print('Encoded Sentences (' + str(len(enc_docs)) + '):')
 print(enc_docs)
 
 # pad documents to a max length of 4 words
 max_length = 4
 p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding='post')
-print('Padded Encoded Sentences:')
+print('Padded Encoded Sentences (' + str(len(p_docs)) + '):')
 print(p_docs)
 
 #
@@ -62,13 +56,14 @@ modelEmb.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
 # summarize the model
 print(modelEmb.summary())
 # fit the model
-modelEmb.fit(p_docs, lbls, epochs=150, verbose=0)
+modelEmb.fit(p_docs, array(labels), epochs=150, verbose=0)
 
 #
 # Evaluate the model
 #
-loss, accuracy = modelEmb.evaluate(p_docs, lbls, verbose=2)
+loss, accuracy = modelEmb.evaluate(p_docs, array(labels), verbose=2)
 print('Accuracy: %f' % (accuracy*100))
 
 embeddings = modelEmb.predict(p_docs)
+print('Embeddings:')
 print(embeddings)
