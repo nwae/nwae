@@ -22,6 +22,8 @@ labels = [x[1] for x in docs_label]
 
 #
 # Process sentences into numbers, with padding
+# In real environments, we usually also replace unknown words, numbers, URI, etc.
+# with standard symbols, do word stemming, remove stopwords, etc.
 #
 # Vocabulary dimension
 vs = 50
