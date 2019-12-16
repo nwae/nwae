@@ -42,16 +42,23 @@ print(p_docs)
 #
 # define the model
 modelEmb = Sequential()
+#
+# If each sentence has 4 words, and each word is 8 dimensions (output dim
+# of embedding layer), this means the final output of a sentence is (4,8)
+# in dimension.
+#
 embedding_layer = keraslay.embeddings.Embedding(
         input_dim    = vs,
-        # Standardizes the vocabulary into 8 dims
+        # Each word represented by a vector of dimension 8
         output_dim   = 8,
         input_length = max_length
     )
 
 # Model
 modelEmb.add(embedding_layer)
+# After flattening each sentence of shape (4,8), will have shape (32)
 modelEmb.add(keraslay.Flatten())
+# Our standard dense layer, with 1 node
 modelEmb.add(keraslay.Dense(1, activation='sigmoid'))
 # compile the model
 modelEmb.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
