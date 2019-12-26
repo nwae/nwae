@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from nwae.config.Config import Config
+from nwae.lib.lang.LangFeatures import LangFeatures
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.utils.Log import Log
 
 
 class UtTxtPreprocessor:
+
+    TESTS = {
+        LangFeatures.LANG_TH: [
+            ['ปั่นสล็อต100ครั้ง', ['ปั่น', 'สล็อต', BasicPreprocessor.W_NUM, 'ครั้ง']],
+            ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', BasicPreprocessor.W_USERNAME, 'ได้']],
+            ['อยากทำพันธมิตร', ['อยาก', 'ทำ', 'พันธมิตร']]
+        ]}
 
     def __init__(
             self,
@@ -39,13 +48,20 @@ class UtTxtPreprocessor:
         )
 
     def run_ut(self):
-        texts = [
-            'ปั่นสล็อต100ครั้ง',
-            'อูเสอgeng.mahk_mahk123ได้'
-        ]
+        count_ok = 0
+        count_fail = 0
+        for txt_expected in UtTxtPreprocessor.TESTS[self.lang]:
+            txt = txt_expected[0]
+            expected = txt_expected[1]
+            res = self.txt_preprocessor.process_text(inputtext=txt)
+            if res != expected:
+                count_fail += 1
+                print('FAIL. Error txt "' + str(txt) + '", got ' + str(res) + ', expected ' + str(expected))
+            else:
+                count_ok += 1
+                print('OK "' + str(txt) + '", result' + str(res))
 
-        for txt in texts:
-            self.txt_preprocessor.process_text(inputtext=txt)
+        print('***** PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
 
 
 if __name__ == '__main__':
