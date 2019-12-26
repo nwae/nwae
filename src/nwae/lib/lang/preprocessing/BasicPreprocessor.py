@@ -28,6 +28,8 @@ class BasicPreprocessor:
     # Other common symbols
     # Number
     W_NUM = '_num'
+    # Username or any word with mix of character/numbers/etc
+    W_USERNAME = '_username'
     # URL
     W_URI = '_uri'
 
