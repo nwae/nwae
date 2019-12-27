@@ -30,6 +30,7 @@ class BasicPreprocessor:
     W_NUM = '_num'
     # Username or any word with mix of character/numbers/etc
     W_USERNAME = '_username'
+    W_USERNAME_CHARNUM = '_username_charnum'
     # URL
     W_URI = '_uri'
 
