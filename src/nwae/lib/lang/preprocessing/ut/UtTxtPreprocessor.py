@@ -10,9 +10,15 @@ from nwae.utils.Log import Log
 class UtTxtPreprocessor:
 
     TESTS = {
+        LangFeatures.LANG_CN: [
+            ['2019年 12月 26日 俄罗斯部署高超音速武器 取得全球领先', [BasicPreprocessor.W_NUM,'年',BasicPreprocessor.W_NUM,'月',BasicPreprocessor.W_NUM,'日','俄罗斯','部署','高超','音速','武器','取得','全球','领先']],
+            ['', []]
+        ],
         LangFeatures.LANG_TH: [
             ['ปั่นสล็อต100ครั้ง', ['ปั่น', 'สล็อต', BasicPreprocessor.W_NUM, 'ครั้ง']],
             ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', BasicPreprocessor.W_USERNAME, 'ได้']],
+            # Only words should not be treated as username
+            ['อูเสอ notusername is_username ได้', ['อูเสอ', 'notusername', BasicPreprocessor.W_USERNAME, 'ได้']],
             ['อยากทำพันธมิตร', ['อยาก', 'ทำ', 'พันธมิตร']]
         ]}
 
@@ -66,5 +72,6 @@ class UtTxtPreprocessor:
 
 if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_INFO
-    UtTxtPreprocessor(lang = 'th').run_ut()
+    UtTxtPreprocessor(lang = LangFeatures.LANG_CN).run_ut()
+    UtTxtPreprocessor(lang = LangFeatures.LANG_TH).run_ut()
 
