@@ -334,6 +334,11 @@ class WordSegmentation(object):
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text Length (by syllable): ' + str(tlen)
         )
+        if tlen == 0:
+            if return_array_of_split_words:
+                return []
+            else:
+                return ''
         word_sep = [False]*tlen
         # End of string is always a word separator
         word_sep[tlen-1] = True
