@@ -12,8 +12,14 @@ class UtTxtPreprocessor:
     TESTS = {
         LangFeatures.LANG_CN: [
             ['', []],
+            #
+            # Number Tests
+            #
             ['2019年 12月 26日 俄罗斯部署高超音速武器 取得全球领先',
              [BasicPreprocessor.W_NUM,'年',BasicPreprocessor.W_NUM,'月',BasicPreprocessor.W_NUM,'日','俄罗斯','部署','高超','音速','武器','取得','全球','领先']],
+            #
+            # Username Tests
+            #
             # Complicated username
             ['用户名 li88jin_99.000__f8', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
             # Characters only is not a username
