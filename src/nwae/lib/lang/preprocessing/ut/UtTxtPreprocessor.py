@@ -11,29 +11,33 @@ class UtTxtPreprocessor:
 
     TESTS = {
         LangFeatures.LANG_CN: [
-            ['2019年 12月 26日 俄罗斯部署高超音速武器 取得全球领先', [BasicPreprocessor.W_NUM,'年',BasicPreprocessor.W_NUM,'月',BasicPreprocessor.W_NUM,'日','俄罗斯','部署','高超','音速','武器','取得','全球','领先']],
-            ['', []]
+            ['', []],
+            ['2019年 12月 26日 俄罗斯部署高超音速武器 取得全球领先',
+             [BasicPreprocessor.W_NUM,'年',BasicPreprocessor.W_NUM,'月',BasicPreprocessor.W_NUM,'日','俄罗斯','部署','高超','音速','武器','取得','全球','领先']],
+            # Complicated username
+            ['用户名 li88jin_99.000__f8', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
+            # Characters only is not a username
+            ['用户名 notusername', ['用户名','notusername']],
+            # Characters with punctuations '.', '-', '_' is a valid username
+            ['用户名 is_username', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
+            ['用户名 is_user.name', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
+            ['用户名 is_user.name-ok.', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM, '.']],
         ],
         LangFeatures.LANG_TH: [
             ['ปั่นสล็อต100ครั้ง', ['ปั่น', 'สล็อต', BasicPreprocessor.W_NUM, 'ครั้ง']],
-            ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', BasicPreprocessor.W_USERNAME, 'ได้']],
+            ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', BasicPreprocessor.W_USERNAME_CHARNUM, 'ได้']],
             # Only words should not be treated as username
-            ['อูเสอ notusername is_username ได้', ['อูเสอ', 'notusername', BasicPreprocessor.W_USERNAME, 'ได้']],
+            ['อูเสอ notusername is_username ได้', ['อูเสอ', 'notusername', BasicPreprocessor.W_USERNAME_CHARNUM, 'ได้']],
             ['อยากทำพันธมิตร', ['อยาก', 'ทำ', 'พันธมิตร']]
         ]}
 
     def __init__(
             self,
             lang,
-            config_file = None
+            config
     ):
-        if config_file is None:
-            config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
-        self.config = Config.get_cmdline_params_and_init_config_singleton(
-            Derived_Class       = Config,
-            default_config_file = config_file
-        )
         self.lang = lang
+        self.config = config
 
         self.txt_preprocessor = TxtPreprocessor(
             identifier_string      = 'unit test ' + str(self.lang),
@@ -71,7 +75,12 @@ class UtTxtPreprocessor:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
-    UtTxtPreprocessor(lang = LangFeatures.LANG_CN).run_ut()
-    UtTxtPreprocessor(lang = LangFeatures.LANG_TH).run_ut()
+    config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class=Config,
+        default_config_file=config_file
+    )
+    Log.LOGLEVEL = Log.LOG_LEVEL_IMPORTANT
+    UtTxtPreprocessor(lang = LangFeatures.LANG_CN, config=config).run_ut()
+    UtTxtPreprocessor(lang = LangFeatures.LANG_TH, config=config).run_ut()
 
