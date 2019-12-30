@@ -60,6 +60,10 @@ class WordSegmentation(object):
         self.have_simple_word_separator = False
         self.simple_word_separator = None
 
+        # For languages which needs to be first split by syllables, punctuations need to
+        # be cleaned from the syllables first before tokenization
+        self.need_to_split_by_syllables_before_tokenization = False
+
         self.lang_features = lf.LangFeatures()
         word_sep_type = self.lang_features.get_word_separator_type(lang = self.lang)
         #
@@ -97,11 +101,12 @@ class WordSegmentation(object):
 
             if self.syl_split_token is None:
                 self.syl_split_token = ''
+            self.need_to_split_by_syllables_before_tokenization = self.syl_split_token != ''
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Language "' + str(self.lang) + '" with syllable split token "' + str(self.syl_split_token)
-                + '" requires cleaning punctuations stuck to word before tokenization = '
-                + str(self.syl_split_token == '')
+                + '" requires syllable separation & cleaning punctuations stuck to word before tokenization = '
+                + str(self.need_to_split_by_syllables_before_tokenization)
             )
 
         return
@@ -326,7 +331,7 @@ class WordSegmentation(object):
         # If a language has syllables split by a non-empty character, each "character"
         # becomes the syllable, and we split them into a list.
         #
-        if self.syl_split_token != '':
+        if self.need_to_split_by_syllables_before_tokenization:
             # E.g. For Vietnamese we break syllables by spaces
             text_array = text.split(sep=self.syl_split_token)
             # If there is a syllable separator, means we require punctuations stuck
