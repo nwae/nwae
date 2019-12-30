@@ -56,6 +56,7 @@ class WordSegmentation(object):
         self.lang = lang
         self.do_profiling = do_profiling
 
+        # Languages not requiring any specialized algorithm to tokenize word like English
         self.have_simple_word_separator = False
         self.simple_word_separator = None
 
@@ -93,8 +94,15 @@ class WordSegmentation(object):
                 lang  = self.lang,
                 level = lf.LangFeatures.LEVEL_SYLLABLE
             )
+
             if self.syl_split_token is None:
                 self.syl_split_token = ''
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Language "' + str(self.lang) + '" with syllable split token "' + str(self.syl_split_token)
+                + '" requires cleaning punctuations stuck to word before tokenization = '
+                + str(self.syl_split_token == '')
+            )
 
         return
 
@@ -289,6 +297,7 @@ class WordSegmentation(object):
             return_array_of_split_words = False
     ):
         if self.have_simple_word_separator:
+            # For languages not requiring any specialized algorithm for word tokenization
             return self.segment_words_simple(
                 text = text,
                 return_array_of_split_words = return_array_of_split_words
@@ -320,6 +329,18 @@ class WordSegmentation(object):
         if self.syl_split_token != '':
             # E.g. For Vietnamese we break syllables by spaces
             text_array = text.split(sep=self.syl_split_token)
+            # If there is a syllable separator, means we require punctuations stuck
+            # to words to be separated out before word tokenization like Vietnamese
+            tmp_arr = BasicPreprocessor.clean_punctuations(
+                sentence = text_array,
+                convert_to_lower_case = True
+            )
+            if type(tmp_arr) in [list, tuple]:
+                text_array = tmp_arr
+            log.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Text "' + str(text) + '" clean punctuations to: ' + str(text_array)
+            )
 
         # Get language charset
         lang_charset = lc.LangCharacters.get_language_charset(self.lang)
