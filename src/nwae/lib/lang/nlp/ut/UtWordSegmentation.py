@@ -4,6 +4,7 @@ import nwae.config.Config as cf
 import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
 import nwae.lib.lang.LangHelper as langhelper
+from nwae.utils.Log import Log
 
 
 #
@@ -116,14 +117,17 @@ class testNLP:
         list_sent_exp = [
             # TODO Split out the comma from 'trắng,'
             ['bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
-             ['bơi','cùng','cá mập','trắng,','vảy','núi lửa','âm ỉ']],
+             ['bơi','cùng','cá mập','trắng', ',','vảy','núi lửa','âm ỉ']],
             ['Disney đã sản xuất một vài bộ phim đình đám vào thời điểm đó',
-             ['Disney','đã','sản xuất','một vài','bộ','phim','đình đám','vào','thời điểm','đó']],
+             ['disney','đã','sản xuất','một vài','bộ','phim','đình đám','vào','thời điểm','đó']],
             ['nhưng Frozen là một trong những thành công đáng kinh ngạc nhất',
-             ['nhưng','Frozen','là','một','trong','những','thành công','đáng','kinh ngạc','nhất']],
+             ['nhưng','frozen','là','một','trong','những','thành công','đáng','kinh ngạc','nhất']],
+            # The dot at then end should not disturb the word segmentation
+            ['đây là bài kiểm tra.',
+             ['đây', 'là', 'bài', 'kiểm tra', '.']],
             # Other languages
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
-             ['English', 'Test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '..']]
+             ['english', 'test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '.', '.']]
         ]
         retv = self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN),
@@ -134,9 +138,9 @@ class testNLP:
     def test_en(self):
         list_sent_exp = [
             ['async worker such as gevent/meinheld/eventlet',
-             ['async','worker','such','as','gevent','/','meinheld','/','eventlet']],
+             ['async', 'worker', 'such', 'as', 'gevent', '/', 'meinheld', '/', 'eventlet']],
             ['it doesn\'t feature the terms "capture group".',
-             ['it','doesn\'t','feature','the','terms','"','capture','group','"','.']]
+             ['it', 'doesn\'t', 'feature', 'the', 'terms', '"', 'capture', 'group', '"', '.']]
         ]
         return self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_EN),
@@ -149,6 +153,7 @@ if __name__ == '__main__':
         Derived_Class = cf.Config,
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
+    Log.LOGLEVEL = Log.LOG_LEVEL_IMPORTANT
 
     tst = testNLP(
         config = config
