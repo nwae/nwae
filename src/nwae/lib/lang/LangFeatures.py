@@ -183,6 +183,14 @@ class LangFeatures:
         lang_dict = self.langs[lang]
         return lang_dict[LangFeatures.C_WORD_SEP_TYPE]
 
+    def get_syllable_separator_type(
+            self,
+            lang
+    ):
+        self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang]
+        return lang_dict[LangFeatures.C_SYL_SEP_TYPE]
+
     def have_verb_conjugation(
             self,
             lang
