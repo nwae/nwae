@@ -20,20 +20,22 @@ class UtTxtPreprocessor:
             #
             # Username Tests
             #
-            # Complicated username
-            ['用户名 li88jin_99.000__f8', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
+            # Complicated username, the '.' will split the word due to word segmentation
+            ['用户名 li88jin_99.000__f8', ['用户名', BasicPreprocessor.W_USERNAME_NONWORD, '.', BasicPreprocessor.W_USERNAME_NONWORD]],
             # Characters only is not a username
             ['用户名 notusername', ['用户名','notusername']],
             # Characters with punctuations '.', '-', '_' is a valid username
-            ['用户名 is_username', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
-            ['用户名 is_user.name', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM]],
-            ['用户名 is_user.name-ok.', ['用户名', BasicPreprocessor.W_USERNAME_CHARNUM, '.']],
+            ['用户名 is_username', ['用户名', BasicPreprocessor.W_USERNAME_NONWORD]],
+            # The '.' will split the usernames due to word segmentation
+            ['用户名 is_user.name', ['用户名', BasicPreprocessor.W_USERNAME_NONWORD, '.', 'name']],
+            ['用户名 is_user.name-ok.', ['用户名', BasicPreprocessor.W_USERNAME_NONWORD, '.', BasicPreprocessor.W_USERNAME_NONWORD, '.']],
         ],
         LangFeatures.LANG_TH: [
             ['ปั่นสล็อต100ครั้ง', ['ปั่น', 'สล็อต', BasicPreprocessor.W_NUM, 'ครั้ง']],
-            ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', BasicPreprocessor.W_USERNAME_CHARNUM, 'ได้']],
+            # The '.' will split the usernames due to word segmentation
+            ['อูเสอgeng.mahk_mahk123ได้', ['อูเสอ', 'geng', '.', BasicPreprocessor.W_USERNAME_NONWORD, 'ได้']],
             # Only words should not be treated as username
-            ['อูเสอ notusername is_username ได้', ['อูเสอ', 'notusername', BasicPreprocessor.W_USERNAME_CHARNUM, 'ได้']],
+            ['อูเสอ notusername is_username ได้', ['อูเสอ', 'notusername', BasicPreprocessor.W_USERNAME_NONWORD, 'ได้']],
             ['อยากทำพันธมิตร', ['อยาก', 'ทำ', 'พันธมิตร']]
         ]}
 
