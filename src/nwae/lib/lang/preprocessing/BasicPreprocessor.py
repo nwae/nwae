@@ -30,9 +30,14 @@ class BasicPreprocessor:
     W_NUM = '_num'
     # Username or any word with mix of character/numbers/etc
     W_USERNAME = '_username'
-    W_USERNAME_CHARNUM = '_username_charnum'
+    W_USERNAME_NONWORD = '_username_nonword'
     # URL
     W_URI = '_uri'
+
+    ALL_SPECIAL_SYMBOLS = (
+        W_PAD, W_GO, W_EOS, W_UNK,
+        W_NUM, W_USERNAME, W_USERNAME_NONWORD, W_URI
+    )
 
     _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]
     PAD_ID = 0
