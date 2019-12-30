@@ -11,6 +11,7 @@ import nwae.lib.lang.nlp.SpellingCorrection as spellcor
 import nwae.lib.lang.nlp.lemma.Lemmatizer as lmtz
 import re
 from mex.MexBuiltInTypes import MexBuiltInTypes
+from mex.MatchExpression import MatchExpression
 
 
 #
@@ -60,17 +61,25 @@ class TxtPreprocessor:
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
 
-        self.words_no_replace_with_unk = \
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Using wordlist dir "' + str(self.dir_wordlist)
+            + '", app wordlist dir "' + str(self.dir_wordlist_app)
+            + '", synonym dir "' + str(self.dirpath_synonymlist) + '"'
+        )
+
+        self.words_no_replace_with_special_symbols = \
             langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS + \
             langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS + \
-            langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS
+            langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS + \
+            list(BasicPreprocessor.ALL_SPECIAL_SYMBOLS)
 
-        self.words_no_replace_with_unk = list(set(self.words_no_replace_with_unk))
+        self.words_no_replace_with_special_symbols = list(set(self.words_no_replace_with_special_symbols))
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': For model "' + str(self.identifier_string)
-            + '", words that will not replace with "' + str(BasicPreprocessor.W_UNK)
-            + '" symbol: ' + str(self.words_no_replace_with_unk)
+            + '", words that will not replace with special symbols: '
+            + str(self.words_no_replace_with_special_symbols)
         )
 
         #
@@ -152,7 +161,22 @@ class TxtPreprocessor:
                     log.Log.error(errmsg)
                     self.word_stemmer_lemmatizer = None
 
+        self.mex_username_nonword = MatchExpression(
+            pattern = 'u,' + MexBuiltInTypes.MEX_TYPE_USERNAME_NONWORD + ',',
+            lang    = None
+        )
         return
+
+    def __is_username_nonword_type(
+            self,
+            word
+    ):
+        params_dict = self.mex_username_nonword.get_params(
+            sentence=word,
+            return_one_value=True  # if False will return both (left,right) values
+        )
+        is_username_nonword_type = params_dict['u'] is not None
+        return is_username_nonword_type
 
     #
     # Some things we do
@@ -164,14 +188,16 @@ class TxtPreprocessor:
     def process_text(
             self,
             inputtext,
-            return_as_string = False
+            return_as_string = False,
+            use_special_symbol_username_nonword = False
     ):
         #
-        # 1st Round replace with very special symbols first.
-        # There will be multiple rounds for this.
+        # 1st Round replace with very special symbols first, that must be done before
+        # word segmentation. Be careful here, don't simply replace things.
+        # For symbols that can wait until after word segmentation like numbers, unknown
+        # words, we do later.
         #
         pat_rep_list = [
-            # {'pattern': '[0-9]+[.,][0-9]+', 'repl': ' ' + txtpcsr.TextProcessor.W_NUM + ' '},
             {
                 'pattern': MexBuiltInTypes.REGEX_URI,
                 'repl': ' ' + BasicPreprocessor.W_URI + ' '
@@ -275,9 +301,17 @@ class TxtPreprocessor:
 
         #
         # 2nd round replace with special symbols for numbers, unrecognized vocabulary, etc.
+        # MUST NOT accidentally replace our earlier special symbols like _uri, etc.
         #
         for i in range(len(text_normalized_arr_lower)):
             word = text_normalized_arr_lower[i]
+
+            #
+            # Punctuations, special symbols themselves, etc, will not undergo this process
+            #
+            if word in self.words_no_replace_with_special_symbols:
+                continue
+
             # Check numbers first, re.match() is fast enough
             # Replace numbers with separate symbol
             if re.match(pattern='^[0-9]+$', string=word):
@@ -288,13 +322,19 @@ class TxtPreprocessor:
                 text_normalized_arr_lower[i] = BasicPreprocessor.W_NUM
             elif self.model_features_list is not None:
                 if word not in self.model_features_list:
-                    # Check punctuations last, because the probability of coming in here
-                    # is very small, thus we speed things up
-                    # Ignore punctuations, etc.
-                    if word not in self.words_no_replace_with_unk:
-                        text_normalized_arr_lower[i] = BasicPreprocessor.W_UNK
+                    text_normalized_arr_lower[i] = BasicPreprocessor.W_UNK
+                    if use_special_symbol_username_nonword:
+                        # Check if it is a username_nonword form
+                        if self.__is_username_nonword_type(word=word):
+                            text_normalized_arr_lower[i] = BasicPreprocessor.W_USERNAME_NONWORD
+            else:
+                if use_special_symbol_username_nonword:
+                    if self.__is_username_nonword_type(word=word):
+                        text_normalized_arr_lower[i] = BasicPreprocessor.W_USERNAME_NONWORD
 
+        #
         # Finally remove empty words in array
+        #
         text_normalized_arr_lower = [x for x in text_normalized_arr_lower if x != '']
 
         log.Log.info(
@@ -339,7 +379,12 @@ if __name__ == '__main__':
         do_word_stemming       = False,
         do_profiling           = False
     )
-    obj.process_text(
-        inputtext = 'ปั่นสล็อต100ครั้ง'
-    )
+
+    texts = [
+        'ปั่นสล็อต100ครั้ง',
+        'อูเสอgeng.mahk_mahk123ได้'
+    ]
+
+    for txt in texts:
+        obj.process_text(inputtext = txt)
 

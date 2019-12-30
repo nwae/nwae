@@ -107,7 +107,11 @@ class UtTxtPreprocessor:
         for txt_expected in UtTxtPreprocessor.TESTS[self.lang]:
             txt = txt_expected[0]
             expected = txt_expected[1]
-            res = self.txt_preprocessor.process_text(inputtext=txt)
+            res = self.txt_preprocessor.process_text(
+                inputtext = txt,
+                return_as_string = False,
+                use_special_symbol_username_nonword = True
+            )
             if res != expected:
                 count_fail += 1
                 Log.error('FAIL. Error txt "' + str(txt) + '", got ' + str(res) + ', expected ' + str(expected))
