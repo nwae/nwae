@@ -10,7 +10,7 @@ from nwae.utils.Log import Log
 #
 # Test NLP stuff
 #
-class testNLP:
+class UnitTestWordSegmentation:
 
     def __init__(
             self,
@@ -147,6 +147,22 @@ class testNLP:
             list_sent_exp  = list_sent_exp
         )
 
+    def run_unit_tests(self):
+        res_cn = self.test_chinese()
+        res_th = self.test_thai()
+        res_vi = self.test_viet()
+        res_en = self.test_en()
+
+        total_ok = res_cn.count_ok + res_th.count_ok + res_vi.count_ok + res_en.count_ok
+        total_fail = res_cn.count_fail + res_th.count_fail + res_vi.count_fail + res_en.count_fail
+
+        class retobj:
+            def __init__(self, count_ok, count_fail):
+                self.count_ok = count_ok
+                self.count_fail = count_fail
+
+        return retobj(count_ok=total_ok, count_fail=total_fail)
+
 
 if __name__ == '__main__':
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
@@ -155,18 +171,12 @@ if __name__ == '__main__':
     )
     Log.LOGLEVEL = Log.LOG_LEVEL_IMPORTANT
 
-    tst = testNLP(
+    tst = UnitTestWordSegmentation(
         config = config
     )
-    res_cn = tst.test_chinese()
-    res_th = tst.test_thai()
-    res_vi = tst.test_viet()
-    res_en = tst.test_en()
-
-    total_ok = res_cn.count_ok + res_th.count_ok + res_vi.count_ok + res_en.count_ok
-    total_fail = res_cn.count_fail + res_th.count_fail + res_vi.count_fail + res_en.count_fail
+    res = tst.run_unit_tests()
 
     print('***** RESULT *****')
-    print("PASSED " + str(total_ok) + ', FAILED ' + str(total_fail))
+    print("PASSED " + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
 
