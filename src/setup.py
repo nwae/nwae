@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.2.4',
+    version='1.3.0',
     packages=[
         'nwae.lib.math',
         'nwae.lib.math.ml',
@@ -18,7 +18,9 @@ setup(
         'nwae.lib.lang.nlp.translation',
         'nwae.lib.lang.nlp.sajun',
         'nwae.lib.lang.nlp.lemma',
-        'nwae.lib.lang.stats'
+        'nwae.lib.lang.preprocessing',
+        'nwae.lib.lang.stats',
+        'nwae.lib.lang.tts'
     ],
     package_dir={'': 'src'},
     install_requires = [

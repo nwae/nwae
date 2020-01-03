@@ -22,6 +22,9 @@ src/nwae/lib/lang/nlp/daehua/DaehuaTrainDataModel.py
 src/nwae/lib/lang/nlp/lemma/Lemmatizer.py
 src/nwae/lib/lang/nlp/sajun/TrieNode.py
 src/nwae/lib/lang/nlp/translation/Translator.py
+src/nwae/lib/lang/preprocessing/BasicPreprocessor.py
+src/nwae/lib/lang/preprocessing/TrDataPreprocessor.py
+src/nwae/lib/lang/preprocessing/TxtPreprocessor.py
 src/nwae/lib/lang/stats/LangStats.py
 src/nwae/lib/math/Cluster.py
 src/nwae/lib/math/Constants.py

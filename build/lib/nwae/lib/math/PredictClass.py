@@ -137,6 +137,11 @@ class PredictClass(threading.Thread):
                 postfix_wordlist       = self.postfix_wordlist,
                 dir_wordlist_app       = self.dir_wordlist_app,
                 postfix_wordlist_app   = self.postfix_wordlist_app,
+                # TODO For certain languages like English, it is essential to include this
+                #   But at the same time must be very careful. By adding manual rules, for
+                #   example we include words 'it', 'is'.. But "It is" could be a very valid
+                #   training data that becomes excluded wrongly.
+                stopwords_list         = None,
                 do_spelling_correction = self.do_spelling_correction,
                 do_word_stemming       = self.do_word_stemming,
                 do_profiling           = self.do_profiling
