@@ -5,12 +5,8 @@ import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
 import nwae.lib.lang.LangHelper as langhelper
 from nwae.utils.Log import Log
+from nwae.utils.UnitTest import ResultObj
 
-
-class ResultObj:
-    def __init__(self, count_ok, count_fail):
-        self.count_ok = count_ok
-        self.count_fail = count_fail
 
 #
 # Test NLP stuff

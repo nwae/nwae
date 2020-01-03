@@ -2,6 +2,7 @@
 
 from nwae.utils.Log import Log
 import nwae.config.Config as cf
+from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
 
@@ -18,6 +19,11 @@ class NwaeUnitTest:
     def run_unit_tests(self):
         all_pass = 0
         all_fail = 0
+
+        res = UnitTestMex(config=None).run_unit_test()
+        all_pass += res.count_ok
+        all_fail += res.count_fail
+        Log.critical('Mex Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
         #
         # Word Tokenization or Segmentation
         #

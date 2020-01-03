@@ -5,12 +5,8 @@ from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.utils.Log import Log
+from nwae.utils.UnitTest import ResultObj
 
-
-class ResultObj:
-    def __init__(self, count_ok, count_fail):
-        self.count_ok = count_ok
-        self.count_fail = count_fail
 
 class UtTxtPreprocessor:
 
