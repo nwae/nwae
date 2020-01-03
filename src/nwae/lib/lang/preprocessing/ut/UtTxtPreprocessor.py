@@ -7,6 +7,11 @@ from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.utils.Log import Log
 
 
+class ResultObj:
+    def __init__(self, count_ok, count_fail):
+        self.count_ok = count_ok
+        self.count_fail = count_fail
+
 class UtTxtPreprocessor:
 
     TESTS = {
@@ -77,12 +82,13 @@ class UtTxtPreprocessor:
 
     def __init__(
             self,
-            lang,
             config
     ):
-        self.lang = lang
         self.config = config
+        return
 
+    def __init_txt_preprocessor(self, lang):
+        self.lang = lang
         self.txt_preprocessor = TxtPreprocessor(
             identifier_string      = 'unit test ' + str(self.lang),
             # Don't need directory path for model, as we will not do spelling correction
@@ -101,7 +107,7 @@ class UtTxtPreprocessor:
             do_profiling           = False
         )
 
-    def run_ut(self):
+    def __run_lang_unit_test(self):
         count_ok = 0
         count_fail = 0
         for txt_expected in UtTxtPreprocessor.TESTS[self.lang]:
@@ -119,8 +125,18 @@ class UtTxtPreprocessor:
                 count_ok += 1
                 Log.debug('OK "' + str(txt) + '", result' + str(res))
 
-        Log.log('***** ' + str(self.lang) + ' PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
+        Log.important('***** ' + str(self.lang) + ' PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
+        return ResultObj(count_ok=count_ok, count_fail=count_fail)
 
+    def run_unit_test(self):
+        res_obj = ResultObj(count_ok=0, count_fail=0)
+        for lang in [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]:
+            self.__init_txt_preprocessor(lang=lang)
+            res = self.__run_lang_unit_test()
+            res_obj.count_ok += res.count_ok
+            res_obj.count_fail += res.count_fail
+
+        return res_obj
 
 if __name__ == '__main__':
     config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
@@ -129,7 +145,5 @@ if __name__ == '__main__':
         default_config_file = config_file
     )
     Log.LOGLEVEL = Log.LOG_LEVEL_WARNING
-    UtTxtPreprocessor(lang = LangFeatures.LANG_CN, config=config).run_ut()
-    UtTxtPreprocessor(lang = LangFeatures.LANG_TH, config=config).run_ut()
-    UtTxtPreprocessor(lang = LangFeatures.LANG_VN, config=config).run_ut()
+    UtTxtPreprocessor(config=config).run_unit_test()
 

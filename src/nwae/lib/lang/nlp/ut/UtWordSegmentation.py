@@ -7,6 +7,11 @@ import nwae.lib.lang.LangHelper as langhelper
 from nwae.utils.Log import Log
 
 
+class ResultObj:
+    def __init__(self, count_ok, count_fail):
+        self.count_ok = count_ok
+        self.count_fail = count_fail
+
 #
 # Test NLP stuff
 #
@@ -147,7 +152,7 @@ class UnitTestWordSegmentation:
             list_sent_exp  = list_sent_exp
         )
 
-    def run_unit_tests(self):
+    def run_unit_test(self):
         res_cn = self.test_chinese()
         res_th = self.test_thai()
         res_vi = self.test_viet()
@@ -156,12 +161,7 @@ class UnitTestWordSegmentation:
         total_ok = res_cn.count_ok + res_th.count_ok + res_vi.count_ok + res_en.count_ok
         total_fail = res_cn.count_fail + res_th.count_fail + res_vi.count_fail + res_en.count_fail
 
-        class retobj:
-            def __init__(self, count_ok, count_fail):
-                self.count_ok = count_ok
-                self.count_fail = count_fail
-
-        return retobj(count_ok=total_ok, count_fail=total_fail)
+        return ResultObj(count_ok=total_ok, count_fail=total_fail)
 
 
 if __name__ == '__main__':
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     tst = UnitTestWordSegmentation(
         config = config
     )
-    res = tst.run_unit_tests()
+    res = tst.run_unit_test()
 
     print('***** RESULT *****')
     print("PASSED " + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
