@@ -5,7 +5,7 @@ import nwae.config.Config as cf
 from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
-from nwae.lib.math.ml.metricspace.ut.Ut import UnitTestMetricSpaceModel
+from nwae.lib.math.ml.metricspace.ut.UtMetricSpaceModel import UnitTestMetricSpaceModel
 import nwae.lib.math.ml.ModelHelper as modelHelper
 
 
