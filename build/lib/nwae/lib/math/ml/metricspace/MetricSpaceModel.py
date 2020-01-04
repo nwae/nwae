@@ -810,7 +810,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             else:
                 self.log_training = []
 
-            log.Log.critical(
+            log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training for identifier=' + self.identifier_string
                 + ', y_id ' + str(y_id)

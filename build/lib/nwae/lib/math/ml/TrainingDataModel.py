@@ -403,7 +403,7 @@ class TrainingDataModel:
         # Get RFV for every command/intent, representative feature vectors by command type
         #
         # Get sentence matrix for all sentences first
-        log.Log.critical(
+        log.Log.important(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Calculating sentence matrix for all training data...'
             , log_list = log_training
