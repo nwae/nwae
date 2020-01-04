@@ -10,9 +10,11 @@ from inspect import currentframe, getframeinfo
 import nwae.lib.math.NumpyUtil as npUtil
 import nwae.config.Config as cf
 import nwae.utils.Profiling as prf
+from nwae.utils.UnitTest import ResultObj
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
-class Ut:
+class UnitTestMetricSpaceModel:
 
     DATA_X = np.array(
         [
@@ -65,27 +67,28 @@ class Ut:
 
     #
     # To test against trained models
+    # Need to add one more dimension at the end for "_unk"
     #
     DATA_TEST_X = np.array(
         [
             # 무리 0
-            [1.2, 2.0, 1.1, 1.0, 0, 0],
-            [2.1, 1.0, 2.4, 1.0, 0, 0],
-            [1.5, 1.0, 1.3, 1.0, 0, 0],
+            [1.2, 2.0, 1.1, 1.0, 0, 0, 0],
+            [2.1, 1.0, 2.4, 1.0, 0, 0, 0],
+            [1.5, 1.0, 1.3, 1.0, 0, 0, 0],
             # 무리 1
-            [0, 1.1, 2.5, 1.5, 0, 0],
-            [0, 2.2, 2.6, 2.4, 0, 0],
-            [0, 2.3, 1.7, 2.1, 0, 0],
+            [0, 1.1, 2.5, 1.5, 0, 0, 0],
+            [0, 2.2, 2.6, 2.4, 0, 0, 0],
+            [0, 2.3, 1.7, 2.1, 0, 0, 0],
             # 무리 2
-            [0, 0.0, 0, 1.6, 2.1, 3.5],
-            [0, 1.4, 0, 2.7, 1.2, 2.4],
-            [0, 1.1, 0, 1.3, 1.3, 2.1],
+            [0, 0.0, 0, 1.6, 2.1, 3.5, 0],
+            [0, 1.4, 0, 2.7, 1.2, 2.4, 0],
+            [0, 1.1, 0, 1.3, 1.3, 2.1, 0],
             # 무리 3
-            [1.1, 0.0, 0.0, 0.0, 0.0, 1.5],
-            [0.0, 1.4, 0.9, 1.7, 1.2, 0.0]
+            [1.1, 0.0, 0.0, 0.0, 0.0, 1.5, 0],
+            [0.0, 1.4, 0.9, 1.7, 1.2, 0.0, 0]
         ]
     )
-    DATA_TEST_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', 'xxx'])
+    DATA_TEST_X_NAME = np.array(['하나', '두', '셋', '넷', '다섯', '여섯', BasicPreprocessor.W_UNK])
 
     #
     # Layers Design
@@ -113,11 +116,11 @@ class Ut:
         self.identifier_string = identifier_string
         self.model_name = model_name
 
-        self.x_expected = Ut.DATA_X
-        self.texts = Ut.DATA_TEXTS
+        self.x_expected = UnitTestMetricSpaceModel.DATA_X
+        self.texts = UnitTestMetricSpaceModel.DATA_TEXTS
 
-        self.y = Ut.DATA_Y
-        self.x_name = Ut.DATA_X_NAME
+        self.y = UnitTestMetricSpaceModel.DATA_Y
+        self.x_name = UnitTestMetricSpaceModel.DATA_X_NAME
         #
         # Finally we have our text data in the desired format
         #
@@ -131,12 +134,20 @@ class Ut:
         )
 
         self.x_friendly = self.tdm_obj.get_print_friendly_x()
-        print(self.tdm_obj.get_x())
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': x = ' + str(self.tdm_obj.get_x())
+        )
         for k in self.x_friendly.keys():
-            print(self.x_friendly[k])
-        print(self.tdm_obj.get_x_name())
-        print(self.tdm_obj.get_y())
-
+            log.Log.debugdebug(self.x_friendly[k])
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': x_name = ' + str(self.tdm_obj.get_x_name())
+        )
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': y = ' + str(self.tdm_obj.get_y())
+        )
         return
 
     def unit_test_train(
@@ -172,8 +183,8 @@ class Ut:
         for i in range(0, sentence_matrix_expected.shape[0], 1):
             v = sentence_matrix_expected[i]
             ss = np.sum(np.multiply(v, v)) ** 0.5
-            print(v)
-            print(ss)
+            log.Log.debugdebug(v)
+            log.Log.debugdebug(ss)
 
         agg_by_labels_expected = np.array([
             [1.19419224, 1.57215671, 1.51042001, 0., 0., 1.51042001],
@@ -225,31 +236,43 @@ class Ut:
         model_obj.wait_for_model()
         #model_obj.load_model_parameters()
 
-        test_x = Ut.DATA_TEST_X
-        test_x_name = Ut.DATA_TEST_X_NAME
+        test_x = UnitTestMetricSpaceModel.DATA_TEST_X
+        test_x_name = UnitTestMetricSpaceModel.DATA_TEST_X_NAME
         model_x_name = model_obj.get_model_features()
         if model_x_name is None:
-            model_x_name = Ut.DATA_X_NAME
+            model_x_name = UnitTestMetricSpaceModel.DATA_X_NAME
 
         if model_x_name.ndim == 2:
             model_x_name = model_x_name[0]
-        log.Log.info('Model x_name: ' + str(model_x_name))
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model x_name: ' + str(model_x_name)
+        )
 
         # Reorder by model x_name
         df_x_name = pd.DataFrame(data={'word': model_x_name, 'target_order': range(0, len(model_x_name), 1)})
         df_test_x_name = pd.DataFrame(data={'word': test_x_name, 'original_order': range(0, len(test_x_name), 1)})
-        # print('**** Target Order: ' + str(model_x_name))
-        # print('**** Original order: ' + str(test_x_name))
+        # log.Log.debug('**** Target Order: ' + str(model_x_name))
+        # log.Log.debug('**** Original order: ' + str(test_x_name))
         # Left join to ensure the order follows target order and target symbols
         df_x_name = df_x_name.merge(df_test_x_name, how='left')
-        # print('**** Merged Order: ' + str(df_x_name))
+        # log.Log.debug('**** Merged Order: ' + str(df_x_name))
         # Then order by original order
         df_x_name = df_x_name.sort_values(by=['target_order'], ascending=True)
         # Then the order we need to reorder is the target_order column
         reorder = np.array(df_x_name['original_order'])
-        log.Log.debugdebug(df_x_name)
-        log.Log.debugdebug(reorder)
-        log.Log.debugdebug(test_x)
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': After reorder, df_x_name: ' + str(df_x_name)
+        )
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': After reorder, reorder: ' + str(reorder)
+        )
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': After reorder, test_x:' + str(test_x)
+        )
 
         test_x_transpose = test_x.transpose()
         log.Log.debugdebug(test_x_transpose)
@@ -261,7 +284,10 @@ class Ut:
             reordered_test_x[i] = test_x_transpose[reorder[i]]
 
         reordered_test_x = reordered_test_x.transpose()
-        log.Log.debugdebug(reordered_test_x)
+        log.Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Reordered test x = ' + str(reordered_test_x)
+        )
 
         x_classes_expected = self.y
         # Just the top predicted ones
@@ -270,11 +296,18 @@ class Ut:
         mse = 0
         count_all = reordered_test_x.shape[0]
 
-        log.Log.info('Predict classes for x:\n\r' + str(reordered_test_x))
+        log.Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Predict classes for x:\n\r' + str(reordered_test_x)
+        )
         prf_start = prf.Profiling.start()
 
         for i in range(reordered_test_x.shape[0]):
             v = npUtil.NumpyUtil.convert_dimension(arr=reordered_test_x[i], to_dim=2)
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Testing x: ' + str(v)
+            )
             if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
                 predict_result = model_obj.predict_class(
                     x           = v,
@@ -295,7 +328,7 @@ class Ut:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Point v ' + str(v) + ', predicted ' + str(y_observed)
                 + ', Top Class Distance: ' + str(top_class_distance)
-                + ', Match Details: ' + str(match_details)
+                + ', Match Details:\n\r' + str(match_details)
             )
 
             if self.model_name == modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
@@ -311,15 +344,21 @@ class Ut:
 
         # Compare with expected
         compare_top_x = {}
+        res_top1 = ResultObj(count_ok=0, count_fail=0)
 
         for t in range(1, top + 1, 1):
+            # True or '1' means not correct or error
             compare_top_x[t] = np.array([True] * len(all_y_observed))
             for i in range(len(all_y_observed)):
                 matches_i = all_y_observed[i]
                 if x_classes_expected[i] in matches_i[0:t]:
+                    # False of '0' means no error
                     compare_top_x[t][i] = False
+                    res_top1.count_ok += 1*(t==1)
+                else:
+                    res_top1.count_fail += 1*(t==1)
             log.Log.info(compare_top_x[t])
-            log.Log.critical(
+            log.Log.info(
                 'Total Errors (compare top #' + str(t) + ') = ' + str(np.sum(compare_top_x[t] * 1))
             )
 
@@ -335,32 +374,41 @@ class Ut:
             log.Log.info('Top class distance:\n\r' + str(predict_result.top_class_distance))
             log.Log.info('Match Details:\n\r' + str(predict_result.match_details))
             log.Log.info('MSE = ' + str(predict_result.mse))
-        return
+
+        model_obj.join()
+        return res_top1
+
+    def run_unit_test(self):
+        if self.model_name == modelHelper.ModelHelper.MODEL_NAME_KERAS:
+            self.unit_test_train(
+                model_params = UnitTestMetricSpaceModel.NEURAL_NETWORK_LAYERS
+            )
+        else:
+            self.unit_test_train()
+
+        res = self.unit_test_predict_classes(
+            include_match_details = True,
+            top = 2
+        )
+        return res
 
 
 if __name__ == '__main__':
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
             modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
             #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
-        obj = Ut(
+        obj = UnitTestMetricSpaceModel(
             config            = config,
             identifier_string = 'demo_ut1',
             model_name        = model_name
         )
-        if model_name == modelHelper.ModelHelper.MODEL_NAME_KERAS:
-            obj.unit_test_train(
-                model_params = Ut.NEURAL_NETWORK_LAYERS
-            )
-        else:
-            obj.unit_test_train()
-
-        obj.unit_test_predict_classes(
-            include_match_details = True,
-            top = 2
-        )
+        res = obj.run_unit_test()
+        print('***** PASS ' + str(res.count_ok) + ', FAIL ' + str(res.count_fail))
 

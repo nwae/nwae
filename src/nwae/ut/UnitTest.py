@@ -5,6 +5,8 @@ import nwae.config.Config as cf
 from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
+from nwae.lib.math.ml.metricspace.ut.Ut import UnitTestMetricSpaceModel
+import nwae.lib.math.ml.ModelHelper as modelHelper
 
 
 #
@@ -33,6 +35,15 @@ class NwaeUnitTest:
         Log.critical('Word Segmentation Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UtTxtPreprocessor(config=self.config).run_unit_test()
+        all_pass += res.count_ok
+        all_fail += res.count_fail
+        Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = UnitTestMetricSpaceModel(
+            config = self.config,
+            identifier_string = 'demo_ut1',
+            model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
+        ).run_unit_test()
         all_pass += res.count_ok
         all_fail += res.count_fail
         Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))

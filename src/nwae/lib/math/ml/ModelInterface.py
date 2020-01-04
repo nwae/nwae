@@ -148,19 +148,19 @@ class ModelInterface(threading.Thread):
             return prefix_or_dir
 
     def join(self, timeout=None):
-        log.Log.critical(
+        log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" join called..'
         )
         self.stoprequest.set()
         super(ModelInterface, self).join(timeout=timeout)
-        log.Log.critical(
+        log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" Background Thread ended..'
         )
 
     def run(self):
-        log.Log.critical(
+        log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" Background Thread started..'
         )
@@ -318,7 +318,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.critical(
+            log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data x with shape ' + str(df_td_x.shape)
                 + ' filepath "' + self.fpath_training_data_x + '"'
@@ -351,7 +351,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.critical(
+            log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
                 + ' filepath "' + self.fpath_training_data_x_name + '"'
@@ -366,7 +366,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.critical(
+            log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data y with shape ' + str(df_td_y.shape)
                 + ' filepath "' + self.fpath_training_data_y + '"'
