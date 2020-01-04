@@ -11,6 +11,7 @@ import nwae.lib.math.ml.ModelHelper as modelHelper
 
 #
 # We run all the available unit tests from all modules here
+# PYTHONPATH=".:/usr/local/git/nwae/nwae.utils/src:/usr/local/git/nwae/mex/src" /usr/local/bin/python3.8 nwae/ut/UnitTest.py
 #
 class NwaeUnitTest:
 
@@ -46,7 +47,7 @@ class NwaeUnitTest:
         ).run_unit_test()
         all_pass += res.count_ok
         all_fail += res.count_fail
-        Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+        Log.critical('MetricSpaceModel Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical('TOTAL PASS = ' + str(all_pass) + ', TOTAL FAIL = ' + str(all_fail))
         return
