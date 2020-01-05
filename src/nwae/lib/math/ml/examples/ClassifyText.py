@@ -12,10 +12,12 @@ from keras.models import Sequential
 
 # Training data or Documents
 docs_label = [
-    ('잘 했어!',1), ('잘했어요!',1), ('잘한다!',1),
+    ('잘 했어!',1), ('잘 했어요!',1), ('잘 한다!',1),
     ('Молодец!',1), ('Супер!',1), ('Хорошо!',1),
     ('Плохо!',0), ('Дурак!',0),
-    ('나쁜!',0), ('바보!',0), ('백치!',0), ('얼간이!',0)
+    ('나쁜!',0), ('바보!',0), ('백치!',0), ('얼간이!',0),
+    ('미친놈',0), ('씨발',0), ('개',0), ('개자식',0),
+    ('젠장',0)
 ]
 docs = [x[0] for x in docs_label]
 labels = [x[1] for x in docs_label]
@@ -32,7 +34,11 @@ print('Encoded Sentences (' + str(len(enc_docs)) + '):')
 print(enc_docs)
 
 # pad documents to a max length of 4 words
-max_length = 4
+max_length = 1
+for sent_label in docs_label:
+    max_length = max(len(sent_label[0].split(' ')),max_length)
+print('Max Length = ' + str(max_length))
+
 p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding='post')
 print('Padded Encoded Sentences (' + str(len(p_docs)) + '):')
 print(p_docs)
@@ -43,8 +49,8 @@ print(p_docs)
 # define the model
 modelEmb = Sequential()
 #
-# If each sentence has 4 words, and each word is 8 dimensions (output dim
-# of embedding layer), this means the final output of a sentence is (4,8)
+# If each sentence has n words, and each word is 8 dimensions (output dim
+# of embedding layer), this means the final output of a sentence is (n,8)
 # in dimension.
 #
 embedding_layer = keraslay.embeddings.Embedding(
@@ -74,5 +80,5 @@ loss, accuracy = modelEmb.evaluate(p_docs, array(labels), verbose=2)
 print('Accuracy: %f' % (accuracy*100))
 
 embeddings = modelEmb.predict(p_docs)
-print('Embeddings:')
-print(embeddings)
+#print('Embeddings:')
+#print(embeddings)
