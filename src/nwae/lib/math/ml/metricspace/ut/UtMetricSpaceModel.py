@@ -8,9 +8,9 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.NumpyUtil as npUtil
-import nwae.config.Config as cf
+from nwae.config.Config import Config
 import nwae.utils.Profiling as prf
-from nwae.utils.UnitTest import ResultObj
+from nwae.utils.UnitTest import ResultObj, UnitTestParams
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
@@ -108,11 +108,14 @@ class UnitTestMetricSpaceModel:
 
     def __init__(
             self,
-            config,
+            ut_params,
             identifier_string,
             model_name
     ):
-        self.config = config
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = UnitTestParams()
         self.identifier_string = identifier_string
         self.model_name = model_name
 
@@ -157,7 +160,7 @@ class UnitTestMetricSpaceModel:
         trainer_obj = trainer.Trainer(
             identifier_string = self.identifier_string,
             model_name        = self.model_name,
-            dir_path_model    = self.config.get_config(param=cf.Config.PARAM_MODEL_DIR),
+            dir_path_model    = self.ut_params.dirpath_model,
             training_data     = self.tdm_obj
         )
 
@@ -229,7 +232,7 @@ class UnitTestMetricSpaceModel:
         model_obj = modelHelper.ModelHelper.get_model(
             model_name        = self.model_name,
             identifier_string = self.identifier_string,
-            dir_path_model    = self.config.get_config(param=cf.Config.PARAM_MODEL_DIR),
+            dir_path_model    = self.ut_params.dirpath_model,
             training_data     = None
         )
         model_obj.start()
@@ -394,10 +397,21 @@ class UnitTestMetricSpaceModel:
 
 
 if __name__ == '__main__':
-    config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config,
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
+    ut_params = UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = config.get_config(param=Config.PARAM_MODEL_DIR)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
+
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
 
     for model_name in [
@@ -405,7 +419,7 @@ if __name__ == '__main__':
             #modelHelper.ModelHelper.MODEL_NAME_KERAS,
     ]:
         obj = UnitTestMetricSpaceModel(
-            config            = config,
+            ut_params         = ut_params,
             identifier_string = 'demo_ut1',
             model_name        = model_name
         )

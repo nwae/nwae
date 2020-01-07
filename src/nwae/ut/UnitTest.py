@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from nwae.utils.Log import Log
+from nwae.utils.UnitTest import UnitTestParams
 import nwae.config.Config as cf
 from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
@@ -16,8 +17,11 @@ import nwae.lib.math.ml.ModelHelper as modelHelper
 #
 class NwaeUnitTest:
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, ut_params):
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = UnitTestParams()
         return
 
     def run_unit_tests(self):
@@ -31,23 +35,23 @@ class NwaeUnitTest:
         #
         # Word Tokenization or Segmentation
         #
-        res = UnitTestWordSegmentation(config=self.config).run_unit_test()
+        res = UnitTestWordSegmentation(ut_params=self.ut_params).run_unit_test()
         all_pass += res.count_ok
         all_fail += res.count_fail
         Log.critical('Word Segmentation Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        res = UtTxtPreprocessor(config=self.config).run_unit_test()
+        res = UtTxtPreprocessor(ut_params=self.ut_params).run_unit_test()
         all_pass += res.count_ok
         all_fail += res.count_fail
         Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        res = UtTrDataPreprocessor(config=self.config).run_unit_test()
+        res = UtTrDataPreprocessor(ut_params=self.ut_params).run_unit_test()
         all_pass += res.count_ok
         all_fail += res.count_fail
         Log.critical('Training Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMetricSpaceModel(
-            config = self.config,
+            ut_params = self.ut_params,
             identifier_string = 'demo_ut1',
             model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         ).run_unit_test()
@@ -64,6 +68,18 @@ if __name__ == '__main__':
         Derived_Class = cf.Config,
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
+
+    ut_params = UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
+
     Log.LOGLEVEL = Log.LOG_LEVEL_ERROR
 
-    NwaeUnitTest(config=config).run_unit_tests()
+    NwaeUnitTest(ut_params=ut_params).run_unit_tests()

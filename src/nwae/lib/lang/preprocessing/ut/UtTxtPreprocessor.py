@@ -5,7 +5,7 @@ from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.utils.Log import Log
-from nwae.utils.UnitTest import ResultObj
+from nwae.utils.UnitTest import ResultObj, UnitTestParams
 
 
 class UtTxtPreprocessor:
@@ -78,9 +78,12 @@ class UtTxtPreprocessor:
 
     def __init__(
             self,
-            config
+            ut_params
     ):
-        self.config = config
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = UnitTestParams()
         return
 
     def __init_txt_preprocessor(self, lang):
@@ -92,12 +95,12 @@ class UtTxtPreprocessor:
             # Don't need features/vocabulary list from model
             model_features_list    = None,
             lang                   = self.lang,
-            dirpath_synonymlist    = self.config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist    = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-            dir_wordlist           = self.config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist       = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dir_wordlist_app       = self.config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_wordlist_app   = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+            dirpath_synonymlist    = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist    = self.ut_params.postfix_synonymlist,
+            dir_wordlist           = self.ut_params.dirpath_wordlist,
+            postfix_wordlist       = self.ut_params.postfix_wordlist,
+            dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
+            postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
             do_word_stemming       = False,
             do_profiling           = False
@@ -140,6 +143,16 @@ if __name__ == '__main__':
         Derived_Class       = Config,
         default_config_file = config_file
     )
+    ut_params = UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
+
     Log.LOGLEVEL = Log.LOG_LEVEL_WARNING
-    UtTxtPreprocessor(config=config).run_unit_test()
+    UtTxtPreprocessor(ut_params=ut_params).run_unit_test()
 

@@ -15,9 +15,12 @@ class UnitTestWordSegmentation:
 
     def __init__(
             self,
-            config
+            ut_params
     ):
-        self.config = config
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
         return
 
     def do_unit_test(
@@ -45,12 +48,12 @@ class UnitTestWordSegmentation:
     def get_word_segmenter(self, lang):
         return langhelper.LangHelper.get_word_segmenter(
             lang = lang,
-            dirpath_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dirpath_app_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_app_wordlist = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
-            dirpath_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist  = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+            dirpath_wordlist     = self.ut_params.dirpath_wordlist,
+            postfix_wordlist     = self.ut_params.postfix_wordlist,
+            dirpath_app_wordlist = self.ut_params.dirpath_app_wordlist,
+            postfix_app_wordlist = self.ut_params.postfix_app_wordlist,
+            dirpath_synonymlist  = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist  = self.ut_params.postfix_synonymlist,
             # During training, we don't care about allowed root words
             # We just take the first word in the synonym list as root
             # word. Only during detection, we need to do this to make
@@ -167,8 +170,18 @@ if __name__ == '__main__':
     )
     Log.LOGLEVEL = Log.LOG_LEVEL_IMPORTANT
 
+    ut_params = ut.UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
+
     tst = UnitTestWordSegmentation(
-        config = config
+        ut_params = ut_params
     )
     res = tst.run_unit_test()
 
