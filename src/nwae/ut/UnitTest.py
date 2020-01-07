@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from nwae.utils.Log import Log
-from nwae.utils.UnitTest import UnitTestParams
+from nwae.utils.UnitTest import ResultObj, UnitTestParams
 import nwae.config.Config as cf
 from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
@@ -60,7 +60,7 @@ class NwaeUnitTest:
         Log.critical('MetricSpaceModel Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical('TOTAL PASS = ' + str(all_pass) + ', TOTAL FAIL = ' + str(all_fail))
-        return
+        return ResultObj(count_ok=all_pass, count_fail=all_fail)
 
 
 if __name__ == '__main__':
