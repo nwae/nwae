@@ -26,6 +26,7 @@ src/nwae/lib/lang/nlp/ut/UtWordSegmentation.py
 src/nwae/lib/lang/preprocessing/BasicPreprocessor.py
 src/nwae/lib/lang/preprocessing/TrDataPreprocessor.py
 src/nwae/lib/lang/preprocessing/TxtPreprocessor.py
+src/nwae/lib/lang/preprocessing/ut/UtTrDataPreprocessor.py
 src/nwae/lib/lang/preprocessing/ut/UtTxtPreprocessor.py
 src/nwae/lib/lang/stats/LangStats.py
 src/nwae/lib/math/Cluster.py

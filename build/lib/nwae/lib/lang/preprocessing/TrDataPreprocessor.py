@@ -171,23 +171,23 @@ class TrDataPreprocessor:
         # Now we decode all Daehua Training Language Model
         # TODO Remove all this when Daehua Model is encoded in separate columns and not under Intent Name
         #
-        dh_obj = DaehuaTrainDataModel(
-            daehua_training_data = self.df_training_data
-        )
-        # This will clean 2 columns: Intent Names & Txt
-        self.df_training_data = dh_obj.clean_daehua_training_data()
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Done cleaning training data from daehua model variables.'
-        )
-
-        log.Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': After cleaning daehua variables, 10 Lines training data:\n\r'
-            + str(self.df_training_data.columns) + '\n\r'
-            + str(self.df_training_data[1:10].values)
-            + '\n\r: Shape: ' + str(self.df_training_data.shape)
-        )
+        # dh_obj = DaehuaTrainDataModel(
+        #     daehua_training_data = self.df_training_data
+        # )
+        # # This will clean 2 columns: Intent Names & Txt
+        # self.df_training_data = dh_obj.clean_daehua_training_data()
+        # log.Log.info(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Done cleaning training data from daehua model variables.'
+        # )
+        #
+        # log.Log.debug(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': After cleaning daehua variables, 10 Lines training data:\n\r'
+        #     + str(self.df_training_data.columns) + '\n\r'
+        #     + str(self.df_training_data[1:10].values)
+        #     + '\n\r: Shape: ' + str(self.df_training_data.shape)
+        # )
 
         return self.df_training_data
 
@@ -442,48 +442,11 @@ class TrDataPreprocessor:
 
 
 if __name__ == '__main__':
+    from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
     from nwae.config.Config import Config
     config = Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = Config,
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
-
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
-    lang = lf.LangFeatures.LANG_CN
-    from nwae.samples.SampleTextClassificationData import SampleTextClassificationData
-    sample_data = SampleTextClassificationData.get_text_classification_training_data()
-
-    fake_training_data = pd.DataFrame({
-        DaehuaTrainDataModel.COL_TDATA_INTENT_ID: sample_data[SampleTextClassificationData.COL_CLASS_ID],
-        DaehuaTrainDataModel.COL_TDATA_INTENT_NAME: sample_data[SampleTextClassificationData.COL_CLASS_ID],
-        DaehuaTrainDataModel.COL_TDATA_TEXT: sample_data[SampleTextClassificationData.COL_TEXT],
-        DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID: sample_data[SampleTextClassificationData.COL_TEXT_ID],
-        # Don't do any processing until later
-        DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED: None
-    })
-
-    ctdata = TrDataPreprocessor(
-        model_identifier       = 'Test Training Data Text Processor',
-        language               = lang,
-        df_training_data       = fake_training_data,
-        dirpath_wordlist       = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-        postfix_wordlist       = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-        dirpath_app_wordlist   = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-        postfix_app_wordlist   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
-        dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-        postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-        reprocess_all_text     = True,
-    )
-
-    td = ctdata.go()
-
-    print('*********** FINAL SEGMENTED DATA (' + str(ctdata.df_training_data.shape[0]) + ' sentences)')
-    print(ctdata.df_training_data.columns)
-    print(ctdata.df_training_data.values)
-
-    print('')
-    print('*********** ROWS CHANGED ***********')
-    count = 0
-    for row in ctdata.list_of_rows_with_changed_processed_text:
-        count += 1
-        print(str(count) + '. ' + str(row))
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    UtTrDataPreprocessor(config).run_unit_test()
