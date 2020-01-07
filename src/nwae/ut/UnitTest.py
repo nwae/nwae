@@ -3,6 +3,7 @@
 from nwae.utils.Log import Log
 from nwae.utils.UnitTest import ResultObj, UnitTestParams
 import nwae.config.Config as cf
+from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.UnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
@@ -27,6 +28,11 @@ class NwaeUnitTest:
     def run_unit_tests(self):
         all_pass = 0
         all_fail = 0
+
+        res = UnitTestObjectPersistence(ut_params=None).run_unit_test()
+        all_pass += res.count_ok
+        all_fail += res.count_fail
+        Log.critical('Object Persistence Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMex(config=None).run_unit_test()
         all_pass += res.count_ok
