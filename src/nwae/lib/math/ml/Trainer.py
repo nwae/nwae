@@ -370,7 +370,7 @@ class Trainer(threading.Thread):
         if (np_label_id.shape != np_label_name.shape) or (np_label_id.shape[0] != np_sentences_list.shape[0]):
             raise Exception(
                 str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + 'Label ID and name must have same dimensions.\n\r Label ID:\n\r'
+                + ': Label ID and name must have same dimensions.\n\r Label ID:\n\r'
                 + str(np_label_id)
                 + 'Label Name:\n\r'
                 + str(np_label_name)
