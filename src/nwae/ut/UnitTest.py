@@ -12,7 +12,7 @@ import nwae.lib.math.ml.ModelHelper as modelHelper
 
 #
 # We run all the available unit tests from all modules here
-# PYTHONPATH=".:/usr/local/git/nwae/nwae.utils/src:/usr/local/git/nwae/mex/src" /usr/local/bin/python3.8 nwae/ut/UnitTest.py
+# PYTHONPATH=".:/usr/local/git/nwae/nwae.utils/src:/usr/local/git/nwae/mex/src" /usr/local/bin/python3.6 nwae/ut/UnitTest.py
 #
 class NwaeUnitTest:
 
