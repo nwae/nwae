@@ -88,6 +88,11 @@ class UtTrDataPreprocessor:
             b = expected_text_segmented[i] == res_text_segmented[i]
             res_obj.count_ok += 1*b
             res_obj.count_fail += 1*(not b)
+            if b == False:
+                Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Error "' + str(res_text_segmented[i]) + '", expected "' + str(expected_text_segmented[i])
+                )
 
         Log.important(
             '***** Training Data Preprocessor ' + str(lang) + ' PASSED ' + str(res_obj.count_ok)
@@ -97,7 +102,7 @@ class UtTrDataPreprocessor:
 
     def run_unit_test(self):
         all_res = ResultObj(count_ok=0, count_fail=0)
-        for lang in [lf.LangFeatures.LANG_VN]:
+        for lang in [lf.LangFeatures.LANG_VN, lf.LangFeatures.LANG_TH, lf.LangFeatures.LANG_CN]:
             res = self.run_unit_test_lang(lang = lang)
             all_res.count_ok += res.count_ok
             all_res.count_fail += res.count_fail
