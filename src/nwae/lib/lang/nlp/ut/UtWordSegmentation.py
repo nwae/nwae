@@ -5,7 +5,6 @@ import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
 import nwae.lib.lang.LangHelper as langhelper
 from nwae.utils.Log import Log
-from nwae.utils.UnitTest import ResultObj
 
 
 #
@@ -152,15 +151,21 @@ class UnitTestWordSegmentation:
         )
 
     def run_unit_test(self):
-        res_cn = self.test_chinese()
-        res_th = self.test_thai()
-        res_vi = self.test_viet()
-        res_en = self.test_en()
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
-        total_ok = res_cn.count_ok + res_th.count_ok + res_vi.count_ok + res_en.count_ok
-        total_fail = res_cn.count_fail + res_th.count_fail + res_vi.count_fail + res_en.count_fail
+        res = self.test_chinese()
+        res_final.update(other_res_obj=res)
 
-        return ResultObj(count_ok=total_ok, count_fail=total_fail)
+        res = self.test_thai()
+        res_final.update(other_res_obj=res)
+
+        res = self.test_viet()
+        res_final.update(other_res_obj=res)
+
+        res = self.test_en()
+        res_final.update(other_res_obj=res)
+
+        return res_final
 
 
 if __name__ == '__main__':

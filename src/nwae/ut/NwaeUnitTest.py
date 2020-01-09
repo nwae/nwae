@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from nwae.utils.Log import Log
-from nwae.utils.UnitTest import ResultObj, UnitTestParams
+import nwae.utils.UnitTest as uthelper
 import nwae.config.Config as cf
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
-from mex.UnitTest import UnitTestMex
+from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
 from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
@@ -22,38 +22,32 @@ class NwaeUnitTest:
         self.ut_params = ut_params
         if self.ut_params is None:
             # We only do this for convenience, so that we have access to the Class methods in UI
-            self.ut_params = UnitTestParams()
+            self.ut_params = uthelper.UnitTestParams()
         return
 
     def run_unit_tests(self):
-        all_pass = 0
-        all_fail = 0
+        res_final = uthelper.ResultObj(count_ok=0, count_fail=0)
 
         res = UnitTestObjectPersistence(ut_params=None).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('Object Persistence Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMex(config=None).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('Mex Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
         #
         # Word Tokenization or Segmentation
         #
         res = UnitTestWordSegmentation(ut_params=self.ut_params).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('Word Segmentation Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UtTxtPreprocessor(ut_params=self.ut_params).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UtTrDataPreprocessor(ut_params=self.ut_params).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('Training Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMetricSpaceModel(
@@ -61,12 +55,11 @@ class NwaeUnitTest:
             identifier_string = 'demo_ut1',
             model_name = modelHelper.ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
         ).run_unit_test()
-        all_pass += res.count_ok
-        all_fail += res.count_fail
+        res_final.update(other_res_obj=res)
         Log.critical('MetricSpaceModel Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        Log.critical('TOTAL PASS = ' + str(all_pass) + ', TOTAL FAIL = ' + str(all_fail))
-        return ResultObj(count_ok=all_pass, count_fail=all_fail)
+        Log.critical('TOTAL PASS = ' + str(res_final.count_ok) + ', TOTAL FAIL = ' + str(res_final.count_fail))
+        return res_final
 
 
 if __name__ == '__main__':
@@ -75,7 +68,7 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
-    ut_params = UnitTestParams(
+    ut_params = uthelper.UnitTestParams(
         dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
         postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
         dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
