@@ -13,7 +13,7 @@ SCRIPT_NAME="$0"
 ########################################################################################
 # Where this script is relative to project directory
 PROGRAM_NAME="NWAE UNIT TEST"
-SCRIPT_DIR="server.scripts"
+SCRIPT_DIR="shellscripts"
 PYTHON_VER="3.6"
 SOURCE_DIR="../src"
 COMPILE_MODULE="."
