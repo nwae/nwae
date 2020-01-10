@@ -82,7 +82,9 @@ class WordSegmentation(object):
         else:
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Loading word list for complex language "' + str(self.lang) + '"..'
+                + ': Loading word list for complex language "' + str(self.lang)
+                + '" using dirpath wordlist "' + str(dirpath_wordlist)
+                + '", postfix wordlist "' + str(postfix_wordlist)
             )
             self.lang_wordlist = wl.WordList(
                 lang             = lang,

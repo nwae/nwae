@@ -5,7 +5,7 @@ from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.LangFeatures as lf
 from nwae.lib.lang.preprocessing.TrDataPreprocessor import TrDataPreprocessor
-from nwae.utils.UnitTest import ResultObj
+import nwae.utils.UnitTest as ut
 import pandas as pd
 from nwae.samples.SampleTextClassificationData import SampleTextClassificationData
 from nwae.lib.lang.nlp.daehua.DaehuaTrainDataModel import DaehuaTrainDataModel
@@ -15,9 +15,12 @@ class UtTrDataPreprocessor:
 
     def __init__(
             self,
-            config
+            ut_params
     ):
-        self.config = config
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
         return
 
     def run_unit_test_lang(
@@ -48,12 +51,12 @@ class UtTrDataPreprocessor:
             model_identifier     = str(lang) + ' Test Training Data Text Processor',
             language             = lang,
             df_training_data     = fake_training_data,
-            dirpath_wordlist     = self.config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist     = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dirpath_app_wordlist = self.config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_app_wordlist = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
-            dirpath_synonymlist  = self.config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist  = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+            dirpath_wordlist     = self.ut_params.dirpath_wordlist,
+            postfix_wordlist     = self.ut_params.postfix_wordlist,
+            dirpath_app_wordlist = self.ut_params.dirpath_app_wordlist,
+            postfix_app_wordlist = self.ut_params.postfix_app_wordlist,
+            dirpath_synonymlist  = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist  = self.ut_params.postfix_synonymlist,
             reprocess_all_text   = True,
         )
 
@@ -74,7 +77,7 @@ class UtTrDataPreprocessor:
         Log.debugdebug(expected_text_segmented)
         res_text_segmented = ctdata.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].tolist()
         Log.debugdebug(res_text_segmented)
-        res_obj = ResultObj(
+        res_obj = ut.ResultObj(
             count_ok = 0,
             count_fail = 0
         )
@@ -85,14 +88,11 @@ class UtTrDataPreprocessor:
                 + ' != output array length ' + str(len(res_text_segmented))
             )
         for i in range(len(expected_text_segmented)):
-            b = expected_text_segmented[i] == res_text_segmented[i]
-            res_obj.count_ok += 1*b
-            res_obj.count_fail += 1*(not b)
-            if b == False:
-                Log.error(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Error "' + str(res_text_segmented[i]) + '", expected "' + str(expected_text_segmented[i])
-                )
+            res_obj.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = res_text_segmented[i],
+                expected = expected_text_segmented[i],
+                test_comment = 'test ' + str(i)
+            ))
 
         Log.important(
             '***** Training Data Preprocessor ' + str(lang) + ' PASSED ' + str(res_obj.count_ok)
@@ -101,12 +101,11 @@ class UtTrDataPreprocessor:
         return res_obj
 
     def run_unit_test(self):
-        all_res = ResultObj(count_ok=0, count_fail=0)
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
         for lang in [lf.LangFeatures.LANG_VN, lf.LangFeatures.LANG_TH, lf.LangFeatures.LANG_CN]:
             res = self.run_unit_test_lang(lang = lang)
-            all_res.count_ok += res.count_ok
-            all_res.count_fail += res.count_fail
-        return all_res
+            res_final.update(other_res_obj=res)
+        return res_final
 
 
 if __name__ == '__main__':
@@ -114,6 +113,15 @@ if __name__ == '__main__':
         Derived_Class=Config,
         default_config_file='/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
+    ut_params = ut.UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-    UtTrDataPreprocessor(config).run_unit_test()
+    UtTrDataPreprocessor(ut_params=ut_params).run_unit_test()

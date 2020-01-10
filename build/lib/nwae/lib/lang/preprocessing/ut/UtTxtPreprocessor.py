@@ -5,7 +5,7 @@ from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.utils.Log import Log
-from nwae.utils.UnitTest import ResultObj
+import nwae.utils.UnitTest as ut
 
 
 class UtTxtPreprocessor:
@@ -78,9 +78,12 @@ class UtTxtPreprocessor:
 
     def __init__(
             self,
-            config
+            ut_params
     ):
-        self.config = config
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
         return
 
     def __init_txt_preprocessor(self, lang):
@@ -92,47 +95,48 @@ class UtTxtPreprocessor:
             # Don't need features/vocabulary list from model
             model_features_list    = None,
             lang                   = self.lang,
-            dirpath_synonymlist    = self.config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist    = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-            dir_wordlist           = self.config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist       = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dir_wordlist_app       = self.config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_wordlist_app   = self.config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+            dirpath_synonymlist    = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist    = self.ut_params.postfix_synonymlist,
+            dir_wordlist           = self.ut_params.dirpath_wordlist,
+            postfix_wordlist       = self.ut_params.postfix_wordlist,
+            dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
+            postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
             do_word_stemming       = False,
             do_profiling           = False
         )
 
     def __run_lang_unit_test(self):
-        count_ok = 0
-        count_fail = 0
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+
         for txt_expected in UtTxtPreprocessor.TESTS[self.lang]:
             txt = txt_expected[0]
             expected = txt_expected[1]
-            res = self.txt_preprocessor.process_text(
+            observed = self.txt_preprocessor.process_text(
                 inputtext = txt,
                 return_as_string = False,
                 use_special_symbol_username_nonword = True
             )
-            if res != expected:
-                count_fail += 1
-                Log.error('FAIL. Error txt "' + str(txt) + '", got ' + str(res) + ', expected ' + str(expected))
-            else:
-                count_ok += 1
-                Log.debug('OK "' + str(txt) + '", result' + str(res))
+            res_final.update_bool(res_bool = ut.UnitTest.assert_true(
+                observed = observed,
+                expected = expected,
+                test_comment = 'test "' + str(txt) + '"'
+            ))
 
-        Log.important('***** ' + str(self.lang) + ' PASSED ' + str(count_ok) + ', FAILED ' + str(count_fail) + ' *****')
-        return ResultObj(count_ok=count_ok, count_fail=count_fail)
+        Log.important(
+            '***** ' + str(self.lang) + ' PASSED ' + str(res_final.count_ok)
+            + ', FAILED ' + str(res_final.count_fail) + ' *****'
+        )
+        return res_final
 
     def run_unit_test(self):
-        res_obj = ResultObj(count_ok=0, count_fail=0)
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
         for lang in [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]:
             self.__init_txt_preprocessor(lang=lang)
             res = self.__run_lang_unit_test()
-            res_obj.count_ok += res.count_ok
-            res_obj.count_fail += res.count_fail
+            res_final.update(other_res_obj=res)
 
-        return res_obj
+        return res_final
 
 if __name__ == '__main__':
     config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
@@ -140,6 +144,16 @@ if __name__ == '__main__':
         Derived_Class       = Config,
         default_config_file = config_file
     )
+    ut_params = ut.UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
+    )
+    print('Unit Test Params: ' + str(ut_params.to_string()))
+
     Log.LOGLEVEL = Log.LOG_LEVEL_WARNING
-    UtTxtPreprocessor(config=config).run_unit_test()
+    UtTxtPreprocessor(ut_params=ut_params).run_unit_test()
 

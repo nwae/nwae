@@ -156,7 +156,7 @@ class WordList:
         if array_words is not None:
             content = array_words
         else:
-            filepath = dirpath + '/' + self.lang + postfix
+            filepath = str(dirpath) + '/' + str(self.lang) + str(postfix)
             log.Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Lang "' + str(self.lang) + '" loading list for [' + self.lang + ']' + '[' + filepath + ']'
