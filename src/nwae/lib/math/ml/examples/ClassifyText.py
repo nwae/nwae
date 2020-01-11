@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# From https://learn-neural-networks.com/world-embedding-by-keras/
+# Partly from https://learn-neural-networks.com/world-embedding-by-keras/
 #
 
 from numpy import array
@@ -26,30 +26,30 @@ labels = [x[1] for x in docs_label]
 print('Docs: ' + str(docs))
 print('Labels: ' + str(labels))
 
+unique_words = list(set([w for sent in docs for w in sent]))
+print('Unique words: ' + str(unique_words))
+
+#
+# Create indexed dictionary
+#
+one_hot_dict = BasicPreprocessor.create_indexed_dictionary(
+    sentences = docs
+)
+print('One Hot Dict: ' + str(one_hot_dict))
+
 #
 # Process sentences into numbers, with padding
 # In real environments, we usually also replace unknown words, numbers, URI, etc.
 # with standard symbols, do word stemming, remove stopwords, etc.
 #
 # Vocabulary dimension
-vs = 50
-enc_docs = [kerasprep.text.one_hot(' '.join(d), vs) for d in docs]
+vs = len(unique_words) + 10
+enc_docs = BasicPreprocessor.sentences_to_indexes(
+    sentences = docs,
+    indexed_dict = one_hot_dict
+)
 print('Encoded Sentences (' + str(len(enc_docs)) + '):')
 print(enc_docs)
-
-#
-# Create back the one-hot dictionary (there must be a Keras API for this right?
-#
-one_hot_dict = {}
-for i in range(len(docs)):
-    sent = docs[i]
-    one_hot = enc_docs[i]
-    print(str(i) + '. Sent: ' + str(sent) + ', one hot: ' + str(one_hot))
-    for j in range(len(one_hot)):
-        word = sent[j]
-        code = one_hot[j]
-        one_hot_dict[word] = code
-print('One Hot Dict: ' + str(one_hot_dict))
 
 # pad documents to a max length of 4 words
 max_length = 1

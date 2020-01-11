@@ -242,7 +242,6 @@ if __name__ == '__main__':
         training_data     = None,
         is_partial_training = False
     )
-    exit(0)
 
     import nwae.lib.lang.nlp.Corpora as corpora
     data_set = corpora.Corpora().build_data_set()

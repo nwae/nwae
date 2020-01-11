@@ -4,11 +4,9 @@ import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.lang.LangFeatures as lf
 import re
+import nwae.utils.UnitTest as ut
 
 
-#
-# When model updates, this also need to update. So be careful.
-#
 class BasicPreprocessor:
 
     #
@@ -45,6 +43,9 @@ class BasicPreprocessor:
     EOS_ID = 2
     UNK_ID = 3
     OP_DICT_IDS = [PAD_ID, GO_ID, EOS_ID, UNK_ID]
+    INDEXED_DICT_BASE = {
+        W_PAD: PAD_ID, W_GO: GO_ID, W_EOS: EOS_ID, W_UNK: UNK_ID
+    }
 
     #
     # The difference between this and the function get_word_separator_type() in
@@ -99,7 +100,139 @@ class BasicPreprocessor:
             log.Log.error(errmsg)
             return None
 
+    @staticmethod
+    def create_indexed_dictionary(
+            # list of list of words
+            sentences
+    ):
+        indexed_dict = BasicPreprocessor.INDEXED_DICT_BASE.copy()
+        index = 1 + max(indexed_dict.values())
+        for i in range(len(sentences)):
+            sent = sentences[i]
+            for j in range(len(sent)):
+                word = sent[j]
+                if word not in indexed_dict.keys():
+                    index += 1
+                    indexed_dict[word] = index
+        return indexed_dict
+
+    @staticmethod
+    def sentences_to_indexes(
+            sentences,
+            indexed_dict
+    ):
+        encoded_sentences = []
+
+        for sent in sentences:
+            encoded_sent = []
+            log.Log.debug('Processing sentence: ' + str(sent))
+            for w in sent:
+                if w in indexed_dict.keys():
+                    encoded_sent.append(indexed_dict[w])
+                else:
+                    encoded_sent.append(BasicPreprocessor.UNK_ID)
+            encoded_sentences.append(encoded_sent)
+            log.Log.debug('Encoded sentence: ' + str(encoded_sent))
+        return encoded_sentences
+
+    @staticmethod
+    def indexes_to_sentences(
+            indexes,
+            indexed_dict
+    ):
+        original_sentences = []
+        inv_map = {v: k for k, v in indexed_dict.items()}
+
+        for sent in indexes:
+            original_sent = []
+            log.Log.debug('Processing indexed sentence: ' + str(sent))
+            for idx in sent:
+                if idx in inv_map.keys():
+                    original_sent.append(inv_map[idx])
+                else:
+                    original_sent.append(BasicPreprocessor.W_UNK)
+            original_sentences.append(original_sent)
+            log.Log.debug('Original sentence: ' + str(original_sent))
+        return original_sentences
+
+    @staticmethod
+    def extract_max_length(
+            corpora
+    ):
+        max_len = 0
+        for sent in corpora:
+            max_len = max(max_len, len(sent))
+        return max_len
+
+    @staticmethod
+    def prepare_sentence_pairs(
+            sentences_l1,
+            sentences_l2,
+            len_l1,
+            len_l2
+    ):
+        assert len(sentences_l1) == len(sentences_l2)
+        data_set = []
+        for i in range(len(sentences_l1)):
+            padding_l1 = len_l1 - len(sentences_l1[i])
+            pad_sentence_l1 = ([BasicPreprocessor.PAD_ID]*padding_l1) + sentences_l1
+
+            padding_l2 = len_l2 - len(sentences_l2[i])
+            pad_sentence_l2 = BasicPreprocessor.GO_ID + sentences_l2 + ([BasicPreprocessor.PAD_ID]*padding_l2)
+
+            data_set.append([pad_sentence_l1, pad_sentence_l2])
+        return data_set
+
+
+class BasicPreprocessorUnitTest:
+    def __init__(self, ut_params):
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            self.ut_params = ut.UnitTestParams()
+        return
+
+    def run_unit_test(self):
+        res = ut.ResultObj(count_ok=0, count_fail=0)
+
+        sentences = [
+            ['Capital', 'tesT', 'ok?'],
+            ['I', 'like', 'coding', 'la!'],
+            ['Самый', 'лучщий', 'филмь', 'всей', 'истории', '"등등등"']
+        ]
+        cleaned_sentences = [BasicPreprocessor.clean_punctuations(sentence=s) for s in sentences]
+        log.Log.debugdebug(cleaned_sentences)
+
+        index_dict = BasicPreprocessor.create_indexed_dictionary(sentences=cleaned_sentences)
+        log.Log.debugdebug(index_dict)
+
+        encoded_sentences = BasicPreprocessor.sentences_to_indexes(
+            sentences=cleaned_sentences,
+            indexed_dict=index_dict
+        )
+        log.Log.debugdebug(encoded_sentences)
+
+        original_sentences = BasicPreprocessor.indexes_to_sentences(
+            indexes=encoded_sentences,
+            indexed_dict=index_dict
+        )
+        log.Log.debugdebug(original_sentences)
+
+        for i in range(len(original_sentences)):
+            observed_sent = original_sentences[i]
+            expected_sent = cleaned_sentences[i]
+            res.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = observed_sent,
+                expected = expected_sent,
+                test_comment = 'test sentence "' + str(observed_sent) + '"'
+            ))
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Passed ' + str(res.count_ok) + ', Failed ' + str(res.count_fail)
+        )
+        return res
+
 
 if __name__ == '__main__':
-    sent = ['Capital', 'tesT', 'ok?']
-    print(BasicPreprocessor.clean_punctuations(sentence=sent))
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    res = BasicPreprocessorUnitTest(ut_params=None).run_unit_test()
+    exit(res.count_fail)
