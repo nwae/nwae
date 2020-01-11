@@ -8,6 +8,7 @@ from numpy import array
 import keras.preprocessing as kerasprep
 import keras.layers as keraslay
 from keras.models import Sequential
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
 # Training data or Documents
@@ -19,8 +20,11 @@ docs_label = [
     ('미친놈',0), ('씨발',0), ('개',0), ('개자식',0),
     ('젠장',0)
 ]
-docs = [x[0] for x in docs_label]
+docs = [x[0].split(' ') for x in docs_label]
+docs = [BasicPreprocessor.clean_punctuations(sentence=sent) for sent in docs]
 labels = [x[1] for x in docs_label]
+print('Docs: ' + str(docs))
+print('Labels: ' + str(labels))
 
 #
 # Process sentences into numbers, with padding
@@ -29,14 +33,28 @@ labels = [x[1] for x in docs_label]
 #
 # Vocabulary dimension
 vs = 50
-enc_docs = [kerasprep.text.one_hot(d, vs) for d in docs]
+enc_docs = [kerasprep.text.one_hot(' '.join(d), vs) for d in docs]
 print('Encoded Sentences (' + str(len(enc_docs)) + '):')
 print(enc_docs)
+
+#
+# Create back the one-hot dictionary (there must be a Keras API for this right?
+#
+one_hot_dict = {}
+for i in range(len(docs)):
+    sent = docs[i]
+    one_hot = enc_docs[i]
+    print(str(i) + '. Sent: ' + str(sent) + ', one hot: ' + str(one_hot))
+    for j in range(len(one_hot)):
+        word = sent[j]
+        code = one_hot[j]
+        one_hot_dict[word] = code
+print('One Hot Dict: ' + str(one_hot_dict))
 
 # pad documents to a max length of 4 words
 max_length = 1
 for sent_label in docs_label:
-    max_length = max(len(sent_label[0].split(' ')),max_length)
+    max_length = max(len(sent_label[0].split(' ')), max_length)
 print('Max Length = ' + str(max_length))
 
 p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding='post')
@@ -79,6 +97,5 @@ modelEmb.fit(p_docs, array(labels), epochs=150, verbose=0)
 loss, accuracy = modelEmb.evaluate(p_docs, array(labels), verbose=2)
 print('Accuracy: %f' % (accuracy*100))
 
-embeddings = modelEmb.predict(p_docs)
-#print('Embeddings:')
-#print(embeddings)
+probs = modelEmb.predict(p_docs)
+print('Probs:' + str(probs))

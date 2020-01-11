@@ -100,4 +100,6 @@ class BasicPreprocessor:
             return None
 
 
-
+if __name__ == '__main__':
+    sent = ['Capital', 'tesT', 'ok?']
+    print(BasicPreprocessor.clean_punctuations(sentence=sent))
