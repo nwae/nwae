@@ -88,6 +88,11 @@ class Corpora:
 
         return (filtered_sentences_l1, filtered_sentences_l2)
 
+    #
+    # The final output is a list of sentence pairs:
+    #  - Left sentence pair is padded with initial 0's, right sentence padded at the end
+    #  - All words converted numbers
+    #
     def build_data_set(self):
         (sen_l1, sen_l2) = self.retrieve_corpora(
             corpora_name = Corpora.CORPORA_NLTK_TRANSLATED_SENTENCES_EN_DE

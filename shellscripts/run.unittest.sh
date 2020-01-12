@@ -139,7 +139,9 @@ if PYTHONPATH="$PROJECTDIR"/"$SOURCE_DIR":"$EXTERNAL_SRC_FOLDERS" \
          configfile="$CONFIGFILE" \
          port="$PORT"; then
   exit_status=0
+  echo "[$SCRIPT_NAME] OK Unit Tests."
 else
+  echo "[$SCRIPT_NAME] FAIL Unit Tests."
   exit_status=1
 fi
 
