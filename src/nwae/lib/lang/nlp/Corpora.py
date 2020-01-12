@@ -4,7 +4,9 @@ from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 import nltk
+from nltk.corpus import comtrans
 from nwae.lib.lang.LangFeatures import LangFeatures
+from nwae.utils.networking.Ssl import Ssl
 
 
 class Corpora:
@@ -18,15 +20,38 @@ class Corpora:
             lang = LangFeatures.LANG_EN
     ):
         self.lang = lang
-        nltk.download(Corpora.NLTK_COMTRANS)
+        Ssl.disable_ssl_check()
+        try:
+            if nltk.download(Corpora.NLTK_COMTRANS):
+                Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': NLTK download of "' + Corpora.NLTK_COMTRANS + '" OK.'
+                )
+            else:
+                raise Exception(
+                    'Download "' + str(Corpora.NLTK_COMTRANS) + '" returned False'
+                )
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': NLTK download of "' + str(Corpora.NLTK_COMTRANS) + '" exception: ' \
+                     + str(ex) + '.'
+            Log.error(errmsg)
+            raise Exception(errmsg)
         return
 
     def retrieve_corpora(
             self,
             corpora_name
     ):
-        from nltk.corpus import comtrans
-        als = comtrans.aligned_sents(corpora_name)
+        try:
+            als = comtrans.aligned_sents(corpora_name)
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Comtrans download of corpora "' + str(corpora_name) + '" exception: ' \
+                     + str(ex) + '.'
+            Log.error(errmsg)
+            raise Exception(errmsg)
+
         sentences_l1 = [sent.words for sent in als]
         sentences_l2 = [sent.mots for sent in als]
         Log.info('Sentences length = ' + str(len(sentences_l1)))

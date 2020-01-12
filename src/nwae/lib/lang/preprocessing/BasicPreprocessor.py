@@ -175,10 +175,10 @@ class BasicPreprocessor:
         data_set = []
         for i in range(len(sentences_l1)):
             padding_l1 = len_l1 - len(sentences_l1[i])
-            pad_sentence_l1 = ([BasicPreprocessor.PAD_ID]*padding_l1) + sentences_l1
+            pad_sentence_l1 = ([BasicPreprocessor.PAD_ID]*padding_l1) + sentences_l1[i]
 
             padding_l2 = len_l2 - len(sentences_l2[i])
-            pad_sentence_l2 = BasicPreprocessor.GO_ID + sentences_l2 + ([BasicPreprocessor.PAD_ID]*padding_l2)
+            pad_sentence_l2 = [BasicPreprocessor.GO_ID] + sentences_l2[i] + ([BasicPreprocessor.PAD_ID]*padding_l2)
 
             data_set.append([pad_sentence_l1, pad_sentence_l2])
         return data_set
