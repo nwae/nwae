@@ -1,4 +1,9 @@
-# NWAE
+# nwae
+- nwae in
+  - moshyet sam obuchat iziki, okrushayuschiy mir, liodi
+  - obladaet tsel, polosheniye, optimizatsiya (ili, garmoniya/balans)
+  - moshno ponyat (polosheniya), rassudit, reshit
+- nwae perevodchik
 
 ### 작업
 - 대화 모델
@@ -8,7 +13,3 @@
 - 수열 모델
 - 사용성
   - 사용자 이름
-
-### Nwae In
-- Обладает цель, положение и оптимизация (или гармония/баланс)
-- Можно понять (положения), рассудить, решить
