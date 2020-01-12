@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import threading
 import nwae.lib.math.ml.TrainingDataModel as tdm
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.ml.ModelInterface as modelIf
 import collections
@@ -34,7 +34,7 @@ class SequenceModel(modelIf.ModelInterface):
             # Train only by y/labels and store model files in separate y_id directories
             is_partial_training
     ):
-        super(SequenceModel, self).__init__(
+        super().__init__(
             model_name          = SequenceModel.MODEL_NAME,
             identifier_string   = identifier_string,
             dir_path_model      = dir_path_model,
@@ -87,19 +87,28 @@ class SequenceModel(modelIf.ModelInterface):
     #
     # Test model only, not for production use
     #
-    def __load_sample_model(self):
+    def __load_sample_model(
+            self,
+            embed_input_dim  = 1000,
+            embed_output_dim = 64,
+            embed_input_len  = 20,
+            lstm_units = 128
+    ):
         lstm_model = keras.Sequential()
         # Add an Embedding layer expecting input vocab of size 1000, and
         # output embedding dimension of size 64.
         lstm_model.add(
             keras.layers.Embedding(
-                input_dim  = 1000,
-                output_dim = 64
+                input_dim    = embed_input_dim,
+                output_dim   = embed_output_dim,
+                input_length = embed_input_len
             )
         )
         # Add a LSTM layer with 128 internal units.
         lstm_model.add(
-            keras.layers.LSTM(128)
+            keras.layers.LSTM(
+                lstm_units
+            )
         )
         # Add a Dense layer with 10 units and softmax activation.
         lstm_model.add(
@@ -244,5 +253,8 @@ if __name__ == '__main__':
     )
 
     import nwae.lib.lang.nlp.Corpora as corpora
-    data_set = corpora.Corpora().build_data_set()
+    ret = corpora.Corpora().build_data_set()
+    data_set = ret.list_sent_pairs
+    max_len = max(ret.max_len_l1, ret.max_len_l2)
     print('Prepared data set of length ' + str(len(data_set)))
+    print('Max Length = ' + str(max_len))

@@ -181,6 +181,10 @@ class BasicPreprocessor:
             pad_sentence_l2 = [BasicPreprocessor.GO_ID] + sentences_l2[i] + ([BasicPreprocessor.PAD_ID]*padding_l2)
 
             data_set.append([pad_sentence_l1, pad_sentence_l2])
+        log.Log.info(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Appended ' + str(len(data_set)) + ' sentence pairs to data set.'
+        )
         return data_set
 
 

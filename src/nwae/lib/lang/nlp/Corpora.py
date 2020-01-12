@@ -141,9 +141,18 @@ class Corpora:
         )
         Log.info('Data set: ' + str(data_set[0:10]))
 
-        return data_set
+        class retclass:
+            def __init__(self, list_sent_pairs, max_len_l1, max_len_l2):
+                self.list_sent_pairs = list_sent_pairs
+                self.max_len_l1 = max_len_l1
+                self.max_len_l2 = max_len_l2
+
+        return retclass(list_sent_pairs=data_set, max_len_l1=max_len_l1, max_len_l2=max_len_l2)
 
 
 if __name__ == '__main__':
-    Corpora().build_data_set()
+    ret = Corpora().build_data_set()
+    print('Data set type "' + str(type(ret.list_sent_pairs)) + '", size = ' + str(len(ret.list_sent_pairs)))
+    #for item in ret.data_set:
+    #    print(item)
 
