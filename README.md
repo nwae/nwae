@@ -5,7 +5,7 @@
   - moshno ponyat (polosheniya), rassudit, reshit
 - nwae perevodchik
 
-### 작업
+### 작업, 과제
 - 대화 모델
   - 인간 이해. 혁심 주제,..
   - 양식 대화. Mex, ..
