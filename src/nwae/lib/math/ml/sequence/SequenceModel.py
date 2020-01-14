@@ -15,7 +15,7 @@ from tensorflow import keras
 
 
 #
-# Sequential data (language translation, chatbot, speech recognition) type of models
+# Sequential data type models
 #
 # 모델 설명
 #  The idea behind this NN is a bit different from the single label output.
@@ -94,6 +94,9 @@ class SequenceModel(modelIf.ModelInterface):
             embed_input_len  = 20,
             lstm_units = 128
     ):
+        #
+        # Layers Design
+        #
         lstm_model = keras.Sequential()
         # Add an Embedding layer expecting input vocab of size 1000, and
         # output embedding dimension of size 64.
@@ -114,6 +117,18 @@ class SequenceModel(modelIf.ModelInterface):
         lstm_model.add(
             keras.layers.Dense(10, activation='softmax')
         )
+
+        # Finally compile the model
+        lstm_model.compile(
+            optimizer = 'rmsprop',
+            loss      = 'categorical_crossentropy',
+            metrics   = ['accuracy']
+        )
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model compiled successfully.'
+        )
+
         lstm_model.summary()
         return lstm_model
 
@@ -245,16 +260,16 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
-    obj = SequenceModel(
-        identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
-        dir_path_model    = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
-        training_data     = None,
-        is_partial_training = False
-    )
-
     import nwae.lib.lang.nlp.Corpora as corpora
     ret = corpora.Corpora().build_data_set()
     data_set = ret.list_sent_pairs
     max_len = max(ret.max_len_l1, ret.max_len_l2)
     print('Prepared data set of length ' + str(len(data_set)))
     print('Max Length = ' + str(max_len))
+
+    obj = SequenceModel(
+        identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
+        dir_path_model    = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
+        training_data     = None,
+        is_partial_training = False
+    )
