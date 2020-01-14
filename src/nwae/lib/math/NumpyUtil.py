@@ -3,6 +3,8 @@ import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as prf
 import nwae.lib.math.Constants as const
+import pandas as pd
+import nwae.utils.UnitTest as ut
 
 
 class NumpyUtil:
@@ -268,9 +270,79 @@ class NumpyUtil:
     ):
         return (abs((np.sum(np.multiply(x, x)) ** 0.5) - 1) < const.Constants.SMALL_VALUE)
 
+    #
+    # Returns biggest to smallest indexes, given a numpy ndarray of 1 dimension
+    #
+    @staticmethod
+    def get_top_indexes(
+            # numpy ndarray of a single dimension only
+            data,
+            # By default, from biggest to smallest
+            ascending = False,
+            top_x = 5
+    ):
+        if data.ndim > 1:
+            raise Exception(
+                'Expected single dimension, got ' + str(data.ndim) + ' dimensional: '
+                + str(data)
+            )
+        len_data = data.shape[0]
+        if len_data == 0:
+            raise Exception(
+                'Empty data'
+            )
+        df = pd.DataFrame(data=data, columns=['data'])
+        df.sort_values(by=['data'], ascending=ascending, inplace=True)
+        # print(df)
+        top_indexes = np.array(df.index[0:min(top_x, len_data)])
+        # print(top_x)
+        return top_indexes
+
+
+class NumpyUtilUnittest:
+    def __init__(self, ut_params):
+        self.ut_params = ut_params
+        return
+
+    def run_unit_test(self):
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+
+        x_input = np.array([
+            [5.6, 2.4, 55.6, 6.8],
+            [55, 66, 22, 77, 33, 22],
+        ])
+        out_expected = np.array([
+            [2, 3, 0, 1],
+            [3, 1, 0, 4, 2],
+        ])
+        for i in range(x_input.shape[0]):
+            data = np.array(x_input[i])
+            expected = np.array(out_expected[i])
+            top_indexes = NumpyUtil.get_top_indexes(
+                data = data,
+                ascending = False,
+                top_x = 5
+            )
+            res_final.update_bool(ut.UnitTest.assert_true(
+                observed = list(top_indexes),
+                expected = list(expected),
+                test_comment = 'test ' + str(data)
+            ))
+
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Numpy Util Unit Test PASSED ' + str(res_final.count_ok) + ', FAILED ' + str(res_final.count_fail)
+        )
+        return res_final
+
+
 if __name__ == '__main__':
+    res = NumpyUtilUnittest(ut_params=None).run_unit_test()
+    exit(0)
 
     A = np.random.randn(3, 3, 3)
+    print('Test Normalization of: ' + str(A))
+    print('Result: ')
     print(NumpyUtil.normalize(x=A, axis=0))
     print(NumpyUtil.normalize(x=A, axis=1))
     print(NumpyUtil.normalize(x=A, axis=2))
