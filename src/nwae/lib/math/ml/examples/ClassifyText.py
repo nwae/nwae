@@ -24,7 +24,9 @@ docs_label = [
 ]
 
 def create_padded_docs(
-        list_docs_label
+        list_docs_label,
+        # 'pre' or 'post'
+        padding = 'pre'
 ):
     import keras.preprocessing as kerasprep
 
@@ -71,7 +73,7 @@ def create_padded_docs(
         max_length = max(len(sent), max_length)
     print('Max Length = ' + str(max_length))
 
-    p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding='pre')
+    p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding=padding)
     print('Padded Encoded Sentences (' + str(p_docs.shape) + '):')
     print(p_docs)
 
