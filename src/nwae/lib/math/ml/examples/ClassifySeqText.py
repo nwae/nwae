@@ -6,14 +6,33 @@ import keras.layers as keraslay
 import keras.utils as kerasutils
 from keras.models import Sequential
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
+from nwae.utils.FileUtils import FileUtils
 
 
 # Training data or Documents
-seq_pairs = [
-    ('Я иду на работу', '나는 일에게 간다'),
-    ('Я люблю мою работу', '나는 내 일을 사랑해'),
-    ('Моя работа интересная', '나의 일은 흥미홉다')
-]
+# seq_pairs = [
+#     ('Я иду на работу', '나는 일에게 간다'),
+#     ('Я люблю мою работу', '나는 내 일을 사랑해'),
+#     ('Моя работа интересная', '나의 일은 흥미홉다')
+# ]
+
+def get_sample_lang_pairs(
+        filepath
+):
+    flines = FileUtils.read_text_file(filepath=filepath)
+    i=0
+    lang_pairs = []
+    for line in flines:
+        try:
+            arr = line.split('\t')
+            pair = [arr[0], arr[1]]
+            lang_pairs.append(pair)
+            i+=1
+        except Exception as ex:
+            errmsg = 'Cannot split line ' + str(i) + ' "' + str(line) + '"'
+            print(errmsg)
+    return lang_pairs
+
 
 def create_padded_doc_pairs(
         docs_pairs
@@ -28,18 +47,18 @@ def create_padded_doc_pairs(
         sentences = [x[i].split(' ') for x in docs_pairs]
 
         cleaned_sentences[i] = [ BasicPreprocessor.clean_punctuations(sentence=sent) for sent in sentences ]
-        print('Cleaned Sentences ' + str(i) + ': ' + str(cleaned_sentences[i]))
+        #print('Cleaned Sentences ' + str(i) + ': ' + str(cleaned_sentences[i]))
 
         indexed_dicts[i] = BasicPreprocessor.create_indexed_dictionary(
             sentences = cleaned_sentences[i]
         )
-        print('Indexed Dict ' + str(i) + ': ' + str(indexed_dicts[i]))
+        #print('Indexed Dict ' + str(i) + ': ' + str(indexed_dicts[i]))
 
         idx_sentences[i] = BasicPreprocessor.sentences_to_indexes(
             sentences    = cleaned_sentences[i],
             indexed_dict = indexed_dicts[i]
         )
-        print('Indexed Sentences ' + str(i) + ': ' + str(idx_sentences[i]))
+        #print('Indexed Sentences ' + str(i) + ': ' + str(idx_sentences[i]))
 
         max_len[i] = BasicPreprocessor.extract_max_length(
             corpora = idx_sentences[i]
@@ -60,7 +79,7 @@ def create_padded_doc_pairs(
             self.idx_sentences = idx_sentences
             self.max_len = max_len
 
-    print('Data set: ' + str(data_set))
+    # print('Data set: ' + str(data_set))
     return RetClass(
         data_set          = data_set,
         cleaned_sentences = cleaned_sentences,
@@ -122,15 +141,17 @@ def create_seq_text_model(
     print(model.summary())
     return model
 
+
+lang_pairs = get_sample_lang_pairs(filepath='/usr/local/git/nwae/nwae/nlp.data/perevod/en.ko.txt')
+print(lang_pairs[0:100])
+
 ret = create_padded_doc_pairs(
-    docs_pairs = seq_pairs
+    docs_pairs = lang_pairs
 )
 cleaned_sents = ret.cleaned_sentences
-print(cleaned_sents)
 indexed_dicts = ret.indexed_dicts
 print(indexed_dicts)
 idx_sents = ret.idx_sentences
-print(idx_sents)
 maxlen = ret.max_len
 print(maxlen)
 exit(0)
