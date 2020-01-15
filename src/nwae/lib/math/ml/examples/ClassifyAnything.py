@@ -25,50 +25,65 @@ for i in range(10):
 #
 # Build our NN
 #
-model = Sequential()
-# First layer with standard relu or positive activation
-model.add(
-    keraslay.Dense(
-        # Output dim somewhat ad-hoc
-        units      = 32,
-        activation = 'relu',
-        input_dim  = input_dim
+def create_general_model(
+        input_data_dim,
+        unique_labels_count,
+        dense_units
+):
+    model = Sequential()
+    # First layer with standard relu or positive activation
+    model.add(
+        keraslay.Dense(
+            # Output dim somewhat ad-hoc
+            units      = dense_units,
+            activation = 'relu',
+            input_dim  = input_data_dim
+        )
     )
-)
-# Subsequent layers input dim no longer required to be specified, implied from previous
-# Last layer always outputs the labels probability/scores
-model.add(
-    keraslay.Dense(
-        # Output dim
-        units      = n_labels,
-        # Standard last layer activation as positive probability distribution
-        activation = 'softmax'
+    # Subsequent layers input dim no longer required to be specified, implied from previous
+    # Last layer always outputs the labels probability/scores
+    model.add(
+        keraslay.Dense(
+            # Output dim
+            units      = unique_labels_count,
+            # Standard last layer activation as positive probability distribution
+            activation = 'softmax'
+        )
     )
-)
-model.compile(
-    optimizer = 'rmsprop',
-    loss      = 'categorical_crossentropy',
-    metrics   = ['accuracy']
-)
-model.summary()
+    model.compile(
+        optimizer = 'rmsprop',
+        loss      = 'categorical_crossentropy',
+        metrics   = ['accuracy']
+    )
+    model.summary()
+    return model
 
+model_general = create_general_model(
+    input_data_dim = input_dim,
+    unique_labels_count = n_labels,
+    dense_units  = 128
+)
 # Convert labels to categorical one-hot encoding
-one_hot_labels = kerasutils.to_categorical(labels, num_classes=n_labels)
+labels_categorical = kerasutils.to_categorical(labels, num_classes=n_labels)
 
 # Train the model, iterating on the data in batches of 32 samples
-model.fit(data, one_hot_labels, epochs=10, batch_size=32)
+model_general.fit(data, labels_categorical, epochs=10, batch_size=32)
 
-loss, accuracy = model.evaluate(data, one_hot_labels)
+loss, accuracy = model_general.evaluate(data, labels_categorical)
 print('Accuracy: %f' % (accuracy*100))
 
 # Compare some data
-for i in range(10):
+count_correct = 0
+for i in range(data.shape[0]):
     data_i = np.array([data[i]])
     label_i = labels[i]
-    prob_distribution = model.predict(x=data_i)
+    prob_distribution = model_general.predict(x=data_i)
     top_x = NumpyUtil.get_top_indexes(
         data      = prob_distribution[0],
         ascending = False,
         top_x     = 5
     )
+    if top_x[0] == label_i:
+        count_correct += 1
     print(str(i) + '. ' + str(data_i) + ': Label=' + str(label_i) + ', predicted=' + str(top_x))
+print('Accuracy = ' + str(100*count_correct/data.shape[0]) + '%.')
