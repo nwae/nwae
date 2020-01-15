@@ -106,14 +106,14 @@ class BasicPreprocessor:
             sentences
     ):
         indexed_dict = BasicPreprocessor.INDEXED_DICT_BASE.copy()
-        index = 1 + max(indexed_dict.values())
+        max_index = max(indexed_dict.values())
         for i in range(len(sentences)):
             sent = sentences[i]
             for j in range(len(sent)):
                 word = sent[j]
                 if word not in indexed_dict.keys():
-                    index += 1
-                    indexed_dict[word] = index
+                    max_index += 1
+                    indexed_dict[word] = max_index
         return indexed_dict
 
     @staticmethod
@@ -215,6 +215,7 @@ class BasicPreprocessorUnitTest:
         )
         log.Log.debugdebug(encoded_sentences)
 
+        # When revert back to original sentence, should be the same with original sentence
         original_sentences = BasicPreprocessor.indexes_to_sentences(
             indexes=encoded_sentences,
             indexed_dict=index_dict

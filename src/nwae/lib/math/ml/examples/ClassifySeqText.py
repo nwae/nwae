@@ -9,97 +9,76 @@ from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
 # Training data or Documents
-docs_label = [
-    ('잘 했어!',1), ('잘 했어요!',1), ('잘 한다!',1),
-    ('Молодец!',1), ('Супер!',1), ('Хорошо!',1),
-    ('Плохо!',0), ('Дурак!',0),
-    ('나쁜!',0), ('바보!',0), ('백치!',0), ('얼간이!',0),
-    ('미친놈',0), ('씨발',0), ('개',0), ('개자식',0),
-    ('젠장',0),
-    ('ok',2), ('fine',2)
+seq_pairs = [
+    ('Я иду на работу', '나는 일에게 간다'),
+    ('Я люблю мою работу', '나는 내 일을 사랑해'),
+    ('Моя работа интересная', '나의 일은 흥미홉다')
 ]
 
-def create_padded_docs(
-        list_docs_label,
-        # 'pre' or 'post'
-        padding = 'pre'
+def create_padded_doc_pairs(
+        docs_pairs
 ):
     import keras.preprocessing as kerasprep
 
-    docs = [x[0].split(' ') for x in list_docs_label]
-    docs = [BasicPreprocessor.clean_punctuations(sentence=sent) for sent in docs]
-    labels = [x[1] for x in list_docs_label]
-    # How many unique labels
-    n_labels = len(list(set(labels)))
-    # Convert labels to categorical one-hot encoding
-    labels_categorical = kerasutils.to_categorical(labels, num_classes=n_labels)
+    cleaned_sentences = {}
+    indexed_dicts = {}
+    idx_sentences = {}
+    max_len = {}
+    for i in range(2):
+        sentences = [x[i].split(' ') for x in docs_pairs]
 
-    print('Docs: ' + str(docs))
-    print('Labels: ' + str(labels))
-    print('Labels converted to categorical: ' + str(labels_categorical))
+        cleaned_sentences[i] = [ BasicPreprocessor.clean_punctuations(sentence=sent) for sent in sentences ]
+        print('Cleaned Sentences ' + str(i) + ': ' + str(cleaned_sentences[i]))
 
-    unique_words = list(set([w for sent in docs for w in sent]))
-    print('Unique words: ' + str(unique_words))
+        indexed_dicts[i] = BasicPreprocessor.create_indexed_dictionary(
+            sentences = cleaned_sentences[i]
+        )
+        print('Indexed Dict ' + str(i) + ': ' + str(indexed_dicts[i]))
 
-    #
-    # Create indexed dictionary
-    #
-    one_hot_dict = BasicPreprocessor.create_indexed_dictionary(
-        sentences = docs
+        idx_sentences[i] = BasicPreprocessor.sentences_to_indexes(
+            sentences    = cleaned_sentences[i],
+            indexed_dict = indexed_dicts[i]
+        )
+        print('Indexed Sentences ' + str(i) + ': ' + str(idx_sentences[i]))
+
+        max_len[i] = BasicPreprocessor.extract_max_length(
+            corpora = idx_sentences[i]
+        )
+
+    data_set = BasicPreprocessor.prepare_sentence_pairs(
+        sentences_l1 = idx_sentences[0],
+        sentences_l2 = idx_sentences[1],
+        len_l1       = max_len[0],
+        len_l2       = max_len[1]
     )
-    print('One Hot Dict: ' + str(one_hot_dict))
-
-    #
-    # Process sentences into numbers, with padding
-    # In real environments, we usually also replace unknown words, numbers, URI, etc.
-    # with standard symbols, do word stemming, remove stopwords, etc.
-    #
-    # Vocabulary dimension
-    vs = len(unique_words) + 10
-    enc_docs = BasicPreprocessor.sentences_to_indexes(
-        sentences = docs,
-        indexed_dict = one_hot_dict
-    )
-    print('Encoded Sentences (' + str(len(enc_docs)) + '):')
-    print(enc_docs)
-
-    # pad documents to a max length of 4 words
-    max_length = 1
-    for sent in enc_docs:
-        max_length = max(len(sent), max_length)
-    print('Max Length = ' + str(max_length))
-
-    p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_length, padding=padding)
-    print('Padded Encoded Sentences (' + str(p_docs.shape) + '):')
-    print(p_docs)
 
     class RetClass:
-        def __init__(self, encoded_docs, padded_docs, list_labels, list_labels_categorical, vocabulary_dimension, input_dim_max_length):
-            self.encoded_docs = encoded_docs
-            self.padded_docs = padded_docs
-            self.list_labels = list_labels
-            self.list_labels_categorical = list_labels_categorical
-            self.vocabulary_dimension = vocabulary_dimension
-            self.input_dim_max_length = input_dim_max_length
+        def __init__(self, data_set, cleaned_sentences, indexed_dicts, idx_sentences, max_len):
+            self.data_set = data_set
+            self.cleaned_sentences = cleaned_sentences
+            self.indexed_dicts = indexed_dicts
+            self.idx_sentences = idx_sentences
+            self.max_len = max_len
 
+    print('Data set: ' + str(data_set))
     return RetClass(
-        encoded_docs = enc_docs,
-        padded_docs  = p_docs,
-        list_labels = labels,
-        list_labels_categorical = labels_categorical,
-        vocabulary_dimension = vs,
-        input_dim_max_length = max_length
+        data_set          = data_set,
+        cleaned_sentences = cleaned_sentences,
+        indexed_dicts     = indexed_dicts,
+        idx_sentences     = idx_sentences,
+        max_len           = max_len
     )
+
 
 #
 # The neural network model training
 #
-def create_text_model(
+def create_seq_text_model(
         embedding_input_dim,
         embedding_output_dim,
         embedding_input_length,
         class_labels,
-        mid_layer_units_multiplier = 5,
+        lstm_units_multiplier,
         binary = False
 ):
     unique_labels_count = len(list(set(class_labels)))
@@ -130,7 +109,10 @@ def create_text_model(
         model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
     else:
         # Accuracy drops using 'sigmoid'
-        model.add(keraslay.Dense(units=unique_labels_count*mid_layer_units_multiplier, activation='relu'))
+        model.add(keraslay.LSTM(
+            units = unique_labels_count*lstm_units_multiplier
+        ))
+        # model.add(keraslay.Dense(units=unique_labels_count*mid_layer_units_multiplier, activation='relu'))
         model.add(keraslay.Dense(units=unique_labels_count, activation='softmax'))
         model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         # Train/Fit the model. Don't know why need to use 'sparse_categorical_crossentropy'
@@ -140,16 +122,25 @@ def create_text_model(
     print(model.summary())
     return model
 
-ret = create_padded_docs(
-    list_docs_label = docs_label
+ret = create_padded_doc_pairs(
+    docs_pairs = seq_pairs
 )
+cleaned_sents = ret.cleaned_sentences
+print(cleaned_sents)
+indexed_dicts = ret.indexed_dicts
+print(indexed_dicts)
+idx_sents = ret.idx_sentences
+print(idx_sents)
+maxlen = ret.max_len
+print(maxlen)
+exit(0)
 
-model_text = create_text_model(
+model_text = create_seq_text_model(
     embedding_input_dim  = ret.vocabulary_dimension,
     embedding_output_dim = 8,
     embedding_input_length = ret.input_dim_max_length,
     class_labels         = ret.list_labels,
-    binary               = False
+    lstm_units_multiplier = 2
 )
 model_text.fit(ret.padded_docs, np.array(ret.list_labels), epochs=150, verbose=0)
 
