@@ -143,7 +143,7 @@ def create_seq_text_model(
 
 
 lang_pairs = get_sample_lang_pairs(filepath='/usr/local/git/nwae/nwae/nlp.data/perevod/en.ko.txt')
-print(lang_pairs[0:100])
+print(lang_pairs[100:120])
 
 ret = create_padded_doc_pairs(
     docs_pairs = lang_pairs
@@ -152,6 +152,8 @@ cleaned_sents = ret.cleaned_sentences
 indexed_dicts = ret.indexed_dicts
 print(indexed_dicts)
 idx_sents = ret.idx_sentences
+print(idx_sents[0][100:120])
+print(idx_sents[1][100:120])
 maxlen = ret.max_len
 print(maxlen)
 exit(0)
