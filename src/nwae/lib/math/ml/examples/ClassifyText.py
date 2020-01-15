@@ -103,7 +103,8 @@ if BINARY_MODEL:
     # Train/Fit the model
     model.fit(p_docs, np.array(labels), epochs=150, verbose=0)
 else:
-    model.add(keraslay.Dense(units=n_labels*3, activation='sigmoid'))
+    # Accuracy drops using 'sigmoid'
+    model.add(keraslay.Dense(units=n_labels*10, activation='relu'))
     model.add(keraslay.Dense(units=n_labels, activation='softmax'))
     model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     # summarize the model
@@ -127,6 +128,7 @@ for i in range(len(p_docs)):
     data_i = np.array([p_docs[i]])
     label_i = labels[i]
     prob_distribution = model.predict(x=data_i)
+    print('Model prob distribution from softmax: ' + str(prob_distribution))
     top_x = NumpyUtil.get_top_indexes(
         data      = prob_distribution[0],
         ascending = False,
