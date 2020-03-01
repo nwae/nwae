@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
 import keras.utils as kerasutils
 import keras.layers as keraslay
 from keras.models import Sequential
@@ -10,13 +9,17 @@ from nwae.lib.math.NumpyUtil import NumpyUtil
 #
 # Prepare random data
 #
-n_rows = 1000
-input_dim = 3
-n_labels = 8
+n_rows = 10000
+input_dim = 5
+n_labels = input_dim
 # Random vectors numpy ndarray type
 data = np.random.random((n_rows, input_dim))
-# Random labels
-labels = np.random.randint(n_labels, size=(n_rows, 1))
+# Labels are sum of the rows, then floored to the integer
+# Sum >= 0, 1, 2, 3,...
+row_sums = np.sum(data, axis=1)
+labels = np.array(np.round(row_sums-0.5,0), dtype=int)
+print(labels)
+# labels = np.random.randint(n_labels, size=(n_rows, 1))
 
 # Print some data
 for i in range(10):
@@ -61,7 +64,7 @@ def create_general_model(
 model_general = create_general_model(
     input_data_dim = input_dim,
     unique_labels_count = n_labels,
-    dense_units  = 128
+    dense_units  = 512
 )
 # Convert labels to categorical one-hot encoding
 labels_categorical = kerasutils.to_categorical(labels, num_classes=n_labels)
