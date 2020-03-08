@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.4.0',
+    version='1.5.0',
     packages=[
         'nwae.config',
         'nwae.lib.lang',
@@ -11,6 +11,7 @@ setup(
         'nwae.lib.lang.model',
         'nwae.lib.lang.nlp',
         'nwae.lib.lang.nlp.daehua',
+        'nwae.lib.lang.nlp.daehua.forms',
         'nwae.lib.lang.nlp.lemma',
         'nwae.lib.lang.nlp.sajun',
         'nwae.lib.lang.nlp.translation',
@@ -19,6 +20,7 @@ setup(
         'nwae.lib.lang.preprocessing.ut',
         'nwae.lib.lang.stats',
         'nwae.lib.lang.tts',
+        'nwae.lib.lang.tts.examples',
         'nwae.lib.math',
         'nwae.lib.math.ml',
         'nwae.lib.math.ml.deeplearning',

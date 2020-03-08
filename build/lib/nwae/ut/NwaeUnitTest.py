@@ -6,8 +6,10 @@ import nwae.config.Config as cf
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessorUnitTest
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
 from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
+from nwae.lib.math.NumpyUtil import NumpyUtilUnittest
 from nwae.lib.math.ml.metricspace.ut.UtMetricSpaceModel import UnitTestMetricSpaceModel
 import nwae.lib.math.ml.ModelHelper as modelHelper
 
@@ -35,20 +37,26 @@ class NwaeUnitTest:
         res = UnitTestMex(config=None).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Mex Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
-        #
-        # Word Tokenization or Segmentation
-        #
+
         res = UnitTestWordSegmentation(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
-        Log.critical('Word Segmentation Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+        Log.critical('Tokenizer Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = BasicPreprocessorUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Basic Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UtTxtPreprocessor(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
-        Log.critical('Text Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+        Log.critical('Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UtTrDataPreprocessor(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
-        Log.critical('Training Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+        Log.critical('TD Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = NumpyUtilUnittest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Numpy Util Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMetricSpaceModel(
             ut_params = self.ut_params,

@@ -20,6 +20,9 @@ src/nwae/lib/lang/nlp/WordList.py
 src/nwae/lib/lang/nlp/WordSegmentation.py
 src/nwae/lib/lang/nlp/daehua/DaehuaModel.py
 src/nwae/lib/lang/nlp/daehua/DaehuaTrainDataModel.py
+src/nwae/lib/lang/nlp/daehua/forms/DaehuaModelForms.py
+src/nwae/lib/lang/nlp/daehua/forms/Form.py
+src/nwae/lib/lang/nlp/daehua/forms/FormField.py
 src/nwae/lib/lang/nlp/lemma/Lemmatizer.py
 src/nwae/lib/lang/nlp/sajun/TrieNode.py
 src/nwae/lib/lang/nlp/translation/Translator.py
@@ -30,6 +33,7 @@ src/nwae/lib/lang/preprocessing/TxtPreprocessor.py
 src/nwae/lib/lang/preprocessing/ut/UtTrDataPreprocessor.py
 src/nwae/lib/lang/preprocessing/ut/UtTxtPreprocessor.py
 src/nwae/lib/lang/stats/LangStats.py
+src/nwae/lib/lang/tts/examples/PyTtsExample.py
 src/nwae/lib/math/Cluster.py
 src/nwae/lib/math/Constants.py
 src/nwae/lib/math/NumpyUtil.py
@@ -41,7 +45,9 @@ src/nwae/lib/math/ml/ModelTemplate.py
 src/nwae/lib/math/ml/Trainer.py
 src/nwae/lib/math/ml/TrainingDataModel.py
 src/nwae/lib/math/ml/deeplearning/Keras.py
+src/nwae/lib/math/ml/examples/ClassifyAnything.py
 src/nwae/lib/math/ml/examples/ClassifyImage.py
+src/nwae/lib/math/ml/examples/ClassifySeqText.py
 src/nwae/lib/math/ml/examples/ClassifyText.py
 src/nwae/lib/math/ml/examples/ClassifyVideo.py
 src/nwae/lib/math/ml/metricspace/MetricSpaceModel.py

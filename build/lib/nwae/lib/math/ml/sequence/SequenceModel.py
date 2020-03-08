@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import threading
 import nwae.lib.math.ml.TrainingDataModel as tdm
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.ml.ModelInterface as modelIf
 import collections
@@ -15,7 +15,7 @@ from tensorflow import keras
 
 
 #
-# Sequential data (language translation, chatbot, speech recognition) type of models
+# Sequential data type models
 #
 # 모델 설명
 #  The idea behind this NN is a bit different from the single label output.
@@ -34,7 +34,7 @@ class SequenceModel(modelIf.ModelInterface):
             # Train only by y/labels and store model files in separate y_id directories
             is_partial_training
     ):
-        super(SequenceModel, self).__init__(
+        super().__init__(
             model_name          = SequenceModel.MODEL_NAME,
             identifier_string   = identifier_string,
             dir_path_model      = dir_path_model,
@@ -87,24 +87,48 @@ class SequenceModel(modelIf.ModelInterface):
     #
     # Test model only, not for production use
     #
-    def __load_sample_model(self):
+    def __load_sample_model(
+            self,
+            embed_input_dim  = 1000,
+            embed_output_dim = 64,
+            embed_input_len  = 20,
+            lstm_units = 128
+    ):
+        #
+        # Layers Design
+        #
         lstm_model = keras.Sequential()
         # Add an Embedding layer expecting input vocab of size 1000, and
         # output embedding dimension of size 64.
         lstm_model.add(
             keras.layers.Embedding(
-                input_dim  = 1000,
-                output_dim = 64
+                input_dim    = embed_input_dim,
+                output_dim   = embed_output_dim,
+                input_length = embed_input_len
             )
         )
         # Add a LSTM layer with 128 internal units.
         lstm_model.add(
-            keras.layers.LSTM(128)
+            keras.layers.LSTM(
+                lstm_units
+            )
         )
         # Add a Dense layer with 10 units and softmax activation.
         lstm_model.add(
             keras.layers.Dense(10, activation='softmax')
         )
+
+        # Finally compile the model
+        lstm_model.compile(
+            optimizer = 'rmsprop',
+            loss      = 'categorical_crossentropy',
+            metrics   = ['accuracy']
+        )
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model compiled successfully.'
+        )
+
         lstm_model.summary()
         return lstm_model
 
@@ -236,14 +260,16 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
+    import nwae.lib.lang.nlp.Corpora as corpora
+    ret = corpora.Corpora().build_data_set()
+    data_set = ret.list_sent_pairs
+    max_len = max(ret.max_len_l1, ret.max_len_l2)
+    print('Prepared data set of length ' + str(len(data_set)))
+    print('Max Length = ' + str(max_len))
+
     obj = SequenceModel(
         identifier_string = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER),
         dir_path_model    = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
         training_data     = None,
         is_partial_training = False
     )
-    exit(0)
-
-    import nwae.lib.lang.nlp.Corpora as corpora
-    data_set = corpora.Corpora().build_data_set()
-    print('Prepared data set of length ' + str(len(data_set)))
