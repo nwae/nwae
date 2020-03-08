@@ -46,15 +46,39 @@ class DaehuaModelForms:
     def get_form(self):
         return self.form
 
-    def set_daehua_form_state(
-            self,
-            state
-    ):
-        self.form_state = state
+    def set_state_none(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_NONE
+    def is_state_none(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_NONE
+
+    def set_state_await_field_value(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_AWAIT_FIELD_VALUE
+    def is_state_await_field_value(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_AWAIT_FIELD_VALUE
+
+    def set_state_await_field_value_confirmation(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_AWAIT_FIELD_VALUE_CONFIRMATION
+    def is_state_await_field_value_confirmation(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_AWAIT_FIELD_VALUE_CONFIRMATION
+
+    def set_state_form_completed(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_FORM_COMPLETED
+    def is_state_form_completed(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_FORM_COMPLETED
+
+    def set_state_await_form_confirmation(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_AWAIT_FORM_CONFIRMATION
+    def is_state_await_form_confirmation(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_AWAIT_FORM_CONFIRMATION
+
+    def set_state_form_completed_and_confirmed(self):
+        self.form_state = DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED
+    def is_state_form_completed_and_confirmed(self):
+        return self.form_state == DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED
 
     def reset(self):
         Log.important('Form reset')
-        self.form_state = DaehuaModelForms.FORM_STATE_NONE
+        self.set_state_none()
         # The current field we are trying to extract from user
         self.conv_current_field_index = None
         self.conv_current_field_name = None
@@ -63,21 +87,10 @@ class DaehuaModelForms:
         self.form.reset_fields_to_incomplete()
         return
 
-    def __set_conversation_complete(self, caller=None):
-        Log.important('Conversation set to completed by ' + str(caller))
-        self.form_state = DaehuaModelForms.FORM_STATE_FORM_COMPLETED
-
-    def __set_conversation_complete_and_confirmed(self, caller=None):
-        Log.important('Conversation set to completed and confirmed by ' + str(caller))
-        self.form_state = DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED
-
     def get_next_question(
             self
     ):
-        if self.form_state in (
-                DaehuaModelForms.FORM_STATE_FORM_COMPLETED,
-                DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED
-        ):
+        if self.is_state_form_completed() or self.is_state_form_completed_and_confirmed():
             return None
 
         self.conv_current_field_index = None
@@ -95,7 +108,7 @@ class DaehuaModelForms:
 
         if self.conv_current_field_index is None:
             # Answer-Questioning completed
-            self.__set_conversation_complete(caller=str(getframeinfo(currentframe()).lineno))
+            self.set_state_form_completed()
             return None
 
         cur_field = self.form.form_fields[self.conv_current_field_index]
@@ -179,7 +192,7 @@ class DaehuaModelForms:
     ):
         answer = StringUtils.trim(answer)
         if answer in self.confirm_words:
-            self.__set_conversation_complete_and_confirmed(caller='confirm_form')
+            self.set_state_form_completed_and_confirmed()
             return True
         else:
             self.reset()
@@ -206,10 +219,10 @@ class DaehuaModelForms:
     def simulate_question_answer(
             self
     ):
-        while not self.form_state == DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED:
-            if self.form_state == DaehuaModelForms.FORM_STATE_FORM_COMPLETED:
+        while not self.is_state_form_completed_and_confirmed():
+            if self.is_state_form_completed():
                 print('Form values completed. Asking for confirmation..')
-                self.form_state = DaehuaModelForms.FORM_STATE_AWAIT_FORM_CONFIRMATION
+                self.set_state_await_form_confirmation()
 
                 answer = input(self.get_confirm_form_question())
                 self.confirm_form(answer=answer)
@@ -217,9 +230,9 @@ class DaehuaModelForms:
 
             q = self.get_next_question()
             if q is None:
-                self.set_daehua_form_state(state=DaehuaModelForms.FORM_STATE_FORM_COMPLETED)
+                self.set_state_form_completed()
             else:
-                self.set_daehua_form_state(state=DaehuaModelForms.FORM_STATE_AWAIT_FIELD_VALUE)
+                self.set_state_await_field_value()
 
                 answer = input(q + '\n\r')
                 print('User answer: ' + str(answer))
