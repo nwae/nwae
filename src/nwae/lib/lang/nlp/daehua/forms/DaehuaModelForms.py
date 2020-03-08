@@ -47,6 +47,9 @@ class DaehuaModelForms:
     def get_form(self):
         return self.form
 
+    def get_form_state(self):
+        return self.form_state
+
     def set_state_none(self):
         self.form_state = DaehuaModelForms.FORM_STATE_NONE
     def is_state_none(self):
