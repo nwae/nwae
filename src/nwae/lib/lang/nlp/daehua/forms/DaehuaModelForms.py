@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+
+from nwae.utils.Log import Log
+from inspect import getframeinfo, currentframe
+from mex.MatchExpression import MatchExpression
+import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
+import nwae.lib.lang.nlp.daehua.forms.FormField as daehua_form_field
+
+
+class DaehuaModelForms:
+
+    def __init__(
+            self,
+            form
+    ):
+        if type(form) is not daehua_form.Form:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Wrong form type "' + str(type(form)) + '". Expected type "' + str(daehua_form.Form)
+            )
+        # Keep the original form, and extended params
+        self.form = form
+
+        self.mex_expressions = self.form.mex_form_model
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Mex Expressions: ' + str(self.mex_expressions) + '.'
+        )
+
+        # The current field we are trying to extract from user
+        self.conv_current_field_index = None
+        self.conv_current_field_name = None
+        self.conv_current_field = None
+        self.conv_completed = False
+        return
+
+    def get_next_question(
+            self
+    ):
+        if self.conv_completed:
+            return None
+
+        self.conv_current_field_index = None
+        self.conv_current_field_name = None
+        self.conv_current_field = None
+
+        # Find the next variable
+        for i in range(len(self.form.form_fields)):
+            fld = self.form.form_fields[i]
+            if not fld.completed:
+                self.conv_current_field_index = i
+                self.conv_current_field_name = fld.name
+                self.conv_current_field = fld
+                break
+
+        if self.conv_current_field_index is None:
+            # Answer-Questioning completed
+            self.conv_completed = True
+            return None
+
+        cur_field = self.form.form_fields[self.conv_current_field_index]
+        question = 'Please provide ' + str(cur_field.name).lower() + '?'
+        return question
+
+    def extract_param(
+            self,
+            answer
+    ):
+        mex_expr = self.conv_current_field.mex_expr
+        mex = MatchExpression(
+            pattern = mex_expr,
+            lang    = None
+        )
+        # Should have 1 variable only
+        mex_var_name = mex.get_mex_var_names()[0]
+        # print('Mex var name: ' + str(mex_var_name))
+        params_dict = mex.get_params(
+            sentence = answer,
+            # No need to return 2 sides
+            return_one_value = True
+        )
+        # print(params_dict)
+
+        if params_dict[mex_var_name] is not None:
+            self.conv_current_field.value = params_dict[mex_var_name]
+            self.conv_current_field.completed = True
+            return params_dict[mex_var_name]
+
+        return None
+
+    def get_completed_fields(self):
+        completed_fields = []
+        for i in range(len(self.form.form_fields)):
+            fld = self.form.form_fields[i]
+            if fld.completed:
+                completed_fields.append(fld.to_json())
+        return completed_fields
+
+
+if __name__ == '__main__':
+    colform = {
+        'message': 'Please fill the form',
+        'text': 'Cash Deposit',
+        'ifNeedConfirm': False,
+        'fields': [
+            {'name': 'Name', 'value': '', 'type': 'text', 'ifRequired': False, 'ifMasked': True},
+            {'name': 'Amount', 'value': '', 'type': 'text', 'ifRequired': True, 'ifMasked': True},
+            {'name': 'Account No', 'value': '', 'type': 'text', 'ifRequired': False, 'ifMasked': True}
+        ]
+    }
+    # Must be aligned with fields above
+    mex_form_model = 'name,str-en,my name/name ; amt,float,金额/amount ; acc,account_number,账号/account'
+
+    dform = daehua_form.Form(
+        title           = colform['text'],
+        instruction     = colform['message'],
+        if_need_confirm = colform['ifNeedConfirm'],
+        form_fields     = daehua_form.Form.import_form_fields(list_json=colform['fields'], mex_form_model=mex_form_model.split(';')),
+        mex_form_model  = mex_form_model
+    )
+
+    print(dform.to_json())
+
+    fconv = DaehuaModelForms(
+        form = dform
+    )
+
+    while not fconv.conv_completed:
+        q = fconv.get_next_question()
+        if q is None:
+            break
+
+        answer = input(q + '\n\r')
+        print('User answer: ' + str(answer))
+
+        param = fconv.extract_param(
+            answer = answer
+        )
+        if param is not None:
+            print('OK PARAM = ' + str(param))
+            print('COMPLETED PARAMS' + str(fconv.get_completed_fields()))
+            for field in fconv.get_completed_fields():
+                print(
+                    str(field[daehua_form_field.FormField.KEY_NAME])
+                    + ': ' + str(field[daehua_form_field.FormField.KEY_VALUE])
+                )
