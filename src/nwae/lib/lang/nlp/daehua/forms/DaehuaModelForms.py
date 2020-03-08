@@ -41,6 +41,7 @@ class DaehuaModelForms:
         )
 
         self.form_state = None
+        self.fill_form_continuous_err_count = 0
         self.reset()
         return
 
@@ -49,6 +50,9 @@ class DaehuaModelForms:
 
     def get_form_state(self):
         return self.form_state
+
+    def get_continous_error_count(self):
+        return self.fill_form_continuous_err_count
 
     def set_state_none(self):
         self.form_state = DaehuaModelForms.FORM_STATE_NONE
@@ -131,6 +135,8 @@ class DaehuaModelForms:
         )
         if value is not None:
             self.conv_current_field.value = value
+            # Success, reset error count
+            self.fill_form_continuous_err_count = 0
         else:
             mex_plain = str(mex_var_name) + ',' + str(mex_var_type) + ','
             (mex_var_name, mex_var_type, value) = self.__get_mex_params(
@@ -139,6 +145,8 @@ class DaehuaModelForms:
             )
             if value is not None:
                 self.conv_current_field.value = value
+                # Success, reset error count
+                self.fill_form_continuous_err_count = 0
 
         if value is not None:
             confirm_question = \
@@ -146,6 +154,7 @@ class DaehuaModelForms:
                 + '? ' + str(self.confirm_question)
             return (value, confirm_question)
 
+        self.fill_form_continuous_err_count += 1
         return (None, None)
 
     def __get_mex_params(
@@ -186,8 +195,11 @@ class DaehuaModelForms:
         answer = StringUtils.trim(answer)
         if answer in self.confirm_words:
             self.confirm_current_field()
+            # Success, reset error count
+            self.fill_form_continuous_err_count = 0
             return True
         else:
+            self.fill_form_continuous_err_count += 1
             return False
 
     def confirm_form(
@@ -197,9 +209,12 @@ class DaehuaModelForms:
         answer = StringUtils.trim(answer)
         if answer in self.confirm_words:
             self.set_state_form_completed_and_confirmed()
+            # Success, reset error count
+            self.fill_form_continuous_err_count = 0
             return True
         else:
             self.reset()
+            self.fill_form_continuous_err_count += 1
             return False
 
     def get_confirm_form_question(
@@ -224,6 +239,9 @@ class DaehuaModelForms:
             self
     ):
         while not self.is_state_form_completed_and_confirmed():
+            if self.get_continous_error_count() >= 2:
+                print('User quits form conversation.')
+                break
             q = self.get_next_question()
             if q is None:
                 self.set_state_form_completed()
