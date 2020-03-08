@@ -62,6 +62,17 @@ class Form:
         self.mex_form_model = mex_form_model
         self.form_completed = False
 
+    def reset_fields_to_incomplete(
+            self
+    ):
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Reset form fields to incomplete for form ' + str(self.to_json())
+        )
+        for i in range(len(self.form_fields)):
+            fld = self.form_fields[i]
+            fld.completed = False
+
     def to_json(self):
         ffs = []
         for fld in self.form_fields:
