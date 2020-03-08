@@ -40,6 +40,7 @@ class DaehuaModelForms:
             + ': Mex Expressions: ' + str(self.mex_expressions) + '.'
         )
 
+        self.form_state = None
         self.reset()
         return
 
@@ -220,17 +221,15 @@ class DaehuaModelForms:
             self
     ):
         while not self.is_state_form_completed_and_confirmed():
-            if self.is_state_form_completed():
+            q = self.get_next_question()
+            if q is None:
+                self.set_state_form_completed()
                 print('Form values completed. Asking for confirmation..')
                 self.set_state_await_form_confirmation()
 
                 answer = input(self.get_confirm_form_question())
                 self.confirm_form(answer=answer)
                 continue
-
-            q = self.get_next_question()
-            if q is None:
-                self.set_state_form_completed()
             else:
                 self.set_state_await_field_value()
 
