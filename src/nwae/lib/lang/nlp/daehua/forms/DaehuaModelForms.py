@@ -36,6 +36,9 @@ class DaehuaModelForms:
         self.reset()
         return
 
+    def get_form(self):
+        return self.form
+
     def reset(self):
         Log.important('Form reset')
         # The current field we are trying to extract from user
