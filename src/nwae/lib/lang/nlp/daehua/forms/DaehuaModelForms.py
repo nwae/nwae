@@ -213,8 +213,13 @@ class DaehuaModelForms:
             self.fill_form_continuous_err_count = 0
             return True
         else:
-            self.reset()
             self.fill_form_continuous_err_count += 1
+            if self.fill_form_continuous_err_count >= 2:
+                Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Reset form after ' + str(self.fill_form_continuous_err_count) + ' error counts.'
+                )
+                self.reset()
             return False
 
     def get_confirm_form_question(
