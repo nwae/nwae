@@ -270,8 +270,6 @@ if __name__ == '__main__':
 
     print(dform.to_json())
 
-    fconv = DaehuaModelForms(
+    DaehuaModelForms(
         form = dform
-    )
-
-    fconv.simulate_question_answer()
+    ).simulate_question_answer()
