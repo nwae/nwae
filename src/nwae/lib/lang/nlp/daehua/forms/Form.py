@@ -4,6 +4,7 @@ from nwae.utils.StringUtils import StringUtils
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.nlp.daehua.forms.FormField as ffld
+from mex.MatchExpression import MatchExpression
 
 
 class Form:
@@ -32,7 +33,7 @@ class Form:
             json_field[ffld.FormField.KEY_MEX_EXPR] = StringUtils.trim(mex_form_model[i])
             try:
                 form_fields.append(
-                    ffld.FormField.import_form(json_obj=json_field)
+                    ffld.FormField.import_form_field(json_obj=json_field)
                 )
             except Exception as ex_field:
                 errmsg = \
@@ -60,7 +61,17 @@ class Form:
         self.form_fields = form_fields
         # Field MEX
         self.mex_form_model = mex_form_model
+        self.mex_obj = MatchExpression(
+            pattern = self.mex_form_model,
+            lang    = None,
+        )
         self.form_completed = False
+
+    def get_title_text(self):
+        return str(self.title)
+
+    def get_instruction(self):
+        return str(self.instruction)
 
     def reset_fields_to_incomplete(
             self
@@ -72,6 +83,27 @@ class Form:
         for i in range(len(self.form_fields)):
             fld = self.form_fields[i]
             fld.completed = False
+            fld.value = None
+
+    def get_fields_values_text(
+            self,
+            text_newline_char,
+            text_space_char,
+            include_form_title = True
+    ):
+        text = ''
+        if include_form_title:
+            text = self.get_title_text() + text_newline_char
+
+        for i in range(len(self.form_fields)):
+            fld = self.form_fields[i]
+            value_text = fld.value
+            if value_text is None:
+                value_text = '-'
+            text = text + text_space_char*2 + str(fld.name) \
+                   + ': ' + str(value_text) \
+                   + text_newline_char
+        return text
 
     def to_json(self):
         ffs = []

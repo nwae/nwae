@@ -4,7 +4,6 @@ from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 from mex.MatchExpression import MatchExpression
 import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
-import nwae.lib.lang.nlp.daehua.forms.FormField as daehua_form_field
 from nwae.utils.StringUtils import StringUtils
 
 
@@ -21,8 +20,13 @@ class DaehuaModelForms:
     def __init__(
             self,
             form,
-            confirm_words = DEFAULT_OK,
-            confirm_question = 'Please confirm answer ' + str(DEFAULT_OK)
+            text_list_confirm_words = DEFAULT_OK,
+            text_confirm_question = 'Please confirm answer ' + str(DEFAULT_OK),
+            text_ask_field_value_prefix = 'Please provide',
+            text_newline_char = '<br/>',
+            text_space_char = '&nbsp',
+            text_html_font_start_tag = '<font color="blue">',
+            text_html_font_end_tag = '</font>'
     ):
         if type(form) is not daehua_form.Form:
             raise Exception(
@@ -31,8 +35,15 @@ class DaehuaModelForms:
             )
         # Keep the original form, and extended params
         self.form = form
-        self.confirm_words = confirm_words
-        self.confirm_question = confirm_question
+        self.text_list_confirm_words = [str(s) for s in text_list_confirm_words]
+        self.text_confirm_question = str(text_confirm_question)
+        self.text_ask_field_value_prefix = str(text_ask_field_value_prefix)
+        self.text_newline_char = str(text_newline_char)
+        self.text_space_char = str(text_space_char)
+        self.text_html_font_start_tag = str(text_html_font_start_tag)
+        self.text_html_font_end_tag = str(text_html_font_end_tag)
+
+        self.text_form_title = self.form.get_title_text()
 
         self.mex_expressions = self.form.mex_form_model
         Log.debug(
@@ -96,7 +107,8 @@ class DaehuaModelForms:
         return
 
     def get_next_question(
-            self
+            self,
+            include_all_fields_text = True
     ):
         if self.is_state_form_completed() or self.is_state_form_completed_and_confirmed():
             return None
@@ -120,70 +132,48 @@ class DaehuaModelForms:
             return None
 
         cur_field = self.form.form_fields[self.conv_current_field_index]
-        question = 'Please provide ' + str(cur_field.name).lower() + '?'
+
+        if include_all_fields_text:
+            header_text = self.form.get_fields_values_text(
+                text_newline_char  = self.text_newline_char,
+                text_space_char    = self.text_space_char,
+                include_form_title = True
+            )
+        else:
+            header_text = self.text_form_title + self.text_newline_char
+
+        question = self.text_html_font_start_tag \
+                   + header_text
+        if self.get_continous_error_count() > 0:
+            question = question \
+                       + '(Try ' + str(self.get_continous_error_count() + 1) \
+                       + ')' + str(self.text_space_char)
+        question = question \
+                   + self.text_ask_field_value_prefix \
+                   + ' ' + str(cur_field.name).lower() + '?'\
+                   + self.text_html_font_end_tag
         return question
 
-    def extract_param_value(
+    def set_current_field_value_from_answer(
             self,
             answer
     ):
         cur_field = self.form.form_fields[self.conv_current_field_index]
 
-        (mex_var_name, mex_var_type, value) = self.__get_mex_params(
-            answer   = answer,
-            mex_expr = self.conv_current_field.mex_expr
+        value = None
+        res = cur_field.set_field_value(
+            user_text = answer
         )
-        if value is not None:
-            self.conv_current_field.value = value
+        if res is True:
             # Success, reset error count
             self.fill_form_continuous_err_count = 0
-        else:
-            mex_plain = str(mex_var_name) + ',' + str(mex_var_type) + ','
-            (mex_var_name, mex_var_type, value) = self.__get_mex_params(
-                answer   = answer,
-                mex_expr = mex_plain
-            )
-            if value is not None:
-                self.conv_current_field.value = value
-                # Success, reset error count
-                self.fill_form_continuous_err_count = 0
-
-        if value is not None:
             confirm_question = \
                 str(cur_field.name).lower() + ': "' + str(value) + '"' \
-                + '? ' + str(self.confirm_question)
-            return (value, confirm_question)
+                + '? ' + str(self.text_confirm_question)
+            return (cur_field.value, confirm_question)
 
         self.fill_form_continuous_err_count += 1
         return (None, None)
-
-    def __get_mex_params(
-            self,
-            answer,
-            mex_expr
-    ):
-        answer = StringUtils.trim(answer)
-
-        mex = MatchExpression(
-            pattern = mex_expr,
-            lang    = None
-        )
-        # Should have 1 variable only
-        mex_var_name = mex.get_mex_var_names()[0]
-        mex_var_type = mex.get_mex_var_type(var_name=mex_var_name)
-
-        Log.important('Mex var name: ' + str(mex_var_name) + ', type: ' + str(mex_var_type))
-        params_dict = mex.get_params(
-            sentence = answer,
-            # No need to return 2 sides
-            return_one_value = True
-        )
-        # print(params_dict)
-        if params_dict[mex_var_name] is not None:
-            self.conv_current_field.value = params_dict[mex_var_name]
-            return (mex_var_name, mex_var_type, params_dict[mex_var_name])
-        else:
-            return (mex_var_name, mex_var_type, None)
 
     def confirm_current_field(self):
         self.conv_current_field.completed = True
@@ -193,7 +183,7 @@ class DaehuaModelForms:
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.confirm_words:
+        if answer in self.text_list_confirm_words:
             self.confirm_current_field()
             # Success, reset error count
             self.fill_form_continuous_err_count = 0
@@ -207,7 +197,7 @@ class DaehuaModelForms:
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.confirm_words:
+        if answer in self.text_list_confirm_words:
             self.set_state_form_completed_and_confirmed()
             # Success, reset error count
             self.fill_form_continuous_err_count = 0
@@ -224,12 +214,21 @@ class DaehuaModelForms:
 
     def get_confirm_form_question(
             self):
-        q = ''
-        for field in self.get_completed_fields():
+        final_form_text = self.form.get_fields_values_text(
+            text_newline_char = self.text_newline_char,
+            text_space_char   = self.text_space_char,
+            include_form_title = True
+        )
+        q = self.text_html_font_start_tag + final_form_text
+
+        if self.get_continous_error_count() > 0:
             q = q \
-                + str(field[daehua_form_field.FormField.KEY_NAME]) \
-                + ': ' + str(field[daehua_form_field.FormField.KEY_VALUE]) + '\n\r'
-        q = q + self.confirm_question
+                + '(Try ' + str(self.get_continous_error_count() + 1) \
+                + ')' + str(self.text_space_char)
+
+        q = q \
+            + self.text_confirm_question \
+            + self.text_html_font_end_tag
         return q
 
     def get_completed_fields(self):
@@ -262,7 +261,7 @@ class DaehuaModelForms:
                 answer = input(q + '\n\r')
                 print('User answer: ' + str(answer))
 
-                (value, confirm_question) = self.extract_param_value(
+                (value, confirm_question) = self.set_current_field_value_from_answer(
                     answer=answer
                 )
                 if value is not None:
