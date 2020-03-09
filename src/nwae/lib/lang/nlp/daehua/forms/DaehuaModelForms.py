@@ -25,7 +25,8 @@ class DaehuaModelForms:
             text_newline_char = '<br/>',
             text_space_char = '&nbsp',
             text_html_font_start_tag = '<font color="blue">',
-            text_html_font_end_tag = '</font>'
+            text_html_font_end_tag = '</font>',
+            error_count_quit_threshold = 2
     ):
         if type(form) is not daehua_form.Form:
             raise Exception(
@@ -41,6 +42,7 @@ class DaehuaModelForms:
         self.text_space_char = str(text_space_char)
         self.text_html_font_start_tag = str(text_html_font_start_tag)
         self.text_html_font_end_tag = str(text_html_font_end_tag)
+        self.error_count_quit_threshold = error_count_quit_threshold
 
         self.text_form_title = self.form.get_title_text()
 
@@ -94,6 +96,9 @@ class DaehuaModelForms:
     def is_state_form_completed_and_confirmed(self):
         return self.form_state == DaehuaModelForms.FORM_STATE_FORM_COMPLETED_AND_CONFIRMED
 
+    def is_error_threshold_hit(self):
+        return self.fill_form_continuous_err_count >= self.error_count_quit_threshold
+
     def reset(self):
         Log.important('Form reset')
         self.set_state_none()
@@ -101,6 +106,8 @@ class DaehuaModelForms:
         self.conv_current_field_index = None
         self.conv_current_field_name = None
         self.conv_current_field = None
+        # Previous field set by user
+        self.conv_completed_fields = []
         # Reset fields
         self.form.reset_fields_to_incomplete()
         return
@@ -153,29 +160,67 @@ class DaehuaModelForms:
                    + self.text_html_font_end_tag
         return question
 
+    #
+    # Allows the user to specify all field values directly
+    #
+    def set_previous_field_value_from_answer(
+            self,
+            answer
+    ):
+        len_cf = len(self.conv_completed_fields)
+        if len_cf <= 0:
+            return (None, None)
+
+        (value, confirm_question) = self.set_field_value_from_answer(
+            answer = answer,
+            form_field = self.conv_completed_fields[len_cf-1],
+            # For setting not targeted field, make sure it is strict
+            strict_var_expressions = True
+        )
+        if value is not None:
+            # Reset error, no increment
+            self.fill_form_continuous_err_count = 0
+        return (value, confirm_question)
+
     def set_current_field_value_from_answer(
             self,
             answer
     ):
-        cur_field = self.form.form_fields[self.conv_current_field_index]
+        (value, confirm_question) = self.set_field_value_from_answer(
+            answer = answer,
+            form_field = self.conv_current_field,
+            strict_var_expressions = False
+        )
+        if value is None:
+            self.fill_form_continuous_err_count += 1
+        return (value, confirm_question)
 
+    def set_field_value_from_answer(
+            self,
+            answer,
+            form_field,
+            strict_var_expressions
+    ):
         value = None
-        res = cur_field.set_field_value(
-            user_text = answer
+        res = form_field.set_field_value(
+            user_text = answer,
+            # Allow to match also single word or number (e.g. "79.5"),
+            # without any var expressions (with expressions, "Amount is 79.5")
+            strict_var_expressions = strict_var_expressions
         )
         if res is True:
             # Success, reset error count
             self.fill_form_continuous_err_count = 0
             confirm_question = \
-                str(cur_field.name).lower() + ': "' + str(value) + '"' \
+                str(form_field.name).lower() + ': "' + str(value) + '"' \
                 + '? ' + str(self.text_confirm_question)
-            return (cur_field.value, confirm_question)
+            return (form_field.value, confirm_question)
 
-        self.fill_form_continuous_err_count += 1
         return (None, None)
 
     def confirm_current_field(self):
         self.conv_current_field.completed = True
+        self.conv_completed_fields.append(self.conv_current_field)
 
     def confirm_answer(
             self,
@@ -242,7 +287,7 @@ class DaehuaModelForms:
             self
     ):
         while not self.is_state_form_completed_and_confirmed():
-            if self.get_continous_error_count() >= 2:
+            if self.is_error_threshold_hit():
                 print('User quits form conversation.')
                 break
             q = self.get_next_question()
@@ -261,12 +306,16 @@ class DaehuaModelForms:
                 print('User answer: ' + str(answer))
 
                 (value, confirm_question) = self.set_current_field_value_from_answer(
-                    answer=answer
+                    answer = answer
                 )
                 if value is not None:
                     self.confirm_current_field()
                     # answer = input(confirm_question)
                     # fconv.confirm_answer(answer=answer)
+                else:
+                    (value, confirm_question) = self.set_previous_field_value_from_answer(
+                        answer = answer
+                    )
 
 
 if __name__ == '__main__':

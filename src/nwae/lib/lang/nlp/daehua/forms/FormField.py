@@ -88,7 +88,9 @@ class FormField:
 
     def set_field_value(
             self,
-            user_text
+            user_text,
+            # Strict means match only with expressions
+            strict_var_expressions = True
     ):
         value = None
         # Try with var expressions first
@@ -98,13 +100,15 @@ class FormField:
         )
         if res is True:
             return True
-        else:
+        elif not strict_var_expressions:
             # Try to match with no text expressions, as user may just type the value alone
             res = self.__set_field_value_from_text(
                 text = user_text,
                 exclude_var_expressions = True
             )
             return res
+        else:
+            return False
 
     def __set_field_value_from_text(
             self,
@@ -163,4 +167,9 @@ if __name__ == '__main__':
 
     text = '777.88'
     print(ffld_obj.set_field_value(user_text=text))
+    print(ffld_obj.to_json())
+
+    text = '55.11'
+    # Should fail to set value, due to strict flag
+    print(ffld_obj.set_field_value(user_text=text, strict_var_expressions=True))
     print(ffld_obj.to_json())
