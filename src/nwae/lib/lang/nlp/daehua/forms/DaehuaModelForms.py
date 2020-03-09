@@ -2,7 +2,6 @@
 
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
-from mex.MatchExpression import MatchExpression
 import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
 from nwae.utils.StringUtils import StringUtils
 
