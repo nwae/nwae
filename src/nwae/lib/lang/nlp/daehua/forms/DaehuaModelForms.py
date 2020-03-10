@@ -224,29 +224,39 @@ class DaehuaModelForms:
 
     def try_to_update_fields(
             self,
-            answer
+            answer,
+            update_current_then_all = False
     ):
-        result = self.set_current_field_value_from_answer(
-            answer = answer,
-            strict_expressions = True
-        )
-        Log.info(
-            'Try update 1: Strict update on current field "' + self.conv_current_field_name
-            + '", updated = ' + str(result.is_updated)
-        )
-        if result.is_updated:
-            self.confirm_current_field()
-            # answer = input(confirm_question)
-            # fconv.confirm_answer(answer=answer)
-        else:
+        try_count = 1
+        result = retFieldsUpdated(dict_name_values={})
+
+        if update_current_then_all:
+            result = self.set_current_field_value_from_answer(
+                answer = answer,
+                strict_expressions = True
+            )
+            Log.info(
+                'Try update ' + str(try_count)
+                + ': Strict update on current field "' + self.conv_current_field_name
+                + '", updated = ' + str(result.is_updated)
+            )
+            try_count += 1
+            if result.is_updated:
+                self.confirm_current_field()
+                # answer = input(confirm_question)
+                # fconv.confirm_answer(answer=answer)
+
+        if not result.is_updated:
             # Try to update all
             result = self.set_all_field_value_from_answer(
                 answer = answer
             )
             Log.info(
-                'Try update 2: Strict update on all fields'
+                'Try update ' + str(try_count) + ': Strict update on all fields'
                 + ', updated = ' + str(result.is_updated)
             )
+            try_count += 1
+
             if not result.is_updated:
                 result = self.set_current_field_value_from_answer(
                     answer = answer,
@@ -276,7 +286,7 @@ class DaehuaModelForms:
             )
             if value is not None:
                 Log.info('********* Field "' + str(fld.name) + '" updated value = ' + str(value))
-                dict_fld_name_values_updated[fld.name] = value
+                dict_fld_name_values_updated[fld.name] = fld.name
 
         return retFieldsUpdated(
             dict_name_values = dict_fld_name_values_updated
@@ -332,7 +342,7 @@ class DaehuaModelForms:
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.text_list_confirm_words:
+        if answer.lower() in self.text_list_confirm_words:
             self.confirm_current_field()
             return True
         else:
@@ -344,7 +354,7 @@ class DaehuaModelForms:
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.text_list_confirm_words:
+        if answer.lower() in self.text_list_confirm_words:
             self.set_state_form_completed_and_confirmed()
             self.reset_continuous_error_count()
             return True
