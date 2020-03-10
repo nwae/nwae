@@ -85,6 +85,12 @@ class Form:
             fld.completed = False
             fld.value = None
 
+    def reset_fields_value_just_updated(
+            self
+    ):
+        for fld in self.form_fields:
+            fld.reset_value_just_updated()
+
     def get_fields_values_text(
             self,
             text_newline_char,
@@ -100,8 +106,13 @@ class Form:
             value_text = fld.value
             if value_text is None:
                 value_text = '-'
+
+            # Put bold text if just updated
+            if fld.value_just_updated:
+                value_text = '<b>' + str(value_text) + '</b>'
+
             text = text + text_space_char*2 + str(fld.name) \
-                   + ': ' + str(value_text) \
+                   + ': ' + str(value_text) + '' \
                    + text_newline_char
         return text
 

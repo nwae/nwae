@@ -58,6 +58,7 @@ class FormField:
         self.if_masked = if_masked
         # Field MEX
         self.mex_expr = mex_expr
+        self.value_just_updated = False
         try:
             self.mex_obj = MatchExpression(
                 pattern = self.mex_expr,
@@ -85,6 +86,12 @@ class FormField:
             + ': Field initialized: ' + str(self.to_json())
          )
         return
+
+    def set_value_just_updated(self):
+        self.value_just_updated = True
+
+    def reset_value_just_updated(self):
+        self.value_just_updated = False
 
     def set_field_value(
             self,
@@ -128,6 +135,8 @@ class FormField:
             )
         if params_dict[self.mex_var_name] is not None:
             self.value = params_dict[self.mex_var_name]
+            self.set_value_just_updated()
+            self.completed = True
             return True
         else:
             return False

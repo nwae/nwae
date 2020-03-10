@@ -6,6 +6,16 @@ import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
 from nwae.utils.StringUtils import StringUtils
 
 
+class retFieldsUpdated:
+    def __init__(
+            self,
+            # At least 'name', 'value', 'confirmQuestion'
+            dict_name_values
+    ):
+        self.field_name_values = dict_name_values
+        self.is_updated = len(list(dict_name_values.keys())) > 0
+
+
 class DaehuaModelForms:
 
     FORM_STATE_NONE = 'none'
@@ -107,7 +117,7 @@ class DaehuaModelForms:
         self.conv_current_field_name = None
         self.conv_current_field = None
         # Previous field set by user
-        self.conv_completed_fields = []
+        # self.conv_completed_fields = []
         # Reset fields
         self.form.reset_fields_to_incomplete()
         return
@@ -158,69 +168,115 @@ class DaehuaModelForms:
                    + self.text_ask_field_value_prefix \
                    + ' ' + str(cur_field.name).lower() + '?'\
                    + self.text_html_font_end_tag
+
+        self.form.reset_fields_value_just_updated()
+
         return question
 
-    #
-    # Allows the user to specify all field values directly
-    #
-    def set_previous_field_value_from_answer(
+    def try_to_update_fields(
             self,
             answer
     ):
-        len_cf = len(self.conv_completed_fields)
-        if len_cf <= 0:
-            return (None, None)
-
-        (value, confirm_question) = self.set_field_value_from_answer(
+        result = self.set_current_field_value_from_answer(
             answer = answer,
-            form_field = self.conv_completed_fields[len_cf-1],
-            # For setting not targeted field, make sure it is strict
-            strict_var_expressions = True
+            strict_expressions = True
         )
-        if value is not None:
-            # Reset error, no increment
-            self.fill_form_continuous_err_count = 0
-        return (value, confirm_question)
+        Log.info(
+            'Try update 1: Strict update on current field "' + self.conv_current_field_name
+            + '", updated = ' + str(result.is_updated)
+        )
+        if result.is_updated:
+            self.confirm_current_field()
+            # answer = input(confirm_question)
+            # fconv.confirm_answer(answer=answer)
+        else:
+            # Try to update all
+            result = self.set_all_field_value_from_answer(
+                answer = answer
+            )
+            Log.info(
+                'Try update 2: Strict update on all fields'
+                + ', updated = ' + str(result.is_updated)
+            )
+            if not result.is_updated:
+                result = self.set_current_field_value_from_answer(
+                    answer = answer,
+                    strict_expressions = False
+                )
+                Log.info(
+                    'Try update 3: Not strict update on current field "' + self.conv_current_field_name
+                    + '", updated = ' + str(result.is_updated)
+                )
+        return result
+
+    def set_all_field_value_from_answer(
+            self,
+            answer
+    ):
+        dict_fld_name_values_updated = {}
+        for fld in self.form.form_fields:
+            value = self.__set_field_value_from_answer(
+                answer = answer,
+                form_field = fld,
+                # For setting not targeted field, make sure it is strict
+                strict_var_expressions = True
+            )
+            if value is not None:
+                Log.info('********* Field "' + str(fld.name) + '" updated value = ' + str(value))
+                dict_fld_name_values_updated[fld.name] = value
+
+        return retFieldsUpdated(
+            dict_name_values = dict_fld_name_values_updated
+        )
 
     def set_current_field_value_from_answer(
             self,
-            answer
+            answer,
+            strict_expressions
     ):
-        (value, confirm_question) = self.set_field_value_from_answer(
+        value = self.__set_field_value_from_answer(
             answer = answer,
             form_field = self.conv_current_field,
-            strict_var_expressions = False
+            strict_var_expressions = strict_expressions
         )
         if value is None:
             self.fill_form_continuous_err_count += 1
-        return (value, confirm_question)
+            return retFieldsUpdated(dict_name_values={})
+        else:
+            return retFieldsUpdated(
+                dict_name_values = {self.conv_current_field_name: value}
+            )
 
-    def set_field_value_from_answer(
+    def __set_field_value_from_answer(
             self,
             answer,
             form_field,
             strict_var_expressions
     ):
-        value = None
         res = form_field.set_field_value(
             user_text = answer,
             # Allow to match also single word or number (e.g. "79.5"),
             # without any var expressions (with expressions, "Amount is 79.5")
             strict_var_expressions = strict_var_expressions
         )
+        Log.info(
+            'Updated field "' + str(form_field.name)
+            + '" = ' + str(res)
+        )
         if res is True:
             # Success, reset error count
             self.fill_form_continuous_err_count = 0
-            confirm_question = \
-                str(form_field.name).lower() + ': "' + str(value) + '"' \
-                + '? ' + str(self.text_confirm_question)
-            return (form_field.value, confirm_question)
+            # Confirm question we can build elsewhere
+            # confirm_question = \
+            #     str(form_field.name).lower() + ': "' + str(value) + '"' \
+            #     + '? ' + str(self.text_confirm_question)
+            return form_field.value
 
-        return (None, None)
+        return None
 
     def confirm_current_field(self):
         self.conv_current_field.completed = True
-        self.conv_completed_fields.append(self.conv_current_field)
+        # self.conv_completed_fields.append(self.conv_current_field)
 
     def confirm_answer(
             self,
@@ -234,6 +290,7 @@ class DaehuaModelForms:
             return True
         else:
             self.fill_form_continuous_err_count += 1
+            # No form confirmation
             return False
 
     def confirm_form(
@@ -247,13 +304,22 @@ class DaehuaModelForms:
             self.fill_form_continuous_err_count = 0
             return True
         else:
-            self.fill_form_continuous_err_count += 1
-            if self.fill_form_continuous_err_count >= 2:
+            # Try to update all fields strictly, maybe user wants to change something
+            fields_updated = self.set_all_field_value_from_answer(
+                answer = answer
+            )
+            if len(fields_updated) > 0:
+                self.fill_form_continuous_err_count = 0
+            else:
+                self.fill_form_continuous_err_count += 1
+
+            if self.is_error_threshold_hit():
                 Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Reset form after ' + str(self.fill_form_continuous_err_count) + ' error counts.'
                 )
                 self.reset()
+            # No form confirmation
             return False
 
     def get_confirm_form_question(
@@ -273,6 +339,9 @@ class DaehuaModelForms:
         q = q \
             + self.text_confirm_question \
             + self.text_html_font_end_tag
+
+        self.form.reset_fields_value_just_updated()
+
         return q
 
     def get_completed_fields(self):
@@ -305,17 +374,8 @@ class DaehuaModelForms:
                 answer = input(q + '\n\r')
                 print('User answer: ' + str(answer))
 
-                (value, confirm_question) = self.set_current_field_value_from_answer(
-                    answer = answer
-                )
-                if value is not None:
-                    self.confirm_current_field()
-                    # answer = input(confirm_question)
-                    # fconv.confirm_answer(answer=answer)
-                else:
-                    (value, confirm_question) = self.set_previous_field_value_from_answer(
-                        answer = answer
-                    )
+                result = self.try_to_update_fields(answer=answer)
+                print('***** Updated fields: ' + str(result.field_name_values))
 
 
 if __name__ == '__main__':
