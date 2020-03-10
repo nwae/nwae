@@ -3,7 +3,6 @@
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
-from nwae.lib.lang.nlp.daehua.forms.FormField import FormField
 from nwae.utils.StringUtils import StringUtils
 
 
@@ -40,17 +39,12 @@ class DaehuaModelForms:
     KEY_FILL_FORM_CONTINUOUS_ERR_COUNT = 'fillFormContinuousErrCount'
     KEY_CONV_CURRENT_FIELD_INDEX = 'convCurrentFieldIndex'
     KEY_CONV_CURRENT_FIELD_NAME = 'convCurrentFieldName'
-    KEY_CONV_CURRENT_FIELD = 'convCurrentField'
 
     DEFAULT_OK = ('y', 'ok', 'yes')
 
     @staticmethod
     def deserialize(json_obj):
         dh_form_obj = daehua_form.Form.deserialize(form_json=json_obj[DaehuaModelForms.KEY_FORM])
-        if json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD] is None:
-            dh_form_field_obj = None
-        else:
-            dh_form_field_obj = FormField.deserialize(json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD])
 
         obj = DaehuaModelForms(
             form = dh_form_obj,
@@ -65,8 +59,7 @@ class DaehuaModelForms:
             form_state = json_obj[DaehuaModelForms.KEY_FORM_STATE],
             fill_form_continuous_err_count = json_obj[DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT],
             conv_current_field_index = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX],
-            conv_current_field_name = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME],
-            conv_current_field = dh_form_field_obj
+            conv_current_field_name = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME]
         )
         return obj
 
@@ -85,8 +78,7 @@ class DaehuaModelForms:
             form_state = None,
             fill_form_continuous_err_count = 0,
             conv_current_field_index = None,
-            conv_current_field_name = None,
-            conv_current_field = None
+            conv_current_field_name = None
     ):
         if type(form) is not daehua_form.Form:
             raise Exception(
@@ -116,7 +108,6 @@ class DaehuaModelForms:
         self.fill_form_continuous_err_count = fill_form_continuous_err_count
         self.conv_current_field_index = conv_current_field_index
         self.conv_current_field_name = conv_current_field_name
-        self.conv_current_field = conv_current_field
 
         if self.form_state is None:
             self.reset()
@@ -176,7 +167,6 @@ class DaehuaModelForms:
         # The current field we are trying to extract from user
         self.conv_current_field_index = None
         self.conv_current_field_name = None
-        self.conv_current_field = None
         # Previous field set by user
         # self.conv_completed_fields = []
         # Reset fields
@@ -192,7 +182,6 @@ class DaehuaModelForms:
 
         self.conv_current_field_index = None
         self.conv_current_field_name = None
-        self.conv_current_field = None
 
         # Find the next variable
         for i in range(len(self.form.form_fields)):
@@ -200,7 +189,6 @@ class DaehuaModelForms:
             if not fld.completed:
                 self.conv_current_field_index = i
                 self.conv_current_field_name = fld.name
-                self.conv_current_field = fld
                 break
 
         if self.conv_current_field_index is None:
@@ -301,7 +289,7 @@ class DaehuaModelForms:
     ):
         value = self.__set_field_value_from_answer(
             answer = answer,
-            form_field = self.conv_current_field,
+            form_field = self.form.form_fields[self.conv_current_field_index],
             strict_var_expressions = strict_expressions
         )
         if value is None:
@@ -337,8 +325,7 @@ class DaehuaModelForms:
         return None
 
     def confirm_current_field(self):
-        self.conv_current_field.completed = True
-        # self.conv_completed_fields.append(self.conv_current_field)
+        self.form.form_fields[self.conv_current_field_index].completed = True
 
     def confirm_answer(
             self,
@@ -437,8 +424,8 @@ class DaehuaModelForms:
 
     def to_json(self):
         current_field_json = None
-        if self.conv_current_field is not None:
-            current_field_json = self.conv_current_field.to_json()
+        if self.conv_current_field_index is not None:
+            current_field_json = self.form.form_fields[self.conv_current_field_index].to_json()
         return {
             DaehuaModelForms.KEY_FORM: self.form.to_json(),
             DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS: self.text_list_confirm_words,
@@ -452,8 +439,7 @@ class DaehuaModelForms:
             DaehuaModelForms.KEY_FORM_STATE: self.form_state,
             DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT: self.fill_form_continuous_err_count,
             DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX: self.conv_current_field_index,
-            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME: self.conv_current_field_name,
-            DaehuaModelForms.KEY_CONV_CURRENT_FIELD: current_field_json
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME: self.conv_current_field_name
         }
 
 
