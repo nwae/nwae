@@ -393,7 +393,7 @@ if __name__ == '__main__':
         ]
     }
     # Must be aligned with fields above
-    mex_form_model = 'name,str-en,name/이름 ; amt,float,金额/amount ; acc,account_number,账号/account'
+    mex_form_model = 'name,str,name/叫/이름,2-3,right ; amt,float,金额/amount ; acc,account_number,账号/account'
 
     dform = daehua_form.Form(
         title           = colform['text'],

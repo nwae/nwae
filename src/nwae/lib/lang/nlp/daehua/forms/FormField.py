@@ -12,9 +12,7 @@ class FormField:
     KEY_IF_REQUIRED = 'ifRequired'
     KEY_IF_MASKED = 'ifMasked'
     KEY_MEX_EXPR = 'mexExpr'
-    KEY_MEX_VAR_NAME = 'mexVarName'
-    KEY_MEX_VAR_TYPE = 'mexVarType'
-    KEY_MEX_VAR_EXPRESSIONS = 'mexVarExpressions'
+    KEY_VALUE_JUST_UPDATED = 'valueJustUpdated'
     KEY_COMPLETED = 'completed'
     
     @staticmethod
@@ -23,15 +21,18 @@ class FormField:
     ):
         if_required = True
         if_masked = False
-        mex_expr = None
+        completed = False
+        value_just_updated = False
         
         # Non-compulsory keys
         if FormField.KEY_IF_REQUIRED in json_obj.keys():
             if_required = json_obj[FormField.KEY_IF_REQUIRED]
         if FormField.KEY_IF_MASKED in json_obj.keys():
             if_masked = json_obj[FormField.KEY_IF_MASKED]
-        if FormField.KEY_MEX_EXPR in json_obj.keys():
-            mex_expr = json_obj[FormField.KEY_MEX_EXPR]
+        if FormField.KEY_VALUE_JUST_UPDATED in json_obj.keys():
+            value_just_updated = json_obj[FormField.KEY_VALUE_JUST_UPDATED]
+        if FormField.KEY_COMPLETED in json_obj.keys():
+            completed = json_obj[FormField.KEY_COMPLETED]
 
         return FormField(
             # Compulsory key
@@ -40,7 +41,9 @@ class FormField:
             value = json_obj[FormField.KEY_VALUE],
             if_required = if_required,
             if_masked   = if_masked,
-            mex_expr    = mex_expr
+            mex_expr    = json_obj[FormField.KEY_MEX_EXPR],
+            value_just_updated = value_just_updated,
+            completed   = completed
         )
 
     def __init__(
@@ -50,7 +53,10 @@ class FormField:
             if_required,
             if_masked,
             # MEX expression to extract param from human sentence
-            mex_expr
+            mex_expr,
+            # For deserializing old objects so the old state is mainted
+            value_just_updated = False,
+            completed = False
     ):
         self.name = name
         self.value = value
@@ -58,7 +64,9 @@ class FormField:
         self.if_masked = if_masked
         # Field MEX
         self.mex_expr = mex_expr
-        self.value_just_updated = False
+        self.value_just_updated = value_just_updated
+        # Already obtained the parameter from user conversation?
+        self.completed = completed
         try:
             self.mex_obj = MatchExpression(
                 pattern = self.mex_expr,
@@ -79,8 +87,6 @@ class FormField:
                 + ': Failed to get mex var name for mex expr "' + str(self.mex_expr)
                 + '", got exception "' + str(ex_mex) + '".'
             )
-        # Already obtained the parameter from user conversation?
-        self.completed = False
         Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Field initialized: ' + str(self.to_json())
@@ -141,6 +147,7 @@ class FormField:
         else:
             return False
 
+    # So that we can serialize state to file
     def to_json(self):
         return {
             FormField.KEY_NAME: self.name,
@@ -148,9 +155,7 @@ class FormField:
             FormField.KEY_IF_REQUIRED: self.if_required,
             FormField.KEY_IF_MASKED: self.if_masked,
             FormField.KEY_MEX_EXPR: self.mex_expr,
-            FormField.KEY_MEX_VAR_NAME: self.mex_var_name,
-            FormField.KEY_MEX_VAR_TYPE: self.mex_var_type,
-            FormField.KEY_MEX_VAR_EXPRESSIONS: self.mex_var_expressions,
+            FormField.KEY_VALUE_JUST_UPDATED: self.value_just_updated,
             FormField.KEY_COMPLETED: self.completed
         }
 
@@ -182,3 +187,9 @@ if __name__ == '__main__':
     # Should fail to set value, due to strict flag
     print(ffld_obj.set_field_value(user_text=text, strict_var_expressions=True))
     print(ffld_obj.to_json())
+
+    # Serialize & Deserialize must be same
+    ffld_copy = FormField.import_form_field(json_obj=ffld_obj.to_json())
+    print(ffld_copy.to_json())
+    # Must be True
+    print(ffld_copy.to_json() == ffld_obj.to_json())
