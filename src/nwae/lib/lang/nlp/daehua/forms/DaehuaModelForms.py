@@ -3,6 +3,7 @@
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
+from nwae.lib.lang.nlp.daehua.forms.FormField import FormField
 from nwae.utils.StringUtils import StringUtils
 
 
@@ -25,7 +26,50 @@ class DaehuaModelForms:
     FORM_STATE_AWAIT_FORM_CONFIRMATION = 'awaitFormConfirmation'
     FORM_STATE_FORM_COMPLETED_AND_CONFIRMED = 'formCompletedAndConfirmed'
 
+    # For deserializing old objects so the old state is maintained
+    KEY_FORM = 'form'
+    KEY_TEXT_LIST_CONFIRM_WORDS = 'textListConfirmWords'
+    KEY_TEXT_CONFIRM_QUESTION = 'textConfirmQuestion'
+    KEY_TEXT_ASK_FIELD_VALUE_PREFIX = 'textAskFieldValuePrefix'
+    KEY_TEXT_NEWLINE_CHAR = 'textNewlineChar'
+    KEY_TEXT_SPACE_CHAR = 'textSpaceChar'
+    KEY_TEXT_HTML_FONT_START_TAG = 'textHtmlFontStartTag'
+    KEY_TEXT_HTML_FONT_END_TAG = 'textHtmlFontEndTag'
+    KEY_ERROR_COUNT_QUIT_THRESHOLD = 'errorCountQuitThreshold'
+    KEY_FORM_STATE = 'formState'
+    KEY_FILL_FORM_CONTINUOUS_ERR_COUNT = 'fillFormContinuousErrCount'
+    KEY_CONV_CURRENT_FIELD_INDEX = 'convCurrentFieldIndex'
+    KEY_CONV_CURRENT_FIELD_NAME = 'convCurrentFieldName'
+    KEY_CONV_CURRENT_FIELD = 'convCurrentField'
+
     DEFAULT_OK = ('y', 'ok', 'yes')
+
+    @staticmethod
+    def deserialize(json_obj):
+        dh_form_obj = daehua_form.Form.deserialize(form_json=json_obj[DaehuaModelForms.KEY_FORM])
+        if json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD] is None:
+            dh_form_field_obj = None
+        else:
+            dh_form_field_obj = FormField.deserialize(json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD])
+
+        obj = DaehuaModelForms(
+            form = dh_form_obj,
+            text_list_confirm_words = json_obj[DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS],
+            text_confirm_question = json_obj[DaehuaModelForms.KEY_TEXT_CONFIRM_QUESTION],
+            text_ask_field_value_prefix = json_obj[DaehuaModelForms.KEY_TEXT_ASK_FIELD_VALUE_PREFIX],
+            text_newline_char = json_obj[DaehuaModelForms.KEY_TEXT_NEWLINE_CHAR],
+            text_space_char = json_obj[DaehuaModelForms.KEY_TEXT_SPACE_CHAR],
+            text_html_font_start_tag = json_obj[DaehuaModelForms.KEY_TEXT_HTML_FONT_START_TAG],
+            text_html_font_end_tag = json_obj[DaehuaModelForms.KEY_TEXT_HTML_FONT_END_TAG],
+            error_count_quit_threshold = json_obj[DaehuaModelForms.KEY_ERROR_COUNT_QUIT_THRESHOLD],
+            form_state = json_obj[DaehuaModelForms.KEY_FORM_STATE],
+            fill_form_continuous_err_count = json_obj[DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT],
+            conv_current_field_index = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX],
+            conv_current_field_name = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME],
+            conv_current_field = dh_form_field_obj
+        )
+        return obj
+
     def __init__(
             self,
             form,
@@ -36,7 +80,13 @@ class DaehuaModelForms:
             text_space_char = '&nbsp',
             text_html_font_start_tag = '<font color="blue">',
             text_html_font_end_tag = '</font>',
-            error_count_quit_threshold = 2
+            # For deserializing old objects so the old state is maintained
+            error_count_quit_threshold = 2,
+            form_state = None,
+            fill_form_continuous_err_count = 0,
+            conv_current_field_index = None,
+            conv_current_field_name = None,
+            conv_current_field = None
     ):
         if type(form) is not daehua_form.Form:
             raise Exception(
@@ -62,9 +112,14 @@ class DaehuaModelForms:
             + ': Mex Expressions: ' + str(self.mex_expressions) + '.'
         )
 
-        self.form_state = None
-        self.fill_form_continuous_err_count = 0
-        self.reset()
+        self.form_state = form_state
+        self.fill_form_continuous_err_count = fill_form_continuous_err_count
+        self.conv_current_field_index = conv_current_field_index
+        self.conv_current_field_name = conv_current_field_name
+        self.conv_current_field = conv_current_field
+
+        if self.form_state is None:
+            self.reset()
         return
 
     def get_form(self):
@@ -380,6 +435,27 @@ class DaehuaModelForms:
                 result = self.try_to_update_fields(answer=answer)
                 print('***** Updated fields: ' + str(result.field_name_values))
 
+    def to_json(self):
+        current_field_json = None
+        if self.conv_current_field is not None:
+            current_field_json = self.conv_current_field.to_json()
+        return {
+            DaehuaModelForms.KEY_FORM: self.form.to_json(),
+            DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS: self.text_list_confirm_words,
+            DaehuaModelForms.KEY_TEXT_CONFIRM_QUESTION: self.text_confirm_question,
+            DaehuaModelForms.KEY_TEXT_ASK_FIELD_VALUE_PREFIX: self.text_ask_field_value_prefix,
+            DaehuaModelForms.KEY_TEXT_NEWLINE_CHAR: self.text_newline_char,
+            DaehuaModelForms.KEY_TEXT_SPACE_CHAR: self.text_space_char,
+            DaehuaModelForms.KEY_TEXT_HTML_FONT_START_TAG: self.text_html_font_start_tag,
+            DaehuaModelForms.KEY_TEXT_HTML_FONT_END_TAG: self.text_html_font_end_tag,
+            DaehuaModelForms.KEY_ERROR_COUNT_QUIT_THRESHOLD: self.error_count_quit_threshold,
+            DaehuaModelForms.KEY_FORM_STATE: self.form_state,
+            DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT: self.fill_form_continuous_err_count,
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX: self.conv_current_field_index,
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME: self.conv_current_field_name,
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD: current_field_json
+        }
+
 
 if __name__ == '__main__':
     colform = {
@@ -405,6 +481,15 @@ if __name__ == '__main__':
 
     print(dform.to_json())
 
-    DaehuaModelForms(
+    daehua_model_forms = DaehuaModelForms(
         form = dform
-    ).simulate_question_answer()
+    )
+    print('************************************************')
+    print(daehua_model_forms.to_json())
+    print('************************************************')
+    daehua_model_forms_copy = DaehuaModelForms.deserialize(json_obj = daehua_model_forms.to_json())
+    print(daehua_model_forms_copy.to_json())
+    print(daehua_model_forms_copy.to_json() == daehua_model_forms.to_json())
+
+    daehua_model_forms.simulate_question_answer()
+    print(daehua_model_forms.to_json())
