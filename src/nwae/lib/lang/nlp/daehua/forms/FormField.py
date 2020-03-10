@@ -12,9 +12,14 @@ class FormField:
     KEY_IF_REQUIRED = 'ifRequired'
     KEY_IF_MASKED = 'ifMasked'
     KEY_MEX_EXPR = 'mexExpr'
+    # For deserializing old objects so the old state is maintained
     KEY_VALUE_JUST_UPDATED = 'valueJustUpdated'
     KEY_COMPLETED = 'completed'
-    
+
+    @staticmethod
+    def deserialize(json_obj):
+        return FormField.import_form_field(json_obj=json_obj)
+
     @staticmethod
     def import_form_field(
             json_obj
@@ -54,7 +59,7 @@ class FormField:
             if_masked,
             # MEX expression to extract param from human sentence
             mex_expr,
-            # For deserializing old objects so the old state is mainted
+            # For deserializing old objects so the old state is maintained
             value_just_updated = False,
             completed = False
     ):
