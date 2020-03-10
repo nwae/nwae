@@ -109,6 +109,12 @@ class DaehuaModelForms:
     def is_error_threshold_hit(self):
         return self.fill_form_continuous_err_count >= self.error_count_quit_threshold
 
+    def increment_continuous_error_count(self):
+        self.fill_form_continuous_err_count += 1
+
+    def reset_continuous_error_count(self):
+        self.fill_form_continuous_err_count = 0
+
     def reset(self):
         Log.important('Form reset')
         self.set_state_none()
@@ -207,6 +213,10 @@ class DaehuaModelForms:
                     'Try update 3: Not strict update on current field "' + self.conv_current_field_name
                     + '", updated = ' + str(result.is_updated)
                 )
+        if result.is_updated:
+            self.reset_continuous_error_count()
+        else:
+            self.increment_continuous_error_count()
         return result
 
     def set_all_field_value_from_answer(
@@ -240,7 +250,6 @@ class DaehuaModelForms:
             strict_var_expressions = strict_expressions
         )
         if value is None:
-            self.fill_form_continuous_err_count += 1
             return retFieldsUpdated(dict_name_values={})
         else:
             return retFieldsUpdated(
@@ -264,8 +273,6 @@ class DaehuaModelForms:
             + '" = ' + str(res)
         )
         if res is True:
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
             # Confirm question we can build elsewhere
             # confirm_question = \
             #     str(form_field.name).lower() + ': "' + str(value) + '"' \
@@ -285,11 +292,8 @@ class DaehuaModelForms:
         answer = StringUtils.trim(answer)
         if answer in self.text_list_confirm_words:
             self.confirm_current_field()
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
             return True
         else:
-            self.fill_form_continuous_err_count += 1
             # No form confirmation
             return False
 
@@ -300,18 +304,17 @@ class DaehuaModelForms:
         answer = StringUtils.trim(answer)
         if answer in self.text_list_confirm_words:
             self.set_state_form_completed_and_confirmed()
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
+            self.reset_continuous_error_count()
             return True
         else:
             # Try to update all fields strictly, maybe user wants to change something
-            fields_updated = self.set_all_field_value_from_answer(
+            result = self.set_all_field_value_from_answer(
                 answer = answer
             )
-            if len(fields_updated) > 0:
-                self.fill_form_continuous_err_count = 0
+            if result.is_updated:
+                self.reset_continuous_error_count()
             else:
-                self.fill_form_continuous_err_count += 1
+                self.increment_continuous_error_count()
 
             if self.is_error_threshold_hit():
                 Log.warning(
