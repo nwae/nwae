@@ -433,9 +433,6 @@ class DaehuaModelForms:
                 print('***** Updated fields: ' + str(result.field_name_values))
 
     def to_json(self):
-        current_field_json = None
-        if self.conv_current_field_index is not None:
-            current_field_json = self.form.form_fields[self.conv_current_field_index].to_json()
         return {
             DaehuaModelForms.KEY_FORM: self.form.to_json(),
             DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS: self.text_list_confirm_words,
