@@ -6,6 +6,16 @@ import nwae.lib.lang.nlp.daehua.forms.Form as daehua_form
 from nwae.utils.StringUtils import StringUtils
 
 
+class retFieldsUpdated:
+    def __init__(
+            self,
+            # At least 'name', 'value', 'confirmQuestion'
+            dict_name_values
+    ):
+        self.field_name_values = dict_name_values
+        self.is_updated = len(list(dict_name_values.keys())) > 0
+
+
 class DaehuaModelForms:
 
     FORM_STATE_NONE = 'none'
@@ -15,7 +25,44 @@ class DaehuaModelForms:
     FORM_STATE_AWAIT_FORM_CONFIRMATION = 'awaitFormConfirmation'
     FORM_STATE_FORM_COMPLETED_AND_CONFIRMED = 'formCompletedAndConfirmed'
 
+    # For deserializing old objects so the old state is maintained
+    KEY_FORM = 'form'
+    KEY_TEXT_LIST_CONFIRM_WORDS = 'textListConfirmWords'
+    KEY_TEXT_CONFIRM_QUESTION = 'textConfirmQuestion'
+    KEY_TEXT_ASK_FIELD_VALUE_PREFIX = 'textAskFieldValuePrefix'
+    KEY_TEXT_NEWLINE_CHAR = 'textNewlineChar'
+    KEY_TEXT_SPACE_CHAR = 'textSpaceChar'
+    KEY_TEXT_HTML_FONT_START_TAG = 'textHtmlFontStartTag'
+    KEY_TEXT_HTML_FONT_END_TAG = 'textHtmlFontEndTag'
+    KEY_ERROR_COUNT_QUIT_THRESHOLD = 'errorCountQuitThreshold'
+    KEY_FORM_STATE = 'formState'
+    KEY_FILL_FORM_CONTINUOUS_ERR_COUNT = 'fillFormContinuousErrCount'
+    KEY_CONV_CURRENT_FIELD_INDEX = 'convCurrentFieldIndex'
+    KEY_CONV_CURRENT_FIELD_NAME = 'convCurrentFieldName'
+
     DEFAULT_OK = ('y', 'ok', 'yes')
+
+    @staticmethod
+    def deserialize(json_obj):
+        dh_form_obj = daehua_form.Form.deserialize(form_json=json_obj[DaehuaModelForms.KEY_FORM])
+
+        obj = DaehuaModelForms(
+            form = dh_form_obj,
+            text_list_confirm_words = json_obj[DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS],
+            text_confirm_question = json_obj[DaehuaModelForms.KEY_TEXT_CONFIRM_QUESTION],
+            text_ask_field_value_prefix = json_obj[DaehuaModelForms.KEY_TEXT_ASK_FIELD_VALUE_PREFIX],
+            text_newline_char = json_obj[DaehuaModelForms.KEY_TEXT_NEWLINE_CHAR],
+            text_space_char = json_obj[DaehuaModelForms.KEY_TEXT_SPACE_CHAR],
+            text_html_font_start_tag = json_obj[DaehuaModelForms.KEY_TEXT_HTML_FONT_START_TAG],
+            text_html_font_end_tag = json_obj[DaehuaModelForms.KEY_TEXT_HTML_FONT_END_TAG],
+            error_count_quit_threshold = json_obj[DaehuaModelForms.KEY_ERROR_COUNT_QUIT_THRESHOLD],
+            form_state = json_obj[DaehuaModelForms.KEY_FORM_STATE],
+            fill_form_continuous_err_count = json_obj[DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT],
+            conv_current_field_index = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX],
+            conv_current_field_name = json_obj[DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME]
+        )
+        return obj
+
     def __init__(
             self,
             form,
@@ -26,7 +73,12 @@ class DaehuaModelForms:
             text_space_char = '&nbsp',
             text_html_font_start_tag = '<font color="blue">',
             text_html_font_end_tag = '</font>',
-            error_count_quit_threshold = 2
+            # For deserializing old objects so the old state is maintained
+            error_count_quit_threshold = 2,
+            form_state = None,
+            fill_form_continuous_err_count = 0,
+            conv_current_field_index = None,
+            conv_current_field_name = None
     ):
         if type(form) is not daehua_form.Form:
             raise Exception(
@@ -52,9 +104,13 @@ class DaehuaModelForms:
             + ': Mex Expressions: ' + str(self.mex_expressions) + '.'
         )
 
-        self.form_state = None
-        self.fill_form_continuous_err_count = 0
-        self.reset()
+        self.form_state = form_state
+        self.fill_form_continuous_err_count = fill_form_continuous_err_count
+        self.conv_current_field_index = conv_current_field_index
+        self.conv_current_field_name = conv_current_field_name
+
+        if self.form_state is None:
+            self.reset()
         return
 
     def get_form(self):
@@ -99,15 +155,20 @@ class DaehuaModelForms:
     def is_error_threshold_hit(self):
         return self.fill_form_continuous_err_count >= self.error_count_quit_threshold
 
+    def increment_continuous_error_count(self):
+        self.fill_form_continuous_err_count += 1
+
+    def reset_continuous_error_count(self):
+        self.fill_form_continuous_err_count = 0
+
     def reset(self):
         Log.important('Form reset')
         self.set_state_none()
         # The current field we are trying to extract from user
         self.conv_current_field_index = None
         self.conv_current_field_name = None
-        self.conv_current_field = None
         # Previous field set by user
-        self.conv_completed_fields = []
+        # self.conv_completed_fields = []
         # Reset fields
         self.form.reset_fields_to_incomplete()
         return
@@ -121,7 +182,6 @@ class DaehuaModelForms:
 
         self.conv_current_field_index = None
         self.conv_current_field_name = None
-        self.conv_current_field = None
 
         # Find the next variable
         for i in range(len(self.form.form_fields)):
@@ -129,7 +189,6 @@ class DaehuaModelForms:
             if not fld.completed:
                 self.conv_current_field_index = i
                 self.conv_current_field_name = fld.name
-                self.conv_current_field = fld
                 break
 
         if self.conv_current_field_index is None:
@@ -158,82 +217,136 @@ class DaehuaModelForms:
                    + self.text_ask_field_value_prefix \
                    + ' ' + str(cur_field.name).lower() + '?'\
                    + self.text_html_font_end_tag
+
+        self.form.reset_fields_value_just_updated()
+
         return question
 
-    #
-    # Allows the user to specify all field values directly
-    #
-    def set_previous_field_value_from_answer(
+    def try_to_update_fields(
+            self,
+            answer,
+            update_current_then_all = False
+    ):
+        try_count = 1
+        result = retFieldsUpdated(dict_name_values={})
+
+        if update_current_then_all:
+            result = self.set_current_field_value_from_answer(
+                answer = answer,
+                strict_expressions = True
+            )
+            Log.info(
+                'Try update ' + str(try_count)
+                + ': Strict update on current field "' + self.conv_current_field_name
+                + '", updated = ' + str(result.is_updated)
+            )
+            try_count += 1
+            if result.is_updated:
+                self.confirm_current_field()
+                # answer = input(confirm_question)
+                # fconv.confirm_answer(answer=answer)
+
+        if not result.is_updated:
+            # Try to update all
+            result = self.set_all_field_value_from_answer(
+                answer = answer
+            )
+            Log.info(
+                'Try update ' + str(try_count) + ': Strict update on all fields'
+                + ', updated = ' + str(result.is_updated)
+            )
+            try_count += 1
+
+            if not result.is_updated:
+                result = self.set_current_field_value_from_answer(
+                    answer = answer,
+                    strict_expressions = False
+                )
+                Log.info(
+                    'Try update 3: Not strict update on current field "' + self.conv_current_field_name
+                    + '", updated = ' + str(result.is_updated)
+                )
+        if result.is_updated:
+            self.reset_continuous_error_count()
+        else:
+            self.increment_continuous_error_count()
+        return result
+
+    def set_all_field_value_from_answer(
             self,
             answer
     ):
-        len_cf = len(self.conv_completed_fields)
-        if len_cf <= 0:
-            return (None, None)
+        dict_fld_name_values_updated = {}
+        for fld in self.form.form_fields:
+            value = self.__set_field_value_from_answer(
+                answer = answer,
+                form_field = fld,
+                # For setting not targeted field, make sure it is strict
+                strict_var_expressions = True
+            )
+            if value is not None:
+                Log.info('********* Field "' + str(fld.name) + '" updated value = ' + str(value))
+                dict_fld_name_values_updated[fld.name] = fld.name
 
-        (value, confirm_question) = self.set_field_value_from_answer(
-            answer = answer,
-            form_field = self.conv_completed_fields[len_cf-1],
-            # For setting not targeted field, make sure it is strict
-            strict_var_expressions = True
+        return retFieldsUpdated(
+            dict_name_values = dict_fld_name_values_updated
         )
-        if value is not None:
-            # Reset error, no increment
-            self.fill_form_continuous_err_count = 0
-        return (value, confirm_question)
 
     def set_current_field_value_from_answer(
             self,
-            answer
+            answer,
+            strict_expressions
     ):
-        (value, confirm_question) = self.set_field_value_from_answer(
+        value = self.__set_field_value_from_answer(
             answer = answer,
-            form_field = self.conv_current_field,
-            strict_var_expressions = False
+            form_field = self.form.form_fields[self.conv_current_field_index],
+            strict_var_expressions = strict_expressions
         )
         if value is None:
-            self.fill_form_continuous_err_count += 1
-        return (value, confirm_question)
+            return retFieldsUpdated(dict_name_values={})
+        else:
+            return retFieldsUpdated(
+                dict_name_values = {self.conv_current_field_name: value}
+            )
 
-    def set_field_value_from_answer(
+    def __set_field_value_from_answer(
             self,
             answer,
             form_field,
             strict_var_expressions
     ):
-        value = None
         res = form_field.set_field_value(
             user_text = answer,
             # Allow to match also single word or number (e.g. "79.5"),
             # without any var expressions (with expressions, "Amount is 79.5")
             strict_var_expressions = strict_var_expressions
         )
+        Log.info(
+            'Updated field "' + str(form_field.name)
+            + '" = ' + str(res)
+        )
         if res is True:
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
-            confirm_question = \
-                str(form_field.name).lower() + ': "' + str(value) + '"' \
-                + '? ' + str(self.text_confirm_question)
-            return (form_field.value, confirm_question)
+            # Confirm question we can build elsewhere
+            # confirm_question = \
+            #     str(form_field.name).lower() + ': "' + str(value) + '"' \
+            #     + '? ' + str(self.text_confirm_question)
+            return form_field.value
 
-        return (None, None)
+        return None
 
     def confirm_current_field(self):
-        self.conv_current_field.completed = True
-        self.conv_completed_fields.append(self.conv_current_field)
+        self.form.form_fields[self.conv_current_field_index].completed = True
 
     def confirm_answer(
             self,
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.text_list_confirm_words:
+        if answer.lower() in self.text_list_confirm_words:
             self.confirm_current_field()
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
             return True
         else:
-            self.fill_form_continuous_err_count += 1
+            # No form confirmation
             return False
 
     def confirm_form(
@@ -241,19 +354,27 @@ class DaehuaModelForms:
             answer
     ):
         answer = StringUtils.trim(answer)
-        if answer in self.text_list_confirm_words:
+        if answer.lower() in self.text_list_confirm_words:
             self.set_state_form_completed_and_confirmed()
-            # Success, reset error count
-            self.fill_form_continuous_err_count = 0
+            self.reset_continuous_error_count()
             return True
         else:
-            self.fill_form_continuous_err_count += 1
-            if self.fill_form_continuous_err_count >= 2:
+            # Try to update all fields strictly, maybe user wants to change something
+            result = self.set_all_field_value_from_answer(
+                answer = answer
+            )
+            if result.is_updated:
+                self.reset_continuous_error_count()
+            else:
+                self.increment_continuous_error_count()
+
+            if self.is_error_threshold_hit():
                 Log.warning(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Reset form after ' + str(self.fill_form_continuous_err_count) + ' error counts.'
                 )
                 self.reset()
+            # No form confirmation
             return False
 
     def get_confirm_form_question(
@@ -273,6 +394,9 @@ class DaehuaModelForms:
         q = q \
             + self.text_confirm_question \
             + self.text_html_font_end_tag
+
+        self.form.reset_fields_value_just_updated()
+
         return q
 
     def get_completed_fields(self):
@@ -305,17 +429,25 @@ class DaehuaModelForms:
                 answer = input(q + '\n\r')
                 print('User answer: ' + str(answer))
 
-                (value, confirm_question) = self.set_current_field_value_from_answer(
-                    answer = answer
-                )
-                if value is not None:
-                    self.confirm_current_field()
-                    # answer = input(confirm_question)
-                    # fconv.confirm_answer(answer=answer)
-                else:
-                    (value, confirm_question) = self.set_previous_field_value_from_answer(
-                        answer = answer
-                    )
+                result = self.try_to_update_fields(answer=answer)
+                print('***** Updated fields: ' + str(result.field_name_values))
+
+    def to_json(self):
+        return {
+            DaehuaModelForms.KEY_FORM: self.form.to_json(),
+            DaehuaModelForms.KEY_TEXT_LIST_CONFIRM_WORDS: self.text_list_confirm_words,
+            DaehuaModelForms.KEY_TEXT_CONFIRM_QUESTION: self.text_confirm_question,
+            DaehuaModelForms.KEY_TEXT_ASK_FIELD_VALUE_PREFIX: self.text_ask_field_value_prefix,
+            DaehuaModelForms.KEY_TEXT_NEWLINE_CHAR: self.text_newline_char,
+            DaehuaModelForms.KEY_TEXT_SPACE_CHAR: self.text_space_char,
+            DaehuaModelForms.KEY_TEXT_HTML_FONT_START_TAG: self.text_html_font_start_tag,
+            DaehuaModelForms.KEY_TEXT_HTML_FONT_END_TAG: self.text_html_font_end_tag,
+            DaehuaModelForms.KEY_ERROR_COUNT_QUIT_THRESHOLD: self.error_count_quit_threshold,
+            DaehuaModelForms.KEY_FORM_STATE: self.form_state,
+            DaehuaModelForms.KEY_FILL_FORM_CONTINUOUS_ERR_COUNT: self.fill_form_continuous_err_count,
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_INDEX: self.conv_current_field_index,
+            DaehuaModelForms.KEY_CONV_CURRENT_FIELD_NAME: self.conv_current_field_name
+        }
 
 
 if __name__ == '__main__':
@@ -330,7 +462,7 @@ if __name__ == '__main__':
         ]
     }
     # Must be aligned with fields above
-    mex_form_model = 'name,str-en,name/이름 ; amt,float,金额/amount ; acc,account_number,账号/account'
+    mex_form_model = 'name,str,name/叫/이름,2-3,right ; amt,float,金额/amount ; acc,account_number,账号/account'
 
     dform = daehua_form.Form(
         title           = colform['text'],
@@ -342,6 +474,15 @@ if __name__ == '__main__':
 
     print(dform.to_json())
 
-    DaehuaModelForms(
+    daehua_model_forms = DaehuaModelForms(
         form = dform
-    ).simulate_question_answer()
+    )
+    print('************************************************')
+    print(daehua_model_forms.to_json())
+    print('************************************************')
+    daehua_model_forms_copy = DaehuaModelForms.deserialize(json_obj = daehua_model_forms.to_json())
+    print(daehua_model_forms_copy.to_json())
+    print(daehua_model_forms_copy.to_json() == daehua_model_forms.to_json())
+
+    daehua_model_forms.simulate_question_answer()
+    print(daehua_model_forms.to_json())
