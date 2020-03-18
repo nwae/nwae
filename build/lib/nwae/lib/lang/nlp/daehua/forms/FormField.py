@@ -78,13 +78,12 @@ class FormField:
                 lang    = None
             )
             self.mex_var_name = self.mex_obj.get_mex_var_names()[0]
-            self.mex_var_type = self.mex_obj.get_mex_var_type(var_name=self.mex_var_name)
-            self.mex_var_expressions = self.mex_obj.get_mex_var_expressions(var_name=self.mex_var_name)
-
-            self.mex_obj_no_var_expressions = MatchExpression(
-                pattern = self.mex_var_name + MatchExpression.MEX_VAR_DESCRIPTION_SEPARATOR
-                          + self.mex_var_type + MatchExpression.MEX_VAR_DESCRIPTION_SEPARATOR
-                          + ''
+            self.mex_obj_no_var_expressions = MatchExpression.create_mex_obj_from_object_vars(
+                var_name_str = self.mex_var_name,
+                var_type_str = self.mex_obj.get_mex_var_type(var_name=self.mex_var_name),
+                var_expressions_str = '',
+                var_len_range_list2 = self.mex_obj.get_mex_var_length_range(var_name=self.mex_var_name),
+                var_preferred_dir_str = self.mex_obj.get_mex_var_pref_dir(var_name=self.mex_var_name)
             )
         except Exception as ex_mex:
             raise Exception(
@@ -175,7 +174,7 @@ if __name__ == '__main__':
         'type': 'text',
         'ifRequired': True,
         'ifMasked': True,
-        'mexExpr': 'amt,float,金额/amount'
+        'mexExpr': 'amt, float, 金额/amount, 1-6, right'
     }
     ffld_obj = FormField.import_form_field(json_obj=fld)
     print(ffld_obj.to_json())
