@@ -3,6 +3,7 @@
 from nwae.utils.Log import Log
 import nwae.utils.UnitTest as uthelper
 import nwae.config.Config as cf
+from nwae.lib.lang.LangFeatures import LangFeaturesUnitTest
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
@@ -37,6 +38,10 @@ class NwaeUnitTest:
         res = UnitTestMex(config=None).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Mex Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = LangFeaturesUnitTest(ut_params=None).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Language Features Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestWordSegmentation(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)

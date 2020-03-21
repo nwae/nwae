@@ -7,6 +7,7 @@ import pandas as pd
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 # from iso639 import languages
+import nwae.utils.UnitTest as ut
 
 
 #
@@ -40,6 +41,7 @@ class LangFeatures:
     LANG_RU = 'ru'
 
     C_LANG_ID        = 'Language'
+    C_LANG_NUMBER    = 'LanguageNo'
     C_LANG_NAME      = 'LanguageName'
     C_HAVE_ALPHABET  = 'Alphabet'
     C_CHAR_TYPE      = 'CharacterType'
@@ -70,6 +72,7 @@ class LangFeatures:
 
     # Word lists and stopwords are in the same folder
     def __init__(self):
+        lang_index = 0
         #
         # Language followed by flag for alphabet boundary, syllable boundary (either as one
         # character as in Chinese or space as in Korean), then word boundary (space)
@@ -78,6 +81,7 @@ class LangFeatures:
         #
         lang_en = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_EN,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'English',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'latin',
@@ -87,8 +91,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+        lang_index += 1
         lang_ko = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_KO,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Hangul',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'ko',
@@ -99,8 +105,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+        lang_index += 1
         lang_cn = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_CN,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Chinese',
             LangFeatures.C_HAVE_ALPHABET: False,
             LangFeatures.C_CHAR_TYPE:     'cn',
@@ -110,8 +118,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
+        lang_index += 1
         lang_ru = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_RU,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Russian',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'cyrillic',
@@ -121,8 +131,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+        lang_index += 1
         lang_th = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_TH,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Thai',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'th',
@@ -132,8 +144,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
+        lang_index += 1
         lang_vn = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_VN,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Vietnamese',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'latin',
@@ -143,8 +157,10 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
+        lang_index += 1
         lang_in = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_IN,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Indonesian',
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'latin',
@@ -296,6 +312,60 @@ class LangFeatures:
         return self.langfeatures[LangFeatures.C_CHAR_TYPE][lang_index]
 
 
+class LangFeaturesUnitTest:
+
+    def __init__(
+            self,
+            ut_params
+    ):
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
+        return
+
+    def run_unit_test(
+            self
+    ):
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+
+        lf = LangFeatures()
+        observed = lf.get_languages_with_word_separator()
+        observed.sort()
+        expected = [LangFeatures.LANG_KO, LangFeatures.LANG_EN, LangFeatures.LANG_IN, LangFeatures.LANG_RU]
+        expected.sort()
+
+        res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed = observed,
+            expected = expected,
+            test_comment = 'test languages with word separator'
+        ))
+
+        observed = lf.get_languages_with_syllable_separator()
+        observed.sort()
+        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_KO, LangFeatures.LANG_VN]
+        expected.sort()
+
+        res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed = observed,
+            expected = expected,
+            test_comment = 'test languages with syllable separator'
+        ))
+
+        observed = lf.get_languages_with_only_syllable_separator()
+        observed.sort()
+        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_VN]
+        expected.sort()
+
+        res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed = observed,
+            expected = expected,
+            test_comment = 'test languages with ONLY syllable separator'
+        ))
+        return res_final
+
+
+
 if __name__ == '__main__':
     def demo_1():
         lf = LangFeatures()
@@ -323,3 +393,6 @@ if __name__ == '__main__':
     demo_1()
     demo_2()
     demo_3()
+
+    LangFeaturesUnitTest(ut_params=None).run_unit_test()
+
