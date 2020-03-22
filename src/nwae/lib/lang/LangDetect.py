@@ -8,16 +8,17 @@ from nwae.lib.lang.characters.LangCharacters import LangCharacters
 import numpy as np
 import pandas as pd
 from nwae.utils.Profiling import Profiling
+import random
 
 
 class LangDetect:
 
-    TEXT_LEN_THRESHOLD_TEST_ALL = 30
-
-    # Scans the whole text
-    METHOD_COMPREHENSIVE = 'comprehensive'
-    # Scans part of text only, start, middle, end
-    METHOD_FAST = 'fast'
+    # We break text into these blocks
+    TEXT_BLOCK_LEN = 10
+    # Default covers 30% of blocks (e.g. if there are 10 blocks, we will randomly pick 3)
+    DEFAULT_TEST_COVERAGE_PCT = 0.3
+    # Not more than 5 blocks we will test to ensure speed
+    DEFAULT_TEST_MAX_RANGE_BLOCKS = 5
 
     def __init__(
             self
@@ -37,55 +38,66 @@ class LangDetect:
 
     #
     # Описание Алгоритма
-    #   1. Обнарушение языков без пробела в качестве разбиение слов или слогов,
-    #      это сразу определит язык.
-    #   2. А потом Латинские языки, сравнить обычные слова языка с данным текстом
+    #   1. Обнарушение Алфавитов
+    #      i) Если приналежит языкам без пробела в качестве разбиение слов или слогов,
+    #         это сразу определит тот язык.
+    #      ii) Потом Латинские языки, сравнить обычные слова языка с данным текстом
     #
     def detect(
             self,
             text,
-            method = METHOD_COMPREHENSIVE
+            test_coverage_pct = DEFAULT_TEST_COVERAGE_PCT,
+            max_test_coverage_len = DEFAULT_TEST_MAX_RANGE_BLOCKS * TEXT_BLOCK_LEN
     ):
-        return self.__detect_alphabet_type(
+        if len(text) == 0:
+            return None
+
+        alps = self.__detect_alphabet_type(
             text   = text,
-            method = method
+            test_coverage_pct = test_coverage_pct,
+            max_test_coverage_len = max_test_coverage_len
         )
 
-    def __detect_non_space_sep_lang(
+        return alps
+
+    def __get_text_range_blocks(
             self,
-            method = METHOD_COMPREHENSIVE
+            text
     ):
-        return
+        # Break into ranges
+        range_blocks = []
+        i = 0
+        len_text = len(text)
+        while i < len_text:
+            end_range = min(len_text, i+10)
+            range_blocks.append(range(i, end_range, 1))
+            i = i + 10
+        return range_blocks
 
     def __detect_alphabet_type(
             self,
             text,
-            method
+            # default coverage
+            test_coverage_pct,
+            max_test_coverage_len
     ):
         alp_chars = []
 
-        len_text = len(text)
-        ranges_to_check = [range(len_text)]
+        # Return the range blocks of the text
+        range_blocks = self.__get_text_range_blocks(text = text)
+        n_range = len(range_blocks)
+        how_many_range_to_check = min(
+            int(test_coverage_pct * n_range),
+            int(max_test_coverage_len / LangDetect.TEXT_BLOCK_LEN)
+        )
 
-        if method == LangDetect.METHOD_FAST:
-            if len_text > LangDetect.TEXT_LEN_THRESHOLD_TEST_ALL:
-                # Percent of text length to extract excerpt
-                pct = 0.1
-                # Don't allow more than 20 characters in excerpt
-                ml = 20
-                excerpt_len = min(ml, int(pct*len_text))
-                mid_index = int(len_text / 2)
+        # Randomly pick the ranges
+        random_ranges_index = random.sample(range(n_range), how_many_range_to_check)
+        random_ranges_index = sorted(random_ranges_index)
+        print(random_ranges_index)
 
-                range_start = range(0, min(ml, excerpt_len), 1)
-                Log.debugdebug('range start: ' + str(range_start))
-                range_mid = range(mid_index - int(excerpt_len/2), mid_index + int(excerpt_len/2), 1)
-                Log.debugdebug('range mid: ' + str(range_mid))
-                range_end = range(len_text - excerpt_len, len_text, 1)
-                Log.debugdebug('range end: ' + str(range_end))
-                ranges_to_check = [range_start, range_mid, range_end]
-
-        for rge in ranges_to_check:
-            for i in rge:
+        for rge_idx in random_ranges_index:
+            for i in range_blocks[rge_idx]:
                 c = text[i]
                 for alp in self.alphabet_dict.keys():
                     if c in self.alphabet_dict[alp]:
@@ -112,7 +124,6 @@ class LangDetect:
 
 if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-    method = LangDetect.METHOD_FAST
 
     text = [
         # Mix
@@ -145,8 +156,7 @@ if __name__ == '__main__':
         start_time = Profiling.start()
         print('Text: ' + str(s))
         lang = ld.detect(
-            text   = s,
-            method = method
+            text   = s
         )
         timedif = Profiling.get_time_dif_secs(
             start = start_time,
