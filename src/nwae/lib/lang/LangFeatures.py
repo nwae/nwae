@@ -17,10 +17,44 @@ import nwae.utils.UnitTest as ut
 #   alphabet type, etc.
 #
 class LangFeatures:
+    #
+    # Latin Type Blocks (English, Spanish, French, Vietnamese, etc.)
+    # TODO Break into other language variants
+    #
+    # This covers all latin, including Spanish, Vietnamese characters
+    ALPHABET_LATIN    = 'latin'
+    # This covers only the common a-z, A-Z
+    ALPHABET_LATIN_AZ = 'latin_az'
+    # This covers only the special Vietnamese characters
+    ALPHABET_LATIN_VI = 'latin_vi'
+    #
+    # CJK Type Blocks (Korean, Chinese, Japanese)
+    #
+    # TODO Break into Chinese variants (simplified, traditional, etc.),
+    #   Japanese, Hanja, etc.
+    ALPHABET_HANGUL   = 'hangul'
+    ALPHABET_CJK      = 'cjk'
+    #
+    # Cyrillic Blocks (Russian, Belarusian, Ukrainian, etc.)
+    # TODO Break into detailed blocks
+    #
+    ALPHABET_CYRILLIC = 'cyrillic'
+    #
+    # Other Blocks
+    #
+    ALPHABET_THAI     = 'thai'
+
+    ALPHABETS_ALL = [
+        ALPHABET_LATIN, ALPHABET_LATIN_AZ, ALPHABET_LATIN_VI,
+        ALPHABET_HANGUL, ALPHABET_CJK,
+        ALPHABET_CYRILLIC,
+        ALPHABET_THAI,
+    ]
 
     #
     # TODO
     #  Move to use ISO 639-2 standard instead of our own
+    #  In the mean time always use map_to_correct_lang_code() to map to the right language code
     #
     LANG_EN = 'en'
     # Simplified Chinese
@@ -84,7 +118,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'English',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
@@ -95,7 +129,7 @@ class LangFeatures:
         lang_ko = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_KO,
             LangFeatures.C_LANG_NUMBER:   lang_index,
-            LangFeatures.C_LANG_NAME:     'Hangul',
+            LangFeatures.C_LANG_NAME:     LangFeatures.ALPHABET_HANGUL,
             LangFeatures.C_HAVE_ALPHABET: True,
             LangFeatures.C_CHAR_TYPE:     'ko',
             LangFeatures.C_HAVE_SYL_SEP:  True,
@@ -111,7 +145,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Chinese',
             LangFeatures.C_HAVE_ALPHABET: False,
-            LangFeatures.C_CHAR_TYPE:     'cn',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_CJK,
             LangFeatures.C_HAVE_SYL_SEP:  True,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
             LangFeatures.C_HAVE_WORD_SEP: False,
@@ -124,7 +158,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Russian',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'cyrillic',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_CYRILLIC,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
@@ -137,7 +171,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Thai',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'th',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_THAI,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: False,
@@ -150,7 +184,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Vietnamese',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
             LangFeatures.C_HAVE_SYL_SEP:  True,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_WORD_SEP: False,
@@ -163,7 +197,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Indonesian',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'latin',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,

@@ -49,6 +49,8 @@ class LangCharacters(object):
                                         list( range(0x0061, 0x007A+1, 1) )
     # Convert to Python Unicode Type list
     UNICODE_BLOCK_LATIN_BASIC = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_LATIN_BASIC]
+    # Can be used interchangeably
+    UNICODE_BLOCK_LATIN_AZ = UNICODE_BLOCK_LATIN_BASIC
 
     # Latin Extended
     UNICODE_BLOCK_ORDINAL_LATIN_EXTENDED = list( range(0x00C0, 0x00F6+1, 1) ) +\
@@ -63,6 +65,8 @@ class LangCharacters(object):
     # Just Latin specific to Vietnamese
     UNICODE_BLOCK_LATIN_VIETNAMESE =\
         list(u'ăâàằầảẳẩãẵẫáắấạặậêèềẻểẽễéếẹệìỉĩíịôơòồờỏổởõỗỡóốớọộợưùừủửũữúứụựđýỳỷỹỵ')
+    # Can be used interchangeably
+    UNICODE_BLOCK_LATIN_VI = UNICODE_BLOCK_LATIN_VIETNAMESE
 
     #
     # CJK
@@ -105,6 +109,12 @@ class LangCharacters(object):
                         UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_D + UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_D +\
                         UNICODE_BLOCK_CJK_UNIFIED_IDEOGRAPHS_EXT_E +\
                         UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS_SUPP
+
+    #
+    # Cyrillic
+    #
+    UNICODE_BLOCK_ORDINAL_CYRILLIC = list( range(0x0400, 0x04FF+1, 1) )
+    UNICODE_BLOCK_CYRILLIC = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_CYRILLIC]
 
     #
     # Hangul
@@ -213,6 +223,47 @@ class LangCharacters(object):
             return LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE
         else:
             return []
+
+    @staticmethod
+    def get_alphabet_charset(alphabet):
+        #
+        # Latin Type Blocks (English, Spanish, French, Vietnamese, etc.)
+        # TODO Break into other language variants
+        #
+        if alphabet == lf.LangFeatures.ALPHABET_LATIN_AZ:
+            return LangCharacters.UNICODE_BLOCK_LATIN_AZ
+        elif alphabet == lf.LangFeatures.ALPHABET_LATIN_VI:
+            return LangCharacters.UNICODE_BLOCK_LATIN_VI
+        elif alphabet == lf.LangFeatures.ALPHABET_LATIN:
+            return LangCharacters.UNICODE_BLOCK_LATIN_ALL
+        #
+        # CJK Type Blocks (Korean, Chinese, Japanese)
+        # TODO Break into Chinese variants (simplified, traditional, etc.),
+        #   Japanese, Hanja, etc.
+        #
+        elif alphabet == lf.LangFeatures.ALPHABET_HANGUL:
+            return LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE
+        elif alphabet == lf.LangFeatures.ALPHABET_CJK:
+            return LangCharacters.UNICODE_BLOCK_CJK
+        #
+        # Cyrillic Blocks (Russian, Belarusian, Ukrainian, etc.)
+        #
+        elif alphabet == lf.LangFeatures.ALPHABET_CYRILLIC:
+            return LangCharacters.UNICODE_BLOCK_CYRILLIC
+        #
+        # Other Blocks
+        #
+        elif alphabet == lf.LangFeatures.ALPHABET_THAI:
+            return LangCharacters.UNICODE_BLOCK_THAI
+
+    @staticmethod
+    def get_alphabet_charset_all():
+        alphabet_dict = {}
+        for alp in lf.LangFeatures.ALPHABETS_ALL:
+            alphabet_dict[alp] = LangCharacters.get_alphabet_charset(
+                alphabet = alp
+            )
+        return alphabet_dict
 
     #
     # Converts a string into a single number for various purposes when dealing with numbers are more convenient.
