@@ -26,21 +26,13 @@ class LangDetect:
 
         # Map alphabet name to unicode character set array
         self.alphabet_dict = LangCharacters.get_alphabet_charset_all()
-        # Map number to alphabet, and alphabet to number
-        self.alphabet_number = {}
-        self.number_alphabet = {}
-        idx = 0
-        for alp in self.alphabet_dict.keys():
-            self.alphabet_number[alp] = idx
-            self.number_alphabet[idx] = alp
-            idx += 1
 
-        # Map number to language, and language to number
-        self.lang_number = {}
-        self.number_lang = {}
-        for lang in self.lang_features.langs.keys():
-            self.lang_number[lang] = self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]
-            self.number_lang[self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]] = lang
+        # # Map number to language, and language to number
+        # self.lang_number = {}
+        # self.number_lang = {}
+        # for lang in self.lang_features.langs.keys():
+        #     self.lang_number[lang] = self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]
+        #     self.number_lang[self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]] = lang
         return
 
     #
@@ -97,7 +89,7 @@ class LangDetect:
                 c = text[i]
                 for alp in self.alphabet_dict.keys():
                     if c in self.alphabet_dict[alp]:
-                        alp_chars.append(self.alphabet_number[alp])
+                        alp_chars.append(alp)
                         # Go to next character when found alphabet type
                         break
 
@@ -106,35 +98,26 @@ class LangDetect:
 
         ser = pd.Series(alp_chars)
         vals, counts = np.unique(ser, return_counts=True)
-        results = dict(zip(vals, counts))
-
-        # Map back number to alphabet name
-        ret_results = {}
-        for k in results.keys():
-            ret_results[self.number_alphabet[k]] = results[k]
+        # We must mup count as key, so that when we sort the paired items later,
+        # python will sort by the first index which is the count
+        results = dict(zip(counts, vals))
 
         # Sort ascending
-        ret_results = sorted(ret_results.items())
-        Log.debugdebug('Results: ' + str(ret_results))
+        results_list = sorted(results.items(), reverse=True)
+        Log.debug('Results: ' + str(results_list))
 
-        # Using pandas grouping is slower
-        # df = pd.DataFrame({'lang': lang_chars, 'count': 1})
-        # df_agg = df.groupby(by=['lang']).count()
-        # print(df_agg)
-
-        # Return max
-        # return self.number_lang[results_sorted[0][0]]
-        return ret_results
+        # Reverse back the mapping
+        return {kv[1]:kv[0] for kv in results_list}
 
 
 if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-    method = LangDetect.METHOD_COMPREHENSIVE
+    method = LangDetect.METHOD_FAST
 
     text = [
         # Mix
         """낮선 곳에서 잠을 자다가
-        Blessed are those ...,
+        Blessed 中国 are 韩国 those 俄罗斯..,
         唧唧复唧唧,
         등짝을 훑고 지나가는 지진의 진동""",
         # ru
