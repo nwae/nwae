@@ -67,6 +67,7 @@ class LangCharacters(object):
         list(u'ăâàằầảẳẩãẵẫáắấạặậêèềẻểẽễéếẹệìỉĩíịôơòồờỏổởõỗỡóốớọộợưùừủửũữúứụựđýỳỷỹỵ')
     # Can be used interchangeably
     UNICODE_BLOCK_LATIN_VI = UNICODE_BLOCK_LATIN_VIETNAMESE
+    UNICODE_BLOCK_LATIN_VI_AZ = UNICODE_BLOCK_LATIN_VI + UNICODE_BLOCK_LATIN_AZ
 
     #
     # CJK
@@ -234,6 +235,8 @@ class LangCharacters(object):
             return LangCharacters.UNICODE_BLOCK_LATIN_AZ
         elif alphabet == lf.LangFeatures.ALPHABET_LATIN_VI:
             return LangCharacters.UNICODE_BLOCK_LATIN_VI
+        elif alphabet == lf.LangFeatures.ALPHABET_LATIN_VI_AZ:
+            return LangCharacters.UNICODE_BLOCK_LATIN_VI + LangCharacters.UNICODE_BLOCK_LATIN_AZ
         elif alphabet == lf.LangFeatures.ALPHABET_LATIN:
             return LangCharacters.UNICODE_BLOCK_LATIN_ALL
         #

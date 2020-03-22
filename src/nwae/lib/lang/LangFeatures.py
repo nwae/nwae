@@ -27,6 +27,7 @@ class LangFeatures:
     ALPHABET_LATIN_AZ = 'latin_az'
     # This covers only the special Vietnamese characters
     ALPHABET_LATIN_VI = 'latin_vi'
+    ALPHABET_LATIN_VI_AZ = 'latin_vi_az'
     #
     # CJK Type Blocks (Korean, Chinese, Japanese)
     #
@@ -45,7 +46,7 @@ class LangFeatures:
     ALPHABET_THAI     = 'thai'
 
     ALPHABETS_ALL = [
-        ALPHABET_LATIN, ALPHABET_LATIN_AZ, ALPHABET_LATIN_VI,
+        ALPHABET_LATIN, ALPHABET_LATIN_AZ, ALPHABET_LATIN_VI, ALPHABET_LATIN_VI_AZ,
         ALPHABET_HANGUL, ALPHABET_CJK,
         ALPHABET_CYRILLIC,
         ALPHABET_THAI,
@@ -118,7 +119,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'English',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN_AZ,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
@@ -129,9 +130,9 @@ class LangFeatures:
         lang_ko = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_KO,
             LangFeatures.C_LANG_NUMBER:   lang_index,
-            LangFeatures.C_LANG_NAME:     LangFeatures.ALPHABET_HANGUL,
+            LangFeatures.C_LANG_NAME:     'Hangul',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     'ko',
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_HANGUL,
             LangFeatures.C_HAVE_SYL_SEP:  True,
             # TODO Not really right to say it is char but rather a "syllable_character"
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
@@ -184,7 +185,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Vietnamese',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN_VI_AZ,
             LangFeatures.C_HAVE_SYL_SEP:  True,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_WORD_SEP: False,
@@ -197,7 +198,7 @@ class LangFeatures:
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Indonesian',
             LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN_AZ,
             LangFeatures.C_HAVE_SYL_SEP:  False,
             LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
             LangFeatures.C_HAVE_WORD_SEP: True,
@@ -282,6 +283,24 @@ class LangFeatures:
             set( self.get_languages_with_syllable_separator() ) -\
             set( self.get_languages_with_word_separator() )
         )
+
+    def get_languages_with_no_word_separator(self):
+        len = self.langfeatures.shape[0]
+        langs = [
+            self.langfeatures[LangFeatures.C_LANG_ID][x]
+            for x in range(0, len, 1)
+            if not self.langfeatures[LangFeatures.C_HAVE_WORD_SEP][x]
+        ]
+        return langs
+
+    def get_languages_for_alphabet_type(self, alphabet):
+        len = self.langfeatures.shape[0]
+        langs = [
+            self.langfeatures[LangFeatures.C_LANG_ID][x]
+            for x in range(0, len, 1)
+            if self.langfeatures[LangFeatures.C_CHAR_TYPE][x] == alphabet
+        ]
+        return langs
 
     #
     # If separator for either alphabet/syllable/word (we shall refer as token) is None, this means there is no
@@ -386,6 +405,17 @@ class LangFeaturesUnitTest:
             test_comment = 'test languages with syllable separator'
         ))
 
+        observed = lf.get_languages_with_no_word_separator()
+        observed.sort()
+        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]
+        expected.sort()
+
+        res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed = observed,
+            expected = expected,
+            test_comment = 'test languages with no word or syllable separator'
+        ))
+
         observed = lf.get_languages_with_only_syllable_separator()
         observed.sort()
         expected = [LangFeatures.LANG_CN, LangFeatures.LANG_VN]
@@ -396,6 +426,49 @@ class LangFeaturesUnitTest:
             expected = expected,
             test_comment = 'test languages with ONLY syllable separator'
         ))
+
+        # We could get the languages associated with the alphabet programmatically also,
+        # but we do that in the second round
+        alphabet_langs = {
+            LangFeatures.ALPHABET_HANGUL:   [LangFeatures.LANG_KO],
+            LangFeatures.ALPHABET_THAI:     [LangFeatures.LANG_TH],
+            LangFeatures.ALPHABET_CYRILLIC: [LangFeatures.LANG_RU],
+            LangFeatures.ALPHABET_CJK:      [LangFeatures.LANG_CN],
+            LangFeatures.ALPHABET_LATIN_AZ: [
+                LangFeatures.LANG_EN, LangFeatures.LANG_IN,
+            ],
+            LangFeatures.ALPHABET_LATIN_VI_AZ: [LangFeatures.LANG_VN]
+        }
+        for alp in alphabet_langs.keys():
+            observed = lf.get_languages_for_alphabet_type(alphabet=alp)
+            observed.sort()
+            expected = alphabet_langs[alp]
+            expected.sort()
+
+            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = observed,
+                expected = expected,
+                test_comment = 'R1 test languages for alphabet "' + str(alp) + '"'
+            ))
+
+        # In this round we get the languages for an alphabet programmatically
+        alphabet_langs = {}
+        for alp in LangFeatures.ALPHABETS_ALL:
+            alphabet_langs[alp] = lf.get_languages_for_alphabet_type(
+                alphabet = alp
+            )
+        for alp in alphabet_langs.keys():
+            observed = lf.get_languages_for_alphabet_type(alphabet=alp)
+            observed.sort()
+            expected = alphabet_langs[alp]
+            expected.sort()
+
+            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = observed,
+                expected = expected,
+                test_comment = 'R2 test languages for alphabet "' + str(alp) + '"'
+            ))
+
         return res_final
 
 
@@ -423,6 +496,7 @@ if __name__ == '__main__':
         print ( 'Languages with word separator: ' + str(lf.get_languages_with_word_separator()) )
         print ( 'Languages with syllable separator:' + str(lf.get_languages_with_syllable_separator()) )
         print ( 'Languages with only syllable separator:' + str(lf.get_languages_with_only_syllable_separator()))
+        print ( 'Languages with no word or syllable separator:' + str(lf.get_languages_with_no_word_separator()))
 
     demo_1()
     demo_2()
