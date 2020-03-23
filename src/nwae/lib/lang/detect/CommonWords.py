@@ -15,6 +15,17 @@ class CommonWords:
         self.common_words = None
         return
 
+    #
+    # Minimum intersection with common words given any random English sentence
+    #
+    def get_min_threshold_intersection_pct(
+            self
+    ):
+        raise Exception(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Must be implemented by child class!'
+        )
+
     def get_common_words(
             self
     ):
@@ -40,6 +51,7 @@ class CommonWords:
         try:
             self.common_words = self.raw_words.split(' ')
             self.common_words = sorted(self.common_words)
+            self.common_words = set(self.common_words)
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error processing common words. Exception: ' + str(ex)

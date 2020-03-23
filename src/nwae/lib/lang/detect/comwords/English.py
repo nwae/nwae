@@ -7,6 +7,9 @@ from nwae.lib.lang.detect.CommonWords import CommonWords
 
 class English(CommonWords):
 
+    # We assume 20% as minimum
+    MIN_EN_SENT_INTERSECTION_PCT = 0.2
+
     def __init__(
             self
     ):
@@ -45,6 +48,11 @@ bring sit perhaps fill east weight language among
 """
         self.process_common_words()
         return
+
+    def get_min_threshold_intersection_pct(
+            self
+    ):
+        return English.MIN_EN_SENT_INTERSECTION_PCT
 
 
 if __name__ == '__main__':

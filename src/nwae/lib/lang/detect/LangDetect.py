@@ -9,7 +9,11 @@ import numpy as np
 import pandas as pd
 from nwae.utils.Profiling import Profiling
 import random
+from nwae.utils.StringUtils import StringUtils
 import nwae.utils.UnitTest as ut
+from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
+from nwae.lib.lang.detect.comwords.English import English
+from nwae.lib.lang.detect.comwords.Indonesian import Indonesian
 
 
 class LangDetect:
@@ -65,13 +69,26 @@ class LangDetect:
         self.langs_with_no_word_sep = self.lang_features.get_languages_with_no_word_separator()
         Log.debugdebug('Langs with no word sep: ' + str(self.langs_with_no_word_sep))
 
-        # # Map number to language, and language to number
-        # self.lang_number = {}
-        # self.number_lang = {}
-        # for lang in self.lang_features.langs.keys():
-        #     self.lang_number[lang] = self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]
-        #     self.number_lang[self.lang_features.langs[lang][LangFeatures.C_LANG_NUMBER]] = lang
+        # Load common words
+        self.cw_english = English()
+        self.cw_indonesian = Indonesian()
         return
+
+    #
+    # Only for languages with space as word separator
+    #
+    def __segment_words(
+            self,
+            text
+    ):
+        sent = StringUtils.trim(text)
+        sent = sent.lower()
+        sent = sent.split(' ')
+        # Split out punctuations
+        sent = BasicPreprocessor.clean_punctuations(
+            sentence = sent
+        )
+        return sent
 
     #
     # Описание Алгоритма
@@ -86,6 +103,8 @@ class LangDetect:
             test_coverage_pct = DEFAULT_TEST_COVERAGE_PCT,
             max_test_coverage_len = DEFAULT_TEST_MAX_RANGE_BLOCKS * TEXT_BLOCK_LEN
     ):
+        start_time = Profiling.start()
+
         text = str(text)
 
         if len(text) == 0:
@@ -122,8 +141,22 @@ class LangDetect:
                 if LangFeatures.ALPHABET_LATIN_VI in top_alps:
                     return [LangFeatures.LANG_VN]
                 elif top_alp == LangFeatures.ALPHABET_LATIN_AZ:
+                    sent = self.__segment_words(text=text)
+
+                    en_intersection = set(sent).intersection(self.cw_english.get_common_words())
+                    pct_en_intersection = len(en_intersection) / len(set(sent))
+                    Log.debug('English intersection = ' + str(pct_en_intersection))
+                    # Get intersection with English common words
+                    if pct_en_intersection > self.cw_english.get_min_threshold_intersection_pct():
+                        return [LangFeatures.LANG_EN]
+
+                    in_intersection = set(sent).intersection(self.cw_indonesian.get_common_words())
+                    pct_in_intersection = len(in_intersection) / len(set(sent))
+                    Log.debug('Indonesian intersection = ' + str(pct_in_intersection))
+                    if pct_in_intersection > self.cw_indonesian.get_min_threshold_intersection_pct():
+                        return [LangFeatures.LANG_IN]
+
                     # TODO Do more checks on Spanish, French, Indonesian, etc using top key words
-                    return [LangFeatures.LANG_EN]
             else:
                 # TODO Support checks for extended Latin
                 return None
@@ -210,6 +243,8 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_CN]),
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
+        ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
+         [LangFeatures.LANG_IN]),
     ]
 
     def __init__(
@@ -246,6 +281,11 @@ if __name__ == '__main__':
         # Mix
         ("""낮선 곳에서 잠을 자다가 Blessed 中国 are 韩国 those 俄罗斯.., 唧唧复唧唧, 등짝을 훑고 지나가는 지진의 진동""",
          [None]),
+        ("""Blessed are those who find wisdom, those who gain understanding""",
+         [None]),
+        ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan '
+         'pembatasan wilayah yang lebih ketat alias lockdown, demi mengantisipasi pertambahan jumlah kasus.',
+         [None])
     ]
 
     ld = LangDetect()
