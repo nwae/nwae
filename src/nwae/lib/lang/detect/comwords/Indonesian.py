@@ -15,6 +15,8 @@ class Indonesian(CommonWords):
             self
     ):
         super().__init__(lang=LangFeatures.LANG_IN)
+
+        # Taken from https://1000mostcommonwords.com/1000-most-common-indonesian-words/
         self.raw_words = \
 """
 sebagai
