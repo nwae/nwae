@@ -2,6 +2,7 @@
 
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
+from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.detect.CommonWords import CommonWords
 
 
@@ -13,7 +14,7 @@ class Indonesian(CommonWords):
     def __init__(
             self
     ):
-        super().__init__()
+        super().__init__(lang=LangFeatures.LANG_IN)
         self.raw_words = \
 """
 sebagai

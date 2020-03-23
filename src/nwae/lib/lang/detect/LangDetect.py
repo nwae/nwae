@@ -14,6 +14,7 @@ import nwae.utils.UnitTest as ut
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.detect.comwords.English import English
 from nwae.lib.lang.detect.comwords.Indonesian import Indonesian
+from nwae.lib.lang.detect.comwords.Vietnamese import Vietnamese
 
 
 class LangDetect:
@@ -72,6 +73,7 @@ class LangDetect:
         # Load common words
         self.cw_english = English()
         self.cw_indonesian = Indonesian()
+        self.cw_vietnamese = Vietnamese()
         return
 
     #
@@ -143,17 +145,13 @@ class LangDetect:
                 elif top_alp == LangFeatures.ALPHABET_LATIN_AZ:
                     sent = self.__segment_words(text=text)
 
-                    en_intersection = set(sent).intersection(self.cw_english.get_common_words())
-                    pct_en_intersection = len(en_intersection) / len(set(sent))
-                    Log.debug('English intersection = ' + str(pct_en_intersection))
-                    # Get intersection with English common words
-                    if pct_en_intersection > self.cw_english.get_min_threshold_intersection_pct():
+                    if self.cw_vietnamese.test_lang(word_list=sent):
+                        return [LangFeatures.LANG_VN]
+
+                    if self.cw_english.test_lang(word_list=sent):
                         return [LangFeatures.LANG_EN]
 
-                    in_intersection = set(sent).intersection(self.cw_indonesian.get_common_words())
-                    pct_in_intersection = len(in_intersection) / len(set(sent))
-                    Log.debug('Indonesian intersection = ' + str(pct_in_intersection))
-                    if pct_in_intersection > self.cw_indonesian.get_min_threshold_intersection_pct():
+                    if self.cw_indonesian.test_lang(word_list=sent):
                         return [LangFeatures.LANG_IN]
 
                     # TODO Do more checks on Spanish, French, Indonesian, etc using top key words
@@ -242,6 +240,8 @@ class LangDetectUnitTest:
         ('木兰辞 唧唧复唧唧，木兰当户织。……雄兔脚扑朔，雌兔眼迷离，双兔傍地走，安能辨我是雄雌？',
          [LangFeatures.LANG_CN]),
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
+         [LangFeatures.LANG_VN]),
+        ('boi cung ca map trang, vay nui lua am i',
          [LangFeatures.LANG_VN]),
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_IN]),

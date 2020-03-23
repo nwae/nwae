@@ -2,6 +2,7 @@
 
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
+from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.detect.CommonWords import CommonWords
 
 
@@ -13,7 +14,7 @@ class English(CommonWords):
     def __init__(
             self
     ):
-        super().__init__()
+        super().__init__(lang=LangFeatures.LANG_EN)
 
         self.raw_words = """
 the of to and a in is it you that he was for on are with as I his they be at one have this
