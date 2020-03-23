@@ -130,12 +130,26 @@ class LangDetect:
         possible_langs_for_alphabet = self.lang_features.get_languages_for_alphabet_type(alphabet=top_alp)
         Log.debugdebug('Possible languages for alphabet "' + str(top_alp) + '": ' + str(possible_langs_for_alphabet))
 
-        # No dispute
+        # No dispute when only 1 possible language for given alphabet
         if len(possible_langs_for_alphabet) == 1:
             return possible_langs_for_alphabet
 
-        # If alphabet belongs to the Latin family
-        if top_alp in LangDetect.TEST_LATIN_BY_ORDER:
+        #
+        # Alphabet belongs to Hangul family
+        #
+        if top_alp in LangDetect.TEST_HANGUL_BY_ORDER:
+            # TODO Handle different dialects
+            return [LangFeatures.LANG_KO]
+        elif top_alp in LangDetect.TEST_CYRILLIC_BY_ORDER:
+            # TODO Handle the whole cyrillic family
+            return [LangFeatures.LANG_RU]
+        elif top_alp in LangDetect.TEST_THAI_BY_ORDER:
+            # TODO Handle the different dialects
+            return [LangFeatures.LANG_TH]
+        #
+        # Alphabet belongs to the Latin family
+        #
+        elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
             # No extended Latin
             if top_alp in (LangFeatures.ALPHABET_LATIN_AZ, LangFeatures.ALPHABET_LATIN_VI):
                 # Check Vietnamese presence, does not have to be the top alphabet,
@@ -160,7 +174,7 @@ class LangDetect:
                 return None
         elif top_alp == LangFeatures.ALPHABET_CJK:
             # TODO Differentiate Chinese (simplified, traditional, etc.), Japanese, ..
-            pass
+            return [LangFeatures.LANG_CN]
 
         return None
 

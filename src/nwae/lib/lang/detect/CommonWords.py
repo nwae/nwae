@@ -24,7 +24,7 @@ class CommonWords:
             self
     ):
         raise Exception(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Must be implemented by child class!'
         )
 
@@ -34,7 +34,10 @@ class CommonWords:
     ):
         lang_intersection = set(word_list).intersection(self.get_common_words())
         pct_intersection = len(lang_intersection) / len(set(word_list))
-        Log.debug('Vietnamese intersection = ' + str(pct_intersection))
+        Log.debug(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': "' + str(self.lang) + '" intersection = ' + str(pct_intersection)
+        )
         if pct_intersection > self.get_min_threshold_intersection_pct():
             return True
         else:
@@ -58,7 +61,7 @@ class CommonWords:
             )
             self.raw_words = self.raw_words.lower()
         except Exception as ex:
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+            errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error processing raw words. Exception: ' + str(ex)
             Log.error(errmsg)
             raise Exception(errmsg)
@@ -69,11 +72,11 @@ class CommonWords:
             self.common_words = [w for w in self.common_words if w]
             self.common_words = sorted(set(self.common_words))
             Log.info(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                 + ': Loaded ' + str(len(self.common_words)) + ' common words of lang "' + str(self.lang) + '".'
             )
         except Exception as ex:
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+            errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Error processing common words. Exception: ' + str(ex)
             Log.error(errmsg)
             raise Exception(errmsg)
