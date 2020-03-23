@@ -6,7 +6,7 @@ import nwae.config.Config as cf
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.LangFeatures import LangFeaturesUnitTest
-from nwae.lib.lang.detect.LangDetect import LangDetectUnitTest
+from nwae.lib.lang.detect.LangDetectUnitTest import LangDetectUnitTest
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessorUnitTest
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
