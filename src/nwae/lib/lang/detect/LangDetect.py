@@ -32,7 +32,6 @@ class LangDetect:
     DEFAULT_TEST_MAX_RANGE_BLOCKS = 5
 
     TEST_LATIN_BY_ORDER = [
-        LangFeatures.ALPHABET_LATIN_VI,
         LangFeatures.ALPHABET_LATIN_AZ,
         # This Latin that covers all must be last to test
         LangFeatures.ALPHABET_LATIN

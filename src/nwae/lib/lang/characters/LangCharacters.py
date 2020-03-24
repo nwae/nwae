@@ -63,6 +63,7 @@ class LangCharacters(object):
     UNICODE_BLOCK_LATIN_ALL = UNICODE_BLOCK_LATIN_BASIC + UNICODE_BLOCK_LATIN_EXTENDED
 
     # Just Latin specific to Vietnamese
+    # It is actually a subset of the Latin Extended
     UNICODE_BLOCK_LATIN_VIETNAMESE =\
         list(u'ăâàằầảẳẩãẵẫáắấạặậêèềẻểẽễéếẹệìỉĩíịôơòồờỏổởõỗỡóốớọộợưùừủửũữúứụựđýỳỷỹỵ')
     # Can be used interchangeably
