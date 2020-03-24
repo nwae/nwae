@@ -14,7 +14,7 @@ class Indonesian(CommonWords):
     def __init__(
             self
     ):
-        super().__init__(lang=LangFeatures.LANG_IN)
+        super().__init__(lang=LangFeatures.LANG_ID)
 
         # Taken from https://1000mostcommonwords.com/1000-most-common-indonesian-words/
         self.raw_words = \
