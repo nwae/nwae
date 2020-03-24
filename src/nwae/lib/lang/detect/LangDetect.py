@@ -105,8 +105,6 @@ class LangDetect:
             test_coverage_pct = DEFAULT_TEST_COVERAGE_PCT,
             max_test_coverage_len = DEFAULT_TEST_MAX_RANGE_BLOCKS * TEXT_BLOCK_LEN
     ):
-        start_time = Profiling.start()
-
         text = str(text)
 
         if len(text) == 0:
