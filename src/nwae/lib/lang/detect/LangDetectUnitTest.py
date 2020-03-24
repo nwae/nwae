@@ -136,7 +136,7 @@ class LangDetectUnitTest:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
+    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
     exit(0)

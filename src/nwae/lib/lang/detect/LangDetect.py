@@ -226,6 +226,7 @@ class LangDetect:
         ))
 
         idx_max = np.argmax(lang_pct)
+        idx_max = int(idx_max)
 
         if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
             return [lang_codes[idx_max]]
@@ -252,6 +253,7 @@ class LangDetect:
         ))
 
         idx_max = np.argmax(lang_pct)
+        idx_max = int(idx_max)
 
         if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
             return [lang_codes[idx_max]]
