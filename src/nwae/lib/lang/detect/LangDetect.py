@@ -136,37 +136,25 @@ class LangDetect:
         # Alphabet belongs to Hangul family
         #
         if top_alp in LangDetect.TEST_HANGUL_BY_ORDER:
-            # TODO Handle different dialects
-            return [LangFeatures.LANG_KO]
+            return self.detect_lang_from_hangul(text=text)
         elif top_alp in LangDetect.TEST_CYRILLIC_BY_ORDER:
-            # TODO Handle the whole cyrillic family
-            return [LangFeatures.LANG_RU]
+            return self.detect_lang_from_cyrillic(text=text)
         elif top_alp in LangDetect.TEST_THAI_BY_ORDER:
-            # TODO Handle the different dialects
-            return [LangFeatures.LANG_TH]
+            return self.detect_lang_from_thai_alphabet(text=text)
         #
         # Alphabet belongs to the Latin family
         #
         elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
             # No extended Latin
             if top_alp in (LangFeatures.ALPHABET_LATIN_AZ, LangFeatures.ALPHABET_LATIN_VI):
+                #
                 # Check Vietnamese presence, does not have to be the top alphabet,
                 # as it is mixed with basic Latin which will usually dominate
+                #
                 if LangFeatures.ALPHABET_LATIN_VI in top_alps:
                     return [LangFeatures.LANG_VN]
-                elif top_alp == LangFeatures.ALPHABET_LATIN_AZ:
-                    sent = self.__segment_words(text=text)
 
-                    if self.cw_vietnamese.test_lang(word_list=sent):
-                        return [LangFeatures.LANG_VN]
-
-                    if self.cw_english.test_lang(word_list=sent):
-                        return [LangFeatures.LANG_EN]
-
-                    if self.cw_indonesian.test_lang(word_list=sent):
-                        return [LangFeatures.LANG_IN]
-
-                    # TODO Do more checks on Spanish, French, Indonesian, etc using top key words
+                return self.detect_lang_from_latin_az(text=text)
             else:
                 # TODO Support checks for extended Latin
                 return None
@@ -175,6 +163,43 @@ class LangDetect:
             return [LangFeatures.LANG_CN]
 
         return None
+
+    def detect_lang_from_hangul(
+            self,
+            text
+    ):
+        # TODO Handle different dialects
+        return [LangFeatures.LANG_KO]
+
+    def detect_lang_from_cyrillic(
+            self,
+            text
+    ):
+        # TODO Handle the whole cyrillic family
+        return [LangFeatures.LANG_RU]
+
+    def detect_lang_from_thai_alphabet(
+            self,
+            text
+    ):
+        # TODO Handle the different dialects
+        return [LangFeatures.LANG_TH]
+
+    def detect_lang_from_latin_az(
+            self,
+            text
+    ):
+        sent = self.__segment_words(text=text)
+
+        # TODO Handle also the European languages, Malay, etc.
+        if self.cw_vietnamese.test_lang(word_list=sent):
+            return [LangFeatures.LANG_VN]
+        elif self.cw_english.test_lang(word_list=sent):
+            return [LangFeatures.LANG_EN]
+        elif self.cw_indonesian.test_lang(word_list=sent):
+            return [LangFeatures.LANG_IN]
+        else:
+            return None
 
     def __get_text_range_blocks(
             self,
