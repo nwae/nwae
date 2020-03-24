@@ -27,17 +27,29 @@ class LangDetectUnitTest:
         #
         ('낮선 곳에서 잠을 자다가, 갑자기 들리는 흐르는 물소리, 등짝을 훑고 지나가는 지진의 진동',
          [LangFeatures.LANG_KO]),
-        # en
-        ('Blessed are those who find wisdom, those who gain understanding',
-         [LangFeatures.LANG_EN]),
+        #
+        # CJK
+        #
         ('木兰辞 唧唧复唧唧，木兰当户织。……雄兔脚扑朔，雌兔眼迷离，双兔傍地走，安能辨我是雄雌？',
          [LangFeatures.LANG_CN]),
+        ('湖北 。。。',
+         [LangFeatures.LANG_CN]),
+        #
+        # Latin
+        #
+        ('Blessed are those who find wisdom, those who gain understanding',
+         [LangFeatures.LANG_EN]),
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
         ('boi cung ca map trang, vay nui lua am i',
          [LangFeatures.LANG_VN]),
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_IN]),
+        #
+        # Mix
+        #
+        ('как не уметь читать и писать 孙子兵法',
+         [LangFeatures.LANG_RU]),
     ]
 
     def __init__(
@@ -72,9 +84,10 @@ class LangDetectUnitTest:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
+    exit(0)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
     text = 'как не уметь читать и писать,'

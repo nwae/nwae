@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from nwae.utils.Profiling import Profiling
 import random
+import math
 from nwae.utils.StringUtils import StringUtils
 import nwae.utils.UnitTest as ut
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
@@ -214,6 +215,10 @@ class LangDetect:
         else:
             return None
 
+    #
+    # Returns tuple of start/end (not inclusive)
+    # E.g. [(0,10), (10,20), ..]
+    #
     def __get_text_range_blocks(
             self,
             text
@@ -224,7 +229,8 @@ class LangDetect:
         len_text = len(text)
         while i < len_text:
             end_range = min(len_text, i+10)
-            range_blocks.append(range(i, end_range, 1))
+            # range_blocks.append(range(i, end_range, 1))
+            range_blocks.append((i,end_range))
             i = i + 10
         return range_blocks
 
@@ -241,17 +247,26 @@ class LangDetect:
         range_blocks = self.__get_text_range_blocks(text = text)
         n_range = len(range_blocks)
         how_many_range_to_check = max(1, min(
-            int(test_coverage_pct * n_range),
-            int(max_test_coverage_len / LangDetect.TEXT_BLOCK_LEN)
+            math.ceil(test_coverage_pct * n_range),
+            math.ceil(max_test_coverage_len / LangDetect.TEXT_BLOCK_LEN)
         ))
 
         # Randomly pick the ranges
         random_ranges_index = random.sample(range(n_range), how_many_range_to_check)
         random_ranges_index = sorted(random_ranges_index)
-        Log.debugdebug('Random ranges: ' + str(random_ranges_index))
+        text_excerps = []
+        for rg in random_ranges_index:
+            start, end = range_blocks[rg]
+            text_excerps.append(text[start:end])
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Random ranges index: ' + str(random_ranges_index) + ' or: ' + str(text_excerps)
+        )
 
         for rge_idx in random_ranges_index:
-            for i in range_blocks[rge_idx]:
+            #for i in range_blocks[rge_idx]:
+            start, end = range_blocks[rge_idx]
+            for i in range(start, end, 1):
                 c = text[i]
                 # Test Latin first, but from the smaller subsets first
                 for alp in LangDetect.TESTS_BY_ORDER:
