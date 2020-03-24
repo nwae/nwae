@@ -28,7 +28,7 @@ class CommonWords:
             + ': Must be implemented by child class!'
         )
 
-    def test_lang(
+    def get_pct_intersection_with_common_words(
             self,
             word_list
     ):
@@ -38,6 +38,13 @@ class CommonWords:
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': "' + str(self.lang) + '" intersection = ' + str(pct_intersection)
         )
+        return pct_intersection
+
+    def test_lang(
+            self,
+            word_list
+    ):
+        pct_intersection = self.get_pct_intersection_with_common_words(word_list=word_list)
         if pct_intersection > self.get_min_threshold_intersection_pct():
             return True
         else:

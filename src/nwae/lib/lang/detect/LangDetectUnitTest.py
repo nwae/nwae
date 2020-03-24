@@ -55,6 +55,20 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_EN]),
         ('I am hungry',
          [LangFeatures.LANG_EN]),
+        ### Spanish
+        ('Incrustado en las laderas de unas colinas volcánicas',
+         [LangFeatures.LANG_ES]),
+        ('por su parque natural y por los cercanos establecimiento termales',
+         [LangFeatures.LANG_ES]),
+        ('A principios de febrero Adriano y Renato, dos vecinos de esta localidad de unos 3.300 habitantes',
+         [LangFeatures.LANG_ES]),
+        ### French
+        ('Le monde est passé en veille ou plutôt tourne à la limite au ralenti',
+         [LangFeatures.LANG_FR]),
+        ('A travers le monde, les populations sont soumises à d\'énormes restrictions',
+         [LangFeatures.LANG_FR]),
+        ('Je ne parle pas français.',
+         [LangFeatures.LANG_FR]),
         ### Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
@@ -65,22 +79,22 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_VN]),
         ### Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
-         [LangFeatures.LANG_IN]),
+         [LangFeatures.LANG_ID]),
         ('Yang terpenting adalah apa yang kita lakukan.',
-         [LangFeatures.LANG_IN]),
+         [LangFeatures.LANG_ID]),
         ('Anda tidak bisa memenangi pertandingan sepak bola hanya dengan bertahan.',
-         [LangFeatures.LANG_IN]),
+         [LangFeatures.LANG_ID]),
         ('Anda juga harus menyerang',
-         [LangFeatures.LANG_IN]),
+         [LangFeatures.LANG_ID]),
         ('Gianni Infantino ketika meresmikan kampanye melawan virus corona bersama para pesepakbola',
-         [LangFeatures.LANG_IN]),
-        ### Korean/Thai/etc in Latin, should default to English
+         [LangFeatures.LANG_ID]),
+        ### Korean/Thai/etc in Latin, should be nothing
         ('nanin ramyunil joahyo',
-         [LangFeatures.LANG_EN]),
+         []),
         ('pom mai keui bpai',
-         [LangFeatures.LANG_EN]),
+         []),
         ('hochiak',
-         [LangFeatures.LANG_EN]),
+         []),
         #
         # Mix
         #
@@ -115,14 +129,14 @@ class LangDetectUnitTest:
             res_final.update_bool(res_bool=ut.UnitTest.assert_true(
                 observed = observed,
                 expected = expected,
-                test_comment = 'test lang "' + str(expected) + '"'
+                test_comment = 'test lang "' + str(expected) + '", text "' + str(text) + '"'
             ))
 
         return res_final
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
     exit(0)

@@ -6,6 +6,8 @@
 import pandas as pd
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
+# pip install iso-639
+# https://www.iso.org/iso-639-language-codes.html
 # from iso639 import languages
 import nwae.utils.UnitTest as ut
 
@@ -56,24 +58,41 @@ class LangFeatures:
     # TODO
     #  Move to use ISO 639-2 standard instead of our own
     #  In the mean time always use map_to_correct_lang_code() to map to the right language code
+
     #
-    LANG_EN = 'en'
+    # Hangul/CJK Alphabet Family
+    #
+    # Korean
+    LANG_KO = 'ko'
+    #
+    # CJK Alphabet Family
+    #
     # Simplified Chinese
     LANG_CN = 'cn'
     LANG_ZH_CN = 'zh-cn'
+    #
+    # Cyrillic Alphabet Family
+    #
+    # Russian
+    LANG_RU = 'ru'
+    #
+    # Thai Alphabet Family
+    #
     # Thai
     LANG_TH = 'th'
+    #
+    # Latin Alphabet Family
+    #
+    LANG_EN = 'en'
+    # Spanish
+    LANG_ES = 'es'
+    # French
+    LANG_FR = 'fr'
     # Vietnamese
     LANG_VN = 'vn'
     LANG_VI = 'vi'
     # Indonesian
-    LANG_IN = 'in'
-    # Korean
-    LANG_KO = 'ko'
-    # French
-    LANG_FR = 'fr'
-    # Russian
-    LANG_RU = 'ru'
+    LANG_ID = 'id'
 
     C_LANG_ID        = 'Language'
     C_LANG_NUMBER    = 'LanguageNo'
@@ -107,26 +126,16 @@ class LangFeatures:
 
     # Word lists and stopwords are in the same folder
     def __init__(self):
-        lang_index = 0
         #
         # Language followed by flag for alphabet boundary, syllable boundary (either as one
         # character as in Chinese or space as in Korean), then word boundary (space)
         # The most NLP-inconvenient languages are those without word boundary, obviously.
         # Name, Code, Alphabet, CharacterType, SyllableSeparator, SyllableSeparatorType, WordSeparator, WordSeparatorType
         #
-        lang_en = {
-            LangFeatures.C_LANG_ID:       LangFeatures.LANG_EN,
-            LangFeatures.C_LANG_NUMBER:   lang_index,
-            LangFeatures.C_LANG_NAME:     'English',
-            LangFeatures.C_HAVE_ALPHABET: True,
-            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN_AZ,
-            LangFeatures.C_HAVE_SYL_SEP:  False,
-            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
-            LangFeatures.C_HAVE_WORD_SEP: True,
-            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
-            LangFeatures.C_HAVE_VERB_CONJ: True
-        }
-        lang_index += 1
+        #
+        # Hangul/CJK Language Family
+        #
+        lang_index = 0
         lang_ko = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_KO,
             LangFeatures.C_LANG_NUMBER:   lang_index,
@@ -140,6 +149,9 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+        #
+        # CJK Alphabet Family
+        #
         lang_index += 1
         lang_cn = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_CN,
@@ -153,6 +165,9 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
+        #
+        # Cyrillic Alphabet Family
+        #
         lang_index += 1
         lang_ru = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_RU,
@@ -166,6 +181,9 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+        #
+        # Thai Alphabet Family
+        #
         lang_index += 1
         lang_th = {
             LangFeatures.C_LANG_ID:       LangFeatures.LANG_TH,
@@ -178,6 +196,48 @@ class LangFeatures:
             LangFeatures.C_HAVE_WORD_SEP: False,
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
+        }
+        #
+        # Latin Alphabet Family
+        #
+        lang_index += 1
+        lang_en = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_EN,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
+            LangFeatures.C_LANG_NAME:     'English',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN_AZ,
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
+        }
+        lang_index += 1
+        lang_es = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_ES,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
+            LangFeatures.C_LANG_NAME:     'Spanish',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
+        }
+        lang_index += 1
+        lang_fr = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_FR,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
+            LangFeatures.C_LANG_NAME:     'French',
+            LangFeatures.C_HAVE_ALPHABET: True,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_LATIN,
+            LangFeatures.C_HAVE_SYL_SEP:  False,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_WORD_SEP: True,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
         }
         lang_index += 1
         lang_vn = {
@@ -193,8 +253,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_VERB_CONJ: False
         }
         lang_index += 1
-        lang_in = {
-            LangFeatures.C_LANG_ID:       LangFeatures.LANG_IN,
+        lang_id = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_ID,
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Indonesian',
             LangFeatures.C_HAVE_ALPHABET: True,
@@ -205,14 +265,22 @@ class LangFeatures:
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_SPACE,
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
+
         self.langs = {
-            LangFeatures.LANG_EN: lang_en,
+            # Hangul/CJK
             LangFeatures.LANG_KO: lang_ko,
+            # CJK
             LangFeatures.LANG_CN: lang_cn,
+            # Cyrillic
             LangFeatures.LANG_RU: lang_ru,
+            # Thai
             LangFeatures.LANG_TH: lang_th,
+            # Latin
+            LangFeatures.LANG_EN: lang_en,
+            LangFeatures.LANG_ES: lang_es,
+            LangFeatures.LANG_FR: lang_fr,
             LangFeatures.LANG_VN: lang_vn,
-            LangFeatures.LANG_IN: lang_in
+            LangFeatures.LANG_ID: lang_id,
         }
         self.langfeatures = pd.DataFrame(
             self.langs.values()
@@ -385,7 +453,10 @@ class LangFeaturesUnitTest:
         lf = LangFeatures()
         observed = lf.get_languages_with_word_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_KO, LangFeatures.LANG_EN, LangFeatures.LANG_IN, LangFeatures.LANG_RU]
+        expected = [
+            LangFeatures.LANG_KO, LangFeatures.LANG_RU,
+            LangFeatures.LANG_EN, LangFeatures.LANG_ES, LangFeatures.LANG_FR, LangFeatures.LANG_ID
+        ]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -435,7 +506,7 @@ class LangFeaturesUnitTest:
             LangFeatures.ALPHABET_CYRILLIC: [LangFeatures.LANG_RU],
             LangFeatures.ALPHABET_CJK:      [LangFeatures.LANG_CN],
             LangFeatures.ALPHABET_LATIN_AZ: [
-                LangFeatures.LANG_EN, LangFeatures.LANG_IN,
+                LangFeatures.LANG_EN, LangFeatures.LANG_ID,
             ],
             LangFeatures.ALPHABET_LATIN_VI_AZ: [LangFeatures.LANG_VN]
         }

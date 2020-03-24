@@ -14,11 +14,15 @@ from nwae.utils.StringUtils import StringUtils
 import nwae.utils.UnitTest as ut
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.detect.comwords.English import English
+from nwae.lib.lang.detect.comwords.Spanish import Spanish
+from nwae.lib.lang.detect.comwords.French import French
 from nwae.lib.lang.detect.comwords.Indonesian import Indonesian
 from nwae.lib.lang.detect.comwords.Vietnamese import Vietnamese
 
 
 class LangDetect:
+
+    THRESHOLD_PCT_WORDS_IN_MOST_COMMON = 0.15
 
     # We break text into these blocks
     TEXT_BLOCK_LEN = 10
@@ -73,6 +77,8 @@ class LangDetect:
 
         # Load common words
         self.cw_english = English()
+        self.cw_spanish = Spanish()
+        self.cw_french = French()
         self.cw_indonesian = Indonesian()
         self.cw_vietnamese = Vietnamese()
         return
@@ -155,21 +161,17 @@ class LangDetect:
         elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
             # No extended Latin
             if top_alp in (LangFeatures.ALPHABET_LATIN_AZ, LangFeatures.ALPHABET_LATIN_VI):
-                #
-                # Check Vietnamese presence, does not have to be the top alphabet,
-                # as it is mixed with basic Latin which will usually dominate
-                #
-                if LangFeatures.ALPHABET_LATIN_VI in top_alps:
-                    return [LangFeatures.LANG_VN]
+                pos_langs = self.detect_lang_from_latin_az(text=text)
+                if pos_langs:
+                    return pos_langs
 
-                return self.detect_lang_from_latin_az(text=text)
-            else:
-                # TODO Support checks for extended Latin
-                return None
+            return self.detect_lang_from_latin(
+                text = text
+            )
         elif top_alp == LangFeatures.ALPHABET_CJK:
             return self.detect_lang_from_cjk(text=text)
 
-        return None
+        return []
 
     def detect_lang_from_hangul(
             self,
@@ -205,16 +207,56 @@ class LangDetect:
     ):
         sent = self.__segment_words(text=text)
 
-        # TODO Handle also the European languages, Malay, etc.
-        if self.cw_vietnamese.test_lang(word_list=sent):
-            return [LangFeatures.LANG_VN]
-        elif self.cw_english.test_lang(word_list=sent):
-            return [LangFeatures.LANG_EN]
-        elif self.cw_indonesian.test_lang(word_list=sent):
-            return [LangFeatures.LANG_IN]
-        else:
-            # By default we return English if nothing else found
-            return [LangFeatures.LANG_EN]
+        lang_codes = []
+        lang_pct = []
+
+        lang_codes.append(LangFeatures.LANG_VN)
+        lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
+            word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_EN)
+        lang_pct.append(self.cw_english.get_pct_intersection_with_common_words(
+                word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_ID)
+        lang_pct.append(self.cw_indonesian.get_pct_intersection_with_common_words(
+            word_list = sent
+        ))
+
+        idx_max = np.argmax(lang_pct)
+
+        if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+            return [lang_codes[idx_max]]
+
+        return []
+
+    def detect_lang_from_latin(
+            self,
+            text
+    ):
+        sent = self.__segment_words(text=text)
+
+        lang_codes = []
+        lang_pct = []
+
+        lang_codes.append(LangFeatures.LANG_ES)
+        lang_pct.append(self.cw_spanish.get_pct_intersection_with_common_words(
+            word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_FR)
+        lang_pct.append(self.cw_french.get_pct_intersection_with_common_words(
+                word_list = sent
+        ))
+
+        idx_max = np.argmax(lang_pct)
+
+        if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+            return [lang_codes[idx_max]]
+
+        return []
 
     #
     # Returns tuple of start/end (not inclusive)
@@ -297,7 +339,7 @@ class LangDetect:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     text = [
         # Mix
@@ -305,7 +347,7 @@ if __name__ == '__main__':
          [None]),
         ("""Blessed are those who find wisdom, those who gain understanding""",
          [None]),
-        ('как не уметь читать и писать,',
+        ('Incrustado en las laderas de unas colinas volcánicas',
          [None])
     ]
 

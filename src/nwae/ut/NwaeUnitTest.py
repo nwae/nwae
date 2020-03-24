@@ -99,4 +99,5 @@ if __name__ == '__main__':
 
     Log.LOGLEVEL = Log.LOG_LEVEL_ERROR
 
-    NwaeUnitTest(ut_params=ut_params).run_unit_tests()
+    res = NwaeUnitTest(ut_params=ut_params).run_unit_tests()
+    exit(res.count_fail)
