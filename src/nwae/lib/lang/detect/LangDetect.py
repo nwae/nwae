@@ -126,10 +126,17 @@ class LangDetect:
 
         # Get possible languages for this alphabet
         possible_langs_for_alphabet = self.lang_features.get_languages_for_alphabet_type(alphabet=top_alp)
-        Log.debugdebug('Possible languages for alphabet "' + str(top_alp) + '": ' + str(possible_langs_for_alphabet))
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Possible languages for alphabet "' + str(top_alp) + '": ' + str(possible_langs_for_alphabet)
+        )
 
         # No dispute when only 1 possible language for given alphabet
         if len(possible_langs_for_alphabet) == 1:
+            Log.debugdebug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Only 1 possible language for alphabet: ' + str(possible_langs_for_alphabet)
+            )
             return possible_langs_for_alphabet
 
         #
@@ -159,8 +166,7 @@ class LangDetect:
                 # TODO Support checks for extended Latin
                 return None
         elif top_alp == LangFeatures.ALPHABET_CJK:
-            # TODO Differentiate Chinese (simplified, traditional, etc.), Japanese, ..
-            return [LangFeatures.LANG_CN]
+            return self.detect_lang_from_cjk(text=text)
 
         return None
 
@@ -177,6 +183,13 @@ class LangDetect:
     ):
         # TODO Handle the whole cyrillic family
         return [LangFeatures.LANG_RU]
+
+    def detect_lang_from_cjk(
+            self,
+            text
+    ):
+        # TODO Differentiate Chinese (simplified, traditional, etc.), Japanese, ..
+        return [LangFeatures.LANG_CN]
 
     def detect_lang_from_thai_alphabet(
             self,
@@ -227,10 +240,10 @@ class LangDetect:
         # Return the range blocks of the text
         range_blocks = self.__get_text_range_blocks(text = text)
         n_range = len(range_blocks)
-        how_many_range_to_check = min(
+        how_many_range_to_check = max(1, min(
             int(test_coverage_pct * n_range),
             int(max_test_coverage_len / LangDetect.TEXT_BLOCK_LEN)
-        )
+        ))
 
         # Randomly pick the ranges
         random_ranges_index = random.sample(range(n_range), how_many_range_to_check)
@@ -258,7 +271,10 @@ class LangDetect:
 
         # Sort ascending
         results_list = sorted(results.items(), reverse=True)
-        Log.debug('Results: ' + str(results_list))
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Alphabet detection: ' + str(results_list)
+        )
 
         # Reverse back the mapping
         return {kv[1]:kv[0] for kv in results_list}
@@ -273,8 +289,7 @@ if __name__ == '__main__':
          [None]),
         ("""Blessed are those who find wisdom, those who gain understanding""",
          [None]),
-        ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan '
-         'pembatasan wilayah yang lebih ketat alias lockdown, demi mengantisipasi pertambahan jumlah kasus.',
+        ('как не уметь читать и писать,',
          [None])
     ]
 

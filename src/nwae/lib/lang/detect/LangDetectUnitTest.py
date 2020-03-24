@@ -11,8 +11,20 @@ from nwae.utils.Profiling import Profiling
 class LangDetectUnitTest:
 
     TEST_TEXT_LANG = [
+        #
+        # ru
+        #
         ('Умом Россию не понять, Аршином общим не измерить: У ней особенная стать —В Россию можно только верить.',
          [LangFeatures.LANG_RU]),
+        ('В сужности ведь для интеллигентного человека дурно говорить должно бы считаться таким же неприличием,',
+         [LangFeatures.LANG_RU]),
+        ('как не уметь читать и писать,',
+         [LangFeatures.LANG_RU]),
+        ('и в деле образования и воспитания обучение красноречию следовало бы считать неизбежним.',
+         [LangFeatures.LANG_RU]),
+        #
+        # ko
+        #
         ('낮선 곳에서 잠을 자다가, 갑자기 들리는 흐르는 물소리, 등짝을 훑고 지나가는 지진의 진동',
          [LangFeatures.LANG_KO]),
         # en
@@ -64,4 +76,11 @@ if __name__ == '__main__':
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
 
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
+    text = 'как не уметь читать и писать,'
+    ld = LangDetect()
+    lang = ld.detect(
+        text = text
+    )
+    print(lang)
 
