@@ -37,6 +37,13 @@ class LangDetectUnitTest:
         ('湖北 。。。',
          [LangFeatures.LANG_CN]),
         #
+        # Thai
+        #
+        ('ช่วยกันต่อสู้ไวรัส',
+         [LangFeatures.LANG_TH]),
+        ('ขณะที่มาตรการใหม่จะส่งผลให้บริการต่างๆ',
+         [LangFeatures.LANG_TH]),
+        #
         # Latin
         #
         ### English
@@ -46,17 +53,33 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_EN]),
         ('OK',
          [LangFeatures.LANG_EN]),
+        ('I am hungry',
+         [LangFeatures.LANG_EN]),
         ### Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
         # No diacritics
         ('boi cung ca map trang, vay nui lua am i',
          [LangFeatures.LANG_VN]),
+        ('toi yeu em',
+         [LangFeatures.LANG_VN]),
         ### Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_IN]),
-        ### Korean in Latin, should default to English
+        ('Yang terpenting adalah apa yang kita lakukan.',
+         [LangFeatures.LANG_IN]),
+        ('Anda tidak bisa memenangi pertandingan sepak bola hanya dengan bertahan.',
+         [LangFeatures.LANG_IN]),
+        ('Anda juga harus menyerang',
+         [LangFeatures.LANG_IN]),
+        ('Gianni Infantino ketika meresmikan kampanye melawan virus corona bersama para pesepakbola',
+         [LangFeatures.LANG_IN]),
+        ### Korean/Thai/etc in Latin, should default to English
         ('nanin ramyunil joahyo',
+         [LangFeatures.LANG_EN]),
+        ('pom mai keui bpai',
+         [LangFeatures.LANG_EN]),
+        ('hochiak',
          [LangFeatures.LANG_EN]),
         #
         # Mix
