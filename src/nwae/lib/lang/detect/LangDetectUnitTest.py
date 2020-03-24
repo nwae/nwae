@@ -94,7 +94,7 @@ class LangDetectUnitTest:
          []),
         ('pom mai keui bpai',
          []),
-        ('hochiak',
+        ('sipeh hochiak',
          []),
         #
         # Mix
@@ -119,6 +119,8 @@ class LangDetectUnitTest:
         dt = LangDetect()
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
+        start_all_time = Profiling.start()
+
         for text, expected in LangDetectUnitTest.TEST_TEXT_LANG:
             start_time = Profiling.start()
             observed = dt.detect(
@@ -133,11 +135,21 @@ class LangDetectUnitTest:
                 test_comment = 'test lang "' + str(expected) + '", text "' + str(text) + '"'
             ))
 
+        end_all_time = Profiling.stop()
+        avg_per_text_ms = 1000 * Profiling.get_time_dif_secs(
+            start = start_all_time,
+            stop  = end_all_time
+        ) / len(LangDetectUnitTest.TEST_TEXT_LANG)
+        Log.info(
+            'Average ' + str(round(avg_per_text_ms,2)) + 'ms per text (total '
+            + str(len(LangDetectUnitTest.TEST_TEXT_LANG)) + ' sentences)'
+        )
+
         return res_final
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
+    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
     exit(0)
