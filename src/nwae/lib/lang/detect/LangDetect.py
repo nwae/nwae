@@ -213,7 +213,8 @@ class LangDetect:
         elif self.cw_indonesian.test_lang(word_list=sent):
             return [LangFeatures.LANG_IN]
         else:
-            return None
+            # By default we return English if nothing else found
+            return [LangFeatures.LANG_EN]
 
     #
     # Returns tuple of start/end (not inclusive)

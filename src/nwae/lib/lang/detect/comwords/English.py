@@ -45,7 +45,7 @@ stood contain front teach week final gave green oh quick develop slee
 special mind behind clear tail produce fact street inch lot nothing course stay wheel full force
 blue object decide surface deep moon island foot yet busy test record boat common gold possible
 plane age dry wonder laugh thousand ago ran check game shape yes hot miss brought heat snow bed
-bring sit perhaps fill east weight language among
+bring sit perhaps fill east weight language among please ok
 """
         self.process_common_words()
         return

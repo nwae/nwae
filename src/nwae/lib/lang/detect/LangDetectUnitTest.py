@@ -39,22 +39,25 @@ class LangDetectUnitTest:
         #
         # Latin
         #
-        # English
+        ### English
         ('Blessed are those who find wisdom, those who gain understanding',
          [LangFeatures.LANG_EN]),
-        ('Blessed are those who find wisdom, those who gain understanding',
+        ('Please',
          [LangFeatures.LANG_EN]),
-        # Vietnamese
+        ('OK',
+         [LangFeatures.LANG_EN]),
+        ### Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
+        # No diacritics
         ('boi cung ca map trang, vay nui lua am i',
          [LangFeatures.LANG_VN]),
-        # Indonesian
+        ### Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_IN]),
-        # Korean in Latin
-        ('nanin ramyun joahyo',
-         None),
+        ### Korean in Latin, should default to English
+        ('nanin ramyunil joahyo',
+         [LangFeatures.LANG_EN]),
         #
         # Mix
         #
@@ -96,7 +99,7 @@ class LangDetectUnitTest:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
+    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
     exit(0)
