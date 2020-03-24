@@ -159,12 +159,13 @@ class LangDetect:
         # Alphabet belongs to the Latin family
         #
         elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
-            # No extended Latin
-            if top_alp in (LangFeatures.ALPHABET_LATIN_AZ, LangFeatures.ALPHABET_LATIN_VI):
+            # Almost all Latin Family languages will have LatinAZ come out tops first
+            if top_alp == LangFeatures.ALPHABET_LATIN_AZ:
                 pos_langs = self.detect_lang_from_latin_az(text=text)
                 if pos_langs:
                     return pos_langs
 
+            # We extend the search to all Latin if can't find anything
             return self.detect_lang_from_latin(
                 text = text
             )
@@ -210,14 +211,24 @@ class LangDetect:
         lang_codes = []
         lang_pct = []
 
-        lang_codes.append(LangFeatures.LANG_VN)
-        lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
-            word_list = sent
-        ))
-
         lang_codes.append(LangFeatures.LANG_EN)
         lang_pct.append(self.cw_english.get_pct_intersection_with_common_words(
                 word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_ES)
+        lang_pct.append(self.cw_spanish.get_pct_intersection_with_common_words(
+            word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_FR)
+        lang_pct.append(self.cw_french.get_pct_intersection_with_common_words(
+                word_list = sent
+        ))
+
+        lang_codes.append(LangFeatures.LANG_VN)
+        lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
+            word_list = sent
         ))
 
         lang_codes.append(LangFeatures.LANG_ID)
@@ -225,11 +236,12 @@ class LangDetect:
             word_list = sent
         ))
 
-        idx_max = np.argmax(lang_pct)
-        idx_max = int(idx_max)
+        if lang_codes:
+            idx_max = np.argmax(lang_pct)
+            idx_max = int(idx_max)
 
-        if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
-            return [lang_codes[idx_max]]
+            if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+                return [lang_codes[idx_max]]
 
         return []
 
@@ -242,21 +254,12 @@ class LangDetect:
         lang_codes = []
         lang_pct = []
 
-        lang_codes.append(LangFeatures.LANG_ES)
-        lang_pct.append(self.cw_spanish.get_pct_intersection_with_common_words(
-            word_list = sent
-        ))
+        if lang_codes:
+            idx_max = np.argmax(lang_pct)
+            idx_max = int(idx_max)
 
-        lang_codes.append(LangFeatures.LANG_FR)
-        lang_pct.append(self.cw_french.get_pct_intersection_with_common_words(
-                word_list = sent
-        ))
-
-        idx_max = np.argmax(lang_pct)
-        idx_max = int(idx_max)
-
-        if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
-            return [lang_codes[idx_max]]
+            if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+                return [lang_codes[idx_max]]
 
         return []
 

@@ -56,6 +56,7 @@ class LangDetectUnitTest:
         ('I am hungry',
          [LangFeatures.LANG_EN]),
         ### Spanish
+        # This will contain both Spanish/French at 25%
         ('Incrustado en las laderas de unas colinas volcánicas',
          [LangFeatures.LANG_ES]),
         ('por su parque natural y por los cercanos establecimiento termales',
@@ -136,7 +137,7 @@ class LangDetectUnitTest:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
     exit(0)
