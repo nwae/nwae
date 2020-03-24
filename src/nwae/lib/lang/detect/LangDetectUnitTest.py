@@ -5,6 +5,7 @@ from inspect import getframeinfo, currentframe
 from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.detect.LangDetect import LangDetect
 import nwae.utils.UnitTest as ut
+from nwae.utils.Profiling import Profiling
 
 
 class LangDetectUnitTest:
@@ -42,9 +43,13 @@ class LangDetectUnitTest:
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
         for text, expected in LangDetectUnitTest.TEST_TEXT_LANG:
+            start_time = Profiling.start()
             observed = dt.detect(
                 text = text
             )
+            ms = round(1000*Profiling.get_time_dif_secs(start=start_time, stop=Profiling.stop()),2)
+            Log.debug('Took ' + str(ms) + ' ms')
+
             res_final.update_bool(res_bool=ut.UnitTest.assert_true(
                 observed = observed,
                 expected = expected,
