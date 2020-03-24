@@ -12,7 +12,7 @@ class LangDetectUnitTest:
 
     TEST_TEXT_LANG = [
         #
-        # ru
+        # Cyrillic
         #
         ('Умом Россию не понять, Аршином общим не измерить: У ней особенная стать —В Россию можно только верить.',
          [LangFeatures.LANG_RU]),
@@ -23,9 +23,11 @@ class LangDetectUnitTest:
         ('и в деле образования и воспитания обучение красноречию следовало бы считать неизбежним.',
          [LangFeatures.LANG_RU]),
         #
-        # ko
+        # Hangul
         #
         ('낮선 곳에서 잠을 자다가, 갑자기 들리는 흐르는 물소리, 등짝을 훑고 지나가는 지진의 진동',
+         [LangFeatures.LANG_KO]),
+        ('야!',
          [LangFeatures.LANG_KO]),
         #
         # CJK
@@ -37,18 +39,28 @@ class LangDetectUnitTest:
         #
         # Latin
         #
+        # English
         ('Blessed are those who find wisdom, those who gain understanding',
          [LangFeatures.LANG_EN]),
+        ('Blessed are those who find wisdom, those who gain understanding',
+         [LangFeatures.LANG_EN]),
+        # Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
          [LangFeatures.LANG_VN]),
         ('boi cung ca map trang, vay nui lua am i',
          [LangFeatures.LANG_VN]),
+        # Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_IN]),
+        # Korean in Latin
+        ('nanin ramyun joahyo',
+         None),
         #
         # Mix
         #
-        ('как не уметь читать и писать 孙子兵法',
+        # As long as less than 5 foreign characters in a block, the randomness
+        # will not affect the results.
+        ('как не уметь читать и писать 孙子兵法 abcd',
          [LangFeatures.LANG_RU]),
     ]
 
