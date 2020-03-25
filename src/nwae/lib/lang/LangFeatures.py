@@ -58,6 +58,8 @@ class LangFeatures:
     # TODO
     #  Move to use ISO 639-2 standard instead of our own
     #  In the mean time always use map_to_correct_lang_code() to map to the right language code
+    #
+    # All below follows ISO 639-1 Code
 
     #
     # Hangul/CJK Alphabet Family
@@ -68,7 +70,7 @@ class LangFeatures:
     # CJK Alphabet Family
     #
     # Simplified Chinese
-    LANG_CN = 'cn'
+    LANG_CN = 'cn'          # Not ISO 639-1
     LANG_ZH_CN = 'zh-cn'
     #
     # Cyrillic Alphabet Family
@@ -89,7 +91,7 @@ class LangFeatures:
     # French
     LANG_FR = 'fr'
     # Vietnamese
-    LANG_VN = 'vn'
+    LANG_VN = 'vn'      # Not ISO 639-1
     LANG_VI = 'vi'
     # Indonesian
     LANG_ID = 'id'
