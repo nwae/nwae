@@ -53,6 +53,8 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_EN]),
         ('OK',
          [LangFeatures.LANG_EN]),
+        ('hi',
+         [LangFeatures.LANG_EN]),
         ('I am hungry',
          [LangFeatures.LANG_EN]),
         ### Spanish
@@ -69,6 +71,8 @@ class LangDetectUnitTest:
         ('A travers le monde, les populations sont soumises à d\'énormes restrictions',
          [LangFeatures.LANG_FR]),
         ('Je ne parle pas français.',
+         [LangFeatures.LANG_FR]),
+        ('Pardon, excusez-moi',
          [LangFeatures.LANG_FR]),
         ### Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
@@ -152,10 +156,10 @@ if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
     LangDetectUnitTest(ut_params=None).run_unit_test()
-    exit(0)
+    # exit(0)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
-    text = 'как не уметь читать и писать,'
+    text = 'Pardon, excusez moi'
     ld = LangDetect()
     lang = ld.detect(
         text = text

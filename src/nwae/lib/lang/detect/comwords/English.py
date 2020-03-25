@@ -18,6 +18,7 @@ class English(CommonWords):
 
         self.raw_words = """
 ok
+hi
 as
 I
 his

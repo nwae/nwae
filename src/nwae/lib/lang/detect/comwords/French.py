@@ -1017,6 +1017,8 @@ pluriel
 colère
 revendication
 continent
+excusez
+excusez-moi
 """
         self.process_common_words()
         return

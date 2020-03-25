@@ -161,6 +161,7 @@ class LangDetect:
             # Almost all Latin Family languages will have LatinAZ come out tops first
             if top_alp == LangFeatures.ALPHABET_LATIN_AZ:
                 pos_langs = self.detect_lang_from_latin_az(text=text)
+                # Return if non-empty list
                 if pos_langs:
                     return pos_langs
 
@@ -234,6 +235,12 @@ class LangDetect:
         lang_pct.append(self.cw_indonesian.get_pct_intersection_with_common_words(
             word_list = sent
         ))
+
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': For sentence ' + str(sent)
+            + ' lang codes/pct: ' + str(pd.DataFrame({'code': lang_codes, 'pct': lang_pct}).values)
+        )
 
         if lang_codes:
             idx_max = np.argmax(lang_pct)
