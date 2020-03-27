@@ -23,16 +23,18 @@ class UtTrDataPreprocessor:
             self.ut_params = ut.UnitTestParams()
         return
 
-    def run_unit_test_lang(
+    def run_unit_test_sample(
             self,
-            lang
+            sample_training_data
     ):
+        lang_main = SampleTextClassificationData.get_lang_main(sample_training_data=sample_training_data)
+        lang_additional = SampleTextClassificationData.get_lang_additional(sample_training_data=sample_training_data)
         sample_data = SampleTextClassificationData.get_text_classification_training_data(
-            lang = lang,
+            sample_training_data = sample_training_data,
             type_io = SampleTextClassificationData.TYPE_IO_IN
         )
         expected_output_data = SampleTextClassificationData.get_text_classification_training_data(
-            lang = lang,
+            sample_training_data = sample_training_data,
             type_io = SampleTextClassificationData.TYPE_IO_OUT
         )
 
@@ -42,14 +44,15 @@ class UtTrDataPreprocessor:
             DaehuaTrainDataModel.COL_TDATA_TEXT: sample_data[SampleTextClassificationData.COL_TEXT],
             DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID: sample_data[SampleTextClassificationData.COL_TEXT_ID],
             # Don't do any processing until later
-            DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED: None
+            DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED: None,
+            DaehuaTrainDataModel.COL_TDATA_TEXT_LANG: None
         })
         Log.debug('Fake Training Data:\n\r' + str(fake_training_data))
         Log.debug('Expected Output:\n\r' + str(expected_output_data))
 
         ctdata = TrDataPreprocessor(
-            model_identifier     = str(lang) + ' Test Training Data Text Processor',
-            language             = lang,
+            model_identifier     = str([lang_main] + lang_additional) + ' Test Training Data Text Processor',
+            language_main        = lang_main,
             df_training_data     = fake_training_data,
             dirpath_wordlist     = self.ut_params.dirpath_wordlist,
             postfix_wordlist     = self.ut_params.postfix_wordlist,
@@ -58,6 +61,7 @@ class UtTrDataPreprocessor:
             dirpath_synonymlist  = self.ut_params.dirpath_synonymlist,
             postfix_synonymlist  = self.ut_params.postfix_synonymlist,
             reprocess_all_text   = True,
+            languages_additional = lang_additional
         )
 
         ctdata.go()
@@ -95,20 +99,20 @@ class UtTrDataPreprocessor:
             ))
 
         Log.important(
-            '***** Training Data Preprocessor ' + str(lang) + ' PASSED ' + str(res_obj.count_ok)
+            '***** Training Data Preprocessor ' + str([lang_main] + lang_additional) + ' PASSED ' + str(res_obj.count_ok)
             + ', FAILED ' + str(res_obj.count_fail) + ' *****'
         )
         return res_obj
 
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
-        for lang in [lf.LangFeatures.LANG_VN, lf.LangFeatures.LANG_TH, lf.LangFeatures.LANG_CN]:
-            res = self.run_unit_test_lang(lang = lang)
+        for sample_training_data in SampleTextClassificationData.SAMPLE_TRAINING_DATA:
+            res = self.run_unit_test_sample(sample_training_data = sample_training_data)
             res_final.update(other_res_obj=res)
         return res_final
 
 
-if __name__ == '__main__':
+def UtTrDataPreProcessor_run_unit_test():
     config = Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class=Config,
         default_config_file='/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
@@ -125,3 +129,7 @@ if __name__ == '__main__':
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
     UtTrDataPreprocessor(ut_params=ut_params).run_unit_test()
+
+
+if __name__ == '__main__':
+    UtTrDataPreProcessor_run_unit_test()

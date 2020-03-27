@@ -290,7 +290,6 @@ class Trainer(threading.Thread):
     @staticmethod
     def convert_to_training_data_model_type(
             td,
-            lang = None,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
     ):
@@ -298,6 +297,7 @@ class Trainer(threading.Thread):
         classes_id     = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_INTENT_ID]
         text_segmented = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED]
         classes_name   = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_INTENT_NAME]
+        lang_detected  = td[dhtdmodel.DaehuaTrainDataModel.COL_TDATA_TEXT_LANG]
 
         lg.Log.info(
             str(Trainer.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -305,6 +305,7 @@ class Trainer(threading.Thread):
             + '\n\rClasses ID:\n\r' + str(classes_id)
             + '\n\rText Segmented:\n\r' + str(text_segmented)
             + '\n\rClasses name:\n\r' + str(classes_name)
+            + '\n\rText Lang Detected:\n\r' + str(lang_detected)
         )
 
         # Help to keep both linked
@@ -356,7 +357,7 @@ class Trainer(threading.Thread):
         )
         # Convert text to usable array form for further NLP processing
         txtprocessor_obj = txtprocessor.TextProcessor(
-            lang = lang,
+            lang = list(lang_detected[np_indexes]),
             text_segmented_list = list(text_segmented[np_indexes])
         )
         text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()

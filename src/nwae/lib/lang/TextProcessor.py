@@ -14,6 +14,7 @@ class TextProcessor:
 
     def __init__(
             self,
+            # We support a single lang or a list of languages, one for each text
             lang,
             # A list of sentences in str format, but split by words either with our
             # default word delimiter DEFAULT_WORD_SPLITTER or space or whatever.
@@ -22,6 +23,18 @@ class TextProcessor:
     ):
         self.lang = lang
         self.text_segmented_list = text_segmented_list
+
+        self.lang_list = None
+        if type(self.lang) in (list, tuple):
+            self.lang_list = self.lang
+            if len(self.lang_list) != len(self.text_segmented_list):
+                raise Exception(
+                    str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Language list & text segmented list must have same length! '
+                )
+        else:
+            self.lang_list = [self.lang] * len(self.text_segmented_list)
+
         lg.Log.debugdebug(
             str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text segmented list: ' + str(self.text_segmented_list)
@@ -42,20 +55,22 @@ class TextProcessor:
     def convert_segmented_text_to_array_form(
             self
     ):
-        sep = BasicPreprocessor.get_word_separator(lang = self.lang)
         # A list of sentences in list format
         sentences_list = []
-        for sent in self.text_segmented_list:
+        for i in range(0,len(self.text_segmented_list),1):
+            sent = self.text_segmented_list[i]
+            sep_lang = BasicPreprocessor.get_word_separator(lang=self.lang_list[i])
+
             if type(sent) is not str:
                 raise Exception(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Sentence "' + str(sent) + '" not string'
                 )
             # Try to split by default splitter
-            split_arr = sent.split(sep)
+            split_arr = sent.split(sep_lang)
             lg.Log.debug(
                 str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Split sentence by word separator "' + str(sep)
+                + ': Split sentence by word separator "' + str(sep_lang)
                 + '"\n\r   "' + str(sent)
                 + '" to:\n\r   ' + str(split_arr)
             )
