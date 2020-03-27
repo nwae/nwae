@@ -4,6 +4,7 @@ import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.Profiling as prf
+from nwae.utils.networking.Ssl import Ssl
 
 
 class Translator:
@@ -14,6 +15,10 @@ class Translator:
             dest_lang,
             nlp_download_dir = None
     ):
+        # 바보 nltk is broken, https://stackoverflow.com/questions/38916452/nltk-download-ssl-certificate-verify-failed
+        # TODO Write our own translator
+        Ssl.disable_ssl_check()
+
         try:
             import nltk
             import googletrans
@@ -22,6 +27,7 @@ class Translator:
             self.dest_lang = lf.LangFeatures.map_to_correct_lang_code(dest_lang)
             # The model data required for translation
             nltk.download('punkt', download_dir=nlp_download_dir)
+
             # Need to add path otherwise nltk will not find it
             nltk.data.path.append(nlp_download_dir)
 

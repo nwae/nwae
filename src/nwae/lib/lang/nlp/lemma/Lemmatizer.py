@@ -8,6 +8,7 @@ import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
 import nwae.utils.Profiling as prf
 import nwae.lib.lang.LangFeatures as lf
+from nwae.utils.networking.Ssl import Ssl
 
 
 #
@@ -30,6 +31,10 @@ class Lemmatizer:
     ):
         self.lang = lang
         self.stemmer_type = stemmer_type
+
+        # 바보 nltk is broken, https://stackoverflow.com/questions/38916452/nltk-download-ssl-certificate-verify-failed
+        # TODO Write our own Lemmatizer
+        Ssl.disable_ssl_check()
 
         if lang not in Lemmatizer.SUPPORTED_LANGUAGES:
             raise Exception(
@@ -96,9 +101,9 @@ if __name__ == '__main__':
     for w in words:
         print(
             str(w) + ' --> '
-            + str(l_lemma.stem(word=w))
-            + ', ' + str(l_porter.stem(word=w))
-            + ', ' + str(l_snowball.stem(word=w))
+            + str(l_lemma.stem(word=w)) + ' (wn)'
+            + ', ' + str(l_porter.stem(word=w)) + ' (pt)'
+            + ', ' + str(l_snowball.stem(word=w)) + ' (sb)'
         )
 
     b = prf.Profiling.stop()
