@@ -43,6 +43,8 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_TH]),
         ('ขณะที่มาตรการใหม่จะส่งผลให้บริการต่างๆ',
          [LangFeatures.LANG_TH]),
+        ('สวยจัง 10/10.',
+         [LangFeatures.LANG_TH]),
         #
         # Latin
         #
@@ -159,7 +161,7 @@ if __name__ == '__main__':
     # exit(0)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
-    text = 'Pardon, excusez moi'
+    text = 'สวยจัง 10/10.'
     ld = LangDetect()
     lang = ld.detect(
         text = text
