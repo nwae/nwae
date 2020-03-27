@@ -277,6 +277,15 @@ class PredictClass(threading.Thread):
         else:
             lang_detected = possible_langs[0]
 
+        # If detected language not supported
+        if lang_detected not in [self.lang_main] + self.lang_additional:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': For "' + str(self.identifier_string)
+                + '", detected lang "' + str(lang_detected) + '" not in languages supported'
+            )
+            lang_detected = self.lang_main
+
         processed_txt_array = self.predict_class_txt_processor[lang_detected].process_text(
             inputtext = inputtext
         )
