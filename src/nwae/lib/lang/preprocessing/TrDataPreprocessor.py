@@ -302,6 +302,11 @@ class TrDataPreprocessor:
 
             # If detected language not supported
             if lang_detected not in [self.language_main] + self.languages_additional:
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': For "' + str(self.model_identifier)
+                    + '", detected lang "' + str(lang_detected) + '" not in languages supported'
+                )
                 lang_detected = self.language_main
             # Update data frame with language detected
             self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_LANG].at[idx_row] = \
