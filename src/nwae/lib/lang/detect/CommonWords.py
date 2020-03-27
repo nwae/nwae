@@ -30,10 +30,41 @@ class CommonWords:
 
     def get_pct_intersection_with_common_words(
             self,
-            word_list
+            word_list,
+            # In the case of Vietnamese, we might have to form words from the syllables
+            max_word_n_tuple = 1
     ):
-        lang_intersection = set(word_list).intersection(self.get_common_words())
-        pct_intersection = len(lang_intersection) / len(set(word_list))
+        if max_word_n_tuple == 1:
+            lang_intersection = set(word_list).intersection(self.get_common_words())
+            pct_intersection = len(lang_intersection) / len(set(word_list))
+        else:
+            # Means we are looking not just at the current token, but form a word from
+            # continuous tokens up to max_word_n_tuple (usually not more than 2)
+            len_word_list = len(word_list)
+            count_int = 0
+            cur_index = 0
+            actual_word_count = 0
+            # Loop by each token in the word list (or rather token list)
+            while cur_index < len_word_list:
+                max_n_tuple_lookforward = min(max_word_n_tuple, len_word_list-cur_index)
+                for j in range(max_n_tuple_lookforward,0,-1):
+                    # Look from j tokens ahead
+                    end_index = cur_index+j
+                    # For the j-tuple word
+                    w = ' '.join(word_list[cur_index:end_index])
+                    Log.debug('***** Test word "' + str(w) + '", cur_index=' + str(cur_index) + ', j=' + str(j))
+                    if w in self.get_common_words():
+                        count_int += 1
+                        # Move forward to the end of the token from the word found
+                        cur_index += j-1
+                        Log.debug('Found word "' + str(w) + '"')
+                        break
+                cur_index += 1
+                actual_word_count += 1
+
+            Log.debug('Count Intersection = ' + str(count_int) + ', actual word count = ' + str(actual_word_count))
+            pct_intersection = count_int / actual_word_count
+
         Log.debug(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': "' + str(self.lang) + '" intersection = ' + str(pct_intersection)

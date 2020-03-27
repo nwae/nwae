@@ -60,15 +60,14 @@ class SampleTextClassificationData:
             # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
             TYPE_IO_OUT: (
                 (1, 'rút tiền', 'giới hạn rút tiền', 'giới hạn--||--rút tiền'),
+                (1, 'rút tiền', 'giới hạn rút tiền', 'gioi han--||--rut tien'), # Appended latin form
                 (1, 'rút tiền', 'rút bao nhiêu', 'rút--||--bao nhiêu'),
+                (1, 'rút tiền', 'rút bao nhiêu', 'rut--||--bao nhieu'), # Appended latin form
                 (1, 'rút tiền', 'trạng thái lệnh rút tiền', 'trạng thái--||--lệnh--||--rút tiền'),
+                (1, 'rút tiền', 'trạng thái lệnh rút tiền', 'trang thai--||--lenh--||--rut tien'),  # Appended latin form
                 # Appended intent name from processing
                 (1, 'rút tiền', 'rút tiền', 'rút tiền'),
-                # Appended latin equivalent forms
-                (1, 'rút tiền', 'giới hạn rút tiền', 'gioi han--||--rut tien'),
-                (1, 'rút tiền', 'rút bao nhiêu', 'rut--||--bao nhieu'),
-                (1, 'rút tiền', 'trạng thái lệnh rút tiền', 'trang thai--||--lenh--||--rut tien'),
-                (1, 'rút tiền', 'rút tiền', 'rut tien')
+                (1, 'rút tiền', 'rút tiền', 'rut tien'),    # Appended latin form
             )
         },
         {
@@ -125,13 +124,15 @@ class SampleTextClassificationData:
         },
         {
             TYPE_LANG_MAIN: LangFeatures.LANG_CN,
-            TYPE_LANG_ADDITIONAL: (LangFeatures.LANG_TH, LangFeatures.LANG_EN),
+            TYPE_LANG_ADDITIONAL: (LangFeatures.LANG_TH, LangFeatures.LANG_EN, LangFeatures.LANG_VN),
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
+                # Chinese
                 (1, '登录', '登录次数多了，怎么办'),
                 (2, '忘记', '我忘记账号'),
                 (2, '忘记', '我忘记我的名称了'),
                 (2, '忘记', '我记不到密码了'),
+                # Thai
                 (3, 'รัก', 'ทำไมน่ารักขนาดนี้'),
                 (3, 'รัก', 'น่ารักกกกก'),
                 (3, 'รัก', 'สวยจัง 10/10.'),
@@ -140,6 +141,10 @@ class SampleTextClassificationData:
                 (4, 'บัญชี', 'เปลี่ยนเบอร์ทำไง'),
                 (4, 'บัญชี', 'อัพเดตประวัติส่วนตัวยังไง?'),
                 (4, 'บัญชี', 'เพิ่มข้อมูลส่วนตัวตรงไหน'),
+                # Vietnamese
+                (5, 'rút tiền', 'giới hạn rút tiền'),
+                (5, 'rút tiền', 'rút bao nhiêu'),
+                (5, 'rút tiền', 'trạng thái lệnh rút tiền')
             ),
             # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
             TYPE_IO_OUT: (
@@ -163,6 +168,12 @@ class SampleTextClassificationData:
                 (4, 'บัญชี', 'เพิ่มข้อมูลส่วนตัวตรงไหน', 'เพิ่ม ข้อ มูล ส่วน ตัว ตรง ไหน'),
                 # Appended intent name from processing
                 (4, 'บัญชี', 'บัญชี', 'บัญชี'),
+                (5, 'rút tiền', 'giới hạn rút tiền', 'giới hạn--||--rút tiền'),
+                (5, 'rút tiền', 'rút bao nhiêu', 'rút--||--bao nhiêu'),
+                (5, 'rút tiền', 'trạng thái lệnh rút tiền', 'trạng thái--||--lệnh--||--rút tiền'),
+                # Appended intent name from processing
+                (5, 'rút tiền', 'rút tiền', 'rút tiền'),
+                # No Appended latin equivalent forms, as Vietnamese not the main language
             )
         },
     ]
@@ -203,7 +214,7 @@ class SampleTextClassificationData:
 
 if __name__ == '__main__':
     data = SampleTextClassificationData.get_text_classification_training_data(
-        sample_training_data = SampleTextClassificationData.SAMPLE_TRAINING_DATA[0]
+        sample_training_data = SampleTextClassificationData.SAMPLE_TRAINING_DATA[4]
     )
     df = pd.DataFrame(data)
     print(data)

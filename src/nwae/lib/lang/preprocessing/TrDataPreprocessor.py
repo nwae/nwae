@@ -20,6 +20,8 @@ class TrDataPreprocessor:
     TRDATA_ID_INTENT_NAME = -1
     TRDATA_ID_LATIN_FORM = -2
 
+    TD_INTERNAL_COUNTER = '__COUNT'
+
     def __init__(
             self,
             model_identifier,
@@ -108,6 +110,10 @@ class TrDataPreprocessor:
         # We will convert the dataframe into our nwae format
         self.nwae_training_data = None
 
+        # Add a count column to training dataframe to try to keep the original
+        # as much as possible later after adding intent names
+        self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER] = range(self.df_training_data.shape[0])
+
         return
 
     def __get_row_to_append_to_training_data(
@@ -117,7 +123,8 @@ class TrDataPreprocessor:
             text,
             text_id,
             processed_text,
-            lang_detected
+            lang_detected,
+            internal_counter
     ):
         return {
             DaehuaTrainDataModel.COL_TDATA_INTENT_ID:        intent_id,
@@ -125,7 +132,8 @@ class TrDataPreprocessor:
             DaehuaTrainDataModel.COL_TDATA_TEXT:             text,
             DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID: text_id,
             DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED:   processed_text,
-            DaehuaTrainDataModel.COL_TDATA_TEXT_LANG:        lang_detected
+            DaehuaTrainDataModel.COL_TDATA_TEXT_LANG:        lang_detected,
+            TrDataPreprocessor.TD_INTERNAL_COUNTER:          internal_counter
         }
 
     #
@@ -163,13 +171,14 @@ class TrDataPreprocessor:
                 # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
                     data = self.__get_row_to_append_to_training_data(
-                        intent_id      = [intId],
-                        intent_name    = [int_name],
-                        text           = [int_name],
-                        text_id        = [TrDataPreprocessor.TRDATA_ID_INTENT_NAME],
+                        intent_id        = [intId],
+                        intent_name      = [int_name],
+                        text             = [int_name],
+                        text_id          = [TrDataPreprocessor.TRDATA_ID_INTENT_NAME],
                         # Make sure to write back this value with processed text
-                        processed_text = [None],
-                        lang_detected  = [None]
+                        processed_text   = [None],
+                        lang_detected    = [None],
+                        internal_counter = [self.df_training_data.shape[0]]
                 ))
 
                 #
@@ -201,7 +210,9 @@ class TrDataPreprocessor:
     def __process_training_data_index(self):
         # Sort by Intent ID and reset index
         self.df_training_data = self.df_training_data.sort_values(
-            [DaehuaTrainDataModel.COL_TDATA_INTENT_ID],
+            # By sorting also the internal counter, means we keep the original order within an
+            # intent class, and the added Intent Name row will be last within the class
+            [DaehuaTrainDataModel.COL_TDATA_INTENT_ID, TrDataPreprocessor.TD_INTERNAL_COUNTER],
             ascending=True
         )
         self.df_training_data = self.df_training_data.reset_index(drop=True)
@@ -262,6 +273,8 @@ class TrDataPreprocessor:
             intent_td_id = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID].loc[idx_row]
             intent_id = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_ID].loc[idx_row]
             intent_name = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_NAME].loc[idx_row]
+            # Internal Counter
+            internal_counter = self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER].loc[idx_row]
 
             log.Log.debugdebug(
                 'Processing index row "' + str(idx_row) + '" '
@@ -365,7 +378,8 @@ class TrDataPreprocessor:
                             text           = text_from_db,
                             text_id        = intent_td_id,
                             processed_text = processed_text_str,
-                            lang_detected  = lang_detected
+                            lang_detected  = lang_detected,
+                            internal_counter = internal_counter
                         )
                         self.list_of_rows_with_changed_processed_text.append(row_changed)
                         log.Log.important(
@@ -417,6 +431,7 @@ class TrDataPreprocessor:
         for idx in self.df_training_data.index:
             text = str(self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT].loc[idx])
             text_processed = str(self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].loc[idx])
+            internal_counter = self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER].loc[idx]
             #
             # Process the sentence, word by word
             #
@@ -444,12 +459,13 @@ class TrDataPreprocessor:
                 # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
                     data = self.__get_row_to_append_to_training_data(
-                        intent_id      = [int_id],
-                        intent_name    = [int_name],
-                        text           = [text],
-                        text_id        = [TrDataPreprocessor.TRDATA_ID_LATIN_FORM],
-                        processed_text = [latin_form_sentence_txt],
-                        lang_detected  = [self.language_main]
+                        intent_id        = [int_id],
+                        intent_name      = [int_name],
+                        text             = [text],
+                        text_id          = [TrDataPreprocessor.TRDATA_ID_LATIN_FORM],
+                        processed_text   = [latin_form_sentence_txt],
+                        lang_detected    = [self.language_main],
+                        internal_counter = [internal_counter]
                     ))
                 #
                 # We are appending to a dataframe that might have different columns ordering

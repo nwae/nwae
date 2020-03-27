@@ -84,6 +84,9 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_VN]),
         ('toi yeu em',
          [LangFeatures.LANG_VN]),
+        # Only the word 'số nhiều' should be detected
+        ('rút bao nhiêu số nhiều bao abcdef',
+         [LangFeatures.LANG_VN]),
         ### Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_ID]),
@@ -161,7 +164,8 @@ if __name__ == '__main__':
     # exit(0)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
-    text = 'สวยจัง 10/10.'
+    #text = 'rút bao nhiêu'
+    text = 'rút bao nhiêu'
     ld = LangDetect()
     lang = ld.detect(
         text = text

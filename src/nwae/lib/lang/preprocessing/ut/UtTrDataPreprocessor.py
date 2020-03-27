@@ -47,7 +47,7 @@ class UtTrDataPreprocessor:
             DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED: None,
             DaehuaTrainDataModel.COL_TDATA_TEXT_LANG: None
         })
-        Log.debug('Fake Training Data:\n\r' + str(fake_training_data))
+        Log.debug('Fake Training Data:\n\r' + str(fake_training_data.values))
         Log.debug('Expected Output:\n\r' + str(expected_output_data))
 
         ctdata = TrDataPreprocessor(
@@ -91,6 +91,13 @@ class UtTrDataPreprocessor:
                 + ': Expected array length ' + str(len(expected_text_segmented))
                 + ' != output array length ' + str(len(res_text_segmented))
             )
+        #
+        # Since the TrDataPreprocessor sorts the data after adding intent name,
+        # the orders might be messed up
+        #
+        #expected_text_segmented_sorted = sorted(expected_text_segmented)
+        #res_text_segmented_sorted = sorted(res_text_segmented)
+
         for i in range(len(expected_text_segmented)):
             res_obj.update_bool(res_bool=ut.UnitTest.assert_true(
                 observed = res_text_segmented[i],
@@ -107,6 +114,8 @@ class UtTrDataPreprocessor:
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
         for sample_training_data in SampleTextClassificationData.SAMPLE_TRAINING_DATA:
+            #if not sample_training_data[SampleTextClassificationData.TYPE_LANG_ADDITIONAL]:
+            #    continue
             res = self.run_unit_test_sample(sample_training_data = sample_training_data)
             res_final.update(other_res_obj=res)
         return res_final

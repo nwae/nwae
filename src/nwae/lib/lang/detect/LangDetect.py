@@ -33,6 +33,8 @@ class LangDetect:
 
     TEST_LATIN_BY_ORDER = [
         LangFeatures.ALPHABET_LATIN_AZ,
+        # We also detect these special Vietnamese characters, to increase accuracy for Vietnamese
+        LangFeatures.ALPHABET_LATIN_VI,
         # This Latin that covers all must be last to test
         LangFeatures.ALPHABET_LATIN
     ]
@@ -84,6 +86,7 @@ class LangDetect:
 
     #
     # Only for languages with space as word separator
+    # Or in the case of Vietnamese, it will split by syllables
     #
     def __segment_words(
             self,
@@ -126,8 +129,8 @@ class LangDetect:
         if not alps:
             return None
 
-        top_alps = list(alps.keys())
-        top_alp = top_alps[0]
+        detected_top_alps = list(alps.keys())
+        top_alp = detected_top_alps[0]
         Log.debugdebug('Top alphabet = ' + str(top_alp))
 
         # Get possible languages for this alphabet
@@ -160,7 +163,10 @@ class LangDetect:
         elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
             # Almost all Latin Family languages will have LatinAZ come out tops first
             if top_alp == LangFeatures.ALPHABET_LATIN_AZ:
-                pos_langs = self.detect_lang_from_latin_az(text=text)
+                pos_langs = self.detect_lang_from_latin_az(
+                    text = text,
+                    detected_alphabets_present = detected_top_alps
+                )
                 # Return if non-empty list
                 if pos_langs:
                     return pos_langs
@@ -204,7 +210,8 @@ class LangDetect:
 
     def detect_lang_from_latin_az(
             self,
-            text
+            text,
+            detected_alphabets_present
     ):
         sent = self.__segment_words(text=text)
 
@@ -228,7 +235,9 @@ class LangDetect:
 
         lang_codes.append(LangFeatures.LANG_VN)
         lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
-            word_list = sent
+            word_list = sent,
+            # Look for n-tuples of tokens
+            max_word_n_tuple = 2
         ))
 
         lang_codes.append(LangFeatures.LANG_ID)
@@ -248,6 +257,10 @@ class LangDetect:
 
             if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
                 return [lang_codes[idx_max]]
+            else:
+                # Although French, Spanish could also have these characters, we favor Vietnamese
+                if LangFeatures.ALPHABET_LATIN_VI in detected_alphabets_present:
+                    return [LangFeatures.LANG_VN]
 
         return []
 
