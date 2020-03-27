@@ -60,6 +60,8 @@ class TrDataPreprocessor:
         # The caller might want to update his DB
         self.list_of_rows_with_changed_processed_text = []
 
+        if languages_additional is None:
+            languages_additional = ()
         self.languages_additional = list(languages_additional)
         try:
             self.languages_additional.remove(self.language_main)

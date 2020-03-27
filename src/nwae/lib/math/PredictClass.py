@@ -68,6 +68,8 @@ class PredictClass(threading.Thread):
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
 
+        if lang_additional is None:
+            lang_additional = ()
         self.lang_additional = list(lang_additional)
         try:
             self.lang_additional.remove(self.lang_main)
