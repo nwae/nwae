@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# TODO Replace all nltk with in-house
 import nltk
 import nltk.stem.wordnet as wordnet
 import nltk.stem.porter as porter
@@ -9,11 +10,9 @@ from inspect import getframeinfo, currentframe
 import nwae.utils.Profiling as prf
 import nwae.lib.lang.LangFeatures as lf
 from nwae.utils.networking.Ssl import Ssl
+from nwae.lib.lang.nlp.lemma.LemmatizerKorean import LemmatizerKorean
 
 
-#
-# TODO Support other languages, currently only English
-#
 class Lemmatizer:
 
     TYPE_PORTER_STEMMER = 'porter-stemmer'
@@ -21,7 +20,12 @@ class Lemmatizer:
     TYPE_WORDNET_LEMMATIZER = 'wordnet-lemmatizer'
 
     SUPPORTED_LANGUAGES = [
-        lf.LangFeatures.LANG_EN
+        lf.LangFeatures.LANG_EN,
+        lf.LangFeatures.LANG_KO,
+        # TODO Below
+        # lf.LangFeatures.LANG_RU,
+        # lf.LangFeatures.LANG_FR,
+        # lf.LangFeatures.LANG_ES,
     ]
 
     def __init__(
@@ -37,30 +41,37 @@ class Lemmatizer:
         Ssl.disable_ssl_check()
 
         if lang not in Lemmatizer.SUPPORTED_LANGUAGES:
-            raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Language "' + str(lang) + '" not supported.'
-            )
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Stemmer for language "' + str(lang) + '" not supported.'
+            lg.Log.error(errmsg)
+            raise Exception(errmsg)
 
         self.stemmer = None
 
-        if self.stemmer_type == Lemmatizer.TYPE_WORDNET_LEMMATIZER:
-            nltk.download('wordnet')
-            self.stemmer = wordnet.WordNetLemmatizer()
-        elif self.stemmer_type == Lemmatizer.TYPE_PORTER_STEMMER:
-            self.stemmer = porter.PorterStemmer()
-        elif self.stemmer_type == Lemmatizer.TYPE_SNOWBALL_STEMMER:
-            self.stemmer = snowball.SnowballStemmer(
-                language = 'english'
-            )
+        if self.lang == lf.LangFeatures.LANG_EN:
+            if self.stemmer_type == Lemmatizer.TYPE_WORDNET_LEMMATIZER:
+                nltk.download('wordnet')
+                self.stemmer = wordnet.WordNetLemmatizer()
+            elif self.stemmer_type == Lemmatizer.TYPE_PORTER_STEMMER:
+                self.stemmer = porter.PorterStemmer()
+            elif self.stemmer_type == Lemmatizer.TYPE_SNOWBALL_STEMMER:
+                self.stemmer = snowball.SnowballStemmer(
+                    language = 'english'
+                )
+            else:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ':Unrecognized stemmer type "' + str(self.stemmer_type) + '".'
+                )
+            # Call once, because only the first one is slow
+            self.stem(word='initialize')
+        elif self.lang == lf.LangFeatures.LANG_KO:
+            self.stemmer = LemmatizerKorean()
         else:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ':Unrecognized stemmer type "' + str(self.stemmer_type) + '".'
+                + ': Unsupported language "' + str(self.lang) + '"'
             )
-
-        # Call once, because only the first one is slow
-        self.stem(word='initialize')
 
         return
 
@@ -68,14 +79,21 @@ class Lemmatizer:
             self,
             word
     ):
-        if self.stemmer_type == Lemmatizer.TYPE_WORDNET_LEMMATIZER:
-            return self.stemmer.lemmatize(
-                word = word
+        try:
+            if self.stemmer_type == Lemmatizer.TYPE_WORDNET_LEMMATIZER:
+                return self.stemmer.lemmatize(
+                    word = word
+                )
+            else:
+                return self.stemmer.stem(
+                    word = word
+                )
+        except Exception as ex:
+            lg.Log.error(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Stem error for lang "' + str(self.lang) + '", word "' + str(word) + '": ' + str(ex)
             )
-        else:
-            return self.stemmer.stem(
-                word = word
-            )
+            return word
 
 
 if __name__ == '__main__':

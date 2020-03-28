@@ -193,7 +193,8 @@ class TxtPreprocessor:
     ):
         #
         # 1st Round replace with very special symbols first, that must be done before
-        # word segmentation. Be careful here, don't simply replace things.
+        # word segmentation or cleaning.
+        # Be careful here, don't simply replace things.
         # For symbols that can wait until after word segmentation like numbers, unknown
         # words, we do later.
         #
