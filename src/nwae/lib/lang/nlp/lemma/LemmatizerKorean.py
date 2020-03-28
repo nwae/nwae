@@ -4,6 +4,11 @@ from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 
 
+#
+# Our goal is not 100% correct grammer, rather more like the Porter Stemmer,
+# empirical, fast, and extracts stem words which may be different from
+# vocabulary.
+#
 class LemmatizerKorean:
 
     END_NOUN_PARTICLE_SUBJECT = ('는', '은', '가', '이')
