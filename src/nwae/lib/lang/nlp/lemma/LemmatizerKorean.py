@@ -12,20 +12,22 @@ from nwae.lib.lang.nlp.lemma.LemmatizerBase import LemmatizerBase
 #
 class LemmatizerKorean(LemmatizerBase):
 
-    END_NOUN_PARTICLE_SUBJECT = (
+    # Часть речи
+    NOUN_PARTICLES = (
         '이라면',
         '라면',
         '는', '은', '가', '이',
+        '를', '을'
     )
 
     def __init__(
             self,
-            noun_endings = END_NOUN_PARTICLE_SUBJECT,
-            verb_endings = ()
+            noun_case_endings = NOUN_PARTICLES,
+            verb_case_endings = ()
     ):
         super().__init__(
-            noun_endings = noun_endings,
-            verb_endings = verb_endings
+            noun_case_endings = noun_case_endings,
+            verb_case_endings = verb_case_endings
         )
         try:
             # Разбить Хангул (한글) слоги на буквы (자모)
