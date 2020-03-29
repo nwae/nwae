@@ -105,6 +105,14 @@ class LangFeatures:
     # Indonesian
     LANG_ID = 'id'
 
+    ALL_ISO369_1_SUPPORTED_LANGS = (
+        LANG_KO,
+        LANG_ZH,
+        LANG_RU,
+        LANG_TH,
+        LANG_EN, LANG_ES, LANG_FR, LANG_VI, LANG_ID
+    )
+
     C_LANG_ID        = 'Language'
     C_LANG_NUMBER    = 'LanguageNo'
     C_LANG_NAME      = 'LanguageName'
@@ -133,7 +141,13 @@ class LangFeatures:
         elif lang_code == LangFeatures.LANG_VN:
             return LangFeatures.LANG_VI
         else:
-            return lang_code
+            if lang_code in LangFeatures.ALL_ISO369_1_SUPPORTED_LANGS:
+                return lang_code
+            else:
+                raise Exception(
+                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Unsupported language code "' + str(lang_code) + '"'
+                )
 
     # Word lists and stopwords are in the same folder
     def __init__(self):
