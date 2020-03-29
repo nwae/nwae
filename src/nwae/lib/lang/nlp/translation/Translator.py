@@ -2,12 +2,23 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
-import nwae.lib.lang.LangFeatures as lf
+from nwae.lib.lang.LangFeatures import LangFeatures
 import nwae.utils.Profiling as prf
 from nwae.utils.networking.Ssl import Ssl
 
 
 class Translator:
+
+    @staticmethod
+    def map_to_correct_nltk_lang_localisation_code(
+            lang_code
+    ):
+        if lang_code in (LangFeatures.LANG_CN, LangFeatures.LANG_ZH):
+            return LangFeatures.LANG_ZH_CN
+        elif lang_code == LangFeatures.LANG_VN:
+            return LangFeatures.LANG_VI
+        else:
+            return lang_code
 
     def __init__(
             self,
@@ -24,7 +35,9 @@ class Translator:
             import googletrans
 
             # Default destination language
-            self.dest_lang = lf.LangFeatures.map_to_correct_lang_code(dest_lang)
+            self.dest_lang = Translator.map_to_correct_nltk_lang_localisation_code(
+                lang_code = dest_lang
+            )
             # The model data required for translation
             nltk.download('punkt', download_dir=nlp_download_dir)
 
@@ -106,7 +119,7 @@ class Translator:
 
 if __name__ == '__main__':
     tl = Translator(
-        dest_lang = lf.LangFeatures.LANG_CN
+        dest_lang = LangFeatures.LANG_CN
     )
 
     # src = 'Today is a rainy day'

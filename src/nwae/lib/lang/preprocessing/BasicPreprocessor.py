@@ -56,8 +56,11 @@ class BasicPreprocessor:
     def get_word_separator(
             lang
     ):
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         word_separator = BasicPreprocessor.DEFAULT_SPACE_SPLITTER
-        if lang in (lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN):
+        if lang_std == lf.LangFeatures.LANG_VI:
             word_separator = BasicPreprocessor.DEFAULT_WORD_SPLITTER
         return word_separator
 

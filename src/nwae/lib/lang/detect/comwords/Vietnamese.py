@@ -17,7 +17,7 @@ class Vietnamese(CommonWords):
     def __init__(
             self
     ):
-        super().__init__(lang=LangFeatures.LANG_VN)
+        super().__init__(lang=LangFeatures.LANG_VI)
 
         # Taken from https://1000mostcommonwords.com/1000-most-common-vietnamese-words/
         self.raw_words = """

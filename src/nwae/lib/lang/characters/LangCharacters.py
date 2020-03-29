@@ -222,12 +222,16 @@ class LangCharacters(object):
     #
     @staticmethod
     def get_language_charset(lang):
-        if lang in [
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+
+        if lang_std in [
             lf.LangFeatures.LANG_EN,
-            lf.LangFeatures.LANG_VN
+            lf.LangFeatures.LANG_VI
         ]:
             return LangCharacters.UNICODE_BLOCK_LATIN_ALL
-        if lang == lf.LangFeatures.LANG_CN:
+        if lang == lf.LangFeatures.LANG_ZH:
             return LangCharacters.UNICODE_BLOCK_CJK
         if lang == lf.LangFeatures.LANG_TH:
             return LangCharacters.UNICODE_BLOCK_THAI

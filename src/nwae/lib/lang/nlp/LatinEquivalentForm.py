@@ -61,9 +61,9 @@ class LatinEquivalentForm:
 
 
 if __name__ == '__main__':
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VN, word='Anh yêu em'))
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VN, word='đây là tiếng Latin'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VI, word='Anh yêu em'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VI, word='đây là tiếng Latin'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_KO, word='니는 영화를 조아'))
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_CN, word='我喜欢吃点心'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_ZH, word='我喜欢吃点心'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_RU, word='как дела'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_TH, word='สวัสดี ไปไหนมา'))

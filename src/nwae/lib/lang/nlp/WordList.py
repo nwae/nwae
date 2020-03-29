@@ -41,7 +41,9 @@ class WordList:
             dirpath_wordlist,
             postfix_wordlist
     ):
-        self.lang = lang
+        self.lang = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
 
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist

@@ -42,9 +42,9 @@ class LangDetectUnitTest:
         # CJK
         #
         ('木兰辞 唧唧复唧唧，木兰当户织。……雄兔脚扑朔，雌兔眼迷离，双兔傍地走，安能辨我是雄雌？',
-         [LangFeatures.LANG_CN]),
+         [LangFeatures.LANG_ZH]),
         ('湖北 。。。',
-         [LangFeatures.LANG_CN]),
+         [LangFeatures.LANG_ZH]),
         #
         # Thai
         #
@@ -87,15 +87,15 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_FR]),
         ### Vietnamese
         ('bơi cùng cá mập trắng, vảy núi lửa âm ỉ',
-         [LangFeatures.LANG_VN]),
+         [LangFeatures.LANG_VI]),
         # No diacritics
         ('boi cung ca map trang, vay nui lua am i',
-         [LangFeatures.LANG_VN]),
+         [LangFeatures.LANG_VI]),
         ('toi yeu em',
-         [LangFeatures.LANG_VN]),
+         [LangFeatures.LANG_VI]),
         # Only the word 'số nhiều' should be detected
         ('rút bao nhiêu số nhiều bao abcdef',
-         [LangFeatures.LANG_VN]),
+         [LangFeatures.LANG_VI]),
         ### Indonesian
         ('Sejumlah pakar kesehatan menyarankan pemerintah Indonesia mempertimbangkan kemungkinan',
          [LangFeatures.LANG_ID]),

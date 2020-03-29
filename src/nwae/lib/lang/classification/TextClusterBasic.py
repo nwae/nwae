@@ -556,7 +556,7 @@ class TextClusterBasic:
             return
 
         def test_textcluster_chinese(self):
-            lang = lf.LangFeatures.LANG_CN
+            lang = lf.LangFeatures.LANG_ZH
             self.txt_preprocessor = TxtPreprocessor(
                 identifier_string      = str(lang) + ' test',
                 # Don't need directory path for model, as we will not do spelling correction

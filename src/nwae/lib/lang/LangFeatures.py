@@ -3,8 +3,13 @@
 
 # !!! Will work only on Python 3 and above
 
+#
+# This is the most basic class for all language related classes,
+# and should not import any language modules
+#
+
 import pandas as pd
-import nwae.utils.Log as lg
+from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 # pip install iso-639
 # https://www.iso.org/iso-639-language-codes.html
@@ -60,6 +65,8 @@ class LangFeatures:
     #  In the mean time always use map_to_correct_lang_code() to map to the right language code
     #
     # All below follows ISO 639-1 Code
+    LANG_CODE_STD_ISO639_1 = 'iso639-1'
+    LANG_CODE_STD_ISO639_2 = 'iso639-2'
 
     #
     # Hangul/CJK Alphabet Family
@@ -70,7 +77,9 @@ class LangFeatures:
     # CJK Alphabet Family
     #
     # Simplified Chinese
-    LANG_CN = 'cn'          # Not ISO 639-1
+    LANG_CN = 'cn'  # Not ISO 639-1
+    LANG_ZH = 'zh'
+    # This is actually language code + localisation, not ISO-639-1
     LANG_ZH_CN = 'zh-cn'
     #
     # Cyrillic Alphabet Family
@@ -116,11 +125,11 @@ class LangFeatures:
     LEVEL_UNIGRAM  = 'unigram'
 
     @staticmethod
-    def map_to_correct_lang_code(
+    def map_to_lang_code_iso639_1(
             lang_code
     ):
-        if lang_code == LangFeatures.LANG_CN:
-            return LangFeatures.LANG_ZH_CN
+        if lang_code in (LangFeatures.LANG_CN, LangFeatures.LANG_ZH_CN):
+            return LangFeatures.LANG_ZH
         elif lang_code == LangFeatures.LANG_VN:
             return LangFeatures.LANG_VI
         else:
@@ -155,8 +164,8 @@ class LangFeatures:
         # CJK Alphabet Family
         #
         lang_index += 1
-        lang_cn = {
-            LangFeatures.C_LANG_ID:       LangFeatures.LANG_CN,
+        lang_zh = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_ZH,
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Chinese',
             LangFeatures.C_HAVE_ALPHABET: False,
@@ -242,8 +251,8 @@ class LangFeatures:
             LangFeatures.C_HAVE_VERB_CONJ: True
         }
         lang_index += 1
-        lang_vn = {
-            LangFeatures.C_LANG_ID:       LangFeatures.LANG_VN,
+        lang_vi = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_VI,
             LangFeatures.C_LANG_NUMBER:   lang_index,
             LangFeatures.C_LANG_NAME:     'Vietnamese',
             LangFeatures.C_HAVE_ALPHABET: True,
@@ -272,7 +281,7 @@ class LangFeatures:
             # Hangul/CJK
             LangFeatures.LANG_KO: lang_ko,
             # CJK
-            LangFeatures.LANG_CN: lang_cn,
+            LangFeatures.LANG_ZH: lang_zh,
             # Cyrillic
             LangFeatures.LANG_RU: lang_ru,
             # Thai
@@ -281,7 +290,7 @@ class LangFeatures:
             LangFeatures.LANG_EN: lang_en,
             LangFeatures.LANG_ES: lang_es,
             LangFeatures.LANG_FR: lang_fr,
-            LangFeatures.LANG_VN: lang_vn,
+            LangFeatures.LANG_VI: lang_vi,
             LangFeatures.LANG_ID: lang_id,
         }
         self.langfeatures = pd.DataFrame(
@@ -290,37 +299,53 @@ class LangFeatures:
         return
 
     def __check_lang(self, lang):
-        if lang not in self.langs.keys():
+        lang_std = LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+        if lang_std not in self.langs.keys():
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': No such language "' + str(lang) + '" in supported languages ' + str(self.langs.keys())
             )
+        return lang_std
 
     def get_word_separator_type(
             self,
             lang
     ):
-        self.__check_lang(lang = lang)
-        lang_dict = self.langs[lang]
+        lang_std = self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang_std]
         return lang_dict[LangFeatures.C_WORD_SEP_TYPE]
 
     def get_syllable_separator_type(
             self,
             lang
     ):
-        self.__check_lang(lang = lang)
-        lang_dict = self.langs[lang]
+        lang_std = self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang_std]
         return lang_dict[LangFeatures.C_SYL_SEP_TYPE]
 
     def have_verb_conjugation(
             self,
             lang
     ):
-        self.__check_lang(lang = lang)
-        lang_dict = self.langs[lang]
+        lang_std = self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang_std]
         return lang_dict[LangFeatures.C_HAVE_VERB_CONJ]
 
-    def is_lang_token_same_with_charset(self, lang):
+    #
+    # Means that the smallest token is formed by the character set or alphabet.
+    # For example, in English, the language token is the word, formed by latin alphabets,
+    # thus the token is a set of alphabets and not the alphabet itself.
+    # Same with Korean, an example token '한국어' is a word formed by Hangul alphabets or 자무
+    # But Chinese token is the character set itself '我在学中文', where each token is the character
+    #
+    def is_lang_token_same_with_charset(
+            self,
+            lang
+    ):
+        lang_std = self.__check_lang(lang = lang)
+
         # Languages that have the tokens as the character set, or languages with no syllable or unigram separator
         # Besides cn/th, the same goes for Lao, Cambodian, Japanese, with no spaces to separate syllables/unigrams.
         lf = self.langfeatures
@@ -334,7 +359,8 @@ class LangFeatures:
                     ( lf[LangFeatures.C_HAVE_SYL_SEP][x]==True and lf[LangFeatures.C_SYL_SEP_TYPE][x]==LangFeatures.T_CHAR )
             )
         ]
-        return lang in langs
+        lang_token_same_with_charset = lang_std in langs
+        return lang_token_same_with_charset
 
     def get_languages_with_word_separator(self):
         len = self.langfeatures.shape[0]
@@ -382,8 +408,8 @@ class LangFeatures:
             lang,
             level
     ):
-        self.__check_lang(lang = lang)
-        lang_dict = self.langs[lang]
+        lang_std = self.__check_lang(lang = lang)
+        lang_dict = self.langs[lang_std]
 
         have_alphabet = lang_dict[LangFeatures.C_HAVE_ALPHABET]
         have_syl_sep  = lang_dict[LangFeatures.C_HAVE_SYL_SEP]
@@ -425,9 +451,13 @@ class LangFeatures:
 
         return None
 
-    def get_alphabet_type(self, lang):
+    def get_alphabet_type(
+            self,
+            lang
+    ):
+        lang_std = self.__check_lang(lang = lang)
         # Language index
-        lang_index = self.langfeatures.index[self.langfeatures[LangFeatures.C_LANG_ID]==lang].tolist()
+        lang_index = self.langfeatures.index[self.langfeatures[LangFeatures.C_LANG_ID]==lang_std].tolist()
         if len(lang_index) == 0:
             return None
         lang_index = lang_index[0]
@@ -469,7 +499,7 @@ class LangFeaturesUnitTest:
 
         observed = lf.get_languages_with_syllable_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_KO, LangFeatures.LANG_VN]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_KO, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -480,7 +510,7 @@ class LangFeaturesUnitTest:
 
         observed = lf.get_languages_with_no_word_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_TH, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -491,7 +521,7 @@ class LangFeaturesUnitTest:
 
         observed = lf.get_languages_with_only_syllable_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_CN, LangFeatures.LANG_VN]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -506,11 +536,14 @@ class LangFeaturesUnitTest:
             LangFeatures.ALPHABET_HANGUL:   [LangFeatures.LANG_KO],
             LangFeatures.ALPHABET_THAI:     [LangFeatures.LANG_TH],
             LangFeatures.ALPHABET_CYRILLIC: [LangFeatures.LANG_RU],
-            LangFeatures.ALPHABET_CJK:      [LangFeatures.LANG_CN],
+            LangFeatures.ALPHABET_CJK:      [LangFeatures.LANG_ZH],
             LangFeatures.ALPHABET_LATIN_AZ: [
                 LangFeatures.LANG_EN, LangFeatures.LANG_ID,
             ],
-            LangFeatures.ALPHABET_LATIN_VI_AZ: [LangFeatures.LANG_VN]
+            LangFeatures.ALPHABET_LATIN_VI_AZ: [LangFeatures.LANG_VI],
+            LangFeatures.ALPHABET_LATIN:    [
+                LangFeatures.LANG_ES, LangFeatures.LANG_FR
+            ]
         }
         for alp in alphabet_langs.keys():
             observed = lf.get_languages_for_alphabet_type(alphabet=alp)
@@ -541,6 +574,20 @@ class LangFeaturesUnitTest:
                 expected = expected,
                 test_comment = 'R2 test languages for alphabet "' + str(alp) + '"'
             ))
+
+        langs_with_token_same_as_charset = []
+        for lang in lf.langs.keys():
+            token_same_as_charset = lf.is_lang_token_same_with_charset(
+                lang = lang
+            )
+            if token_same_as_charset:
+                langs_with_token_same_as_charset.append(lang)
+
+        res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed     = sorted(langs_with_token_same_as_charset),
+            expected     = sorted([LangFeatures.LANG_ZH, LangFeatures.LANG_TH]),
+            test_comment = 'Test langs with token = charset'
+        ))
 
         return res_final
 

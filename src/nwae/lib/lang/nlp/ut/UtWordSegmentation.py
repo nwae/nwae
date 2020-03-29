@@ -86,7 +86,7 @@ class UnitTestWordSegmentation:
              ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_CN),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_ZH),
             list_sent_exp  = list_sent_exp
         )
 
@@ -133,7 +133,7 @@ class UnitTestWordSegmentation:
              ['english', 'test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '.', '.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VI),
             list_sent_exp  = list_sent_exp
         )
         return retv

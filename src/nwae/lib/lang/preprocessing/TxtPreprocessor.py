@@ -46,8 +46,10 @@ class TxtPreprocessor:
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.model_features_list = model_features_list
-
-        self.lang = lang
+        
+        self.lang = langfeatures.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
         self.dir_wordlist = dir_wordlist

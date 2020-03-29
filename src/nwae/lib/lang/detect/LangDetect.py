@@ -199,7 +199,7 @@ class LangDetect:
             text
     ):
         # TODO Differentiate Chinese (simplified, traditional, etc.), Japanese, ..
-        return [LangFeatures.LANG_CN]
+        return [LangFeatures.LANG_ZH]
 
     def detect_lang_from_thai_alphabet(
             self,
@@ -233,7 +233,7 @@ class LangDetect:
                 word_list = sent
         ))
 
-        lang_codes.append(LangFeatures.LANG_VN)
+        lang_codes.append(LangFeatures.LANG_VI)
         lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
             word_list = sent,
             # Look for n-tuples of tokens
@@ -260,7 +260,7 @@ class LangDetect:
             else:
                 # Although French, Spanish could also have these characters, we favor Vietnamese
                 if LangFeatures.ALPHABET_LATIN_VI in detected_alphabets_present:
-                    return [LangFeatures.LANG_VN]
+                    return [LangFeatures.LANG_VI]
 
         return []
 

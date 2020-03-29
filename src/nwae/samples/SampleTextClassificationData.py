@@ -49,7 +49,7 @@ class SampleTextClassificationData:
             )
         },
         {
-            TYPE_LANG_MAIN: LangFeatures.LANG_VN,
+            TYPE_LANG_MAIN: LangFeatures.LANG_VI,
             TYPE_LANG_ADDITIONAL: (),
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
@@ -101,7 +101,7 @@ class SampleTextClassificationData:
             )
         },
         {
-            TYPE_LANG_MAIN: LangFeatures.LANG_CN,
+            TYPE_LANG_MAIN: LangFeatures.LANG_ZH,
             TYPE_LANG_ADDITIONAL: (),
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
@@ -123,8 +123,8 @@ class SampleTextClassificationData:
             )
         },
         {
-            TYPE_LANG_MAIN: LangFeatures.LANG_CN,
-            TYPE_LANG_ADDITIONAL: (LangFeatures.LANG_TH, LangFeatures.LANG_EN, LangFeatures.LANG_VN),
+            TYPE_LANG_MAIN: LangFeatures.LANG_ZH,
+            TYPE_LANG_ADDITIONAL: (LangFeatures.LANG_TH, LangFeatures.LANG_EN, LangFeatures.LANG_VI),
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 # Chinese

@@ -47,7 +47,9 @@ class TrDataPreprocessor:
     ):
         self.model_identifier = model_identifier
         # Main language
-        self.language_main = language_main
+        self.language_main = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = language_main
+        )
         self.df_training_data = df_training_data
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist

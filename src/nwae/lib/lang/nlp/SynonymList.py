@@ -6,6 +6,7 @@
 import re
 import nwae.utils.FileUtils as futil
 import nwae.utils.StringUtils as su
+from nwae.lib.lang.LangFeatures import LangFeatures
 import nwae.lib.lang.nlp.LatinEquivalentForm as lef
 import nwae.lib.lang.characters.LangCharacters as langchar
 import nwae.utils.Log as log
@@ -21,7 +22,9 @@ class SynonymList:
             postfix_synonymlist,
             add_latin_equiv_words = False
     ):
-        self.lang = lang
+        self.lang = LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
 
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
@@ -177,7 +180,7 @@ if __name__ == '__main__':
     )
 
     from nwae.lib.lang.LangFeatures import LangFeatures
-    for lang in [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]:
+    for lang in [LangFeatures.LANG_ZH, LangFeatures.LANG_TH, LangFeatures.LANG_VI]:
         sl = SynonymList(
             lang                = lang,
             dirpath_synonymlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
