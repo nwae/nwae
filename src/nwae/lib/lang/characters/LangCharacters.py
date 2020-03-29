@@ -121,13 +121,23 @@ class LangCharacters(object):
     #
     # Hangul
     #
+    # This is the 11xx jamo code block, when computer sees a sequence of these jamos, they combine
+    # them into Hangul syllables (or just Hangul) in the block below.
+    # print(chr(0x110c) + chr(0x1161) + chr(0x1106) + chr(0x1169))
     UNICODE_BLOCK_ORDINAL_HANGUL = list( range(0x1100, 0x11FF+1, 1) )
     UNICODE_BLOCK_HANGUL = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HANGUL]
-
+    # This is the 31xx hangul compatibility jamo block,
+    # when computer sees a sequence of these jamos, they print out individually, without combining into Hangul syllables
+    # print(chr(0x3148) + chr(0x314f) + chr(0x3141) + chr(0x3157)
+    UNICODE_BLOCK_ORDINAL_HANGUL_COMPATIBILITY_JAMO = list( range(0x3130, 0x318F+1, 1) )
+    UNICODE_BLOCK_HANGUL_COMPATIBILITY_JAMO = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HANGUL_COMPATIBILITY_JAMO]
+    # This block is for Hangul syllables (or just Hangul). E.g. '한', '굴', '자' '모'
+    # whereas the above blocks are for single 자모 (字母 or alphabet).
     UNICODE_BLOCK_ORDINAL_HANGUL_SYLLABLE = list( range(0xAC00, 0xD7AF+1, 1) )
     UNICODE_BLOCK_HANGUL_SYLLABLE = [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HANGUL_SYLLABLE]
 
-    UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE = UNICODE_BLOCK_HANGUL + UNICODE_BLOCK_HANGUL_SYLLABLE
+    UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE = \
+        UNICODE_BLOCK_HANGUL + UNICODE_BLOCK_HANGUL_COMPATIBILITY_JAMO + UNICODE_BLOCK_HANGUL_SYLLABLE
 
     #
     # Thai

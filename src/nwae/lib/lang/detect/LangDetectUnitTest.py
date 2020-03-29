@@ -25,9 +25,18 @@ class LangDetectUnitTest:
         #
         # Hangul
         #
+        # These are the Hangul blocks for Unicode block [0xAC00, 0xD7AF]
         ('낮선 곳에서 잠을 자다가, 갑자기 들리는 흐르는 물소리, 등짝을 훑고 지나가는 지진의 진동',
          [LangFeatures.LANG_KO]),
         ('야!',
+         [LangFeatures.LANG_KO]),
+        # Jamo Unicode block 11xx
+        # On the computer, this should print out into Hangul blocks, '자모'
+        (chr(0x110c) + chr(0x1161) + chr(0x1106) + chr(0x1169),
+         [LangFeatures.LANG_KO]),
+        # Jamo Unicode block 31xx
+        # On the computer, this should print out the individual Jamos, 'ㅈㅏㅁㅗ'
+        (chr(0x3148) + chr(0x314f) + chr(0x3141) + chr(0x3157),
          [LangFeatures.LANG_KO]),
         #
         # CJK
