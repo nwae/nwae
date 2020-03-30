@@ -23,6 +23,23 @@ import nwae.utils.UnitTest as ut
 #   Helper class to define language properties, such as containing word/syllable separators,
 #   alphabet type, etc.
 #
+#   This most fundamental class for languages tells us:
+#
+#     1. Alphabet Type
+#        What alphabet type a language is written in, either Latin, Cyrillic, etc.
+#        This is used for example in LangDetect class.
+#
+#     2. Separator Properties
+#        Whether a language has a natural word separator (e.g. space), syllable separator
+#        (e.g. Korean Hangul syllable, Chinese/Japanese character, Vietnamese)
+#        This is used for grouping word lists by alphabet/syllable lengths, in word
+#        segmentation to know how to move to the next "character" which could be a whole
+#        syllable and not a character.
+#
+#     3. Part of Speech (Часть Речи) Conjugations
+#        Whether a language has these conjugations.
+#        This is used to check if we need to do stemming or not.
+#
 class LangFeatures:
     #
     # Latin Type Blocks (English, Spanish, French, Vietnamese, etc.)
