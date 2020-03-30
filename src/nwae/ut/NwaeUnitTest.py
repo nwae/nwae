@@ -6,6 +6,7 @@ import nwae.config.Config as cf
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.LangFeatures import LangFeaturesUnitTest
+from nwae.lib.lang.characters.LangCharacters import LangCharactersUnitTest
 from nwae.lib.lang.detect.LangDetectUnitTest import LangDetectUnitTest
 from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessorUnitTest
@@ -43,6 +44,10 @@ class NwaeUnitTest:
         res = LangFeaturesUnitTest(ut_params=None).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Language Features Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = LangCharactersUnitTest(ut_params=None).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Language Characters Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = LangDetectUnitTest(ut_params=None).run_unit_test()
         res_final.update(other_res_obj=res)

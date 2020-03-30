@@ -71,9 +71,9 @@ class TxtPreprocessor:
         )
 
         self.words_no_replace_with_special_symbols = \
-            langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS + \
-            langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS + \
-            langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS) + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) + \
             list(BasicPreprocessor.ALL_SPECIAL_SYMBOLS)
 
         self.words_no_replace_with_special_symbols = list(set(self.words_no_replace_with_special_symbols))
