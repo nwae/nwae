@@ -352,7 +352,11 @@ class LangFeatures:
     # For example, in English, the language token is the word, formed by latin alphabets,
     # thus the token is a set of alphabets and not the alphabet itself.
     # Same with Korean, an example token '한국어' is a word formed by Hangul alphabets or 자무
-    # But Chinese token is the character set itself '我在学中文', where each token is the character
+    #
+    # But Chinese (or Japanese) token is the character set itself '我在学中文', where each token
+    # is the character.
+    # Same thing with Thai, since it has no space at all to split syllables or words, such that
+    # the smallest token is the character itself.
     #
     def is_lang_token_same_with_charset(
             self,
@@ -438,6 +442,12 @@ class LangFeatures:
             else:
                 return None
         elif level == LangFeatures.LEVEL_SYLLABLE:
+            #
+            # Syllable split tokens are extremely important for
+            #   1. Word list grouping into length groups, for Vietnamese for example, the word
+            #      "gam en" is of length 2 (not 6), because each syllable is counted as 1
+            #   2. Word segmentation, and how to reconstruct the alphabets or syllables into a word
+            #
             if have_syl_sep:
                 if syl_sep_type == LangFeatures.T_CHAR:
                     return ''
@@ -446,8 +456,16 @@ class LangFeatures:
                 else:
                     return None
         elif level == LangFeatures.LEVEL_UNIGRAM:
+            #
+            # A unigram in our definition is either a syllable or word.
+            # It is the biggest unit (but not bigger than a word, not a character) that can be separated.
+            # For Chinese since a syllable is also a character, the unigram is thus the syllable and exists.
+            # For Thai only alphabet exists, there is no way to split syllable or word, so there is no
+            # unigram in Thai.
+            #
             # Return language specific word separator if exists.
             # Return language specific syllable separator if exists.
+            #
             if have_word_sep:
                 if word_sep_type == LangFeatures.T_CHAR:
                     return ''
@@ -497,6 +515,59 @@ class LangFeaturesUnitTest:
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
         lf = LangFeatures()
+
+        #
+        # Syllable split tokens are extremely important for
+        #   1. Word list grouping into length groups, for Vietnamese for example, the word
+        #      "gam en" is of length 2 (not 6), because each syllable is counted as 1
+        #   2. Word segmentation, and how to reconstruct the alphabets or syllables into a word
+        #
+        lang_syl_split_token = {
+            LangFeatures.LANG_KO: '',
+            LangFeatures.LANG_RU: None,
+            LangFeatures.LANG_ZH: '',
+            LangFeatures.LANG_TH: None,
+            LangFeatures.LANG_EN: None,
+            LangFeatures.LANG_ES: None,
+            LangFeatures.LANG_FR: None,
+            # Vietnamese is unique splitting by space
+            LangFeatures.LANG_VI: ' ',
+            LangFeatures.LANG_ID: None,
+        }
+        for lang in lang_syl_split_token:
+            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed     = lf.get_split_token(
+                    lang  = lang,
+                    level = LangFeatures.LEVEL_SYLLABLE
+                ),
+                expected     = lang_syl_split_token[lang],
+                test_comment = 'test lang ' + str(lang) + ' syllable split token'
+            ))
+
+        lang_unigram_split_token = {
+            LangFeatures.LANG_KO: ' ',
+            LangFeatures.LANG_RU: ' ',
+            # No word separator, will return the syllable separator
+            LangFeatures.LANG_ZH: '',
+            LangFeatures.LANG_TH: None,
+            LangFeatures.LANG_EN: ' ',
+            LangFeatures.LANG_ES: ' ',
+            LangFeatures.LANG_FR: ' ',
+            # Vietnamese is unique splitting by space
+            # No word separator, will return the syllable separator
+            LangFeatures.LANG_VI: ' ',
+            LangFeatures.LANG_ID: ' ',
+        }
+        for lang in lang_unigram_split_token:
+            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed     = lf.get_split_token(
+                    lang  = lang,
+                    level = LangFeatures.LEVEL_UNIGRAM
+                ),
+                expected     = lang_unigram_split_token[lang],
+                test_comment = 'test lang ' + str(lang) + ' unigram split token'
+            ))
+
         observed = lf.get_languages_with_word_separator()
         observed.sort()
         expected = [
@@ -571,7 +642,9 @@ class LangFeaturesUnitTest:
                 test_comment = 'R1 test languages for alphabet "' + str(alp) + '"'
             ))
 
+        #
         # In this round we get the languages for an alphabet programmatically
+        #
         alphabet_langs = {}
         for alp in LangFeatures.ALPHABETS_ALL:
             alphabet_langs[alp] = lf.get_languages_for_alphabet_type(
