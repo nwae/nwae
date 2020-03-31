@@ -40,7 +40,7 @@ class TxtPreprocessor:
             # training data that becomes excluded wrongly.
             stopwords_list = None,
             do_spelling_correction = False,
-            do_word_stemming = False,
+            do_word_stemming = True,
             do_profiling = False
     ):
         self.identifier_string = identifier_string
@@ -213,6 +213,11 @@ class TxtPreprocessor:
                 repl    = pat_rep['repl'],
                 string  = inputtext_sym
             )
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" special pattern replacement to: ' + str(inputtext_sym)
+        )
 
         #
         # Segment words
@@ -224,7 +229,8 @@ class TxtPreprocessor:
         )
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" segmented to: ' + str(text_segmented_arr)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" segmented to: ' + str(text_segmented_arr)
         )
 
         #
@@ -238,7 +244,8 @@ class TxtPreprocessor:
             text_segmented_arr = tmp_arr
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" clean punctuations to: ' + str(text_segmented_arr)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" clean punctuations to: ' + str(text_segmented_arr)
         )
 
         #
@@ -254,7 +261,7 @@ class TxtPreprocessor:
 
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
         )
 
@@ -268,7 +275,7 @@ class TxtPreprocessor:
                 )
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext)
+                    + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
                 )
 
@@ -282,7 +289,7 @@ class TxtPreprocessor:
                     text_remove_stopwords_arr.append(w)
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Text "' + str(inputtext)
+                + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                 + '", removed stopwords to "' + str(text_remove_stopwords_arr) + '".'
             )
             text_normalized_arr_lower = text_remove_stopwords_arr
@@ -290,6 +297,11 @@ class TxtPreprocessor:
         #
         # Stemming / Lemmatization
         #
+        log.Log.debug(
+            '***** Lang ' + str(self.lang)
+            + ', Do stemming = ' + str(self.do_word_stemming)
+            + ' ,Have verb conjugation = ' + str(self.lang_have_verb_conj)
+        )
         if self.do_word_stemming and self.lang_have_verb_conj:
             if self.word_stemmer_lemmatizer:
                 for i in range(len(text_normalized_arr_lower)):
@@ -298,7 +310,7 @@ class TxtPreprocessor:
                     )
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext)
+                    + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
 
@@ -342,7 +354,8 @@ class TxtPreprocessor:
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Done text processing to: ' + str(text_normalized_arr_lower)
+            + ': Lang "' + str(self.lang)
+            + '", Done text processing to: ' + str(text_normalized_arr_lower)
             + ' from "' + str(inputtext) + '".'
         )
 

@@ -47,7 +47,7 @@ class PredictClass(threading.Thread):
             postfix_wordlist_app,
             confidence_level_scores = None,
             do_spelling_correction = False,
-            do_word_stemming = False,
+            do_word_stemming = True,
             do_profiling = False,
             lang_additional = ()
     ):

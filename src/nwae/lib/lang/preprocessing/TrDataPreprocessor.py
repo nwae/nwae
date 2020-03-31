@@ -40,6 +40,7 @@ class TrDataPreprocessor:
             postfix_app_wordlist,
             dirpath_synonymlist,
             postfix_synonymlist,
+            do_word_stemming = True,
             # Do word processing for all sentences, when word/synonym list changes
             reprocess_all_text = False,
             # Optional support for additional list of languages
@@ -58,6 +59,7 @@ class TrDataPreprocessor:
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
 
+        self.do_word_stemming = do_word_stemming
         self.reprocess_all_text = reprocess_all_text
         # The caller might want to update his DB
         self.list_of_rows_with_changed_processed_text = []
@@ -107,7 +109,7 @@ class TrDataPreprocessor:
                 dir_wordlist_app       = self.dirpath_app_wordlist,
                 postfix_wordlist_app   = self.postfix_app_wordlist,
                 do_spelling_correction = False,
-                do_word_stemming       = self.lang_have_verb_conj[uh],
+                do_word_stemming       = self.do_word_stemming,
                 do_profiling           = False
             )
 

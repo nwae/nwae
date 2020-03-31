@@ -102,7 +102,7 @@ class UtTxtPreprocessor:
             dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
             postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
-            do_word_stemming       = False,
+            do_word_stemming       = True,
             do_profiling           = False
         )
 
