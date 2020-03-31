@@ -70,12 +70,21 @@ class PredictClass(threading.Thread):
 
         if lang_additional is None:
             lang_additional = ()
-        self.lang_additional = list(lang_additional)
+        self.lang_additional = [
+            langfeatures.LangFeatures.map_to_lang_code_iso639_1(lang_code=l) for l in lang_additional
+        ]
         try:
             self.lang_additional.remove(self.lang_main)
         except ValueError:
             pass
         self.lang_additional = list(set(self.lang_additional))
+
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model "' + str(self.identifier_string)
+            + '", main language "' + str(self.lang_main)
+            + '", additional languages: ' + str(self.lang_additional)
+        )
 
         self.model = modelHelper.ModelHelper.get_model(
             model_name              = self.model_name,

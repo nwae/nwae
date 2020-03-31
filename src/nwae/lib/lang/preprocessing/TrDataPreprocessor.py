@@ -66,7 +66,9 @@ class TrDataPreprocessor:
 
         if languages_additional is None:
             languages_additional = ()
-        self.languages_additional = list(languages_additional)
+        self.languages_additional = [
+            lf.LangFeatures.map_to_lang_code_iso639_1(lang_code=l) for l in languages_additional
+        ]
         try:
             self.languages_additional.remove(self.language_main)
         except ValueError:
