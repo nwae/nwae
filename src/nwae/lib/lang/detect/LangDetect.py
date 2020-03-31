@@ -130,53 +130,71 @@ class LangDetect:
             return None
 
         detected_top_alps = list(alps.keys())
-        top_alp = detected_top_alps[0]
-        Log.debugdebug('Top alphabet = ' + str(top_alp))
+        Log.debugdebug('Top alphabets = ' + str(detected_top_alps))
 
-        # Get possible languages for this alphabet
-        possible_langs_for_alphabet = self.lang_features.get_languages_for_alphabet_type(alphabet=top_alp)
-        Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Possible languages for alphabet "' + str(top_alp) + '": ' + str(possible_langs_for_alphabet)
-        )
-
-        # No dispute when only 1 possible language for given alphabet
-        if len(possible_langs_for_alphabet) == 1:
-            Log.debugdebug(
+        loop_top_x = 2
+        loop_counter = 0
+        while loop_counter < loop_top_x:
+            if len(detected_top_alps) > loop_counter:
+                loop_alp = detected_top_alps[loop_counter]
+            else:
+                break
+            loop_counter += 1
+            Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Only 1 possible language for alphabet: ' + str(possible_langs_for_alphabet)
+                + ': Loop ' + str(loop_counter) + ' alphabet "' + str(loop_alp) + '"'
             )
-            return possible_langs_for_alphabet
 
-        #
-        # Alphabet belongs to Hangul family
-        #
-        if top_alp in LangDetect.TEST_HANGUL_BY_ORDER:
-            return self.detect_lang_from_hangul(text=text)
-        elif top_alp in LangDetect.TEST_CYRILLIC_BY_ORDER:
-            return self.detect_lang_from_cyrillic(text=text)
-        elif top_alp in LangDetect.TEST_THAI_BY_ORDER:
-            return self.detect_lang_from_thai_alphabet(text=text)
-        #
-        # Alphabet belongs to the Latin family
-        #
-        elif top_alp in LangDetect.TEST_LATIN_BY_ORDER:
-            # Almost all Latin Family languages will have LatinAZ come out tops first
-            if top_alp == LangFeatures.ALPHABET_LATIN_AZ:
-                pos_langs = self.detect_lang_from_latin_az(
-                    text = text,
-                    detected_alphabets_present = detected_top_alps
+            # Get possible languages for this alphabet
+            possible_langs_for_alphabet = self.lang_features.get_languages_for_alphabet_type(
+                alphabet = loop_alp
+            )
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Possible languages for alphabet "' + str(loop_alp)
+                + '": ' + str(possible_langs_for_alphabet)
+            )
+
+            # No dispute when only 1 possible language for given alphabet
+            if len(possible_langs_for_alphabet) == 1:
+                Log.debugdebug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Only 1 possible language for alphabet: ' + str(possible_langs_for_alphabet)
                 )
-                # Return if non-empty list
-                if pos_langs:
-                    return pos_langs
+                return possible_langs_for_alphabet
 
-            # We extend the search to all Latin if can't find anything
-            return self.detect_lang_from_latin(
-                text = text
-            )
-        elif top_alp == LangFeatures.ALPHABET_CJK:
-            return self.detect_lang_from_cjk(text=text)
+            det_langs = []
+            #
+            # Alphabet belongs to Hangul family
+            #
+            if loop_alp in LangDetect.TEST_HANGUL_BY_ORDER:
+                det_langs = self.detect_lang_from_hangul(text=text)
+            elif loop_alp in LangDetect.TEST_CYRILLIC_BY_ORDER:
+                det_langs = self.detect_lang_from_cyrillic(text=text)
+            elif loop_alp in LangDetect.TEST_THAI_BY_ORDER:
+                det_langs = self.detect_lang_from_thai_alphabet(text=text)
+            #
+            # Alphabet belongs to the Latin family
+            #
+            elif loop_alp in LangDetect.TEST_LATIN_BY_ORDER:
+                # Almost all Latin Family languages will have LatinAZ come out tops first
+                if loop_alp == LangFeatures.ALPHABET_LATIN_AZ:
+                    det_langs = self.detect_lang_from_latin_az(
+                        text = text,
+                        detected_alphabets_present = detected_top_alps
+                    )
+
+                if not det_langs:
+                    # We extend the search to all Latin if can't find anything
+                    det_langs = self.detect_lang_from_latin(
+                        text = text
+                    )
+            elif loop_alp == LangFeatures.ALPHABET_CJK:
+                det_langs = self.detect_lang_from_cjk(text=text)
+
+            # If have result, return the result and quit the loop
+            if det_langs:
+                return det_langs
 
         return []
 
@@ -329,7 +347,7 @@ class LangDetect:
         # Means we got the last truncated block
         if total_len < LangDetect.TEXT_BLOCK_LEN:
             if 0 not in random_ranges_index:
-                random_ranges_index.append(0)
+                random_ranges_index = [0] + random_ranges_index
 
         text_excerps = []
         for rg in random_ranges_index:
