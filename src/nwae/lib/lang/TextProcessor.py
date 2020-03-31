@@ -4,6 +4,7 @@ import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
 import collections
 import pickle
+from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
@@ -15,24 +16,27 @@ class TextProcessor:
     def __init__(
             self,
             # We support a single lang or a list of languages, one for each text
-            lang,
+            lang_str_or_list,
             # A list of sentences in str format, but split by words either with our
             # default word delimiter DEFAULT_WORD_SPLITTER or space or whatever.
             # Or can also be a list of sentences in already split list format
             text_segmented_list
     ):
-        self.lang = lang
+        self.lang = lang_str_or_list
         self.text_segmented_list = text_segmented_list
 
         self.lang_list = None
         if type(self.lang) in (list, tuple):
-            self.lang_list = self.lang
+            self.lang_list = [LangFeatures.map_to_lang_code_iso639_1(lang_code=l) for l in self.lang]
             if len(self.lang_list) != len(self.text_segmented_list):
                 raise Exception(
                     str(TextProcessor.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Language list & text segmented list must have same length! '
                 )
         else:
+            self.lang = LangFeatures.map_to_lang_code_iso639_1(
+                lang_code = self.lang
+            )
             self.lang_list = [self.lang] * len(self.text_segmented_list)
 
         lg.Log.debugdebug(
@@ -182,7 +186,7 @@ if __name__ == '__main__':
         ]
 
     obj = TextProcessor(
-        lang = 'ru',
+        lang_str_or_list = 'ru',
         text_segmented_list = sent_list
     )
     sent_list_list = obj.convert_segmented_text_to_array_form()

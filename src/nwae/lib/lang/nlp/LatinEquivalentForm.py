@@ -19,7 +19,10 @@ class LatinEquivalentForm:
     def have_latin_equivalent_form(
             lang
     ):
-        return lang in [
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+        return lang_std in [
             lf.LangFeatures.LANG_VI,
             lf.LangFeatures.LANG_VN
         ]
@@ -31,7 +34,10 @@ class LatinEquivalentForm:
             lang,
             word
     ):
-        if lang in [lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN]:
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+        if lang_std in [lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN]:
             return LatinEquivalentForm.get_latin_equivalent_form_vietnamese(word=word)
         else:
             return word

@@ -357,7 +357,7 @@ class Trainer(threading.Thread):
         )
         # Convert text to usable array form for further NLP processing
         txtprocessor_obj = txtprocessor.TextProcessor(
-            lang = list(lang_detected[np_indexes]),
+            lang_str_or_list = list(lang_detected[np_indexes]),
             text_segmented_list = list(text_segmented[np_indexes])
         )
         text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()
