@@ -270,7 +270,30 @@ class WordlistUnitTest:
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
+        # Test mainly for languages that require word lists when doing word segmentation
         test_lang_wl = {
+            lf.LangFeatures.LANG_ZH: {
+                1: ('出', '或', '日', '由', '里', '用', '所', '向', '已', '其', '给', '很', '看', '使', '前',
+                    '新', '想', '却', '它', '云', '层'),
+                2: ('国家', '可以', '发展', '这个', '工作', '这样', '全国', '经济', '这些', '不是', '社会', '记者',
+                    '面积', '人员'),
+                3: ('委员会', '武汉市', '国民党', '韦小宝', '为什么', '实际上'),
+                4: ('人民政府', '社会主义', '人民法院'),
+                5: ('天安门广场', '中国共产党', '中国共产党'),
+                6: ('人民代表大会'),
+                7: ('全国人大常委会')
+            },
+            lf.LangFeatures.LANG_TH: {
+                2: ('กง', 'มา', 'ทำ', 'ชน', 'ใน', 'จะ'),
+                3: ('ผู้', 'ราย', 'ว่า', 'งาน', 'ดึก', 'วัน', 'ที่', 'ไทย', 'ถึง', 'ชี้','แจง', 'มวล', 'การ', 'แจก',
+                    'ของ', 'ตาม', 'ได้', 'ให้', 'กับ', 'ทุก', 'โดย'),
+                4: ('สื่อ', 'ข่าว', 'ช่วง', 'กลาง', 'ผ่าน', 'กรณี', 'หรือ', 'หน้า', 'สถาน', 'ทั่ว', 'นั้น'),
+                5: ('การณ์', 'จำนวน'),
+                6: ('ดำเนิน', 'อนามัย', 'ประเทศ', 'บริหาร'),
+                7: ('กระทรวง', 'มหาดไทย', 'หนังสือ', 'จังหวัด'),
+                8: ('กระเทือน', 'โก้งเก้ง'),
+                9: ('จ้องหน่อง', 'ดาวประดับ')
+            },
             lf.LangFeatures.LANG_VI: {
                 1: ('a-đa', 'A-đam', 'A-đi-xơn', 'a-đrê-na-lin', 'a-ga', 'a-giăng', 'a-giăng-đa', 'a-gon',
                     'a-vô-ca', 'a-xen', 'a-xê-ti-len', 'a-xê-ton', 'a-xê-tôn','ampe', 'ampere', 'ampli',
@@ -293,27 +316,33 @@ class WordlistUnitTest:
                     'ăn thủng nồi trôi rế','có dại mới nên khôn', 'có danh không có thực', 'có đẻ không có nuôi',
                     'kẻ nhát nát người bạo', 'kẻ nửa cân, người tám', 'kẻ tám lạng người nửa', 'kéo cày trả (giả) nợ',
                     'xấu mã có duyên thầm', 'xây lâu đài trên cát', 'xe chỉ buộc chân voi', 'xé mắm hòng mút tay'),
-            }
+            },
         }
 
         dirpath_wl = self.ut_params.dirpath_wordlist
         postfix_wl = self.ut_params.postfix_wordlist
 
         for lang in test_lang_wl.keys():
-            log.Log.debug('Unit Test lang ' + str(lang))
+            # print('Unit Test lang ' + str(lang))
             ngrams_test = test_lang_wl[lang]
             wl = WordList(
-                lang             = lf.LangFeatures.LANG_VI,
+                lang             = lang,
                 dirpath_wordlist = dirpath_wl,
                 postfix_wordlist = postfix_wl
             )
 
             for len in ngrams_test.keys():
                 words = ngrams_test[len]
-                # print(words)
+                # For tuple with a single item, Python reduces it to the item type
+                if type(words) not in [tuple, list]:
+                    words = [words]
+                log.Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Test words ' + str(words) + ' in word list ' + str(wl.ngrams[len])
+                )
                 for w in words:
                     is_w_in_list = w in wl.ngrams[len]
-                    # print('Word "' + str(w) + '" in = ' + str(is_w_in_list))
+                    # print('Test Word "' + str(w) + '" in = ' + str(is_w_in_list))
                     res_final.update_bool(res_bool=ut.UnitTest.assert_true(
                         observed = is_w_in_list,
                         expected = True,
@@ -331,7 +360,7 @@ if __name__ == '__main__':
         Derived_Class=cf.Config,
         default_config_file='/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
     log.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     ut_params = ut.UnitTestParams(
         dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
@@ -343,7 +372,8 @@ if __name__ == '__main__':
         dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
 
     )
-    WordlistUnitTest(ut_params=ut_params).run_unit_test()
+    res = WordlistUnitTest(ut_params=ut_params).run_unit_test()
+    print('PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
     exit(0)
 
     for lang in ['vn']:
