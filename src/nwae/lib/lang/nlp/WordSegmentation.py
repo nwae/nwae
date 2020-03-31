@@ -546,7 +546,7 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
 
-    lang = lf.LangFeatures.LANG_ZH
+    lang = lf.LangFeatures.LANG_TH
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     synonymlist_ro = slist.SynonymList(
@@ -574,7 +574,7 @@ if __name__ == '__main__':
         words_not_synched = ws.lang_wordlist.wordlist['Word'][len_before:len_after]
         print(words_not_synched)
 
-    text = '米切尔（Tom Michell）教'
+    text = 'นี่คือ'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 
