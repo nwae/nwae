@@ -321,21 +321,25 @@ class LangDetect:
         # Randomly pick the ranges
         random_ranges_index = random.sample(range(n_range), how_many_range_to_check)
         random_ranges_index = sorted(random_ranges_index)
-        text_excerps = []
         total_len = 0
         for rg in random_ranges_index:
             start, end = range_blocks[rg]
-            text_excerps.append(text[start:end])
             total_len += (end - start + 1)
-        Log.debug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Random ranges index: ' + str(random_ranges_index) + ' or: ' + str(text_excerps)
-        )
 
         # Means we got the last truncated block
         if total_len < LangDetect.TEXT_BLOCK_LEN:
             if 0 not in random_ranges_index:
                 random_ranges_index.append(0)
+
+        text_excerps = []
+        for rg in random_ranges_index:
+            start, end = range_blocks[rg]
+            text_excerps.append(text[start:end])
+
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Random ranges index: ' + str(random_ranges_index) + ' or: ' + str(text_excerps)
+        )
 
         for rge_idx in random_ranges_index:
             #for i in range_blocks[rge_idx]:
@@ -379,6 +383,8 @@ if __name__ == '__main__':
         ("""Blessed are those who find wisdom, those who gain understanding""",
          [None]),
         ('Incrustado en las laderas de unas colinas volcánicas',
+         [None]),
+        ('นี่คือ minions',
          [None])
     ]
 
@@ -388,8 +394,8 @@ if __name__ == '__main__':
         print('Text: ' + str(s))
         lang = ld.detect(
             text   = s,
-            test_coverage_pct = 0.5,
-            max_test_coverage_len = 30
+            #test_coverage_pct = 0.5,
+            #max_test_coverage_len = 30
         )
         timedif = Profiling.get_time_dif_secs(
             start = start_time,
