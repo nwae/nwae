@@ -197,6 +197,7 @@ class Config(baseconfig.BaseConfig):
             Config.PARAM_NLP_DIR_SYNONYMLIST: Config.DEFVAL_NLP_DIR_SYNONYMLIST,
             Config.PARAM_NLP_POSTFIX_SYNONYMLIST: Config.DEFVAL_NLP_POSTFIX_SYNONYMLIST,
             # Stopwords lists (to be outdated)
+            Config.PARAM_NLP_POSTFIX_STOPWORDS: Config.DEFVAL_NLP_POSTFIX_STOPWORDS,
             Config.PARAM_NLP_DIR_APP_STOPWORDS: Config.DEFVAL_NLP_DIR_APP_STOPWORDS,
             Config.PARAM_NLP_POSTFIX_APP_STOPWORDS: Config.DEFVAL_NLP_POSTFIX_APP_STOPWORDS,
             # NLTK or whatever download dir

@@ -12,6 +12,7 @@ import nwae.lib.lang.nlp.LatinEquivalentForm as lef
 import nwae.lib.lang.characters.LangCharacters as langchar
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
+import nwae.utils.UnitTest as ut
 
 
 #
@@ -254,19 +255,101 @@ class WordList:
             raise Exception(errmsg)
 
 
+class WordlistUnitTest:
+
+    def __init__(
+            self,
+            ut_params
+    ):
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
+        return
+
+    def run_unit_test(self):
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+
+        import nwae.config.Config as cf
+        config = cf.Config.get_cmdline_params_and_init_config_singleton(
+            Derived_Class       = cf.Config,
+            default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
+        )
+        #log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+        #log.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+
+        test_lang_wl = {
+            lf.LangFeatures.LANG_VI: {
+                1: ('a-đa', 'A-đam', 'A-đi-xơn', 'a-đrê-na-lin', 'a-ga', 'a-giăng', 'a-giăng-đa', 'a-gon',
+                    'a-vô-ca', 'a-xen', 'a-xê-ti-len', 'a-xê-ton', 'a-xê-tôn','ampe', 'ampere', 'ampli',
+                    'ăm-bờ-ra-da', 'ăm-pe', 'ăm-pun', 'ẵm', 'ăn', 'ăng-ga', 'ăng-ten', 'ăng-ti-gôn', 'ăng-ti-moan',
+                    'ăng-tơ-ra-xit', 'mương', 'mường', 'Mường', 'mướp', 'mướt', 'mượt', 'mưỡu', 'mứt', 'mưu', 'mỹ',
+                    'xô-viết', 'xồ', 'xổ', 'xốc', 'xộc', 'xôđa', 'xôi', 'xổi', 'xối', 'xôm'),
+                2: ('cận lai', 'cận lao', 'cận lân', 'cận lợi', 'cận nhật', 'cận răng', 'cận sản', 'cận sử',
+                    'cận tâm','câu giam', 'câu giăng', 'Câu Gồ', 'câu hát', 'câu hoạ', 'câu hỏi', 'câu kéo',
+                    'câu kẹo', 'câu kết', 'câu khách', 'mằn thắn', 'mắn đẻ', 'mặn mà', 'mặn miệng', 'mặn mòi',
+                    'mặn nồng', 'mặn tình', 'thu tiếng', 'thu tóm', 'thu tô', 'thu vén', 'thu xếp', 'thù ân',
+                    'thù du', 'Xuân Nội', 'Xuân Nộn', 'xuân nữ', 'xuân phân', 'xuân phong', 'Xuân Phong'),
+                3: ('điều kiện cần', 'điều kiện đủ', 'điều phối viên', 'điệu này (thì)', 'đinh đóng cột',
+                    'tương lai học', 'tường cánh gà', 'tượng trưng hóa', 'tửu tinh kế', 'tỷ lệ thức',
+                    'vật hậu học', 'vật lí học', 'vật linh giáo', 'vật thể hóa', 'vật tổ giáo', 'vật tự nó'),
+                4: ('bẻ cành cung quế', 'bẻ đũa cả nắm', 'bẻ gãy sừng trâu', 'bẻ hành bẻ tỏi', 'bẻ nạng chống trời',
+                    'đạo thầy nghĩa tớ', 'đạo vợ nghĩa chồng', 'đạp sỏi giày sành', 'đạp tuyết tầm mai',
+                    'mò kim rốn bể', 'móc mắt lôi mề', 'mọc lông mọc cánh', 'mọc lông trong bụng', 'mọc mũi sủi tăm',
+                    'rau nào sâu ấy', 'rau súng ăn gỏi', 'rày gió mai mưa', 'rày nắng mai mưa', 'rày ước mai ao'),
+                5: ('ăn như Nam-hạ vác đất', 'ăn như tằm ăn rỗi', 'ăn quà như mỏ khoét', 'ăn rồi lại nằm mèo',
+                    'ăn thủng nồi trôi rế','có dại mới nên khôn', 'có danh không có thực', 'có đẻ không có nuôi',
+                    'kẻ nhát nát người bạo', 'kẻ nửa cân, người tám', 'kẻ tám lạng người nửa', 'kéo cày trả (giả) nợ',
+                    'xấu mã có duyên thầm', 'xây lâu đài trên cát', 'xe chỉ buộc chân voi', 'xé mắm hòng mút tay'),
+            }
+        }
+
+        dirpath_wl = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST)
+        postfix_wl = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+
+        for lang in test_lang_wl.keys():
+            log.Log.debug('Unit Test lang ' + str(lang))
+            ngrams_test = test_lang_wl[lang]
+            wl = WordList(
+                lang             = lf.LangFeatures.LANG_VI,
+                dirpath_wordlist = dirpath_wl,
+                postfix_wordlist = postfix_wl
+            )
+
+            for len in ngrams_test.keys():
+                words = ngrams_test[len]
+                # print(words)
+                for w in words:
+                    is_w_in_list = w in wl.ngrams[len]
+                    # print('Word "' + str(w) + '" in = ' + str(is_w_in_list))
+                    res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                        observed = is_w_in_list,
+                        expected = True,
+                        test_comment = 'Test "' + str(w) + '" in ' + str(len) + '-gram'
+                    ))
+
+        return res_final
+
+
 
 if __name__ == '__main__':
+    WordlistUnitTest(ut_params=None).run_unit_test()
+    exit(0)
+
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config,
-        default_config_file = '/usr/local/git/mozig/mozg.nlp/app.data/config/local.cf'
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
     for lang in ['vn']:
+        dirpath_wl = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST)
+        postfix_wl = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+        print('Dir "' + str(dirpath_wl) + '", postfix "' + str(postfix_wl) + '"')
         wl = WordList(
             lang             = lang,
-            dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+            dirpath_wordlist = dirpath_wl,
+            postfix_wordlist = postfix_wl
         )
         log.Log.log('')
         log.Log.log( lang + ': Read Word List ' + str(wl.wordlist.shape[0]) + " lines" )
@@ -287,10 +370,13 @@ if __name__ == '__main__':
         log.Log.log ( sm_latin )
 
         # Stopwords
+        dirpath_wl = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST)
+        postfix_wl = config.get_config(cf.Config.PARAM_NLP_POSTFIX_STOPWORDS)
+        print('Dir "' + str(dirpath_wl) + '", postfix "' + str(postfix_wl) + '"')
         sw = WordList(
             lang             = lang,
-            dirpath_wordlist = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist = config.get_config(cf.Config.PARAM_NLP_POSTFIX_STOPWORDS)
+            dirpath_wordlist = dirpath_wl,
+            postfix_wordlist = postfix_wl
         )
         log.Log.log('')
         log.Log.log ( lang + ': Read Stopword List ' + str(sw.wordlist.shape[0]) + " lines" )
