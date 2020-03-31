@@ -270,14 +270,6 @@ class WordlistUnitTest:
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
-        import nwae.config.Config as cf
-        config = cf.Config.get_cmdline_params_and_init_config_singleton(
-            Derived_Class       = cf.Config,
-            default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
-        )
-        #log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-        #log.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-
         test_lang_wl = {
             lf.LangFeatures.LANG_VI: {
                 1: ('a-đa', 'A-đam', 'A-đi-xơn', 'a-đrê-na-lin', 'a-ga', 'a-giăng', 'a-giăng-đa', 'a-gon',
@@ -304,8 +296,8 @@ class WordlistUnitTest:
             }
         }
 
-        dirpath_wl = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST)
-        postfix_wl = config.get_config(cf.Config.PARAM_NLP_POSTFIX_WORDLIST)
+        dirpath_wl = self.ut_params.dirpath_wordlist
+        postfix_wl = self.ut_params.postfix_wordlist
 
         for lang in test_lang_wl.keys():
             log.Log.debug('Unit Test lang ' + str(lang))
@@ -333,14 +325,26 @@ class WordlistUnitTest:
 
 
 if __name__ == '__main__':
-    WordlistUnitTest(ut_params=None).run_unit_test()
-    exit(0)
-
     import nwae.config.Config as cf
+
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config,
-        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
+        Derived_Class=cf.Config,
+        default_config_file='/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
+    log.Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+    ut_params = ut.UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
+
+    )
+    WordlistUnitTest(ut_params=ut_params).run_unit_test()
+    exit(0)
 
     for lang in ['vn']:
         dirpath_wl = config.get_config(cf.Config.PARAM_NLP_DIR_WORDLIST)

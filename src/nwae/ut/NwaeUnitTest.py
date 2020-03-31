@@ -54,7 +54,7 @@ class NwaeUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('Language Detect Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        res = WordlistUnitTest(ut_params=None).run_unit_test()
+        res = WordlistUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Wordlist Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
