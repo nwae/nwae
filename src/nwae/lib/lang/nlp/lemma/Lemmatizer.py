@@ -33,7 +33,9 @@ class Lemmatizer:
             lang = lf.LangFeatures.LANG_EN,
             stemmer_type = TYPE_PORTER_STEMMER
     ):
-        self.lang = lang
+        self.lang = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.stemmer_type = stemmer_type
 
         # 바보 nltk is broken, https://stackoverflow.com/questions/38916452/nltk-download-ssl-certificate-verify-failed
@@ -43,7 +45,7 @@ class Lemmatizer:
         if lang not in Lemmatizer.SUPPORTED_LANGUAGES:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Stemmer for language "' + str(lang) + '" not supported.'
-            lg.Log.error(errmsg)
+            lg.Log.warning(errmsg)
             raise Exception(errmsg)
 
         self.stemmer = None

@@ -4,6 +4,8 @@ from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 from nwae.utils.StringUtils import StringUtils
 import re
+from nwae.lib.lang.LangFeatures import LangFeatures
+from nwae.lib.lang.nlp.lemma.Lemmatizer import Lemmatizer
 
 
 class CommonWords:
@@ -12,9 +14,37 @@ class CommonWords:
             self,
             lang
     ):
-        self.lang = lang
+        self.lang = LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.raw_words = None
         self.common_words = None
+
+        lfobj = LangFeatures()
+        self.lang_have_verb_conj = lfobj.have_verb_conjugation(
+            lang = self.lang
+        )
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Lang "' + str(self.lang) + '" verb conjugation = ' + str(self.lang_have_verb_conj) + '.'
+        )
+        self.word_stemmer = None
+        if self.lang_have_verb_conj:
+            try:
+                self.word_stemmer = Lemmatizer(
+                    lang = self.lang
+                )
+                Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '" stemmer/lemmatizer initialized successfully.'
+                )
+            except Exception as ex_stemmer:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Lang "' + str(self.lang) + ' stemmer/lemmatizer failed to initialize: ' \
+                         + str(ex_stemmer) + '.'
+                Log.warning(errmsg)
+                self.word_stemmer = None
+
         return
 
     #
@@ -108,6 +138,11 @@ class CommonWords:
             self.common_words = self.raw_words.split(word_split_token)
             # Remove None, '', {}, etc.
             self.common_words = [w for w in self.common_words if w]
+
+            word_stems = self.add_word_stems()
+            if word_stems:
+                self.common_words = word_stems + self.common_words
+
             self.common_words = sorted(set(self.common_words))
             Log.info(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -120,3 +155,26 @@ class CommonWords:
             raise Exception(errmsg)
 
         return
+
+    def add_word_stems(
+            self
+    ):
+        if self.word_stemmer is None:
+            return None
+
+        stems = []
+        for w in self.common_words:
+            w_stem = self.word_stemmer.stem(
+                word = w
+            )
+            if w_stem == w:
+                continue
+            else:
+                stems.append(w_stem)
+
+        stems = sorted(set(stems))
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Loaded ' + str(len(stems)) + ' unique word stems: ' + str(stems)
+        )
+        return stems
