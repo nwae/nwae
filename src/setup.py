@@ -2,12 +2,14 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.6.0',
+    version='1.6.1',
     packages=[
         'nwae.config',
         'nwae.lib.lang',
         'nwae.lib.lang.characters',
         'nwae.lib.lang.classification',
+        'nwae.lib.lang.detect',
+        'nwae.lib.lang.detect.comwords',
         'nwae.lib.lang.model',
         'nwae.lib.lang.nlp',
         'nwae.lib.lang.nlp.daehua',

@@ -1,0 +1,122 @@
+# --*-- coding: utf-8 --*--
+
+from nwae.utils.Log import Log
+from inspect import getframeinfo, currentframe
+from nwae.utils.StringUtils import StringUtils
+import re
+
+
+class CommonWords:
+
+    def __init__(
+            self,
+            lang
+    ):
+        self.lang = lang
+        self.raw_words = None
+        self.common_words = None
+        return
+
+    #
+    # Minimum intersection with common words given any random English sentence
+    #
+    def get_min_threshold_intersection_pct(
+            self
+    ):
+        raise Exception(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Must be implemented by child class!'
+        )
+
+    def get_pct_intersection_with_common_words(
+            self,
+            word_list,
+            # In the case of Vietnamese, we might have to form words from the syllables
+            max_word_n_tuple = 1
+    ):
+        if max_word_n_tuple == 1:
+            lang_intersection = set(word_list).intersection(self.get_common_words())
+            pct_intersection = len(lang_intersection) / len(set(word_list))
+        else:
+            # Means we are looking not just at the current token, but form a word from
+            # continuous tokens up to max_word_n_tuple (usually not more than 2)
+            len_word_list = len(word_list)
+            count_int = 0
+            cur_index = 0
+            actual_word_count = 0
+            # Loop by each token in the word list (or rather token list)
+            while cur_index < len_word_list:
+                max_n_tuple_lookforward = min(max_word_n_tuple, len_word_list-cur_index)
+                for j in range(max_n_tuple_lookforward,0,-1):
+                    # Look from j tokens ahead
+                    end_index = cur_index+j
+                    # For the j-tuple word
+                    w = ' '.join(word_list[cur_index:end_index])
+                    Log.debug('***** Test word "' + str(w) + '", cur_index=' + str(cur_index) + ', j=' + str(j))
+                    if w in self.get_common_words():
+                        count_int += 1
+                        # Move forward to the end of the token from the word found
+                        cur_index += j-1
+                        Log.debug('Found word "' + str(w) + '"')
+                        break
+                cur_index += 1
+                actual_word_count += 1
+
+            Log.debug('Count Intersection = ' + str(count_int) + ', actual word count = ' + str(actual_word_count))
+            pct_intersection = count_int / actual_word_count
+
+        Log.debug(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': "' + str(self.lang) + '" intersection = ' + str(pct_intersection)
+        )
+        return pct_intersection
+
+    def test_lang(
+            self,
+            word_list
+    ):
+        pct_intersection = self.get_pct_intersection_with_common_words(word_list=word_list)
+        if pct_intersection > self.get_min_threshold_intersection_pct():
+            return True
+        else:
+            return False
+
+    def get_common_words(
+            self
+    ):
+        return self.common_words
+
+    def process_common_words(
+            self,
+            word_split_token = ' '
+    ):
+        try:
+            self.raw_words = StringUtils.trim(self.raw_words)
+            self.raw_words = re.sub(
+                pattern = '[\xa0\t\n\r]',
+                repl    = word_split_token,
+                string  = self.raw_words
+            )
+            self.raw_words = self.raw_words.lower()
+        except Exception as ex:
+            errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Error processing raw words. Exception: ' + str(ex)
+            Log.error(errmsg)
+            raise Exception(errmsg)
+
+        try:
+            self.common_words = self.raw_words.split(word_split_token)
+            # Remove None, '', {}, etc.
+            self.common_words = [w for w in self.common_words if w]
+            self.common_words = sorted(set(self.common_words))
+            Log.info(
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Loaded ' + str(len(self.common_words)) + ' common words of lang "' + str(self.lang) + '".'
+            )
+        except Exception as ex:
+            errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                     + ': Error processing common words. Exception: ' + str(ex)
+            Log.error(errmsg)
+            raise Exception(errmsg)
+
+        return

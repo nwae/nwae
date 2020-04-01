@@ -11,6 +11,14 @@ src/nwae/lib/lang/TextProcessor.py
 src/nwae/lib/lang/characters/LangCharacters.py
 src/nwae/lib/lang/classification/TextClusterBasic.py
 src/nwae/lib/lang/classification/TextClusterBasicUnitTest.py
+src/nwae/lib/lang/detect/CommonWords.py
+src/nwae/lib/lang/detect/LangDetect.py
+src/nwae/lib/lang/detect/LangDetectUnitTest.py
+src/nwae/lib/lang/detect/comwords/English.py
+src/nwae/lib/lang/detect/comwords/French.py
+src/nwae/lib/lang/detect/comwords/Indonesian.py
+src/nwae/lib/lang/detect/comwords/Spanish.py
+src/nwae/lib/lang/detect/comwords/Vietnamese.py
 src/nwae/lib/lang/model/FeatureVector.py
 src/nwae/lib/lang/nlp/Corpora.py
 src/nwae/lib/lang/nlp/LatinEquivalentForm.py
