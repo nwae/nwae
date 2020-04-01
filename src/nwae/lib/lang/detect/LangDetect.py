@@ -11,7 +11,7 @@ from nwae.utils.Profiling import Profiling
 import random
 import math
 from nwae.utils.StringUtils import StringUtils
-import nwae.utils.UnitTest as ut
+from nwae.lib.lang.nlp.lemma.Lemmatizer import Lemmatizer
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.detect.comwords.English import English
 from nwae.lib.lang.detect.comwords.Spanish import Spanish
@@ -21,6 +21,15 @@ from nwae.lib.lang.detect.comwords.Vietnamese import Vietnamese
 
 
 class LangDetect:
+
+    SUPPORTED_LANGS = (
+        LangFeatures.LANG_KO,
+        LangFeatures.LANG_RU,
+        LangFeatures.LANG_ZH,
+        LangFeatures.LANG_TH,
+        LangFeatures.LANG_EN, LangFeatures.LANG_ES, LangFeatures.LANG_FR,
+        LangFeatures.LANG_VI, LangFeatures.LANG_ID,
+    )
 
     THRESHOLD_PCT_WORDS_IN_MOST_COMMON = 0.15
 
@@ -77,11 +86,39 @@ class LangDetect:
         Log.debugdebug('Langs with no word sep: ' + str(self.langs_with_no_word_sep))
 
         # Load common words
-        self.cw_english = English()
-        self.cw_spanish = Spanish()
-        self.cw_french = French()
-        self.cw_indonesian = Indonesian()
-        self.cw_vietnamese = Vietnamese()
+        self.common_words = {}
+        self.common_words[LangFeatures.LANG_EN] = English()
+        self.common_words[LangFeatures.LANG_ES] = Spanish()
+        self.common_words[LangFeatures.LANG_FR] = French()
+        self.common_words[LangFeatures.LANG_ID] = Indonesian()
+        self.common_words[LangFeatures.LANG_VI] = Vietnamese()
+
+        # Load stemmers
+        self.word_stemmer = {}
+        for lang in LangDetect.SUPPORTED_LANGS:
+            lang_have_verb_conj = self.lang_features.have_verb_conjugation(
+                lang = lang
+            )
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(lang) + '" verb conjugation = ' + str(lang_have_verb_conj) + '.'
+            )
+            self.word_stemmer[lang] = None
+            if lang_have_verb_conj:
+                try:
+                    self.word_stemmer[lang] = Lemmatizer(
+                        lang = lang
+                    )
+                    Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Lang "' + str(lang) + '" stemmer/lemmatizer initialized successfully.'
+                    )
+                except Exception as ex_stemmer:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                             + ': Lang "' + str(lang) + ' stemmer/lemmatizer failed to initialize: ' \
+                             + str(ex_stemmer) + '.'
+                    Log.warning(errmsg)
+
         return
 
     #
@@ -236,32 +273,18 @@ class LangDetect:
         lang_codes = []
         lang_pct = []
 
-        lang_codes.append(LangFeatures.LANG_EN)
-        lang_pct.append(self.cw_english.get_pct_intersection_with_common_words(
-                word_list = sent
-        ))
-
-        lang_codes.append(LangFeatures.LANG_ES)
-        lang_pct.append(self.cw_spanish.get_pct_intersection_with_common_words(
-            word_list = sent
-        ))
-
-        lang_codes.append(LangFeatures.LANG_FR)
-        lang_pct.append(self.cw_french.get_pct_intersection_with_common_words(
-                word_list = sent
-        ))
-
-        lang_codes.append(LangFeatures.LANG_VI)
-        lang_pct.append(self.cw_vietnamese.get_pct_intersection_with_common_words(
-            word_list = sent,
-            # Look for n-tuples of tokens
-            max_word_n_tuple = 2
-        ))
-
-        lang_codes.append(LangFeatures.LANG_ID)
-        lang_pct.append(self.cw_indonesian.get_pct_intersection_with_common_words(
-            word_list = sent
-        ))
+        for lang in (
+                LangFeatures.LANG_EN, LangFeatures.LANG_ES, LangFeatures.LANG_FR,
+                LangFeatures.LANG_VI, LangFeatures.LANG_ID,
+        ):
+            lang_codes.append(lang)
+            max_word_n_tuple = 1
+            if lang == LangFeatures.LANG_VI:
+                max_word_n_tuple = 2
+            lang_pct.append(self.common_words[lang].get_pct_intersection_with_common_words(
+                word_list = sent,
+                max_word_n_tuple = max_word_n_tuple
+            ))
 
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -276,6 +299,27 @@ class LangDetect:
             if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
                 return [lang_codes[idx_max]]
             else:
+                # Check word stems
+                for lang in lang_codes:
+                    if self.word_stemmer[lang] is None:
+                        continue
+                    sent_stems = []
+                    for w in sent:
+                        w_stem = self.word_stemmer[lang].stem(word=w)
+                        sent_stems.append(w_stem)
+                    if sent_stems == sent:
+                        continue
+                    Log.debug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': For lang "' + str(lang)
+                        + '", trying stemmed words: ' + str(sent_stems)
+                    )
+                    pct_int = self.common_words[lang].get_pct_intersection_with_common_words(
+                        word_list = sent_stems
+                    )
+                    if pct_int > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+                        return [lang]
+
                 # Although French, Spanish could also have these characters, we favor Vietnamese
                 if LangFeatures.ALPHABET_LATIN_VI in detected_alphabets_present:
                     return [LangFeatures.LANG_VI]

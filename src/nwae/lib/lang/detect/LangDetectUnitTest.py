@@ -68,6 +68,9 @@ class LangDetectUnitTest:
          [LangFeatures.LANG_EN]),
         ('I am hungry',
          [LangFeatures.LANG_EN]),
+        # This will fail at 1st round and try the stemmed sentence "asdf bank wisdom"
+        ('asdf banks wisdoms',
+         [LangFeatures.LANG_EN]),
         ### Spanish
         # This will contain both Spanish/French at 25%
         ('Incrustado en las laderas de unas colinas volcánicas',
@@ -159,7 +162,8 @@ class LangDetectUnitTest:
             stop  = end_all_time
         ) / len(LangDetectUnitTest.TEST_TEXT_LANG)
         Log.info(
-            'Average ' + str(round(avg_per_text_ms,2)) + 'ms per text (total '
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Average ' + str(round(avg_per_text_ms,2)) + 'ms per text (total '
             + str(len(LangDetectUnitTest.TEST_TEXT_LANG)) + ' sentences)'
         )
 
@@ -174,7 +178,7 @@ if __name__ == '__main__':
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
     #text = 'rút bao nhiêu'
-    text = 'rút bao nhiêu'
+    text = 'banks wisdoms asdf'
     ld = LangDetect()
     lang = ld.detect(
         text = text
