@@ -13,6 +13,7 @@ from nwae.lib.lang.nlp.ut.UtWordSegmentation import UnitTestWordSegmentation
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessorUnitTest
 from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
 from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
+from nwae.lib.lang.classification.TextClusterBasicUnitTest import TextClusterBasicUnitTest
 from nwae.lib.math.NumpyUtil import NumpyUtilUnittest
 from nwae.lib.math.ml.metricspace.ut.UtMetricSpaceModel import UnitTestMetricSpaceModel
 import nwae.lib.math.ml.ModelHelper as modelHelper
@@ -74,6 +75,10 @@ class NwaeUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('TD Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
+        res = TextClusterBasicUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Text Cluster Basic Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
         res = NumpyUtilUnittest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Numpy Util Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
@@ -105,7 +110,7 @@ if __name__ == '__main__':
         postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
     )
-    print('Unit Test Params: ' + str(ut_params.to_string()))
+    Log.important('Unit Test Params: ' + str(ut_params.to_string()))
 
     Log.LOGLEVEL = Log.LOG_LEVEL_ERROR
 

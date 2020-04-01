@@ -370,7 +370,6 @@ if __name__ == '__main__':
         dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR)
-
     )
     res = WordlistUnitTest(ut_params=ut_params).run_unit_test()
     print('PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
