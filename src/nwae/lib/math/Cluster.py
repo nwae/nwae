@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.cluster.vq import vq, kmeans, whiten
 import nwae.utils.Log as lg
 from inspect import currentframe, getframeinfo
+import nwae.utils.UnitTest as ut
 
 #
 # Some concepts:
@@ -273,53 +274,149 @@ class Cluster:
         return retobj
 
 
+class ClusterUnitTest:
+    def __init__(
+            self,
+            ut_params
+    ):
+        self.ut_params = ut_params
+        if self.ut_params is None:
+            # We only do this for convenience, so that we have access to the Class methods in UI
+            self.ut_params = ut.UnitTestParams()
+        return
+
+    def __extract_cluster_groups_from_points_and_labels(
+            self,
+            # np array of points, e.g. [[0,1], [0,1.1], [2,1], [2,0], [2,0.4]]
+            point_array,
+            # Their group labels, e.g. [0,0,0,1,1]
+            point_group_labels
+    ):
+        lg.Log.debug('Input point array: ' + str(point_array))
+        lg.Log.debug('Input group labels: ' + str(point_group_labels))
+        # Extract out the same group label points into separate lists
+        cluster_groups_dict = {}
+        track_group_labels = []
+        for i in range(len(point_array)):
+            group_label = point_group_labels[i]
+            # We only add a new group when we see a new label, this way we keep the order
+            # of the groups the same, regardless of the different labels like (0,0,1,1,1)
+            # or (5,5,7,7,7) - the extraction of the groups remain the same
+            if group_label not in track_group_labels:
+                track_group_labels.append(group_label)
+                cluster_groups_dict[group_label] = []
+            # Add the point index i in the cluster group label
+            cluster_groups_dict[group_label].append(i)
+
+        cluster_centers = []
+        count = 0
+        for g in cluster_groups_dict.values():
+            group_size = len(g)
+            cluster_centers.append(
+                np.sum(point_array[count:(count + group_size)], axis=0) / group_size
+            )
+            count += group_size
+
+        cluster_groups = list(cluster_groups_dict.values())
+        lg.Log.info(
+            '\n\rCluster groups: ' + str(cluster_groups)
+            + '\n\rCluster centers: ' + str(cluster_centers)
+        )
+        return cluster_groups, cluster_centers
+
+    def __test_data(
+            self,
+            # np array of points, e.g. [[0,1], [0,1.1], [2,1], [2,0], [2,0.4]]
+            point_array,
+            # Their group labels, e.g. [0,0,0,1,1]
+            point_group_labels
+    ):
+        res_test = ut.ResultObj(count_ok=0, count_fail=0)
+
+        expected_groups, expected_centers = self.__extract_cluster_groups_from_points_and_labels(
+            point_array = point_array,
+            point_group_labels = point_group_labels
+        )
+
+        # Optimal clusters
+        optimal_clusters = Cluster.get_optimal_cluster(
+            matx    = point_array,
+            n_tries = point_array.shape[0]
+        )
+        lg.Log.debug('Optimal Clusters = ' + str(optimal_clusters))
+
+        retval = Cluster.cluster(
+            matx       = point_array,
+            ncenters   = len(expected_centers),
+            iterations = 20
+        )
+
+        lg.Log.debug('Cluster Centers:\n\r' + str(retval.np_cluster_centers))
+        lg.Log.debug('Cluster Labels:\n\r' + str(retval.np_cluster_labels))
+        lg.Log.debug('Cluster Point Distances to CC:\n\r' + str(retval.df_distances_point_to_cc))
+        lg.Log.debug('Cluster Radius:\n\r' + str(retval.np_cluster_radius))
+        lg.Log.debug('Max Cluster Radius:\n\r' + str(retval.val_max_cluster_radius))
+
+        #
+        # Compare cluster centers with expected cluster centers
+        #
+        observed_groups, observed_centers = self.__extract_cluster_groups_from_points_and_labels(
+            point_array = point_array,
+            point_group_labels = retval.np_cluster_labels[0]
+        )
+
+        #
+        # Compare groups is easy
+        #
+        res_test.update_bool(res_bool=ut.UnitTest.assert_true(
+            observed = observed_groups,
+            expected = expected_groups,
+            test_comment = 'Compare observed: ' + str(observed_groups)
+                           + ', and expected groups: ' + str(expected_groups)
+        ))
+
+        #
+        # Comparing centers need to do one by one with error tolerance
+        #
+        for i in range(len(expected_centers)):
+            exp_ctr = expected_centers[i]
+            obs_ctr = observed_centers[i]
+            euclidean_dist = np.sum( (exp_ctr - obs_ctr)**2 ) ** 0.5
+            res_test.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = euclidean_dist < 0.00001,
+                expected = True,
+                test_comment = 'Center ' + str(i)
+                               + '. Compare distance = ' + str(euclidean_dist)
+                               + ' of observed center ' + str(obs_ctr)
+                               + ', and expected center: ' + str(exp_ctr)
+            ))
+
+        return res_test
+
+    def run_unit_test(self):
+        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+
+        m = np.zeros((9, 5))
+        m[0] = [1, 2, 1, 0, 0]
+        m[1] = [2, 1, 2, 0, 0]
+        m[2] = [1, 1, 1, 0, 0]
+        m[3] = [1, 0, 0, 1, 1]
+        m[4] = [2, 0, 0, 1, 2]
+        m[5] = [0, 10, 10, 0, 10]
+        m[6] = [0, 9, 11, 0, 12]
+        m[7] = [0, 10, 9, 0, 10]
+        m[8] = [0, 10, 9, 0, 10]
+        res = self.__test_data(
+            point_array = m,
+            point_group_labels = (0, 0, 0, 1, 1, 2, 2, 2, 2)
+        )
+        res_final.update(other_res_obj=res)
+
+        return res_final
+
+
 if __name__ == '__main__':
-    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_INFO
-    fn = ['a', 'b', 'c', 'd', 'e']
-    m = np.zeros((9, 5))
-    m[0] = [1,2,1,0,0]
-    m[1] = [2,1,2,0,0]
-    m[2] = [1,1,1,0,0]
-    m[3] = [1,0,0,1,1]
-    m[4] = [2,0,0,1,2]
-    m[5] = [0,10,10,0,10]
-    m[6] = [0,9,11,0,12]
-    m[7] = [0,10,9,0,10]
-    m[8] = [0,10,9,0,10]
+    lg.Log.LOGLEVEL = lg.Log.LOG_LEVEL_DEBUG_1
 
-    # Optimal clusters
-    optimal_clusters = Cluster.get_optimal_cluster(
-        matx=m,
-        n_tries=m.shape[0]
-    )
-    print('Optimal Clusters = ' + str(optimal_clusters))
-
-    retval = Cluster.cluster(
-        matx          = m,
-        ncenters      = 3,
-        iterations    = 20
-    )
-    print('Cluster Centers:\n\r' + str(retval.np_cluster_centers))
-    print('Cluster Labels:\n\r' + str(retval.np_cluster_labels))
-    print('Cluster Point Distances to CC:\n\r' + str(retval.df_distances_point_to_cc))
-    print('Cluster Radius:\n\r' + str(retval.np_cluster_radius))
-    print('Max Cluster Radius:\n\r' + str(retval.val_max_cluster_radius))
-
-    fn = ['a', 'b', 'c', 'd', 'e']
-    m = np.array([
-        [1.0, 2.0 ,1.0 ,5.0 ,0.0],
-        [1.0 ,2.0 ,1.0 ,5.0 ,0.0]
-    ],
-    ndmin=2)
-    print(m)
-
-    retval = Cluster.cluster(
-        matx=m,
-        ncenters=10,
-        iterations=20
-    )
-    print('Cluster Centers:\n\r' + str(retval.np_cluster_centers))
-    print('Cluster Labels:\n\r' + str(retval.np_cluster_labels))
-    print('Cluster Point Distances to CC:\n\r' + str(retval.df_distances_point_to_cc))
-    print('Cluster Radius:\n\r' + str(retval.np_cluster_radius))
-    print('Max Cluster Radius:\n\r' + str(retval.val_max_cluster_radius))
+    ClusterUnitTest(ut_params=None).run_unit_test()
+    exit(0)

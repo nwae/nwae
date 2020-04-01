@@ -15,6 +15,7 @@ from nwae.lib.lang.preprocessing.ut.UtTxtPreprocessor import UtTxtPreprocessor
 from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
 from nwae.lib.lang.classification.TextClusterBasicUnitTest import TextClusterBasicUnitTest
 from nwae.lib.math.NumpyUtil import NumpyUtilUnittest
+from nwae.lib.math.Cluster import ClusterUnitTest
 from nwae.lib.math.ml.metricspace.ut.UtMetricSpaceModel import UnitTestMetricSpaceModel
 import nwae.lib.math.ml.ModelHelper as modelHelper
 
@@ -82,6 +83,10 @@ class NwaeUnitTest:
         res = NumpyUtilUnittest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('Numpy Util Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = ClusterUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('Cluster Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMetricSpaceModel(
             ut_params = self.ut_params,
