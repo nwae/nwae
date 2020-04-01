@@ -12,6 +12,7 @@ import nwae.lib.math.ml.ModelInterface as modelIf
 import nwae.lib.math.ml.ModelHelper as modelHelper
 import threading
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
+from nwae.lib.lang.detect.LangDetect import LangDetect
 
 
 #
@@ -46,8 +47,9 @@ class PredictClass(threading.Thread):
             postfix_wordlist_app,
             confidence_level_scores = None,
             do_spelling_correction = False,
-            do_word_stemming = False,
-            do_profiling = False
+            do_word_stemming = True,
+            do_profiling = False,
+            lang_additional = ()
     ):
         super(PredictClass, self).__init__()
 
@@ -55,7 +57,7 @@ class PredictClass(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
 
-        self.lang = lang
+        self.lang_main = lang
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
         self.dir_wordlist = dir_wordlist
@@ -65,6 +67,24 @@ class PredictClass(threading.Thread):
         self.do_spelling_correction = do_spelling_correction
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
+
+        if lang_additional is None:
+            lang_additional = ()
+        self.lang_additional = [
+            langfeatures.LangFeatures.map_to_lang_code_iso639_1(lang_code=l) for l in lang_additional
+        ]
+        try:
+            self.lang_additional.remove(self.lang_main)
+        except ValueError:
+            pass
+        self.lang_additional = list(set(self.lang_additional))
+
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model "' + str(self.identifier_string)
+            + '", main language "' + str(self.lang_main)
+            + '", additional languages: ' + str(self.lang_additional)
+        )
 
         self.model = modelHelper.ModelHelper.get_model(
             model_name              = self.model_name,
@@ -88,6 +108,7 @@ class PredictClass(threading.Thread):
         # are only from the model features
         #
         self.predict_class_txt_processor = None
+        self.lang_detect = None
 
         self.count_predict_calls = 0
 
@@ -126,26 +147,30 @@ class PredictClass(threading.Thread):
                 + ': Model "' + str(self.model_name) + '" ready. Loading synonym & word lists..'
             )
 
-            self.predict_class_txt_processor = TxtPreprocessor(
-                identifier_string      = self.identifier_string,
-                dir_path_model         = self.dir_path_model,
-                model_features_list    = self.model.get_model_features().tolist(),
-                lang                   = self.lang,
-                dirpath_synonymlist    = self.dirpath_synonymlist,
-                postfix_synonymlist    = self.postfix_synonymlist,
-                dir_wordlist           = self.dir_wordlist,
-                postfix_wordlist       = self.postfix_wordlist,
-                dir_wordlist_app       = self.dir_wordlist_app,
-                postfix_wordlist_app   = self.postfix_wordlist_app,
-                # TODO For certain languages like English, it is essential to include this
-                #   But at the same time must be very careful. By adding manual rules, for
-                #   example we include words 'it', 'is'.. But "It is" could be a very valid
-                #   training data that becomes excluded wrongly.
-                stopwords_list         = None,
-                do_spelling_correction = self.do_spelling_correction,
-                do_word_stemming       = self.do_word_stemming,
-                do_profiling           = self.do_profiling
-            )
+            self.lang_detect = LangDetect()
+
+            self.predict_class_txt_processor = {}
+            for uh in [self.lang_main] + self.lang_additional:
+                self.predict_class_txt_processor[uh] = TxtPreprocessor(
+                    identifier_string      = self.identifier_string,
+                    dir_path_model         = self.dir_path_model,
+                    model_features_list    = self.model.get_model_features().tolist(),
+                    lang                   = uh,
+                    dirpath_synonymlist    = self.dirpath_synonymlist,
+                    postfix_synonymlist    = self.postfix_synonymlist,
+                    dir_wordlist           = self.dir_wordlist,
+                    postfix_wordlist       = self.postfix_wordlist,
+                    dir_wordlist_app       = self.dir_wordlist_app,
+                    postfix_wordlist_app   = self.postfix_wordlist_app,
+                    # TODO For certain languages like English, it is essential to include this
+                    #   But at the same time must be very careful. By adding manual rules, for
+                    #   example we include words 'it', 'is'.. But "It is" could be a very valid
+                    #   training data that becomes excluded wrongly.
+                    stopwords_list         = None,
+                    do_spelling_correction = self.do_spelling_correction,
+                    do_word_stemming       = self.do_word_stemming,
+                    do_profiling           = self.do_profiling
+                )
 
             self.is_all_initializations_done = True
             # Manually update this model last reloaded counter
@@ -252,7 +277,25 @@ class PredictClass(threading.Thread):
         self.wait_for_model_to_be_ready()
         self.wait_for_all_initializations_to_be_done()
 
-        processed_txt_array = self.predict_class_txt_processor.process_text(
+        possible_langs = self.lang_detect.detect(
+            text = inputtext
+        )
+        # Empty list
+        if not possible_langs:
+            lang_detected = self.lang_main
+        else:
+            lang_detected = possible_langs[0]
+
+        # If detected language not supported
+        if lang_detected not in [self.lang_main] + self.lang_additional:
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': For "' + str(self.identifier_string)
+                + '", detected lang "' + str(lang_detected) + '" not in languages supported'
+            )
+            lang_detected = self.lang_main
+
+        processed_txt_array = self.predict_class_txt_processor[lang_detected].process_text(
             inputtext = inputtext
         )
 

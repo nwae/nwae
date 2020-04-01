@@ -34,7 +34,9 @@ class SpellingCorrection:
             identifier_string,
             do_profiling = False
     ):
-        self.lang = lang
+        self.lang = langfeatures.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.words_list = words_list
         self.dir_path_model = dir_path_model
         self.identifier_string = identifier_string

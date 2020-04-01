@@ -40,14 +40,16 @@ class TxtPreprocessor:
             # training data that becomes excluded wrongly.
             stopwords_list = None,
             do_spelling_correction = False,
-            do_word_stemming = False,
+            do_word_stemming = True,
             do_profiling = False
     ):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.model_features_list = model_features_list
-
-        self.lang = lang
+        
+        self.lang = langfeatures.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
         self.dir_wordlist = dir_wordlist
@@ -69,9 +71,9 @@ class TxtPreprocessor:
         )
 
         self.words_no_replace_with_special_symbols = \
-            langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS + \
-            langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS + \
-            langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS) + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_SENTENCE_SEPARATORS) + \
+            list(langchar.LangCharacters.UNICODE_BLOCK_PUNCTUATIONS) + \
             list(BasicPreprocessor.ALL_SPECIAL_SYMBOLS)
 
         self.words_no_replace_with_special_symbols = list(set(self.words_no_replace_with_special_symbols))
@@ -193,7 +195,8 @@ class TxtPreprocessor:
     ):
         #
         # 1st Round replace with very special symbols first, that must be done before
-        # word segmentation. Be careful here, don't simply replace things.
+        # word segmentation or cleaning.
+        # Be careful here, don't simply replace things.
         # For symbols that can wait until after word segmentation like numbers, unknown
         # words, we do later.
         #
@@ -210,6 +213,11 @@ class TxtPreprocessor:
                 repl    = pat_rep['repl'],
                 string  = inputtext_sym
             )
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" special pattern replacement to: ' + str(inputtext_sym)
+        )
 
         #
         # Segment words
@@ -221,7 +229,8 @@ class TxtPreprocessor:
         )
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" segmented to: ' + str(text_segmented_arr)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" segmented to: ' + str(text_segmented_arr)
         )
 
         #
@@ -235,7 +244,8 @@ class TxtPreprocessor:
             text_segmented_arr = tmp_arr
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext) + '" clean punctuations to: ' + str(text_segmented_arr)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
+            + '" clean punctuations to: ' + str(text_segmented_arr)
         )
 
         #
@@ -251,7 +261,7 @@ class TxtPreprocessor:
 
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Text "' + str(inputtext)
+            + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
         )
 
@@ -265,7 +275,7 @@ class TxtPreprocessor:
                 )
                 log.Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext)
+                    + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
                 )
 
@@ -279,7 +289,7 @@ class TxtPreprocessor:
                     text_remove_stopwords_arr.append(w)
             log.Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Text "' + str(inputtext)
+                + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                 + '", removed stopwords to "' + str(text_remove_stopwords_arr) + '".'
             )
             text_normalized_arr_lower = text_remove_stopwords_arr
@@ -287,6 +297,11 @@ class TxtPreprocessor:
         #
         # Stemming / Lemmatization
         #
+        log.Log.debug(
+            '***** Lang ' + str(self.lang)
+            + ', Do stemming = ' + str(self.do_word_stemming)
+            + ' ,Have verb conjugation = ' + str(self.lang_have_verb_conj)
+        )
         if self.do_word_stemming and self.lang_have_verb_conj:
             if self.word_stemmer_lemmatizer:
                 for i in range(len(text_normalized_arr_lower)):
@@ -295,7 +310,7 @@ class TxtPreprocessor:
                     )
                 log.Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Text "' + str(inputtext)
+                    + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
                 )
 
@@ -339,7 +354,8 @@ class TxtPreprocessor:
 
         log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Done text processing to: ' + str(text_normalized_arr_lower)
+            + ': Lang "' + str(self.lang)
+            + '", Done text processing to: ' + str(text_normalized_arr_lower)
             + ' from "' + str(inputtext) + '".'
         )
 

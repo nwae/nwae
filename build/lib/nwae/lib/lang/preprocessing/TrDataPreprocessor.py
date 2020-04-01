@@ -3,6 +3,7 @@
 import pandas as pd
 import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.LatinEquivalentForm as latinEqForm
+from nwae.lib.lang.detect.LangDetect import LangDetect
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 import nwae.utils.Log as log
@@ -19,10 +20,13 @@ class TrDataPreprocessor:
     TRDATA_ID_INTENT_NAME = -1
     TRDATA_ID_LATIN_FORM = -2
 
+    TD_INTERNAL_COUNTER = '__COUNT'
+
     def __init__(
             self,
             model_identifier,
-            language,
+            # The main language, optional support for additional languages below
+            language_main,
             # Training data in pandas DataFrame format with at least 3 columns
             #   DaehuaTrainDataModel.COL_TDATA_INTENT_ID
             #   DaehuaTrainDataModel.COL_TDATA_INTENT_NAME
@@ -36,11 +40,17 @@ class TrDataPreprocessor:
             postfix_app_wordlist,
             dirpath_synonymlist,
             postfix_synonymlist,
+            do_word_stemming = True,
             # Do word processing for all sentences, when word/synonym list changes
-            reprocess_all_text = False
+            reprocess_all_text = False,
+            # Optional support for additional list of languages
+            languages_additional = ()
     ):
         self.model_identifier = model_identifier
-        self.language = language
+        # Main language
+        self.language_main = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = language_main
+        )
         self.df_training_data = df_training_data
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist
@@ -49,38 +59,68 @@ class TrDataPreprocessor:
         self.dirpath_synonymlist = dirpath_synonymlist
         self.postfix_synonymlist = postfix_synonymlist
 
+        self.do_word_stemming = do_word_stemming
         self.reprocess_all_text = reprocess_all_text
         # The caller might want to update his DB
         self.list_of_rows_with_changed_processed_text = []
 
-        lfobj = lf.LangFeatures()
-        self.lang_have_verb_conj = lfobj.have_verb_conjugation(lang=self.language)
+        if languages_additional is None:
+            languages_additional = ()
+        self.languages_additional = [
+            lf.LangFeatures.map_to_lang_code_iso639_1(lang_code=l) for l in languages_additional
+        ]
+        try:
+            self.languages_additional.remove(self.language_main)
+        except ValueError:
+            pass
+        self.languages_additional = list(set(self.languages_additional))
+
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Language "' + str(self.language)
-            + '" have verb conjugation = ' + str(self.lang_have_verb_conj) + '.'
+            + ': Model "' + str(self.model_identifier)
+            + '", main language "' + str(self.language_main)
+            + '", additional languages: ' + str(self.languages_additional)
         )
 
-        self.txt_preprocessor = TxtPreprocessor(
-            identifier_string      = self.model_identifier,
-            # Don't need directory path for model, as we will not do spelling correction
-            dir_path_model         = None,
-            # Don't need features/vocabulary list from model
-            model_features_list    = None,
-            lang                   = self.language,
-            dirpath_synonymlist    = self.dirpath_synonymlist,
-            postfix_synonymlist    = self.postfix_synonymlist,
-            dir_wordlist           = self.dirpath_wordlist,
-            postfix_wordlist       = self.postfix_wordlist,
-            dir_wordlist_app       = self.dirpath_app_wordlist,
-            postfix_wordlist_app   = self.postfix_app_wordlist,
-            do_spelling_correction = False,
-            do_word_stemming       = self.lang_have_verb_conj,
-            do_profiling           = False
-        )
+        self.lang_detect = LangDetect()
+
+        self.lang_have_verb_conj = {}
+        self.txt_preprocessor = {}
+
+        lfobj = lf.LangFeatures()
+
+        for uh in [self.language_main] + self.languages_additional:
+            self.lang_have_verb_conj[uh] = lfobj.have_verb_conjugation(lang=uh)
+            log.Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Language "' + str(uh)
+                + '" have verb conjugation = ' + str(self.lang_have_verb_conj[uh]) + '.'
+            )
+
+            self.txt_preprocessor[uh] = TxtPreprocessor(
+                identifier_string      = self.model_identifier,
+                # Don't need directory path for model, as we will not do spelling correction
+                dir_path_model         = None,
+                # Don't need features/vocabulary list from model
+                model_features_list    = None,
+                lang                   = uh,
+                dirpath_synonymlist    = self.dirpath_synonymlist,
+                postfix_synonymlist    = self.postfix_synonymlist,
+                dir_wordlist           = self.dirpath_wordlist,
+                postfix_wordlist       = self.postfix_wordlist,
+                dir_wordlist_app       = self.dirpath_app_wordlist,
+                postfix_wordlist_app   = self.postfix_app_wordlist,
+                do_spelling_correction = False,
+                do_word_stemming       = self.do_word_stemming,
+                do_profiling           = False
+            )
 
         # We will convert the dataframe into our nwae format
         self.nwae_training_data = None
+
+        # Add a count column to training dataframe to try to keep the original
+        # as much as possible later after adding intent names
+        self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER] = range(self.df_training_data.shape[0])
 
         return
 
@@ -90,26 +130,30 @@ class TrDataPreprocessor:
             intent_name,
             text,
             text_id,
-            processed_text
+            processed_text,
+            lang_detected,
+            internal_counter
     ):
         return {
-            DaehuaTrainDataModel.COL_TDATA_INTENT_ID: intent_id,
-            DaehuaTrainDataModel.COL_TDATA_INTENT_NAME: intent_name,
-            DaehuaTrainDataModel.COL_TDATA_TEXT: text,
+            DaehuaTrainDataModel.COL_TDATA_INTENT_ID:        intent_id,
+            DaehuaTrainDataModel.COL_TDATA_INTENT_NAME:      intent_name,
+            DaehuaTrainDataModel.COL_TDATA_TEXT:             text,
             DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID: text_id,
-            DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED: processed_text
+            DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED:   processed_text,
+            DaehuaTrainDataModel.COL_TDATA_TEXT_LANG:        lang_detected,
+            TrDataPreprocessor.TD_INTERNAL_COUNTER:          internal_counter
         }
 
     #
     # Our interface to external objects so that they can start this lengthy process in the background
     #
     def go(self):
+        # Just add intent names into the training data, no text processing
         self.add_intent_name_to_training_data()
         self.process_text_training_data()
         self.add_latin_form_to_training_data()
         self.nwae_training_data = nwaeTrainer.Trainer.convert_to_training_data_model_type(
-            td = self.df_training_data,
-            lang = self.language
+            td = self.df_training_data
         )
         return self.nwae_training_data
 
@@ -135,12 +179,14 @@ class TrDataPreprocessor:
                 # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
                     data = self.__get_row_to_append_to_training_data(
-                        intent_id      = [intId],
-                        intent_name    = [int_name],
-                        text           = [int_name],
-                        text_id        = [TrDataPreprocessor.TRDATA_ID_INTENT_NAME],
+                        intent_id        = [intId],
+                        intent_name      = [int_name],
+                        text             = [int_name],
+                        text_id          = [TrDataPreprocessor.TRDATA_ID_INTENT_NAME],
                         # Make sure to write back this value with processed text
-                        processed_text = [None]
+                        processed_text   = [None],
+                        lang_detected    = [None],
+                        internal_counter = [self.df_training_data.shape[0]]
                 ))
 
                 #
@@ -167,34 +213,14 @@ class TrDataPreprocessor:
 
         self.__process_training_data_index()
 
-        #
-        # Now we decode all Daehua Training Language Model
-        # TODO Remove all this when Daehua Model is encoded in separate columns and not under Intent Name
-        #
-        # dh_obj = DaehuaTrainDataModel(
-        #     daehua_training_data = self.df_training_data
-        # )
-        # # This will clean 2 columns: Intent Names & Txt
-        # self.df_training_data = dh_obj.clean_daehua_training_data()
-        # log.Log.info(
-        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-        #     + ': Done cleaning training data from daehua model variables.'
-        # )
-        #
-        # log.Log.debug(
-        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-        #     + ': After cleaning daehua variables, 10 Lines training data:\n\r'
-        #     + str(self.df_training_data.columns) + '\n\r'
-        #     + str(self.df_training_data[1:10].values)
-        #     + '\n\r: Shape: ' + str(self.df_training_data.shape)
-        # )
-
         return self.df_training_data
 
     def __process_training_data_index(self):
         # Sort by Intent ID and reset index
         self.df_training_data = self.df_training_data.sort_values(
-            [DaehuaTrainDataModel.COL_TDATA_INTENT_ID],
+            # By sorting also the internal counter, means we keep the original order within an
+            # intent class, and the added Intent Name row will be last within the class
+            [DaehuaTrainDataModel.COL_TDATA_INTENT_ID, TrDataPreprocessor.TD_INTERNAL_COUNTER],
             ascending=True
         )
         self.df_training_data = self.df_training_data.reset_index(drop=True)
@@ -226,7 +252,6 @@ class TrDataPreprocessor:
         )
         return
 
-
     #
     # Segment text if necessary, stem if necessary for languages like English
     # This can happen when there is new training text in the DB, and the BO just write NULL
@@ -256,6 +281,8 @@ class TrDataPreprocessor:
             intent_td_id = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TRAINING_DATA_ID].loc[idx_row]
             intent_id = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_ID].loc[idx_row]
             intent_name = self.df_training_data[DaehuaTrainDataModel.COL_TDATA_INTENT_NAME].loc[idx_row]
+            # Internal Counter
+            internal_counter = self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER].loc[idx_row]
 
             log.Log.debugdebug(
                 'Processing index row "' + str(idx_row) + '" '
@@ -268,8 +295,37 @@ class TrDataPreprocessor:
                     + ': Text from DB "' + str(text_from_db) + '" not string type.'
                 )
                 text_from_db = str(text_from_db)
-            if (text_processed_from_db is None) or (str(text_processed_from_db).lower() == 'none'):
+            # When a text is updated in DB/storage, this field should be cleared in DB to NULL
+            if text_processed_from_db is None:
                 text_processed_from_db = ''
+
+            possible_langs = self.lang_detect.detect(
+                text = text_from_db
+            )
+            # Empty list
+            if not possible_langs:
+                lang_detected = self.language_main
+            else:
+                lang_detected = possible_langs[0]
+
+            # If detected language not supported
+            if lang_detected not in [self.language_main] + self.languages_additional:
+                log.Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': For "' + str(self.model_identifier)
+                    + '", detected lang "' + str(lang_detected) + '" not in languages supported'
+                )
+                lang_detected = self.language_main
+            # Update data frame with language detected
+            self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_LANG].at[idx_row] = \
+                lang_detected
+
+            #if lang_detected != self.language_main:
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(lang_detected) + '" main lang "' + str(self.language_main)
+                + '" for text "' + str(text_from_db) + '".'
+            )
 
             #
             # Sanity check only. Should not happen since after every training data update,
@@ -278,7 +334,7 @@ class TrDataPreprocessor:
             #
             is_likely_processed_text_changed = len(text_processed_from_db) < len(text_from_db)
             # If a language has verb conjugation, we cannot just compare length as the original text could be longer
-            if self.lang_have_verb_conj:
+            if self.lang_have_verb_conj[lang_detected]:
                 # So we just hardcode
                 is_likely_processed_text_changed = len(text_processed_from_db) <= 8
 
@@ -295,7 +351,7 @@ class TrDataPreprocessor:
             # We only reprocess the text if there is some likelihood of change
             #
             if self.reprocess_all_text or is_likely_processed_text_changed:
-                processed_text_str = self.txt_preprocessor.process_text(
+                processed_text_str = self.txt_preprocessor[lang_detected].process_text(
                     inputtext = text_from_db,
                     return_as_string = True
                 )
@@ -334,7 +390,9 @@ class TrDataPreprocessor:
                             intent_name    = intent_name,
                             text           = text_from_db,
                             text_id        = intent_td_id,
-                            processed_text = processed_text_str
+                            processed_text = processed_text_str,
+                            lang_detected  = lang_detected,
+                            internal_counter = internal_counter
                         )
                         self.list_of_rows_with_changed_processed_text.append(row_changed)
                         log.Log.important(
@@ -366,30 +424,35 @@ class TrDataPreprocessor:
     def add_latin_form_to_training_data(
             self
     ):
-        if not latinEqForm.LatinEquivalentForm.have_latin_equivalent_form(lang = self.language):
+        #
+        # We only support this complication if the main language has a Latin Equivalent Form
+        # We ignore if it is only an additional language, to reduce complexity
+        #
+        if not latinEqForm.LatinEquivalentForm.have_latin_equivalent_form(lang = self.language_main):
             log.Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': For "' + str(self.model_identifier) + '", language "' + str(self.language)
+                + ': For "' + str(self.model_identifier) + '", language "' + str(self.language_main)
                 + '", nothing to do for latin equivalent form.'
             )
             return
 
         log.Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': For "' + str(self.model_identifier) + '", language "' + str(self.language)
+            + ': For "' + str(self.model_identifier) + '", language "' + str(self.language_main)
             + '", adding to training data, the latin equivalent form.'
         )
         for idx in self.df_training_data.index:
             text = str(self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT].loc[idx])
             text_processed = str(self.df_training_data[DaehuaTrainDataModel.COL_TDATA_TEXT_SEGMENTED].loc[idx])
+            internal_counter = self.df_training_data[TrDataPreprocessor.TD_INTERNAL_COUNTER].loc[idx]
             #
             # Process the sentence, word by word
             #
-            word_sep = BasicPreprocessor.get_word_separator(lang=self.language)
+            word_sep = BasicPreprocessor.get_word_separator(lang=self.language_main)
             latin_form_sentence_arr = []
             for word in text_processed.split(sep=word_sep):
                 word_latin = latinEqForm.LatinEquivalentForm.get_latin_equivalent_form(
-                    lang = self.language,
+                    lang = self.language_main,
                     word = word
                 )
                 latin_form_sentence_arr.append(word_latin)
@@ -409,11 +472,13 @@ class TrDataPreprocessor:
                 # Arguments be a list form, otherwise will not be able to create this DataFrame
                 row_to_append = pd.DataFrame(
                     data = self.__get_row_to_append_to_training_data(
-                        intent_id      = [int_id],
-                        intent_name    = [int_name],
-                        text           = [text],
-                        text_id        = [TrDataPreprocessor.TRDATA_ID_LATIN_FORM],
-                        processed_text = [latin_form_sentence_txt]
+                        intent_id        = [int_id],
+                        intent_name      = [int_name],
+                        text             = [text],
+                        text_id          = [TrDataPreprocessor.TRDATA_ID_LATIN_FORM],
+                        processed_text   = [latin_form_sentence_txt],
+                        lang_detected    = [self.language_main],
+                        internal_counter = [internal_counter]
                     ))
                 #
                 # We are appending to a dataframe that might have different columns ordering
@@ -442,11 +507,5 @@ class TrDataPreprocessor:
 
 
 if __name__ == '__main__':
-    from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreprocessor
-    from nwae.config.Config import Config
-    config = Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = Config,
-        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
-    )
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-    UtTrDataPreprocessor(config).run_unit_test()
+    from nwae.lib.lang.preprocessing.ut.UtTrDataPreprocessor import UtTrDataPreProcessor_run_unit_test
+    UtTrDataPreProcessor_run_unit_test()

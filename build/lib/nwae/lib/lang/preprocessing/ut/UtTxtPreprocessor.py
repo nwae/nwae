@@ -11,7 +11,7 @@ import nwae.utils.UnitTest as ut
 class UtTxtPreprocessor:
 
     TESTS = {
-        LangFeatures.LANG_CN: [
+        LangFeatures.LANG_ZH: [
             #
             # Empty Test
             #
@@ -66,7 +66,7 @@ class UtTxtPreprocessor:
             ['中文很难 english language 한국어 중국 พูดไทย русский язык kiểm tra.',
              ['中文很难', 'english', 'language', '한국어', '중국', 'พูด', 'ไทย', 'русский', 'язык', 'kiểm', 'tra', '.']],
         ],
-        LangFeatures.LANG_VN: [
+        LangFeatures.LANG_VI: [
             ['đây là bài kiểm tra đơn vị đầu tiên cho tiếng việt', ['đây','là', 'bài', 'kiểm tra', 'đơn vị', 'đầu tiên', 'cho', 'tiếng', 'việt']],
             #
             # No effect to other languages
@@ -102,7 +102,7 @@ class UtTxtPreprocessor:
             dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
             postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
-            do_word_stemming       = False,
+            do_word_stemming       = True,
             do_profiling           = False
         )
 
@@ -131,7 +131,7 @@ class UtTxtPreprocessor:
 
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
-        for lang in [LangFeatures.LANG_CN, LangFeatures.LANG_TH, LangFeatures.LANG_VN]:
+        for lang in [LangFeatures.LANG_ZH, LangFeatures.LANG_TH, LangFeatures.LANG_VI]:
             self.__init_txt_preprocessor(lang=lang)
             res = self.__run_lang_unit_test()
             res_final.update(other_res_obj=res)

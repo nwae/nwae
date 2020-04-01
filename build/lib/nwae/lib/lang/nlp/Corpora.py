@@ -19,7 +19,9 @@ class Corpora:
             self,
             lang = LangFeatures.LANG_EN
     ):
-        self.lang = lang
+        self.lang = LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         Ssl.disable_ssl_check()
         try:
             if nltk.download(Corpora.NLTK_COMTRANS):

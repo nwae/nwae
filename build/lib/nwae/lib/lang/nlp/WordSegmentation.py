@@ -53,7 +53,9 @@ class WordSegmentation(object):
             do_profiling = False,
             lang_stats = None
     ):
-        self.lang = lang
+        self.lang = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         self.do_profiling = do_profiling
 
         # Languages not requiring any specialized algorithm to tokenize word like English
@@ -249,7 +251,7 @@ class WordSegmentation(object):
         # Default to Thai
         lookforward_chars = WordSegmentation.LOOKFORWARD_TH
 
-        if lang == lf.LangFeatures.LANG_CN:
+        if lang == lf.LangFeatures.LANG_ZH:
             lookforward_chars = WordSegmentation.LOOKFORWARD_CN
         elif lang == lf.LangFeatures.LANG_TH:
             lookforward_chars = WordSegmentation.LOOKFORWARD_TH
@@ -312,7 +314,7 @@ class WordSegmentation(object):
 
         a = prf.Profiling.start()
 
-        if self.lang == lf.LangFeatures.LANG_CN:
+        if self.lang == lf.LangFeatures.LANG_ZH:
             text_simplified = self.convert_to_simplified_chinese(text = text)
             if text != text_simplified:
                 log.Log.important(
@@ -544,7 +546,7 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/local.nwae.cf'
     )
 
-    lang = lf.LangFeatures.LANG_CN
+    lang = lf.LangFeatures.LANG_TH
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     synonymlist_ro = slist.SynonymList(
@@ -572,7 +574,7 @@ if __name__ == '__main__':
         words_not_synched = ws.lang_wordlist.wordlist['Word'][len_before:len_after]
         print(words_not_synched)
 
-    text = '米切尔（Tom Michell）教'
+    text = 'นี่คือ'
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 

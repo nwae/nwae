@@ -2,6 +2,7 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
+import nwae.lib.lang.LangFeatures as lf
 import nwae.lib.lang.nlp.WordList as wl
 import nwae.lib.lang.nlp.SynonymList as sl
 import nwae.lib.lang.nlp.WordSegmentation as ws
@@ -22,8 +23,11 @@ class LangHelper:
             allowed_root_words = None,
             do_profiling = False
     ):
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         wseg_obj = ws.WordSegmentation(
-            lang             = lang,
+            lang             = lang_std,
             dirpath_wordlist = dirpath_wordlist,
             postfix_wordlist = postfix_wordlist,
             do_profiling     = do_profiling
@@ -31,7 +35,7 @@ class LangHelper:
 
         # We need synonyms to normalize all text with "rootwords"
         sl_obj = sl.SynonymList(
-            lang=lang,
+            lang                = lang_std,
             dirpath_synonymlist = dirpath_synonymlist,
             postfix_synonymlist = postfix_synonymlist
         )
@@ -59,7 +63,7 @@ class LangHelper:
                 )
                 lg.Log.important(
                     str(LangHelper.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Lang "' + str(lang) + '". Added ' + str(len(words_from_model_features))
+                    + ': Lang "' + str(lang_std) + '". Added ' + str(len(words_from_model_features))
                     + ' words from model features to wordlist.'
                 )
 
@@ -73,7 +77,7 @@ class LangHelper:
                 words_not_synched = wseg_obj.lang_wordlist.wordlist[wl.WordList.COL_WORD][len_before:len_after]
                 lg.Log.warning(
                     str(LangHelper.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Lang "' + str(lang) + '". These words not in word list but in model features & synonym list: '
+                    + ': Lang "' + str(lang_std) + '". These words not in word list but in model features & synonym list: '
                     + str(words_not_synched.values)
                 )
 
@@ -95,7 +99,7 @@ if __name__ == '__main__':
         default_config_file='/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
     retobj = LangHelper.get_word_segmenter(
-        lang = 'cn',
+        lang                 = lf.LangFeatures.LANG_ZH,
         dirpath_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_DIR_WORDLIST),
         postfix_wordlist     = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
         dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),

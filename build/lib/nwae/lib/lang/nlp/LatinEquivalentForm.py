@@ -19,7 +19,10 @@ class LatinEquivalentForm:
     def have_latin_equivalent_form(
             lang
     ):
-        return lang in [
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+        return lang_std in [
             lf.LangFeatures.LANG_VI,
             lf.LangFeatures.LANG_VN
         ]
@@ -31,7 +34,10 @@ class LatinEquivalentForm:
             lang,
             word
     ):
-        if lang in [lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN]:
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
+        if lang_std in [lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN]:
             return LatinEquivalentForm.get_latin_equivalent_form_vietnamese(word=word)
         else:
             return word
@@ -61,9 +67,9 @@ class LatinEquivalentForm:
 
 
 if __name__ == '__main__':
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VN, word='Anh yêu em'))
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VN, word='đây là tiếng Latin'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VI, word='Anh yêu em'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_VI, word='đây là tiếng Latin'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_KO, word='니는 영화를 조아'))
-    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_CN, word='我喜欢吃点心'))
+    print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_ZH, word='我喜欢吃点心'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_RU, word='как дела'))
     print(LatinEquivalentForm.get_latin_equivalent_form(lang=lf.LangFeatures.LANG_TH, word='สวัสดี ไปไหนมา'))

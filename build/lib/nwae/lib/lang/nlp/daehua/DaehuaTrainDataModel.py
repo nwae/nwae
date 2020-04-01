@@ -25,6 +25,7 @@ class DaehuaTrainDataModel:
     COL_TDATA_TEXT             = 'Text'
     COL_TDATA_TEXT_LENGTH      = 'Text Length'     # Derived Column
     COL_TDATA_TEXT_SEGMENTED   = 'Text Segmented'  # Derived Column
+    COL_TDATA_TEXT_LANG        = 'Text Language'
 
     def __init__(
             self,

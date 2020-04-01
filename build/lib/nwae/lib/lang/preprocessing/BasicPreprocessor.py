@@ -56,8 +56,11 @@ class BasicPreprocessor:
     def get_word_separator(
             lang
     ):
+        lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
+            lang_code = lang
+        )
         word_separator = BasicPreprocessor.DEFAULT_SPACE_SPLITTER
-        if lang in (lf.LangFeatures.LANG_VI, lf.LangFeatures.LANG_VN):
+        if lang_std == lf.LangFeatures.LANG_VI:
             word_separator = BasicPreprocessor.DEFAULT_WORD_SPLITTER
         return word_separator
 
@@ -69,7 +72,7 @@ class BasicPreprocessor:
     def clean_punctuations(
             # list of words
             sentence,
-            punctuations_pattern = '([!?.,？。，:;$"\')(])',
+            punctuations_pattern = '([!?.,？。，:;$"\')(\[\]{}])',
             convert_to_lower_case = True
     ):
         try:
@@ -199,12 +202,28 @@ class BasicPreprocessorUnitTest:
         res = ut.ResultObj(count_ok=0, count_fail=0)
 
         sentences = [
-            ['Capital', 'tesT', 'ok?'],
-            ['I', 'like', 'coding', 'la!'],
-            ['Самый', 'лучщий', 'филмь', 'всей', 'истории', '"등등등"']
+            (['Capital', '[tesT]', 'ok?'],
+             ['capital', '[', 'test', ']', 'ok', '?']),   # Expected cleaned result
+            (['I', 'like', '{coding}', 'la!'],
+             ['i', 'like', '{', 'coding', '}', 'la', '!']),   # Expected cleaned result
+            (['Самый', 'лучщий', 'филмь', 'всей', 'истории', '"등등등"'],
+             ['самый', 'лучщий', 'филмь', 'всей', 'истории', '"', '등등등', '"'])  # Expected cleaned result
         ]
-        cleaned_sentences = [BasicPreprocessor.clean_punctuations(sentence=s) for s in sentences]
+        cleaned_sentences = [BasicPreprocessor.clean_punctuations(sentence=s[0]) for s in sentences]
+        expected_cleaned_sentences = [s[1] for s in sentences]
         log.Log.debugdebug(cleaned_sentences)
+
+        #
+        # Test cleaning process of separating punctuations, lowercase, etc.
+        #
+        for i in range(len(cleaned_sentences)):
+            observed_sent = cleaned_sentences[i]
+            expected_sent = expected_cleaned_sentences[i]
+            res.update_bool(res_bool=ut.UnitTest.assert_true(
+                observed = observed_sent,
+                expected = expected_sent,
+                test_comment = 'test sentence "' + str(observed_sent) + '"'
+            ))
 
         index_dict = BasicPreprocessor.create_indexed_dictionary(sentences=cleaned_sentences)
         log.Log.debugdebug(index_dict)
@@ -222,6 +241,9 @@ class BasicPreprocessorUnitTest:
         )
         log.Log.debugdebug(original_sentences)
 
+        #
+        # Test encoded sentences and decoding back to original sentence
+        #
         for i in range(len(original_sentences)):
             observed_sent = original_sentences[i]
             expected_sent = cleaned_sentences[i]

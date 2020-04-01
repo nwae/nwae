@@ -151,7 +151,8 @@ class TrieNode:
 if __name__ == '__main__':
     import nwae.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
-        Derived_Class = cf.Config
+        Derived_Class = cf.Config,
+        default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'
     )
 
     lang = langfeatures.LangFeatures.LANG_TH

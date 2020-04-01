@@ -86,7 +86,7 @@ class UnitTestWordSegmentation:
              ['English','Test','+','中文','很','难','+','ภาษาไทย','and','한국어','.','.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_CN),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_ZH),
             list_sent_exp  = list_sent_exp
         )
 
@@ -106,6 +106,8 @@ class UnitTestWordSegmentation:
              ['เนื่อง','จาก','สภาพ','แวด','ล้อม','แห้ง','แล้ง','มาก','อากาศ','ร้อน','และ','กระแส','ลม','แรง']],
             ['ซึ่งอยู่ห่างจากตอนเหนือของเมืองบริสเบน ประมาณ 650 กิโลเมตร,',
              ['ซึ่ง','อยู่','ห่าง','จาก','ตอน','เหนือ','ของ','เมือง','บ','ริ','ส','เบน','ประมาณ','650','กิโล','เมตร',',']],
+            ['นี่คือ',
+             ['นี่', 'คือ']],
             # Other languages
             ['English Test + 中文很难 + ภาษาไทย and 한국어 ..',
              ['English', 'Test', '+', '中文很难', '+', 'ภาษา','ไทย', 'and', '한국어', '.', '.']]
@@ -133,7 +135,7 @@ class UnitTestWordSegmentation:
              ['english', 'test', '+', '中文很难', '+', 'ภาษาไทย', 'and', '한국어', '.', '.']]
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VN),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VI),
             list_sent_exp  = list_sent_exp
         )
         return retv
