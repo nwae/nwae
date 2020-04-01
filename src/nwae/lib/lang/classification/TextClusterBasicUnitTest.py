@@ -76,7 +76,8 @@ class TextClusterBasicUnitTest:
             res_bool = ut.UnitTest.assert_true(
                 observed = len(observed_cluster_groups),
                 expected = len(expected_clusters),
-                test_comment = 'Test number of clusters ' + str(len(observed_cluster_groups))
+                test_comment = str(test_description) + '. Test number of clusters '
+                               + str(len(observed_cluster_groups))
             )
         )
 
@@ -96,7 +97,7 @@ class TextClusterBasicUnitTest:
                     observed = inside_proportion > test_threshold_inside,
                     expected = True,
                     test_comment = str(test_description)
-                                   + '. Inside proportion ' + str(inside_proportion)
+                                   + '. Cluster ' + str(i) + ' Inside proportion ' + str(inside_proportion)
                                    + ' > ' + str(test_threshold_inside)
                 )
             )
@@ -105,7 +106,7 @@ class TextClusterBasicUnitTest:
                     observed = outside_proportion < test_threshold_outside,
                     expected = True,
                     test_comment = str(test_description)
-                                   + '. Outside proportion ' + str(outside_proportion)
+                                   + '. Cluster ' + str(i) + ' Outside proportion ' + str(outside_proportion)
                                    + ' > ' + str(test_threshold_outside)
                 )
             )
