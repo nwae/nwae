@@ -323,8 +323,8 @@ class TextClusterBasicUnitTest:
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
-        res = self.test_textcluster_english()
-        res_final.update(other_res_obj=res)
+        # res = self.test_textcluster_english()
+        # res_final.update(other_res_obj=res)
 
         res = self.test_textcluster_chinese()
         res_final.update(other_res_obj=res)
