@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from nwae.config.Config import Config
+from nwae.lib.config.Config import Config
 from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nwae.lib.lang.LangFeatures as lf
 from nwae.lib.lang.preprocessing.TrDataPreprocessor import TrDataPreprocessor
 import nwae.utils.UnitTest as ut
 import pandas as pd
-from nwae.samples.SampleTextClassificationData import SampleTextClassificationData
+from nwae.lib.samples.SampleTextClassificationData import SampleTextClassificationData
 from nwae.lib.lang.nlp.daehua.DaehuaTrainDataModel import DaehuaTrainDataModel
 
 

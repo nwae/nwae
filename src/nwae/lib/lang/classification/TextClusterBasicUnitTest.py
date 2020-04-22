@@ -6,7 +6,7 @@ import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.Log as log
 from nwae.lib.lang.classification.TextClusterBasic import TextClusterBasic
 from inspect import currentframe, getframeinfo
-from nwae.config.Config import Config
+from nwae.lib.config.Config import Config
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 import nwae.utils.UnitTest as ut
 

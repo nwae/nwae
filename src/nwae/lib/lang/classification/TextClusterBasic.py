@@ -11,7 +11,7 @@ import nwae.lib.lang.characters.LangCharacters as lc
 import nwae.lib.lang.model.FeatureVector as fv
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-from nwae.config.Config import Config
+from nwae.lib.config.Config import Config
 import nwae.utils.UnitTest as ut
 
 

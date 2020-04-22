@@ -2,7 +2,7 @@
 
 from nwae.utils.Log import Log
 import nwae.utils.UnitTest as uthelper
-import nwae.config.Config as cf
+import nwae.lib.config.Config as cf
 from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from mex.MexUnitTest import UnitTestMex
 from nwae.lib.lang.LangFeatures import LangFeaturesUnitTest

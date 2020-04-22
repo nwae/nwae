@@ -369,7 +369,7 @@ class TxtPreprocessor:
 
 
 if __name__ == '__main__':
-    from nwae.config.Config import Config
+    from nwae.lib.config.Config import Config
     config = Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = Config,
         default_config_file = '/usr/local/git/nwae/nwae/app.data/config/default.cf'

@@ -2,7 +2,7 @@
 
 import nwae.utils.Log as lg
 from inspect import getframeinfo, currentframe
-import nwae.config.Config as cf
+import nwae.lib.config.Config as cf
 import re
 import nwae.utils.StringUtils as su
 import mex.MatchExpression as mex

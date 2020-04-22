@@ -8,7 +8,7 @@ import nwae.lib.math.ml.TrainingDataModel as tdm
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
 import nwae.lib.math.NumpyUtil as npUtil
-from nwae.config.Config import Config
+from nwae.lib.config.Config import Config
 import nwae.utils.Profiling as prf
 from nwae.utils.UnitTest import ResultObj, UnitTestParams
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor

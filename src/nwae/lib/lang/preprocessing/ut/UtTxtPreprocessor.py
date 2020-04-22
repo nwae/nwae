@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from nwae.config.Config import Config
+from nwae.lib.config.Config import Config
 from nwae.lib.lang.LangFeatures import LangFeatures
 from nwae.lib.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lib.lang.preprocessing.TxtPreprocessor import TxtPreprocessor

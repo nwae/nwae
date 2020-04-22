@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import nwae.config.Config as cf
+import nwae.lib.config.Config as cf
 import nwae.lib.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
 import nwae.lib.lang.LangHelper as langhelper
