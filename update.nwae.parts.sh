@@ -7,6 +7,7 @@ projects="
 "
 
 for prj in $projects ; do
-   echo "Copying $prj/src to src/.."
+   echo "Copying $prj/src/nwae/* to src/nwae/"
+   cp -R $prj/src/nwae/* src/nwae/
 done
 
