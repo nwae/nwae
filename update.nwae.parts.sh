@@ -56,3 +56,6 @@ for prj in $projects ; do
    copy_python_files "$prj/src" "/usr/local/git/nwae/nwae/src" "py" ""
 done
 
+# Now do the NLP files
+copy_python_files "/usr/local/git/nwae/nwae.lang/nlp.data/wordlist" "/usr/local/git/nwae/nwae/nlp.data/wordlist" "txt" ""
+copy_python_files "/usr/local/git/nwae/nwae.lang/nlp.data/app/chats" "/usr/local/git/nwae/nwae/nlp.data/app/chats" "txt" ""
