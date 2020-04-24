@@ -17,7 +17,7 @@ SCRIPT_DIR="shellscripts"
 PYTHON_VER="3.6"
 SOURCE_DIR="../src"
 COMPILE_MODULE="."
-MODULE_TO_RUN="nwae.lib.NwaeUnitTest"
+MODULE_TO_RUN="nwae.lib.NwaePartsUnitTest"
 # Folders separated by ":"
 EXTERNAL_SRC_FOLDERS="../../../nwae/nwae/src:../../../nwae/nwae.utils/src:../../../nwae/mex/src"
 ########################################################################################
