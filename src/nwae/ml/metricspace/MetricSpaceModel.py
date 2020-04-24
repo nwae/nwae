@@ -126,11 +126,9 @@ class MetricSpaceModel(modelIf.ModelInterface):
             identifier_string   = identifier_string,
             dir_path_model      = dir_path_model,
             training_data       = training_data,
-            is_partial_training = is_partial_training
+            is_partial_training = is_partial_training,
+            do_profiling        = do_profiling
         )
-
-        if self.training_data is not None:
-            self.check_training_data()
 
         self.confidence_level_scores = confidence_level_scores
         if self.confidence_level_scores is None:
@@ -158,7 +156,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
         self.key_features_remove_quartile = key_features_remove_quartile
         self.stop_features = stop_features
         self.weigh_idf = weigh_idf
-        self.do_profiling = do_profiling
         # Only train some y/labels and store model files in separate directories by y_id
         self.is_partial_training = is_partial_training
 
@@ -172,8 +169,6 @@ class MetricSpaceModel(modelIf.ModelInterface):
             is_partial_training = self.is_partial_training,
             y_id                = self.y_id
         )
-
-        self.__mutex_training = threading.Lock()
 
         return
 
@@ -1118,7 +1113,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         prf_start = prf.Profiling.start()
 
         try:
-            self.__mutex_training.acquire()
+            self.mutex_training.acquire()
             self.model_data.load_model_parameters_from_storage()
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
@@ -1127,7 +1122,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
             Log.critical(errmsg)
             raise Exception(errmsg)
         finally:
-            self.__mutex_training.release()
+            self.mutex_training.release()
 
         if self.do_profiling:
             Log.important(

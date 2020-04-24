@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 
-import threading
-import nwae.ml.TrainingDataModel as tdm
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
-import nwae.ml.ModelInterface as modelIf
+from nwae.ml.ModelInterface import ModelInterface
 
 
 #
 # Empty template for implementing a new model
 #
-class ModelTemplate(modelIf.ModelInterface):
+class ModelTemplate(ModelInterface):
 
     MODEL_NAME = 'empty_model'
 
+    CONFIDENCE_LEVEL_SCORES_DEFAULT = {1: 10, 2: 15, 3: 20, 4:30, 5:40}
+
     #
-    # Overwrite base class
+    # Overwrite base class if required
     #
     CONFIDENCE_LEVEL_5_SCORE = 50
     CONFIDENCE_LEVEL_4_SCORE = 40
@@ -25,70 +25,28 @@ class ModelTemplate(modelIf.ModelInterface):
 
     def __init__(
             self,
+            # NN layer configurations, etc.
+            model_params,
             # Unique identifier to identify this set of trained data+other files after training
             identifier_string,
             # Directory to keep all our model files
             dir_path_model,
             # Training data in TrainingDataModel class type
-            training_data,
+            training_data       = None,
             # Train only by y/labels and store model files in separate y_id directories
-            is_partial_training
+            is_partial_training = False,
+            do_profiling        = False,
     ):
-        super(ModelTemplate, self).__init__(
+        super().__init__(
             model_name          = ModelTemplate.MODEL_NAME,
+            model_params        = model_params,
             identifier_string   = identifier_string,
             dir_path_model      = dir_path_model,
             training_data       = training_data,
-            is_partial_training = is_partial_training
+            is_partial_training = is_partial_training,
+            do_profiling        = do_profiling
         )
-
-        self.identifier_string = identifier_string
-        self.dir_path_model = dir_path_model
-        self.training_data = training_data
-        self.is_partial_training = is_partial_training
-
-        if self.is_partial_training:
-            # In this case training data must exist
-            unique_y = list(set(list(self.training_data.get_y())))
-            if len(unique_y) != 1:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': [' + str(self.identifier_string)
-                    + '] In partial training mode, must only have 1 unique label, but found '
-                    + str(unique_y) + '.'
-                )
-            self.y_id = int(unique_y[0])
-
-        if self.training_data is not None:
-            if type(self.training_data) is not tdm.TrainingDataModel:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Training data must be of type "' + str(tdm.TrainingDataModel.__class__)
-                    + '", got type "' + str(type(self.training_data))
-                    + '" instead from object ' + str(self.training_data) + '.'
-                )
-        # Only train some y/labels and store model files in separate directories by y_id
-        self.is_partial_training = is_partial_training
-
-        # Training variables
-        self.bot_training_start_time = None
-        self.bot_training_end_time = None
-        self.is_training_done = False
-        self.log_training = []
-        self.__mutex_training = threading.Lock()
-
         return
-
-    #
-    # Model interface override
-    #
-    def is_model_ready(
-            self
-    ):
-        raise Exception(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Template Model only, not a real model!'
-        )
 
     #
     # Model interface override
@@ -104,28 +62,13 @@ class ModelTemplate(modelIf.ModelInterface):
     #
     # Model interface override
     #
-    def check_if_model_updated(
-            self
-    ):
-        raise Exception(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Template Model only, not a real model!'
-        )
-
-    #
-    # Model interface override
-    #
-    # Steps to predict classes
-    #
-    #  1. Weight by IDF and normalize input x
-    #  2. Calculate Euclidean Distance of x to each of the x_ref (or rfv)
-    #  3. Calculate Euclidean Distance of x to each of the x_clustered (or rfv)
-    #  4. Normalize Euclidean Distance so that it is in the range [0,1]
-    #
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions
-            x
+            x,
+            include_match_details = False,
+            top                   = ModelInterface.MATCH_TOP
+
     ):
         raise Exception(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -138,7 +81,10 @@ class ModelTemplate(modelIf.ModelInterface):
     def predict_class(
             self,
             # ndarray type of >= 2 dimensions, single point/row array
-            x
+            x,
+            include_match_details = False,
+            top                   = ModelInterface.MATCH_TOP
+
     ):
         raise Exception(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

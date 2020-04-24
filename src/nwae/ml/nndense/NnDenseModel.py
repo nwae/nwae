@@ -60,7 +60,8 @@ class NnDenseModel(ModelInterface):
             identifier_string   = identifier_string,
             dir_path_model      = dir_path_model,
             training_data       = training_data,
-            is_partial_training = is_partial_training
+            is_partial_training = is_partial_training,
+            do_profiling        = do_profiling
         )
 
         self.train_epochs = train_epochs
@@ -75,21 +76,9 @@ class NnDenseModel(ModelInterface):
         if self.confidence_level_scores is None:
             self.confidence_level_scores = NnDenseModel.CONFIDENCE_LEVEL_SCORES_DEFAULT
 
-        self.training_data = training_data
-        if self.training_data is not None:
-            self.check_training_data()
-        self.is_partial_training = is_partial_training
-
-        model_prefix = ModelInterface.get_model_file_prefix(
-            dir_path_model      = self.dir_path_model,
-            model_name          = self.model_name,
-            identifier_string   = self.identifier_string,
-            is_partial_training = self.is_partial_training
-        )
-        self.fpath_model = model_prefix + '.tf.network'
-        self.fpath_model_x_one_hot = model_prefix + '.tf.x_one_hot_dict.csv'
-        self.fpath_model_y_one_hot = model_prefix + '.tf.y_one_hot_dict.csv'
-        self.fpath_updated_file    = model_prefix + '.lastupdated.txt'
+        self.fpath_model           = self.model_prefix + '.tf.network'
+        self.fpath_model_x_one_hot = self.model_prefix + '.tf.x_one_hot_dict.csv'
+        self.fpath_model_y_one_hot = self.model_prefix + '.tf.y_one_hot_dict.csv'
 
         self.network = None
         self.network_layer_config = None
@@ -99,52 +88,7 @@ class NnDenseModel(ModelInterface):
         self.x_one_hot_dict_inverse = None
         # In code:label format
         self.y_one_hot_dict = None
-
-        # Model is loaded or not, and datetime for model trained time
-        self.model_loaded = False
-        self.model_updated_time = None
-        self.__model_mutex = threading.Lock()
-
-        self.do_profiling = do_profiling
         return
-
-    #
-    # Model interface override
-    #
-    def is_model_ready(self):
-        return self.model_loaded
-
-    #
-    # Model interface override
-    #
-    def check_if_model_updated(
-            self
-    ):
-        updated_time = os.path.getmtime(self.fpath_updated_file)
-        Log.debugdebug(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Model identifier "' + str(self.identifier_string)
-            + '" last updated time ' + str(self.model_updated_time)
-            + ', updated "' + str(updated_time) + '".'
-        )
-        if (updated_time > self.model_updated_time):
-            Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Model update time for identifier "' + str(self.identifier_string) + '" - "'
-                + str(datetime.fromtimestamp(updated_time)) + '" is newer than "'
-                + str(datetime.fromtimestamp(self.model_updated_time))
-                + '". Reloading model...'
-            )
-            try:
-                self.__model_mutex.acquire()
-                # Reset model flags to not ready
-                self.model_loaded = False
-                self.model_updated_time = updated_time
-            finally:
-                self.__model_mutex.release()
-            return True
-        else:
-            return False
 
     #
     # Model interface override
@@ -156,13 +100,6 @@ class NnDenseModel(ModelInterface):
             return np.array(self.x_one_hot_dict.values())
         else:
             return None
-
-    def set_training_data(
-            self,
-            td
-    ):
-        self.training_data = td
-        self.check_training_data()
 
     def transform_input_for_model(
             self,
@@ -504,6 +441,8 @@ class NnDenseModel(ModelInterface):
             self
     ):
         try:
+            self.mutex_training.acquire()
+
             # First check the existence of the files
             if not os.path.isfile(self.fpath_updated_file):
                 errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
@@ -569,6 +508,8 @@ class NnDenseModel(ModelInterface):
                      + '". Got exception ' + str(ex) + '.'
             Log.error(errmsg)
             raise Exception(errmsg)
+        finally:
+            self.mutex_training.release()
 
     def persist_model_to_storage(
             self,

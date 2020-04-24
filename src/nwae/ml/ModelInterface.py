@@ -2,8 +2,9 @@
 
 import threading
 import time
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import nwae.ml.TrainingDataModel as tdm
@@ -48,6 +49,8 @@ class ModelInterface(threading.Thread):
     # Matching
     MATCH_TOP = 10
 
+    CONFIDENCE_LEVEL_SCORES_DEFAULT = {1: 10, 2: 15, 3: 20, 4:30, 5:40}
+
     # From rescoring training data (using SEARCH_TOPX_RFV=5), we find that
     #    5% quartile score  = 55
     #    25% quartile score = 65
@@ -64,6 +67,40 @@ class ModelInterface(threading.Thread):
     #    75% quartile score = 20
     CONFIDENCE_LEVEL_2_SCORE = 40   # Means <1% of non-related data will go above it
     CONFIDENCE_LEVEL_1_SCORE = 20   # This means 25% of non-related data will go above it
+
+    @staticmethod
+    def get_model_file_prefix(
+            dir_path_model,
+            model_name,
+            identifier_string,
+            is_partial_training
+    ):
+        # Prefix or dir
+        prefix_or_dir = dir_path_model + '/' + model_name + '.' + identifier_string
+        if is_partial_training:
+            # Check if directory exists
+            if not os.path.isdir(prefix_or_dir):
+                Log.important(
+                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Path "' + str(prefix_or_dir) + '" does not exist. Trying to create this directory...'
+                )
+                try:
+                    os.mkdir(
+                        path = prefix_or_dir
+                    )
+                    Log.important(
+                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Path "' + str(prefix_or_dir) + '" successfully created.'
+                    )
+                except Exception as ex:
+                    errmsg =\
+                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                        + ': Error creating directory "' + str(prefix_or_dir) + '". Exception ' + str(ex) + '.'
+                    Log.error(errmsg)
+                    raise Exception(errmsg)
+            return prefix_or_dir
+        else:
+            return prefix_or_dir
 
     class PredictReturnClass:
         def __init__(
@@ -95,7 +132,8 @@ class ModelInterface(threading.Thread):
             # Training data in TrainingDataModel class type
             training_data,
             # Train only by y/labels and store model files in separate y_id directories
-            is_partial_training = False
+            is_partial_training = False,
+            do_profiling        = False,
     ):
         super().__init__()
 
@@ -104,8 +142,11 @@ class ModelInterface(threading.Thread):
         self.identifier_string = identifier_string
         self.dir_path_model = dir_path_model
         self.training_data = training_data
-
         self.is_partial_training = is_partial_training
+        self.do_profiling = do_profiling
+
+        if self.training_data is not None:
+            self.__check_training_data()
 
         self.stoprequest = threading.Event()
 
@@ -117,18 +158,28 @@ class ModelInterface(threading.Thread):
 
         self.bot_training_start_time = None
         self.bot_training_end_time = None
-        self.logs_training = []
-
-        # Mutex to make sure we don't run multiple trainings simultaneously
-        self.mutex_training = threading.Lock()
-
+        # Model is loaded or not, and datetime for model trained time
+        self.model_loaded = False
+        self.model_updated_time = None
         # We keep the count of how many times model reloaded for wrapper classes
         # update themselves (e.g. text processors, words segmenters, vocabulary
         # from model features, etc.
         self.model_reload_counter = 0
+        self.logs_training = []
+
+        self.model_prefix = ModelInterface.get_model_file_prefix(
+            dir_path_model      = self.dir_path_model,
+            model_name          = self.model_name,
+            identifier_string   = self.identifier_string,
+            is_partial_training = self.is_partial_training
+        )
+        self.fpath_updated_file    = self.model_prefix + '.lastupdated.txt'
+
+        # Mutex to make sure we don't run multiple trainings simultaneously
+        self.mutex_training = threading.Lock()
         return
     
-    def check_training_data(self):
+    def __check_training_data(self):
         if type(self.training_data) is not tdm.TrainingDataModel:
             raise Exception(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -136,6 +187,13 @@ class ModelInterface(threading.Thread):
                 + '", got type "' + str(type(self.training_data))
                 + '" instead from object ' + str(self.training_data) + '.'
             )
+
+    def set_training_data(
+            self,
+            td
+    ):
+        self.training_data = td
+        self.__check_training_data()
 
     def initialize_training_data_paths(self):
         prefix = ModelInterface.get_model_file_prefix(
@@ -158,54 +216,20 @@ class ModelInterface(threading.Thread):
         self.fpath_training_data_x_name     = prefix + '.training_data.x_name.csv'
         self.fpath_training_data_y          = prefix + '.training_data.y.csv'
 
-    @staticmethod
-    def get_model_file_prefix(
-            dir_path_model,
-            model_name,
-            identifier_string,
-            is_partial_training
-    ):
-        # Prefix or dir
-        prefix_or_dir = dir_path_model + '/' + model_name + '.' + identifier_string
-        if is_partial_training:
-            # Check if directory exists
-            if not os.path.isdir(prefix_or_dir):
-                log.Log.important(
-                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Path "' + str(prefix_or_dir) + '" does not exist. Trying to create this directory...'
-                )
-                try:
-                    os.mkdir(
-                        path = prefix_or_dir
-                    )
-                    log.Log.important(
-                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Path "' + str(prefix_or_dir) + '" successfully created.'
-                    )
-                except Exception as ex:
-                    errmsg =\
-                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                        + ': Error creating directory "' + str(prefix_or_dir) + '". Exception ' + str(ex) + '.'
-                    log.Log.error(errmsg)
-                    raise Exception(errmsg)
-            return prefix_or_dir
-        else:
-            return prefix_or_dir
-
     def join(self, timeout=None):
-        log.Log.important(
+        Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" join called..'
         )
         self.stoprequest.set()
         super(ModelInterface, self).join(timeout=timeout)
-        log.Log.important(
+        Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" Background Thread ended..'
         )
 
     def run(self):
-        log.Log.important(
+        Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Model Identifier "' + str(self.identifier_string) + '" Background Thread started..'
         )
@@ -216,7 +240,7 @@ class ModelInterface(threading.Thread):
         sleep_time = 10
         while True:
             if self.stoprequest.isSet():
-                log.Log.important(
+                Log.important(
                     str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Model Identifier "' + str(self.identifier_string) + '" Breaking from forever thread...'
                 )
@@ -226,7 +250,7 @@ class ModelInterface(threading.Thread):
                     self.__mutex_load_model.acquire()
                     self.load_model_parameters()
                     if not self.is_model_ready():
-                        log.Log.important(
+                        Log.important(
                             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                             + ': Model "' + self.identifier_string
                             + '" failed to load. Try again in ' + str(sleep_time) + ' secs..'
@@ -238,18 +262,46 @@ class ModelInterface(threading.Thread):
             time.sleep(sleep_time)
 
     def is_model_ready(self):
-        raise Exception(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Not implemented by derived class "' + str(self.model_name)
-            + '", identifier "' + str(self.identifier_string) + '"!'
+        return self.model_loaded
+    
+    #
+    # Model interface override
+    #
+    def check_if_model_updated(
+            self
+    ):
+        updated_time = os.path.getmtime(self.fpath_updated_file)
+        Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Model identifier "' + str(self.identifier_string)
+            + '" last updated time ' + str(self.model_updated_time)
+            + ', updated "' + str(updated_time) + '".'
         )
+        if (updated_time > self.model_updated_time):
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Model update time for identifier "' + str(self.identifier_string) + '" - "'
+                + str(datetime.fromtimestamp(updated_time)) + '" is newer than "'
+                + str(datetime.fromtimestamp(self.model_updated_time))
+                + '". Reloading model...'
+            )
+            try:
+                self.mutex_training.acquire()
+                # Reset model flags to not ready
+                self.model_loaded = False
+                self.model_updated_time = updated_time
+            finally:
+                self.mutex_training.release()
+            return True
+        else:
+            return False
 
     def wait_for_model(self):
         count = 1
         sleep_time_wait_rfv = 0.1
         wait_max_time = 10
         while not self.is_model_ready():
-            log.Log.warning(
+            Log.warning(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Waiting for model with identifier "' + str(self.identifier_string)
                 + ', sleep for ' + str(count * sleep_time_wait_rfv) + ' secs now..'
@@ -282,16 +334,6 @@ class ModelInterface(threading.Thread):
 
     def get_model_features(
             self
-    ):
-        raise Exception(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Not implemented by derived class "' + str(self.model_name)
-            + '", identifier "' + str(self.identifier_string) + '"!'
-        )
-
-    def set_training_data(
-            self,
-            td
     ):
         raise Exception(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -387,15 +429,6 @@ class ModelInterface(threading.Thread):
             + '", identifier "' + str(self.identifier_string) + '"!'
         )
 
-    def check_if_model_updated(
-            self
-    ):
-        raise Exception(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Not implemented by derived class "' + str(self.model_name)
-            + '", identifier "' + str(self.identifier_string) + '"!'
-        )
-
     def persist_training_data_to_storage(
             self,
             td
@@ -416,7 +449,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data x with shape ' + str(df_td_x.shape)
                 + ' filepath "' + self.fpath_training_data_x + '"'
@@ -431,12 +464,12 @@ class ModelInterface(threading.Thread):
                 line = str(x_friendly[i])
                 f.write(str(line) + '\n\r')
             f.close()
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved training data x friendly to file "' + self.fpath_training_data_x_friendly + '".'
             )
         except Exception as ex:
-            log.Log.error(
+            Log.error(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Could not create x_ref friendly file "' + self.fpath_training_data_x_friendly
                 + '". ' + str(ex)
@@ -449,7 +482,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data x_name with shape ' + str(df_td_x_name.shape)
                 + ' filepath "' + self.fpath_training_data_x_name + '"'
@@ -464,7 +497,7 @@ class ModelInterface(threading.Thread):
                 index       = True,
                 index_label = 'INDEX'
             )
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Saved Training Data y with shape ' + str(df_td_y.shape)
                 + ' filepath "' + self.fpath_training_data_y + '"'
@@ -499,7 +532,7 @@ class ModelInterface(threading.Thread):
                 y      = np.array(df_td_y.index),
                 y_name = np.array(df_td_y.values).transpose()[0],
             )
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Training Data x read ' + str(df_td_x.shape) + ' shape'
                 + ', x_name read ' + str(df_td_x_name.shape)
@@ -512,7 +545,7 @@ class ModelInterface(threading.Thread):
             errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Load training data from file failed for identifier "' + self.identifier_string\
                      + '". Error msg "' + str(ex) + '".'
-            log.Log.critical(errmsg)
+            Log.critical(errmsg)
             raise Exception(errmsg)
 
     @ staticmethod
@@ -532,7 +565,7 @@ class ModelInterface(threading.Thread):
             # Some error, just make sure it is a different file
             filepath_old = str(filepath) + '.old'
 
-        log.Log.important(
+        Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Backup filepath set to "' + str(filepath_old) + '".'
         )
@@ -566,7 +599,7 @@ class ModelInterface(threading.Thread):
                 index_label = index_label,
                 sep         = DEFAULT_CSV_SEPARATOR
             )
-            log.Log.info(
+            Log.info(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': TMP File: Saved "' + str(name_df) + '" with shape ' + str(df.shape)
                 + ' filepath "' + str(filepath_tmp) + '"'
@@ -577,7 +610,7 @@ class ModelInterface(threading.Thread):
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': TMP File: Could not create tmp "' + str(name_df)\
                 + '" file "' + str(filepath_tmp) + '". ' + str(ex)
-            log.Log.error(
+            Log.error(
                 s = errmsg,
                 log_list = log_training
             )
@@ -595,7 +628,7 @@ class ModelInterface(threading.Thread):
                 index_col          = index_label
             )
             if df_read_back.shape[0] == nrows_original:
-                log.Log.important(
+                Log.important(
                     str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': TMP File: Successfully read back ' + str(df_read_back.shape[0])
                     + ' rows of "' + str(name_df) + '" file "' + str(filepath_tmp)
@@ -608,7 +641,7 @@ class ModelInterface(threading.Thread):
             errmsg = \
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': TMP File: Could not read back "' + str(name_df) + '" file "' + str(filepath_tmp)
-            log.Log.critical(
+            Log.critical(
                 s = errmsg,
                 log_list = log_training
             )
@@ -622,14 +655,14 @@ class ModelInterface(threading.Thread):
             # If old model file exists, backup the file
             if os.path.isfile(filepath):
                 os.rename(src=filepath, dst=filepath_old)
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': BACKUP File: Successfully backed up old model "' + str(name_df)
                 + '" to filepath "' + str(filepath_old) + '"'
                 , log_list = log_training
             )
             os.rename(src=filepath_tmp, dst=filepath)
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': REAL File: Successfully saved data frame "' + str(name_df)
                 + ' filepath "' + str(filepath) + '"'
@@ -642,7 +675,7 @@ class ModelInterface(threading.Thread):
                 + '" could not rename tmp file "' + str(filepath_tmp)\
                 + '" to file "' + str(filepath)\
                 + '". ' + str(ex)
-            log.Log.error(
+            Log.error(
                 s = errmsg,
                 log_list = log_training
             )
@@ -677,7 +710,7 @@ class ModelInterface(threading.Thread):
                     line = str(dict_obj[i])
                     f.write(str(line) + '\n\r')
             f.close()
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': TMP File: Saved "' + str(name_dict_obj)
                 + '" with ' + str(len(dict_obj.keys())) + ' lines,'
@@ -689,7 +722,7 @@ class ModelInterface(threading.Thread):
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                 + ': TMP File: Could not create tmp "' + str(name_dict_obj)\
                 + '" file "' + str(filepath_tmp) + '". ' + str(ex)
-            log.Log.error(
+            Log.error(
                 s = errmsg,
                 log_list = log_training
             )
@@ -707,14 +740,14 @@ class ModelInterface(threading.Thread):
             # If old model file exists, backup the file
             if os.path.isfile(filepath):
                 os.rename(src=filepath, dst=filepath_old)
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': BACKUP File: Successfully backed up old model "' + str(name_dict_obj)
                 + '" to filepath "' + str(filepath_old) + '"'
                 , log_list = log_training
             )
             os.rename(src=filepath_tmp, dst=filepath)
-            log.Log.important(
+            Log.important(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': REAL File: Saved "' + str(name_dict_obj)
                 + '" with ' + str(len(dict_obj.keys())) + ' lines,'
@@ -728,7 +761,7 @@ class ModelInterface(threading.Thread):
                 + '" could not rename tmp file "' + str(filepath_tmp)\
                 + '" to file "' + str(filepath)\
                 + '". ' + str(ex)
-            log.Log.error(
+            Log.error(
                 s = errmsg,
                 log_list = log_training
             )

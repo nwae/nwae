@@ -2,11 +2,10 @@
 
 import numpy as np
 import pandas as pd
-import datetime as dt
+from nwae.ml.trainer.TrainerInterface import TrainerInterface
 from nwae.ml.modelhelper.TextModelHelper import TextModelHelper
 import nwae.ml.TrainingDataModel as tdm
 import nwae.math.optimization.Eidf as eidf
-import threading
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import nwae.lang.TextProcessor as txtprocessor
@@ -14,22 +13,7 @@ import nwae.lang.nlp.daehua.DaehuaTrainDataModel as dhtdmodel
 from nwae.ml.text.EmbeddingParams import EmbeddingParams
 
 
-class TextTrainer(threading.Thread):
-
-    #
-    # Model Training
-    #
-    # Train the entire model in one shot
-    TRAIN_MODE_MODEL          = 'train_model'
-    # In this case the training will loop by y_id and do each partial
-    # training one by one, and write only to label specific training files.
-    # The purpose is to do incremental training, thus fast
-    TRAIN_MODE_MODEL_BY_LABEL = 'train_model_by_label'
-    TRAIN_MODE_MODEL_USE_PARTIAL_MODELS = 'train_model_use_partial_models'
-    #
-    # NLP Training
-    #
-    TRAIN_MODE_NLP_EIDF = 'train_nlp_eidf'
+class TextTrainer(TrainerInterface):
 
     def __init__(
             self,
@@ -43,52 +27,32 @@ class TextTrainer(threading.Thread):
             model_name = None,
             model_params = None,
             # Either 'train_model' (or None), or 'train_nlp_eidf', etc.
-            train_mode = TRAIN_MODE_MODEL,
+            train_mode = TrainerInterface.TRAIN_MODE_MODEL,
             # Train a single y/label ID only, regardless of train mode
             y_id = None
     ):
-        super().__init__()
+        super().__init__(
+            identifier_string    = identifier_string,
+            dir_path_model       = dir_path_model,
+            training_data        = training_data,
+            training_data_source = training_data_source,
+            model_name           = model_name,
+            model_params         = model_params,
+            train_mode           = train_mode,
+            y_id                 = y_id
+        )
 
-        self.identifier_string = identifier_string
-        self.dir_path_model = dir_path_model
+        if self.model_name is None:
+            self.model_name = TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
 
-        #
-        # We allow training data to be None, as it may take time to fetch this data.
-        # Thus we return this object quickly to caller (to check training logs, etc.).
-        #
-        self.is_training_data_ready = False
-        self.training_data = training_data
-        self.training_data_source = training_data_source
-
-        if self.training_data is not None:
-            self.is_training_data_ready = True
-        else:
-            if self.training_data_source is None:
-                raise Exception(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                    + ': Data source must not be None if training data is None!'
-                )
-
-        if model_name is None:
-            model_name = TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
-        self.model_name = model_name
-        self.model_params = model_params
-
-        self.train_mode = train_mode
         if self.train_mode is None:
             self.train_mode = TextTrainer.TRAIN_MODE_MODEL
-        self.y_id = y_id
 
         #
         # TxtDataPreprocessor object passed back to us after fetching and preprocessing
         #
         self.df_training_data_pp = None
         self.embedding_params = EmbeddingParams()
-
-        self.__mutex_training = threading.Lock()
-        self.bot_training_start_time = None
-        self.bot_training_end_time = None
-        self.is_training_done = False
 
         #
         # Partial/Incremental training mode.
@@ -99,8 +63,6 @@ class TextTrainer(threading.Thread):
         #
         self.is_partial_training = (self.train_mode == TextTrainer.TRAIN_MODE_MODEL_BY_LABEL)\
                                    | (self.y_id is not None)
-
-        self.log_training = []
         return
 
     #
@@ -156,33 +118,6 @@ class TextTrainer(threading.Thread):
             )
 
         return
-
-    def run(self):
-        self.run_full_train_process()
-
-    def run_full_train_process(self):
-        try:
-            self.__mutex_training.acquire()
-            self.bot_training_start_time = dt.datetime.now()
-            self.log_training = []
-            self.preprocess_training_data()
-            self.train()
-        except Exception as ex:
-            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Training Identifier ' + str(self.identifier_string) + '" training exception: ' + str(ex) + '.'
-            Log.critical(errmsg)
-            raise Exception(errmsg)
-        finally:
-            self.is_training_done = True
-            self.bot_training_end_time = dt.datetime.now()
-            self.__mutex_training.release()
-
-        Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Train mode "' + str(self.train_mode)
-            + '". Training Identifier ' + str(self.identifier_string) + '" trained successfully.'
-        )
-        return self.log_training
 
     def train(
             self,
