@@ -5,12 +5,11 @@ from inspect import currentframe, getframeinfo
 from nwae.ml.ModelInterface import ModelInterface
 from nwae.math.NumpyUtil import NumpyUtil
 import nwae.utils.UnitTest as ut
-import nwae.ml.nndense.NnDenseModelDesign as nndensedesign
+import nwae.ml.networkdesign.NetworkDesign as nwdesign
 import pandas as pd
 import numpy as np
 from datetime import datetime
 import os
-import threading
 
 # TODO Don't rely on buggy TF/Keras, write our own
 try:
@@ -174,7 +173,8 @@ class NnDenseModel(ModelInterface):
                     top_x_matches_original.append(None)
             top_x_matches_original = np.array(top_x_matches_original)
         else:
-            top_x_matches_original = None
+            # Без one hot dict
+            top_x_matches_original = top_matches
         return top_x_matches_original
 
     def __calculate_match_details(
@@ -286,7 +286,7 @@ class NnDenseModel(ModelInterface):
                 + ': Cannot train without training data for identifier "' + self.identifier_string + '"'
             )
 
-        if type(self.model_params) is not nndensedesign.NnDenseModelDesign:
+        if type(self.model_params) is not nwdesign.NetworkDesign:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Cannot train without network for identifier "'

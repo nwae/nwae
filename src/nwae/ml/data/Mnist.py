@@ -48,4 +48,5 @@ class MnistData:
             + ', mnist_test_images_2d shape = ' + str(mnist_test_images_2d.shape)
         )
 
-        return (mnist_train_images_2d, mnist_train_labels), (mnist_test_images_2d, mnist_test_labels)
+        return (mnist_train_images, mnist_train_labels), (mnist_test_images, mnist_test_labels),\
+               (mnist_train_images_2d, mnist_train_labels), (mnist_test_images_2d, mnist_test_labels)

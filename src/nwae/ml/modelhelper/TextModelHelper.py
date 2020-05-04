@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from nwae.ml.metricspace.MetricSpaceModel import MetricSpaceModel
-from nwae.ml.nndense.NnDenseModelDesign import NnDenseModelDesign
+from nwae.ml.networkdesign.NetworkDesign import NetworkDesign
 from nwae.ml.nndense.NnDenseModel import NnDenseModel
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
@@ -42,8 +42,8 @@ class TextModelHelper:
             # Layers Design for Training (may be replaced when old model loads later)
             #
             if model_params is None:
-                model_params = NnDenseModelDesign(
-                    model_type              = NnDenseModelDesign.MODEL_TEXT_EMBEDDING,
+                model_params = NetworkDesign(
+                    model_type              = NetworkDesign.MODEL_TEXT_EMBEDDING,
                     max_label_value         = embed_max_label_val,
                     txtemb_max_sentence_len = embed_max_sentence_len,
                     txtemb_vocabulary_size  = embed_vocabulary_size

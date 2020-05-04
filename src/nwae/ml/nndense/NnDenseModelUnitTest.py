@@ -9,7 +9,7 @@ import numpy as np
 import nwae.utils.UnitTest as ut
 from nwae.ml.text.TxtTransform import TxtTransform
 from nwae.ml.nndense.NnDenseModel import NnDenseModel
-from nwae.ml.nndense.NnDenseModelDesign import NnDenseModelDesign
+from nwae.ml.networkdesign.NetworkDesign import NetworkDesign
 from nwae.ml.trainer.TextTrainer import TextTrainer
 from nwae.ml.modelhelper.TextModelHelper import TextModelHelper
 
@@ -147,8 +147,8 @@ class NnDenseModelUnitTest:
         #
         # Layers Design
         #
-        model_params = NnDenseModelDesign(
-            model_type      = NnDenseModelDesign.MODEL_GENERAL_DATA,
+        model_params = NetworkDesign(
+            model_type      = NetworkDesign.MODEL_GENERAL_DATA,
             max_label_value = max_label_value,
             input_shape     = (td.get_x().shape[1],),
         )
@@ -391,73 +391,6 @@ class NnDenseModelUnitTest:
             ))
 
         return res_final
-
-
-def test_mnist_image_data(
-        dirpath_model
-):
-    # Disable SSL check to download the data, otherwise will fail SSL check
-    from nwae.utils.networking.Ssl import Ssl
-    Ssl.disable_ssl_check()
-
-    (mnist_train_images_2d, mnist_train_labels), (mnist_test_images_2d, mnist_test_labels) = \
-        MnistData.load_mnist_example_data()
-
-    #np.savetxt("mnist_test_images_2d.csv", kr.mnist_test_images_2d, delimiter=",")
-    #np.savetxt("mnist_train_labels.csv", kr.mnist_train_labels, delimiter=",")
-
-    td = tdm.TrainingDataModel(
-        x = mnist_train_images_2d,
-        y = mnist_train_labels,
-        is_map_points_to_hypersphere = False
-    )
-
-    #
-    # Layers Design
-    #
-    nn_layers = [
-        {
-            ModelInterface.NN_LAYER_TYPE: ModelInterface.VALUE_NN_LAYER_TYPE_DENSE,
-            ModelInterface.NN_LAYER_OUTPUT_UNITS: 512,
-            # First layer just makes sure to output positive numbers with linear rectifier
-            ModelInterface.NN_LAYER_ACTIVATION:   'relu',
-            ModelInterface.NN_LAYER_INPUT_SHAPE:  (td.get_x().shape[1],)
-        },
-        {
-            ModelInterface.NN_LAYER_TYPE: ModelInterface.VALUE_NN_LAYER_TYPE_DENSE,
-            ModelInterface.NN_LAYER_OUTPUT_UNITS: to_categorical(td.get_y()).shape[1],
-            # Last layer uses a probability based output softmax
-            ModelInterface.NN_LAYER_ACTIVATION:   'softmax'
-        }
-    ]
-    model_obj = NnDenseModel(
-        model_params      = nn_layers,
-        identifier_string = 'keras_image_bw_example',
-        dir_path_model    = dirpath_model,
-        train_epochs      = 5,
-        train_batch_size  = 128
-    )
-    model_obj.set_training_data(td = td)
-
-    print('Training started...')
-    model_obj.train()
-    print('Training done.')
-
-    print('Loading model parameters...')
-    model_obj.load_model_parameters()
-    test_labels_cat = to_categorical(mnist_test_labels)
-
-    test_loss, test_acc = model_obj.evaluate(mnist_test_images_2d, test_labels_cat)
-    print('Test accuracy: ', test_acc)
-
-    prd = model_obj.predict_classes(x=mnist_train_images_2d[0:10])
-    print(prd.predicted_classes)
-
-    # import matplotlib.pyplot as plt
-    # for i in range(10):
-    #     plt.imshow(mnist_train_images[i], cmap=plt.cm.binary)
-    #     plt.show()
-    return
 
 
 if __name__ == '__main__':

@@ -30,9 +30,10 @@ class TrainingDataModel:
             # np array 형식으호
             y_name = None,
             # Will normalize points passed in to the hypershere
-            is_map_points_to_hypersphere = True,
+            is_map_points_to_hypersphere   = True,
             # Should only do this in desperation, otherwise we should always deal with numbers only
-            is_convert_y_label_to_str_type = False
+            is_convert_y_label_to_str_type = False,
+            custom_data                    = None,
     ):
         # Only positive real values
         self.x = x
@@ -70,10 +71,18 @@ class TrainingDataModel:
                 + ': y_name must be np.array type, got type "' + str(type(self.y_name)) + '".'
             )
 
+        log.Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': x shape = ' + str(self.x.shape) + ', y shape = ' + str(self.y.shape)
+            + ': x name shape = ' + str(self.x_name.shape) + ', y name shape = ' + str(self.y_name.shape)
+        )
+
         # TODO This is super slow, need to do something else faster
         # Change label to string type
         if self.is_convert_y_label_to_str_type:
             self.y = self.y.astype('str')
+
+        self.custom_data = custom_data
 
         # Weights (all 1's by default)
         self.w = np.array([1]*self.x_name.shape[0])
@@ -98,7 +107,8 @@ class TrainingDataModel:
         # So if x is 2 dimensions, and the columns are of length 10, then x_names must be of length 10
         # If x is 3 dimensions with the 2nd and 3rd dimensions of shape (12,55), then x_names must be (12,55) in shape
         if self.x_name is not None:
-            for i_dim in range(1,self.x.ndim,1):
+            # No need to check for dimensions 3 and above
+            for i_dim in range(1, min(2,self.x.ndim), 1):
                 if self.x.shape[i_dim] != self.x_name.shape[i_dim-1]:
                     raise Exception(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -323,6 +333,9 @@ class TrainingDataModel:
 
     def get_y_one_hot_dict(self):
         return self.y_one_hot_dict
+
+    def get_custom_data(self):
+        return self.custom_data
 
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
