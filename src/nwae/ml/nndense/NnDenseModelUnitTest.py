@@ -3,8 +3,6 @@
 import nwae.ml.TrainingDataModel as tdm
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
-from nwae.ml.ModelInterface import ModelInterface
-from nwae.ml.data.Mnist import MnistData
 import numpy as np
 import nwae.utils.UnitTest as ut
 from nwae.ml.text.TxtTransform import TxtTransform
