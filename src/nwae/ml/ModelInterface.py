@@ -19,24 +19,44 @@ import re
 class ModelInterface(threading.Thread):
 
     # Dense, Embedding, etc
-    NN_LAYER_TYPE         = 'nn_layer_type'
+    NN_LAYER_TYPE             = 'nn_layer_type'
+    #
+    # General parameters for all layer types
+    #
     # Input dimension, only required for 1st layer
-    NN_LAYER_INPUT_SHAPE  = 'input_shape'
+    NN_LAYER_INPUT_SHAPE      = 'input_shape'
     # For certain layer types like Embedding layer, input shape
     # needs to be specified by input length and input dim
-    NN_LAYER_INPUT_LEN    = 'input_length'
-    NN_LAYER_INPUT_DIM    = 'input_dim'
+    NN_LAYER_INPUT_LEN        = 'input_length'
+    NN_LAYER_INPUT_DIM        = 'input_dim'
     # Number of output units of the layer
-    NN_LAYER_OUTPUT_UNITS = 'units'
+    NN_LAYER_OUTPUT_UNITS     = 'units'
     # For certain layer types like Embedding layer, the output
     # is specified by output dim
-    NN_LAYER_OUTPUT_DIM   = 'output_dim'
-    NN_LAYER_ACTIVATION   = 'activation'
+    NN_LAYER_OUTPUT_DIM       = 'output_dim'
+    NN_LAYER_ACTIVATION       = 'activation'
+    #
+    # Params for Dropout layer
+    #
+    NN_LAYER_DROPOUT_RATE     = 'dropout_rate'
+    #
+    # Params for Convolutional layers
+    #
+    NN_LAYER_CONV_FILTERS     = 'conv_filters'
+    NN_LAYER_CONV_KERNEL_SIZE = 'conv_kernel_size'
+    #
+    # Params for Pooling layers
+    #
+    NN_LAYER_POOLING_SIZE     = 'pooling_size'
 
     # Keras layer names
     VALUE_NN_LAYER_TYPE_DENSE     = 'dense'
     VALUE_NN_LAYER_TYPE_EMBEDDING = 'embedding'
     VALUE_NN_LAYER_TYPE_FLATTEN   = 'flatten'
+    VALUE_NN_LAYER_TYPE_CONV2D    = 'conv2d'
+    VALUE_NN_LAYER_TYPE_MAXPOOL2D = 'maxpool2d'
+    VALUE_NN_LAYER_TYPE_AVGPOOL2D = 'avgpool2d'
+    VALUE_NN_LAYER_TYPE_DROPOUT   = 'dropout'
 
     # Terms for dataframe, etc.
     TERM_CLASS      = 'class'

@@ -126,6 +126,32 @@ class NetworkDesign:
                     # Usually comes after an embedding layer, does nothing but to convert
                     # a 2 dimensional input to a 1-dimensional output by the usual "flattening"
                     self.network.add(layers.Flatten())
+                elif layer_type == ModelInterface.VALUE_NN_LAYER_TYPE_DROPOUT:
+                    self.network.add(
+                        layers.Dropout(rate = ly[ModelInterface.NN_LAYER_DROPOUT_RATE])
+                    )
+                elif layer_type == ModelInterface.VALUE_NN_LAYER_TYPE_CONV2D:
+                    if i_layer == 0:
+                        self.network.add(
+                            layers.Conv2D(
+                                filters     = ly[ModelInterface.NN_LAYER_CONV_FILTERS],
+                                kernel_size = ly[ModelInterface.NN_LAYER_CONV_KERNEL_SIZE],
+                                input_shape = ly[ModelInterface.NN_LAYER_INPUT_SHAPE],
+                                activation  = ly[ModelInterface.NN_LAYER_ACTIVATION]
+                            )
+                        )
+                    else:
+                        self.network.add(
+                            layers.Conv2D(
+                                filters     = ly[ModelInterface.NN_LAYER_CONV_FILTERS],
+                                kernel_size = ly[ModelInterface.NN_LAYER_CONV_KERNEL_SIZE],
+                                activation  = ly[ModelInterface.NN_LAYER_ACTIVATION]
+                            )
+                        )
+                elif layer_type == ModelInterface.VALUE_NN_LAYER_TYPE_MAXPOOL2D:
+                    self.network.add(
+                        layers.MaxPooling2D(pool_size=ly[ModelInterface.NN_LAYER_POOLING_SIZE])
+                    )
                 else:
                     raise Exception('Unrecognized layer type "' + str(layer_type) + '"')
             Log.info(
