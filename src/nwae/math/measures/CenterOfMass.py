@@ -12,18 +12,37 @@ class CenterOfMass:
     ):
         self.x = x
         assert type(x) == np.ndarray
+        return
 
+    def calculate(
+            self
+    ):
         self.x_shape = self.x.shape
+
         # How many elements altogether
-        self.x_len = np.product(self.x_shape)
+        self.x_elements_count = np.product(self.x_shape)
         self.x_dim = len(self.x_shape)
 
-        self.x_coordinates = np.zeros(shape=[self.x_dim] + [self.x_len])
+        if self.x_elements_count == 0:
+            return np.array([np.nan]*self.x_dim)
 
-        repeat_times = self.x_len
+        # No negative numbers
+        assert np.min(self.x) >= 0
+        assert self.x_dim > 0
+        assert self.x_elements_count > 0
+
+        # Keep the dimension coordinates here
+        self.x_coordinates = np.zeros(shape=[self.x_dim] + [self.x_elements_count])
+
+        # For example if x has shape (4,3,2), this number will start with 4*3*2 = 24
+        repeat_times = self.x_elements_count
         for dim in range(self.x_dim):
+            # For example first dimension will have a scalar repeat 3*2=6 times (0,0,0,0,0,0,1,1,1,1,1,1,..)
+            # as each row will have 6 elements in total,
+            # 2nd dimension will repeat 2 times (0,0,1,1,2,2,..) as each row will have 2 elements in total
             repeat_times = repeat_times / self.x_shape[dim]
-            dim_coor = np.array(list(range(self.x_len))) // repeat_times
+            # Each number 0, 1, 2, ... is repeated by the number of times
+            dim_coor = np.array(list(range(self.x_elements_count))) // repeat_times
             # Modulo the dimension length
             dim_coor = dim_coor % self.x_shape[dim]
             self.x_coordinates[dim,] = dim_coor
@@ -35,14 +54,13 @@ class CenterOfMass:
             'Coordinates of x by dimension:\n\r' + str(self.x_coordinates)
         )
 
-        return
-
-    def calculate(
-            self
-    ):
         cm = np.zeros(shape=[self.x_dim])
         for dim in range(self.x_dim):
-            cm[dim] = np.sum( self.x_coordinates[dim] * self.x ) / np.sum(self.x)
+            if np.sum(self.x) > 0:
+                cm[dim] = np.sum( self.x_coordinates[dim] * self.x ) / np.sum(self.x)
+            else:
+                ones_arr = np.ones(shape=self.x_shape)
+                cm[dim] = np.sum( self.x_coordinates[dim] *  ones_arr) / np.sum(ones_arr)
         return cm
 
 
@@ -61,7 +79,27 @@ class CenterOfMassUnitTest:
             # Convert to list so can be compared
             observed = cm.tolist(),
             expected = np.array([4.5, 4.5]).tolist(),
-            test_comment = 'Test center of mass for symmetrical array ' + str(x)
+            test_comment = 'Test center of mass for symmetrical array ' + str(x) + ', shape ' + str(x.shape)
+        )
+        res_final.update_bool(res_bool=res)
+
+        x = np.zeros(shape=(10, 5))
+        cm = CenterOfMass(x=x).calculate()
+        res = ut.UnitTest.assert_true(
+            # Convert to list so can be compared
+            observed = cm.tolist(),
+            expected = np.array([4.5, 2.0]).tolist(),
+            test_comment = 'Test center of mass for array of 0s ' + str(x) + ', shape ' + str(x.shape)
+        )
+        res_final.update_bool(res_bool=res)
+
+        x = np.array([[],[],[]])
+        cm = CenterOfMass(x=x).calculate()
+        res = ut.UnitTest.assert_true(
+            # Need to check the return value [nan, nan] one by one
+            observed = (np.isnan(cm[0]) and np.isnan(cm[1])),
+            expected = True,
+            test_comment = 'Test center of mass for empty array ' + str(x) + ', shape ' + str(x.shape)
         )
         res_final.update_bool(res_bool=res)
 
@@ -78,3 +116,6 @@ if __name__ == '__main__':
     print(x)
     cm = CenterOfMass(x=x).calculate()
     print(cm)
+
+    x = np.array([[]])
+    print(CenterOfMass(x=x).calculate())
