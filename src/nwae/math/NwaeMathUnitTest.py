@@ -9,6 +9,7 @@ from nwae.math.Cluster import ClusterUnitTest
 from nwae.utils.Hash import HashUnitTest
 from nwae.math.Obfuscate import ObfuscateUnitTest
 from nwae.math.data.Rank import RankUnitTest
+from nwae.math.data.Grouping import GroupingUnitTest
 from nwae.math.measures.CenterOfMass import CenterOfMassUnitTest
 
 
@@ -51,6 +52,10 @@ class NwaeMathUnitTest:
         res = RankUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.math>> Data Rank Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = GroupingUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.math>> Data Grouping Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = CenterOfMassUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
