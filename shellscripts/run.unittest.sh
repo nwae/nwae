@@ -133,7 +133,7 @@ fi
 export PYTHONIOENCODING=utf-8
 
 exit_status=0
-echo "[$SCRIPT_NAME] Starting $PROGRAM_NAME.."
+echo "[$SCRIPT_NAME] Starting $PROGRAM_NAME with $PYTHON_BIN.."
 if PYTHONPATH="$PROJECTDIR"/"$SOURCE_DIR":"$EXTERNAL_SRC_FOLDERS" \
       $PYTHON_BIN -m "$MODULE_TO_RUN" \
          configfile="$CONFIGFILE" \
@@ -145,7 +145,7 @@ else
   exit_status=1
 fi
 
-if ! cd - ; then
+if ! cd "-" ; then
   echo "[$SCRIPT_NAME] ERROR Can't change back to original folder."
   exit 1
 fi
