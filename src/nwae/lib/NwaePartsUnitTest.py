@@ -3,8 +3,6 @@
 from nwae.utils.Log import Log
 import nwae.utils.UnitTest as uthelper
 import nwae.lib.config.Config as cf
-from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
-from mex.MexUnitTest import UnitTestMex
 from nwae.ml.NwaeMlUnitTest import NwaeMlUnitTest
 
 
@@ -12,7 +10,7 @@ from nwae.ml.NwaeMlUnitTest import NwaeMlUnitTest
 # We run all the available unit tests from all modules here
 # PYTHONPATH=".:/usr/local/git/nwae/nwae.utils/src:/usr/local/git/nwae/mex/src" /usr/local/bin/python3.6 nwae/ut/UnitTest.py
 #
-class NwaeUnitTest:
+class NwaePartsUnitTest:
 
     def __init__(self, ut_params):
         self.ut_params = ut_params
@@ -51,5 +49,5 @@ if __name__ == '__main__':
 
     Log.LOGLEVEL = Log.LOG_LEVEL_ERROR
 
-    res = NwaeUnitTest(ut_params=ut_params).run_unit_tests()
+    res = NwaePartsUnitTest(ut_params=ut_params).run_unit_tests()
     exit(res.count_fail)
