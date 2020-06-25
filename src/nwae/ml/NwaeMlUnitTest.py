@@ -80,7 +80,11 @@ class NwaeMlUnitTest:
             res_final.update(other_res_obj=res)
             Log.critical('<<nwae.ml>> NN Dense Model Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        Log.critical('PROJECT <<nwae.ml>> TOTAL PASS = ' + str(res_final.count_ok) + ', TOTAL FAIL = ' + str(res_final.count_fail))
+        Log.critical(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': PROJECT <<nwae.ml>> TOTAL PASS = ' + str(res_final.count_ok)
+            + ', TOTAL FAIL = ' + str(res_final.count_fail)
+        )
         return res_final
 
 
