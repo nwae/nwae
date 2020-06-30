@@ -27,6 +27,9 @@ class SpeechRecognition:
     """
     ENGINE_GOOGLE = 'google'
     # Need account
+    # https://cloud.google.com/speech-to-text/docs/quickstart
+    ENGINE_GOOGLE_CLOUD = 'google_cloud'
+    # Need account
     # https://azure.microsoft.com/en-ca/pricing/details/cognitive-services/speech-api/
     ENGINE_BING = 'bing'
 
@@ -122,8 +125,9 @@ class SpeechRecognition:
             try:
 
                 if self.engine == SpeechRecognition.ENGINE_GOOGLE:
-                    # using google speech recognition
                     text = r.recognize_google(audio_text, language=self.lang)
+                elif self.engine == SpeechRecognition.ENGINE_GOOGLE_CLOUD:
+                    text = r.recognize_google_cloud(audio_text, credentials_json=self.auth_info, language=self.lang)
                 elif self.engine == SpeechRecognition.ENGINE_BING:
                     text = r.recognize_bing(audio_text, key=self.auth_info, language=self.lang)
                 else:
