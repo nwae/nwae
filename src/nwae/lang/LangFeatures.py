@@ -105,6 +105,8 @@ class LangFeatures:
     # Russian
     LANG_RU  = 'ru'     # ISO-639-1
     LANG_RUS = 'rus'    # ISO-639-3
+    # language code + localisation
+    LANG_RU_RU = 'ru-RU'
     #
     # Thai Alphabet Family
     #

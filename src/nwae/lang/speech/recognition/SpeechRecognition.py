@@ -11,13 +11,24 @@ import speech_recognition as sr
 # To get audio from microphone
 #  > brew install portaudio
 #  > pip install PyAudio
-from nwae.utils.audio.AudioPlay import AudioPlay
-from nwae.utils.audio.AudioFormats import AudioFormats
+from nwae.utils.audio.AudioUtils import AudioUtils
 import re
 from nwae.lang.LangFeatures import LangFeatures
 
 
-class GoogleSpeechRecognition:
+class SpeechRecognition:
+
+    """
+    Caution: The default key provided by SpeechRecognition is for testing purposes only, and Google may revoke it
+    at any time. It is not a good idea to use the Google Web Speech API in production. Even with a valid API key,
+    you’ll be limited to only 50 requests per day, and there is no way to raise this quota. Fortunately,
+    SpeechRecognition’s interface is nearly identical for each API, so what you learn today will be easy to translate
+    to a real-world project.
+    """
+    ENGINE_GOOGLE = 'google'
+    # Need account
+    # https://azure.microsoft.com/en-ca/pricing/details/cognitive-services/speech-api/
+    ENGINE_BING = 'bing'
 
     SOURCE_MIC = 'microphone'
     SOURCE_FILE = 'file'
@@ -26,11 +37,15 @@ class GoogleSpeechRecognition:
             self,
             lang = LangFeatures.LANG_KO,
             audio_source = SOURCE_MIC,
-            audio_file = None
+            audio_file = None,
+            engine = ENGINE_GOOGLE,
+            auth_info = None
     ):
         self.lang = lang
         self.audio_source = audio_source
         self.audio_file = audio_file
+        self.engine = engine
+        self.auth_info = auth_info
 
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -78,17 +93,20 @@ class GoogleSpeechRecognition:
                 )
 
     def __recognize_file(self):
-        need_convert_format = re.sub(pattern='(.*[.])([a-zA-Z0-9]+$)', repl='\\2',
-                                     string=audio_filepath).lower() != 'wav'
-        audio_filepath_wav = audio_filepath
+        need_convert_format = re.sub(
+            pattern = '(.*[.])([a-zA-Z0-9]+$)',
+            repl    = '\\2',
+            string  = self.audio_file
+        ).lower() != 'wav'
+        audio_filepath_wav = self.audio_file
 
         if need_convert_format:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Converting "' + str(self.audio_file) + '" to wav format..'
             )
-            audio_filepath_wav = AudioFormats().convert_format(
-                filepath = audio_filepath
+            audio_filepath_wav = AudioUtils().convert_format(
+                filepath = self.audio_file
             )
 
         # Initialize recognizer class (for recognizing the speech)
@@ -103,8 +121,16 @@ class GoogleSpeechRecognition:
             # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
             try:
 
-                # using google speech recognition
-                text = r.recognize_google(audio_text)
+                if self.engine == SpeechRecognition.ENGINE_GOOGLE:
+                    # using google speech recognition
+                    text = r.recognize_google(audio_text, language=self.lang)
+                elif self.engine == SpeechRecognition.ENGINE_BING:
+                    text = r.recognize_bing(audio_text, key=self.auth_info, language=self.lang)
+                else:
+                    raise Exception(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Unsuported engine "' + str(self.engine) + '".'
+                    )
                 Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Converting audio transcripts into text ...'
@@ -124,21 +150,27 @@ class GoogleSpeechRecognition:
 
 
 if __name__ == '__main__':
-    audio_filepath = '/usr/local/git/nwae/nwae.lang/app.data/voice-recordings/hi.wav'
+    audio_filepath_mp3 = '/usr/local/git/nwae/nwae.lang/app.data/voice-recordings/hi.m4a'
+    audio_filepath_wav = AudioUtils().convert_format(
+        filepath = audio_filepath_mp3
+    )
 
-    print('Playing audio from "' + str(audio_filepath) + '"')
-    AudioPlay(
-        audio_filepath = audio_filepath
-    ).play()
+    print('Playing audio from "' + str(audio_filepath_wav) + '"')
+    AudioUtils().play_wav(
+        wav_filepath = audio_filepath_wav,
+        play_secs = 2
+    )
 
-    text = GoogleSpeechRecognition(
-        lang = 'en_US',
-        audio_source = GoogleSpeechRecognition.SOURCE_FILE,
-        audio_file   = audio_filepath
+    text = SpeechRecognition(
+        lang = LangFeatures.LANG_RU_RU,
+        audio_source = SpeechRecognition.SOURCE_FILE,
+        audio_file   = audio_filepath_wav
     ).recognize()
     print('***** ', text)
 
-    text = GoogleSpeechRecognition().recognize()
+    text = SpeechRecognition(
+        lang = LangFeatures.LANG_KO
+    ).recognize()
     print('*****', text)
 
     exit(0)
