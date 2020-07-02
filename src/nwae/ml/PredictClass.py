@@ -134,6 +134,20 @@ class PredictClass(threading.Thread):
         self.load_text_processor()
         return
 
+    def stop_model_thread(self):
+        # Kill any background jobs
+        try:
+            Log.info(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': "' + str(self.identifier_string) + '" Stopping model background job..'
+            )
+            self.model.stoprequest.set()
+        except Exception as ex:
+            Log.error(
+                str(self.__class__) + str(getframeinfo(currentframe()).lineno)
+                + ': "' + str(self.identifier_string) + '" Stop model background job exception: ' + str(ex)
+            )
+
     #
     # Когда модель перезагрузит, текстовый процессор также надо перезагрузить
     # Должен опять загрузить потому что класс TxtPreprocessor нужны данные из модели
@@ -484,6 +498,9 @@ class PredictClassUnitTest:
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ': Match Details' + str(res.predict_result.match_details)
             )
+
+        # Kill any background jobs
+        predict.stop_model_thread()
 
         return res_final
 
