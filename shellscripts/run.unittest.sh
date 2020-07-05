@@ -14,7 +14,7 @@ SCRIPT_NAME="$0"
 # Where this script is relative to project directory
 PROGRAM_NAME="NWAE UNIT TEST"
 SCRIPT_DIR="shellscripts"
-PYTHON_VER="3.6"
+PYTHON_VER="3.8"
 SOURCE_DIR="../src"
 COMPILE_MODULE="."
 MODULE_TO_RUN="nwae.lib.NwaePartsUnitTest"
