@@ -30,6 +30,10 @@ class Grouping:
         x_array_processed = np.array([x.lower() for x in x_array_processed if x])
 
         grouped_x = x_array_processed.copy()
+
+        if len(grouped_x) == 0:
+            return grouped_x
+
         # So that later we push everything with label 0 to "other"
         grouped_x_label = np.array([0]*len(grouped_x))
         for i in range(len(pattern_repl_label)):
