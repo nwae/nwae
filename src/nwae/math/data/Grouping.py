@@ -22,6 +22,7 @@ class Grouping:
             # Means start with anything and then some delimiter (space, tab, etc) before the word, or nothing
             start_regex = '([ \t,.:;*()]+)',
             end_regex = '([ \t,.:;*()]+)',
+            # For recording log info
             log_list = None
     ):
         # We need to wrap the values in space because we expect the word to be surrounded by delimiters
@@ -77,7 +78,7 @@ class Grouping:
                         + ': ' + str(label_index) + '. Matched pattern "' + str(pattern)
                         + '" for category "' + str(category) + '" to ' + str(matched_count_all)
                         + ' all, and ' + str(matched_count_new)
-                        + ' new. Strings matched new: ' + str(np.unique(grouped_x[matched_pattern == True])),
+                        + ' new. Strings matched new: ' + str(list(np.unique(grouped_x[matched_pattern == True]))),
                     log_list = log_list
                 )
 
@@ -86,11 +87,13 @@ class Grouping:
                 # Label by number this group league
                 grouped_x_label[matched_pattern == True] = label_index
             else:
+                count_strings_sinked_to_others = np.sum(1*(grouped_x_label==0))
                 Log.important(
                     s = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': ' + str(label_index) + '. None pattern "' + str(pattern)
                         + '" for category "' + str(category) + '", sinking all to "' + str(category)
-                        + '". String sinked: ' + str(np.unique(grouped_x[grouped_x_label == 0])),
+                        + '". ' + str(count_strings_sinked_to_others) + ' strings sinked: '
+                        + str(list(np.unique(grouped_x[grouped_x_label == 0]))),
                     log_list = log_list
                 )
                 # If None as pattern, means it goes to everything not yet classified
