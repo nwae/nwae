@@ -5,15 +5,24 @@ from inspect import getframeinfo, currentframe
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from xgboost import plot_tree
+import matplotlib.pyplot as plt
 from nwae.math.NumpyUtil import NumpyUtil
 import keras.utils as kerasutils
+import pickle
 
 
 class Boosting:
 
     def __init__(
             self,
+            model = None,
+            model_path = None,
     ):
+        self.model = model
+        self.model_path = model_path
+        if self.model_path is not None:
+            self.load_model(path=self.model_path)
         return
 
     def generate_random_data(
@@ -51,65 +60,130 @@ class Boosting:
 
         return X_train, Y_train, X_test, Y_test
 
-    def create_boosting_model(
+    def convert_to_xgboost_data_format(
             self,
             data,
-            labels
+            labels,
+            feature_names = None,
     ):
-        return xgb.DMatrix(
-            data=data,
-            label=labels
-        )
+        # Data format for xgboost
+        if feature_names is None:
+            return xgb.DMatrix(
+                data  = data,
+                label = labels,
+            )
+        else:
+            return xgb.DMatrix(
+                data  = data,
+                label = labels,
+                feature_names = feature_names
+            )
 
-    def classify_boosting(
+    #
+    # Implements the generic AdaBoost algorithm on any predictors
+    #
+    def fit_adaboost(
             self,
             X_train,
             Y_train,
-            X_test,
-            Y_test,
-            num_class
+            num_class,
+            # List of predictor functions?
+            h_pred,
+    ):
+        raise Exception('not yet implemented')
+
+    #
+    # Default xgboost library uses trees as weak learners
+    #
+    def fit_gradient_boosting(
+            self,
+            X_train,
+            Y_train,
+            num_class,
+            feature_names,
+            num_round = 10,
+            # boosting_model 'binary:logistic',
+            classtype = 'multi:softprob',
+            save_model_path = None,
     ):
         # Convert labels to categorical one-hot encoding
         labels_categorical = kerasutils.to_categorical(Y_train, num_classes=num_class)
-        dtrain = self.create_boosting_model(
-            data=X_train,
-            labels=Y_train
-        )
-        dtest = self.create_boosting_model(
-            data=X_test,
-            labels=Y_test
+        dtrain = self.convert_to_xgboost_data_format(
+            data   = X_train,
+            labels = Y_train,
+            feature_names = feature_names,
         )
         param = {
             'max_depth': 3,
             'eta': 1,
-            # 'objective': 'binary:logistic',
-            'objective': 'multi:softprob',
+            'objective': classtype,
             'num_class': num_class
         }
         param['nthread'] = 4
         param['eval_metric'] = 'auc'
 
-        evallist = [(dtest, 'test')]
+        # evallist = [(dtest, 'test')]
 
-        num_round = 10
-        bst = xgb.train(
+        self.model = xgb.train(
             param,
             dtrain,
             num_round,
             # evallist
         )
+        model_dump = self.model.get_dump()
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Boosting model class type "' + str(classtype) + '" trained successfully.'
+            + ' Number of trees = ' + str(len(model_dump))
+            + ', Feature names: ' + str(self.model.feature_names)
+        )
+        if save_model_path is not None:
+            pickle.dump(self.model, open(save_model_path, "wb"))
+        return self.model
 
-        ypred = bst.predict(dtest)
-        print(ypred)
-        print(type(ypred))
-        print(ypred.shape)
-        print(np.sum(ypred, axis=1).tolist())
+    def load_model(self, path):
+        # Now, load the model for use on a new dataset
+        loaded_model = pickle.load(open(path, "rb"))
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Loaded model from file "' + str(path) + '", feature names: ' + str(loaded_model.feature_names)
+        )
+        return loaded_model
+
+    def predict(
+            self,
+            X,
+            Y,
+            feature_names = None
+    ):
+        dtest = self.convert_to_xgboost_data_format(
+            data   = X,
+            labels = Y,
+            feature_names = feature_names,
+        )
+        ypred = self.model.predict(dtest)
+        return ypred
+
+    def check_prediction_stats(
+            self,
+            X,
+            Y,
+            y_predicted,
+    ):
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Checking prediction stats..'
+        )
+        # print(y_predicted)
+        # print(type(y_predicted))
+        # print(y_predicted.shape)
+        # print(np.sum(y_predicted, axis=1).tolist())
         # Compare some data
         count_correct = 0
-        for i in range(X_test.shape[0]):
-            data_i = X_test[i]
-            label_i = Y_test[i]
-            prob_distribution = ypred[i]
+        for i in range(X.shape[0]):
+            data_i = X[i]
+            label_i = Y[i]
+            prob_distribution = y_predicted[i]
             top_x = NumpyUtil.get_top_indexes(
                 data=prob_distribution,
                 ascending=False,
@@ -118,7 +192,7 @@ class Boosting:
             if top_x[0] == label_i:
                 count_correct += 1
             Log.debug(str(i) + '. ' + str(data_i) + ': Label=' + str(label_i) + ', predicted=' + str(top_x))
-        Log.important('Boosting Accuracy = ' + str(100 * count_correct / X_test.shape[0]) + '%.')
+        Log.important('Boosting Accuracy = ' + str(100 * count_correct / X.shape[0]) + '%.')
         return
 
 
@@ -133,7 +207,25 @@ if __name__ == '__main__':
     print(num_class)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_INFO
+    features = [str(x) for x in list(range(input_dim))]
     print('***** Start Boost Classifier *****')
-    boost.classify_boosting(X_train=X_train, Y_train=Y_train, X_test=X_test, Y_test=Y_test, num_class=num_class)
+    boost.fit_gradient_boosting(
+        X_train   = X_train,
+        Y_train   = Y_train,
+        num_class = num_class,
+        feature_names = features,
+        save_model_path = 'boost_model.dat'
+    )
+    model = boost.load_model(path='boost_model.dat')
+    boost.check_prediction_stats(
+        X = X_test,
+        Y = Y_test,
+        y_predicted = boost.predict(X = X_test, Y = Y_test, feature_names = features)
+    )
+
+    print('Plotting tree..' + str(model.get_dump()))
+    plot_tree(model, num_trees=0)
+    plt.show()
+    print('Done')
 
     exit(0)

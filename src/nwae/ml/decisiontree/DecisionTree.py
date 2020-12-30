@@ -59,14 +59,17 @@ class DecisionTree:
 
     def fit(
             self,
+            # 'entropy' (information concept) or 'gini' (impurity concept)
+            criterion = 'gini',
             max_tree_depth = 10,
             min_samples_split = 20,
-            min_impurity_decrease = 0.01,
+            min_impurity_decrease = 0.0,
             output_graph_path = None,
             output_code_path = None,
             output_code_newline = '\n'
     ):
         dtree = DecisionTreeClassifier(
+            criterion = criterion,
             max_depth = max_tree_depth,
             min_samples_split = min_samples_split,
             min_impurity_decrease = min_impurity_decrease,
@@ -109,6 +112,7 @@ if __name__ == '__main__':
         df_X = df[['iq', 'sex']],
         df_y = df[['job']]
     ).fit(
+        criterion = 'entropy',
         max_tree_depth = 10,
         min_samples_split = 2,
         min_impurity_decrease = 0.0,
