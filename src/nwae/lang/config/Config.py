@@ -64,10 +64,12 @@ class Config(baseconfig.BaseConfig):
 
     def __init__(
             self,
-            config_file
+            config_file,
+            obfuscate_passwords = False
     ):
         super(Config, self).__init__(
-            config_file = config_file
+            config_file = config_file,
+            obfuscate_passwords = obfuscate_passwords
         )
         self.reload_config()
         return

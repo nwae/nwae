@@ -15,6 +15,26 @@ from mex.MatchExpression import MatchExpression
 
 
 #
+# Самая важная и основная обработка тесктов в первом этапе любой обработки NLP, Машинного Обучения или
+# Искусственного Интеллекта.
+#
+# The method process_text() takes in a string, and outputs a list of split tokens, and cleaned with the
+# listed processes below.
+# However these split tokens are still in string form, and further processing is still required to convert
+# them to label, one-hot encodings, or word embeddings to be suitable for further ML/AI processing.
+#
+#   1. Segment text or word tokenization
+#      For languages like English, Spanish, Korean, etc, this is easy, only split by space.
+#      But for languages with no spaces like Chinese, Japanese, Thai, Lao, Cambodian,
+#      or languages that have only syllable boundaries like Vietnamese & Chinese,
+#      this is a complicated process.
+#   2. Normalize text, replacing synonyms with single word
+#   3. Spelling correction
+#   4. Stemming or Lemmatization
+#      Stemming does not necessarily generate a dictionary/valid word, its sole purpose is just to
+#      reduce conjugated words to the same root.
+#      Thus if the meaning of a word is important, it needs to be lemmatized instead of stemmed
+#
 # When model updates, this also need to update. So be careful.
 #
 class TxtPreprocessor:
