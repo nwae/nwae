@@ -28,9 +28,10 @@ from mex.MatchExpression import MatchExpression
 #      But for languages with no spaces like Chinese, Japanese, Thai, Lao, Cambodian,
 #      or languages that have only syllable boundaries like Vietnamese & Chinese,
 #      this is a complicated process.
-#   2. Normalize text, replacing synonyms with single word
-#   3. Spelling correction
-#   4. Stemming or Lemmatization
+#   2. Clean/separate common punctuations from words
+#   3. Normalize text, replacing synonyms with single word
+#   4. Spelling correction
+#   5. Stemming or Lemmatization
 #      Stemming does not necessarily generate a dictionary/valid word, its sole purpose is just to
 #      reduce conjugated words to the same root.
 #      Thus if the meaning of a word is important, it needs to be lemmatized instead of stemmed
@@ -203,9 +204,10 @@ class TxtPreprocessor:
     #
     # Some things we do
     #   1. Segment text or word tokenization
-    #   2. Normalize text, replacing synonyms with single word
-    #   3. Spelling correction
-    #   4. Stemming or Lemmatization
+    #   2. Clean/separate common punctuations from words
+    #   3. Normalize text, replacing synonyms with single word
+    #   4. Spelling correction
+    #   5. Stemming or Lemmatization
     #
     def process_text(
             self,

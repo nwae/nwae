@@ -7,6 +7,9 @@ import re
 import nwae.utils.UnitTest as ut
 
 
+#
+# This should be a text processing class, but mixed with some very basic text encoding methods
+#
 class BasicPreprocessor:
 
     #
