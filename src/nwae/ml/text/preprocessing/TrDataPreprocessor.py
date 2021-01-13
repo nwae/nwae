@@ -14,7 +14,9 @@ from nwae.ml.text.EmbeddingParams import EmbeddingParams
 
 
 #
-# Preprocessing of raw text training data into desired form.
+# Самая важная и основная обработка тесктов в первом этапе любой обработки NLP, Машинного Обучения или
+# Искусственного Интеллекта.
+# Только предварительная обработка исходных текстовых данных в "чистую" форму текста без кодирования в числа.
 #
 class TrDataPreprocessor:
 

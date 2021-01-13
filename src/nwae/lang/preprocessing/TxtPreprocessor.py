@@ -17,6 +17,7 @@ from mex.MatchExpression import MatchExpression
 #
 # Самая важная и основная обработка тесктов в первом этапе любой обработки NLP, Машинного Обучения или
 # Искусственного Интеллекта.
+# Только предварительная обработка исходных текстовых данных в "чистую" форму текста без кодирования в числа.
 #
 # The method process_text() takes in a string, and outputs a list of split tokens, and cleaned with the
 # listed processes below.
