@@ -120,6 +120,10 @@ class ModelInterface(threading.Thread):
                     raise Exception(errmsg)
             return prefix_or_dir
         else:
+            Log.important(
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Using path prefix "' + str(prefix_or_dir) + '"'
+            )
             return prefix_or_dir
 
     class PredictReturnClass:

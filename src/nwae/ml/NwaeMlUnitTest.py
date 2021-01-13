@@ -62,23 +62,23 @@ class NwaeMlUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.ml>> PredictClass Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        try:
-            # Try to import some Keras module to see if available
-            from keras.utils import to_categorical
-            test_nn_dense = True
-        except Exception as ex_load:
-            errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                     + ': Could not test NN Dense Model: ' + str(ex_load)
-            Log.error(errmsg)
-            test_nn_dense = False
-        if test_nn_dense:
-            from nwae.ml.nndense.NnDenseModelUnitTest import NnDenseModelUnitTest
-            res = NnDenseModelUnitTest(
-                ut_params = self.ut_params
-            ).run_unit_test()
-            if res.count_fail > 0: raise Exception('NN Dense Model failed: ' + str(res.count_fail))
-            res_final.update(other_res_obj=res)
-            Log.critical('<<nwae.ml>> NN Dense Model Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+        # try:
+        #     # Try to import some Keras module to see if available
+        #     from keras.utils import to_categorical
+        #     test_nn_dense = True
+        # except Exception as ex_load:
+        #     errmsg = str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+        #              + ': Could not test NN Dense Model: ' + str(ex_load)
+        #     Log.error(errmsg)
+        #     test_nn_dense = False
+        # if test_nn_dense:
+        #     from nwae.ml.nndense.NnDenseModelUnitTest import NnDenseModelUnitTest
+        #     res = NnDenseModelUnitTest(
+        #         ut_params = self.ut_params
+        #     ).run_unit_test()
+        #     if res.count_fail > 0: raise Exception('NN Dense Model failed: ' + str(res.count_fail))
+        #     res_final.update(other_res_obj=res)
+        #     Log.critical('<<nwae.ml>> NN Dense Model Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

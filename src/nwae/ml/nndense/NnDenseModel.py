@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import os
+import sys
 
 # TODO Don't rely on buggy TF/Keras, write our own
 try:
@@ -516,10 +517,23 @@ class NnDenseModel(ModelInterface):
             network = None
     ):
         try:
+            #
+            # Stupid Keras changed behavior in Python 3.8 and need to be a directory instead
+            #
+            major_version = sys.version_info[0]
+            minor_version = sys.version_info[1]
+            if (major_version > 3) or ( (major_version == 3) and (minor_version >= 8) ):
+                if not os.path.isdir(self.fpath_model):
+                    Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Path "' + str(self.fpath_model) + '" does not exist. Trying to create this directory...'
+                    )
+                    os.mkdir(path=self.fpath_model)
+
             self.network.save(self.fpath_model)
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Saved network to file "' + str(self.fpath_model) + '".'
+                + ': Saved network to file/directory "' + str(self.fpath_model) + '".'
             )
 
             if self.x_one_hot_dict:

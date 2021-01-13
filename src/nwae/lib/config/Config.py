@@ -13,7 +13,7 @@ class Config(baseconfig.BaseConfig):
 
 
     PARAM_TOPDIR = 'topdir'
-    DEFVAL_TOPDIR = '~/nwae'
+    DEFVAL_TOPDIR = '/usr/local/git/nwae/nwae'
 
     PARAM_LOG_LEVEL = 'loglevel'
     DEFVAL_LOGLEVEL = lg.Log.LOG_LEVEL_INFO
