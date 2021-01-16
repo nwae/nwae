@@ -21,7 +21,7 @@ class TextTrainer(TrainerInterface):
             # Where to keep training data model files
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
-            # Preprocessing of text (tokenization, spelling corrections, stemming, etc is assumed to be already done)
+            # Preprocessing of text (tokenization, spelling corrections, stemming, etc) is assumed to be already done
             training_data,
             # If training data is None, must pass a training_data_source object with method fetch_data() implemented
             training_data_source = None,
@@ -298,7 +298,7 @@ class TextTrainer(TrainerInterface):
     @staticmethod
     def __convert_processed_text_to_training_data_model_type_for_hypersphere_metricspace(
             # pandas DataFrame type with the intent, text, language etc columns
-            # Preprocessing of text (tokenization, spelling corrections, stemming, etc is assumed to be already done)
+            # Preprocessing of text (tokenization, spelling corrections, stemming, etc) is assumed to be already done
             training_dataframe,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
