@@ -168,25 +168,25 @@ if __name__ == '__main__':
     print(f.fv_template)
 
     # Use word frequency
-    txt = '确实 有 在 帮 我 崔 吧 帮 我'
-    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=False)
+    txt_list = ['确实 有 在 帮 我 崔 吧 帮 我']
+    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False)
     print(df_fv)
     # Now try with different weights
     f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=False)
+    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False)
     print(df_fv)
 
     # Use word presence
-    txt = '确实 有 在 帮 我 崔 吧 帮 我'
+    txt_list = ['确实 有 在 帮 我 崔 吧 帮 我']
     f.set_feature_weights([1,1,1,1,1])
-    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
+    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True)
     print(df_fv)
     # Now try with different weights
     f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
+    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True)
     print(df_fv)
 
-    txt = '为什么 无法 兑换 商品 ？'
+    txt_list = ['为什么 无法 兑换 商品 ？']
     f.set_feature_weights([1,1,1,1,1])
-    df_fv = f.get_freq_feature_vector(text=txt, feature_as_presence_only=True)
+    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True)
     print(df_fv)

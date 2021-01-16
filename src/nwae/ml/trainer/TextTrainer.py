@@ -21,6 +21,7 @@ class TextTrainer(TrainerInterface):
             # Where to keep training data model files
             dir_path_model,
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
+            # Preprocessing of text (tokenization, spelling corrections, stemming, etc is assumed to be already done)
             training_data,
             # If training data is None, must pass a training_data_source object with method fetch_data() implemented
             training_data_source = None,
@@ -297,6 +298,7 @@ class TextTrainer(TrainerInterface):
     @staticmethod
     def __convert_processed_text_to_training_data_model_type_for_hypersphere_metricspace(
             # pandas DataFrame type with the intent, text, language etc columns
+            # Preprocessing of text (tokenization, spelling corrections, stemming, etc is assumed to be already done)
             training_dataframe,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1
@@ -366,6 +368,8 @@ class TextTrainer(TrainerInterface):
             + ': text segmented list: ' + str(list(text_segmented[np_indexes]))
         )
         # Convert text to usable array form for further NLP processing
+        # Note that we are not doing any encoding yet, string still remains as string,
+        # and we are only breaking the already preprocessed text into more convenient arrays of tokens/words
         txtprocessor_obj = txtprocessor.TextProcessor(
             lang_str_or_list = list(lang_detected[np_indexes]),
             text_segmented_list = list(text_segmented[np_indexes])
