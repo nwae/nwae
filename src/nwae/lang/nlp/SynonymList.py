@@ -52,16 +52,25 @@ class SynonymList:
             postfix,
             allowed_root_words = None
     ):
-        lc = langchar.LangCharacters()
+        filepath = str(dirpath) + '/' + str(self.lang) + str(postfix)
+        try:
+            log.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Loading list for lang "' + self.lang + '" from file path "' + filepath + '"'
+            )
 
-        filepath = dirpath + '/' + self.lang + postfix
-        log.Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Loading list for lang "' + self.lang + '" from file path "' + filepath + '"'
-        )
-
-        fu = futil.FileUtils()
-        content = fu.read_text_file(filepath)
+            fu = futil.FileUtils()
+            content = fu.read_text_file(
+                filepath = filepath,
+                throw_exception = True,
+            )
+        except Exception as file_ex:
+            content = []
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Error loading synonym list for lang "' + str(self.lang) \
+                     + '", directory path "' + str(dirpath) + '", postfix "' + str(postfix) \
+                     + '" from file "' + str(filepath) + '": ' + str(file_ex)
+            log.Log.error(errmsg)
 
         log.Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

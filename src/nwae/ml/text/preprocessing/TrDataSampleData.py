@@ -2,6 +2,7 @@
 
 import pandas as pd
 from nwae.lang.LangFeatures import LangFeatures
+from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 
 
 class SampleTextClassificationData:
@@ -87,7 +88,7 @@ class SampleTextClassificationData:
             TYPE_IO_OUT: (
                 (1, 'รัก', 'ทำไมน่ารักขนาดนี้', 'ทำไม น่า รัก ขนาด นี้'),
                 (1, 'รัก', 'น่ารักกกกก', 'น่า รัก กก กก'),
-                (1, 'รัก', 'สวยจัง 10/10', 'สวย จัง 10/10 .'),
+                (1, 'รัก', 'สวยจัง 10/10', 'สวย จัง ' + BasicPreprocessor.W_NUM + ' / ' + BasicPreprocessor.W_NUM +  ' .'),
                 (1, 'รัก', 'สวยที่สุด', 'สวย ที่ สุด'),
                 (1, 'รัก', 'ชมน้องจังเลย', 'ชม น้อง จัง เลย'),
                 # Appended intent name from processing
@@ -157,7 +158,7 @@ class SampleTextClassificationData:
                 (2, '忘记', '忘记', '忘记'),
                 (3, 'รัก', 'ทำไมน่ารักขนาดนี้', 'ทำไม น่า รัก ขนาด นี้'),
                 (3, 'รัก', 'น่ารักกกกก', 'น่า รัก กก กก'),
-                (3, 'รัก', 'สวยจัง 10/10', 'สวย จัง 10/10 .'),
+                (3, 'รัก', 'สวยจัง 10/10', 'สวย จัง ' + BasicPreprocessor.W_NUM + ' / ' + BasicPreprocessor.W_NUM + ' .'),
                 (3, 'รัก', 'สวยที่สุด', 'สวย ที่ สุด'),
                 (3, 'รัก', 'ชมน้องจังเลย', 'ชม น้อง จัง เลย'),
                 # Appended intent name from processing

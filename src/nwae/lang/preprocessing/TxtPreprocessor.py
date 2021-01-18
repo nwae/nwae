@@ -24,15 +24,17 @@ from mex.MatchExpression import MatchExpression
 # However these split tokens are still in string form, and further processing is still required to convert
 # them to label, one-hot encodings, or word embeddings to be suitable for further ML/AI processing.
 #
-#   1. Segment text or word tokenization
+#   1. Replace special tokens like URLs with special symbols
+#   2. Segment text or word tokenization
 #      For languages like English, Spanish, Korean, etc, this is easy, only split by space.
 #      But for languages with no spaces like Chinese, Japanese, Thai, Lao, Cambodian,
 #      or languages that have only syllable boundaries like Vietnamese & Chinese,
 #      this is a complicated process.
-#   2. Clean/separate common punctuations from words
-#   3. Normalize text, replacing synonyms with single word
-#   4. Spelling correction
-#   5. Stemming or Lemmatization
+#   3. Convert to lowercase, clean/separate common punctuations from words
+#   4. Normalize text, replacing synonyms with single word
+#   5. Spelling correction
+#   6. Remove stopwords
+#   7. Stemming or Lemmatization
 #      Stemming does not necessarily generate a dictionary/valid word, its sole purpose is just to
 #      reduce conjugated words to the same root.
 #      Thus if the meaning of a word is important, it needs to be lemmatized instead of stemmed
@@ -204,11 +206,13 @@ class TxtPreprocessor:
 
     #
     # Some things we do
-    #   1. Segment text or word tokenization
-    #   2. Clean/separate common punctuations from words
-    #   3. Normalize text, replacing synonyms with single word
-    #   4. Spelling correction
-    #   5. Stemming or Lemmatization
+    #   1. Replace special tokens like URLs with special symbols
+    #   2. Segment text or word tokenization
+    #   3. Convert to lowercase, clean/separate common punctuations from words
+    #   4. Normalize text, replacing synonyms with single word
+    #   5. Spelling correction
+    #   6. Remove stopwords
+    #   7. Stemming or Lemmatization
     #
     def process_text(
             self,
@@ -397,7 +401,6 @@ if __name__ == '__main__':
         Derived_Class = Config,
         default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
     )
-    lang = 'th'
 
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
@@ -407,7 +410,7 @@ if __name__ == '__main__':
         dir_path_model         = None,
         # Don't need features/vocabulary list from model
         model_features_list    = None,
-        lang                   = lang,
+        lang                   = 'th',
         dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
@@ -426,4 +429,35 @@ if __name__ == '__main__':
 
     for txt in texts:
         obj.process_text(inputtext = txt)
+
+    #
+    # Must be able to handle without word lists
+    #
+    obj = TxtPreprocessor(
+        identifier_string      = 'test',
+        # Don't need directory path for model, as we will not do spelling correction
+        dir_path_model         = None,
+        # Don't need features/vocabulary list from model
+        model_features_list    = None,
+        lang                   = 'ru',
+        dirpath_synonymlist    = None,
+        postfix_synonymlist    = None,
+        dir_wordlist           = None,
+        postfix_wordlist       = None,
+        dir_wordlist_app       = None,
+        postfix_wordlist_app   = None,
+        do_spelling_correction = False,
+        do_word_stemming       = False,
+        do_profiling           = False,
+    )
+
+    texts = [
+        'Аккаунт популярного южнокорейского чат-бота был заблокирован',
+        'после жалоб на ненавистнические высказывания в адрес сексуальных меньшинств',
+    ]
+
+    for txt in texts:
+        obj.process_text(inputtext = txt)
+
+
 

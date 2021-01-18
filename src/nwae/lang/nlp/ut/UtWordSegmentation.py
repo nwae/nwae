@@ -152,20 +152,39 @@ class UnitTestWordSegmentation:
             list_sent_exp  = list_sent_exp
         )
 
+    def test_korean(self):
+        list_sent_exp = [
+            ['그러곤 지나가는 동네 사람에게 큰 소리로 말을 건넨다. “금동아, 어디 가냐?”',
+             ['그러곤', '지나가는', '동네', '사람에게', '큰', '소리로', '말을', '건넨다', '.', '“', '금동아', ',', '어디', '가냐', '?', '”']],
+            ['하아 둘 (셋), {넷}. [다섯]',
+             ['하아', '둘', '(', '셋', ')', ',', '{', '넷', '}', '.', '[', '다섯', ']']],
+        ]
+        return self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_KO),
+            list_sent_exp  = list_sent_exp
+        )
+
+    def test_russian(self):
+        list_sent_exp = [
+            ['Черный человек, /Водит пальцем по мерзкой книге/..',
+             ['Черный', 'человек', ',', '/', 'Водит', 'пальцем', 'по', 'мерзкой', 'книге', '/', '.', '.']],
+            ['Очень «красивая» астриса.',
+             ['Очень', '«', 'красивая', '»', 'астриса', '.']]
+        ]
+        return self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_RU),
+            list_sent_exp  = list_sent_exp
+        )
+
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
-        res = self.test_chinese()
-        res_final.update(other_res_obj=res)
-
-        res = self.test_thai()
-        res_final.update(other_res_obj=res)
-
-        res = self.test_viet()
-        res_final.update(other_res_obj=res)
-
-        res = self.test_en()
-        res_final.update(other_res_obj=res)
+        for test_func in [
+            self.test_chinese, self.test_thai, self.test_viet,
+            self.test_en, self.test_korean, self.test_russian,
+        ]:
+            res = test_func()
+            res_final.update(other_res_obj=res)
 
         return res_final
 

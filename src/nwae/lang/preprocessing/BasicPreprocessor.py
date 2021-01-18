@@ -8,7 +8,10 @@ import nwae.utils.UnitTest as ut
 
 
 #
-# This should be a text processing class, but mixed with some very basic text encoding methods
+# This should be a text processing class, but mixed with some very basic text encoding methods.
+# It is just a text utility class, that is all, no complete text pre-processing or any proper encoding.
+# If you application is really simple, you may just use this.
+# Otherwise you will need the more complete text preprocessor and proper encoding (e.g. text embedding) classes.
 #
 class BasicPreprocessor:
 
@@ -17,6 +20,8 @@ class BasicPreprocessor:
     #
     DEFAULT_WORD_SPLITTER = '--||--'
     DEFAULT_SPACE_SPLITTER = ' '
+
+    DEFAULT_PUNCTUATIONS = '([!?.,/？。，:;$“"\')(\[\]{}«»、])'
 
     # Sentence padding if shorter than min length
     W_PAD = '_pad'
@@ -75,7 +80,7 @@ class BasicPreprocessor:
     def clean_punctuations(
             # list of words
             sentence,
-            punctuations_pattern = '([!?.,？。，:;$"\')(\[\]{}])',
+            punctuations_pattern = DEFAULT_PUNCTUATIONS,
             convert_to_lower_case = True
     ):
         try:

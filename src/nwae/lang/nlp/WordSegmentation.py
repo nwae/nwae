@@ -78,7 +78,7 @@ class WordSegmentation(object):
                 + ': Ignoring word list for simple language "' + str(self.lang) + '"..'
             )
             self.have_simple_word_separator = True
-            self.simple_word_separator = ' '
+            self.simple_word_separator = BasicPreprocessor.get_word_separator(lang=self.lang)
             self.lang_wordlist = None
             self.syl_split_token = None
         else:
@@ -271,25 +271,43 @@ class WordSegmentation(object):
         else:
             return False
 
+    #
+    # Segment by simple word separator
+    #
     def segment_words_simple(
             self,
             text,
             return_array_of_split_words = False
     ):
-        # Add a space around punctuations so it won't stick to the word
-        text_x = re.sub(
-            pattern = '([.,?!/;:"，。])',
-            repl    = ' \\1 ',
-            string  = text
+        regex_punctuations = BasicPreprocessor.DEFAULT_PUNCTUATIONS
+        if self.lang == lf.LangFeatures.LANG_EN:
+            # For English don't include "'" as words like "can't", "don't", etc includes them
+            regex_punctuations = re.sub(pattern='[\']', repl='', string=regex_punctuations)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Using punctuations: ' + str(regex_punctuations)
         )
-        text_array = text_x.split(sep=self.simple_word_separator)
-        # Remove empty '' or None
-        text_array = [x for x in text_array if x]
+
+        word_array = text.split(sep=self.simple_word_separator)
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Split words: ' + str(word_array)
+        )
+
+        word_array = BasicPreprocessor.clean_punctuations(
+            sentence = word_array,
+            punctuations_pattern = regex_punctuations,
+            convert_to_lower_case = False
+        )
+        log.Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Split punctuations: ' + str(word_array)
+        )
 
         if return_array_of_split_words:
-            return text_array
+            return word_array
         else:
-            return self.__return_array_words_as_string(array_words=text_array)
+            return self.__return_array_words_as_string(array_words=word_array)
 
     #
     # Segment words based on shortest/longest matching, language specific rules, etc.
@@ -540,7 +558,7 @@ class WordSegmentation(object):
 
 
 if __name__ == '__main__':
-    import nwae.config.Config as cf
+    import nwae.lang.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class       = cf.Config,
         default_config_file = cf.Config.CONFIG_FILE_PATH_DEFAULT
@@ -578,3 +596,18 @@ if __name__ == '__main__':
     #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
 
+    #
+    # Test without any word list
+    #
+    ws = WordSegmentation(
+        lang             = 'ru',
+        dirpath_wordlist = None,
+        postfix_wordlist = None,
+        do_profiling     = True
+    )
+    text = 'Аккаунт   популярного;южнокорейского чат-бота 이우다   был заблокирован после жалоб на ненавистнические '\
+           'высказывания в    адрес   сексуальных меньшинств.'
+
+    #print(ws.segment_words(text=text, look_from_longest=False))
+    print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
+    exit(0)
