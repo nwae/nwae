@@ -402,6 +402,7 @@ if __name__ == '__main__':
         default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
     )
 
+    from nwae.lang.LangFeatures import LangFeatures
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     obj = TxtPreprocessor(
@@ -410,7 +411,7 @@ if __name__ == '__main__':
         dir_path_model         = None,
         # Don't need features/vocabulary list from model
         model_features_list    = None,
-        lang                   = 'th',
+        lang                   = LangFeatures.LANG_TH,
         dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
@@ -439,7 +440,7 @@ if __name__ == '__main__':
         dir_path_model         = None,
         # Don't need features/vocabulary list from model
         model_features_list    = None,
-        lang                   = 'ru',
+        lang                   = LangFeatures.LANG_RU,
         dirpath_synonymlist    = None,
         postfix_synonymlist    = None,
         dir_wordlist           = None,
@@ -450,14 +451,34 @@ if __name__ == '__main__':
         do_word_stemming       = False,
         do_profiling           = False,
     )
-
     texts = [
         'Аккаунт популярного южнокорейского чат-бота был заблокирован',
         'после жалоб на ненавистнические высказывания в адрес сексуальных меньшинств',
     ]
-
     for txt in texts:
         obj.process_text(inputtext = txt)
 
+    texts = [
+        '存款10次http://abc.com',
+    ]
+    obj = TxtPreprocessor(
+        identifier_string      = 'test',
+        # Don't need directory path for model, as we will not do spelling correction
+        dir_path_model         = None,
+        # Don't need features/vocabulary list from model
+        model_features_list    = None,
+        lang                   = LangFeatures.LANG_EN,
+        dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist       = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dir_wordlist_app       = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_wordlist_app   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        do_spelling_correction = False,
+        do_word_stemming       = False,
+        do_profiling           = False
+    )
+    for txt in texts:
+        obj.process_text(inputtext = txt)
 
-
+    exit(0)

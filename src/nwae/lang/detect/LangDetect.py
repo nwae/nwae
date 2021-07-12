@@ -447,7 +447,9 @@ if __name__ == '__main__':
         ('Incrustado en las laderas de unas colinas volcánicas',
          [None]),
         ('นี่คือ minions',
-         [None])
+         [None]),
+        ('存款10次http://abc.com',
+         [None]),
     ]
 
     ld = LangDetect()

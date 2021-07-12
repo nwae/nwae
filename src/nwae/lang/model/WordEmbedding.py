@@ -12,6 +12,18 @@ from nwae.utils.dataencoder.OneHotEncoder import OneHotEncoder
 
 #
 # Model to encode words to more compact vectors instead of the inefficient sparse one-hot encoding
+# Каждое слово кодируется в более компактный n-мерный вектор с вещественными числами,
+# а не в двоичном разреженном формате с только 1 и 0 как one-hot
+#
+# Суть решения
+#   В принципе решение ниже очень просто, мы представим слово в вектор с аттрибутами.
+#   Эти аттрибуты является самыми словами, и озаначается что мы должен быть только находить
+#   связи между словами и создавать какую-то меру.
+#
+# Принцип алгоритма
+#   В первом слое нейронной сети, входные данные (одно слово) кодируется как one-hot
+#   В втором слое, кодирование выходных в n-мерном пространстве, который является вектор слова
+#   В третом как обычно кодирование в softmax (вероятность)
 #
 class WordEmbedding:
 
@@ -69,6 +81,10 @@ class WordEmbedding:
         )
         return self.sentences_cleaned
 
+    #
+    # Концепция заключается в том что "связь" между словом и "атрибутами" (сами является теми же словами)
+    # измерится как расстояние слов
+    #
     def form_word_tuples(
             self,
             window,
@@ -95,6 +111,9 @@ class WordEmbedding:
                         word_lists.append([word] + [sent[(i - w - 1)]])
         return word_lists, all_text
 
+    #
+    # Алгоритм обяснен выше
+    #
     def encode(
             self,
             # E.g. {'china': 1, 'russia': 2, ..}
@@ -124,6 +143,11 @@ class WordEmbedding:
             X.append(self.words_onehot[root_word_index])
             Y.append(self.words_onehot[close_word_index])
 
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': X: ' + str(X) + '\nY: ' + str(Y)
+        )
+
         return np.array(X), np.array(Y)
 
     def train(
@@ -136,12 +160,14 @@ class WordEmbedding:
 
         # Defining the neural network
         inp = Input(shape=(X.shape[1],))
+        Log.debug('Input shape: ' + str(X.shape))
         # Middle layer is the embedding vector we seek to extract
         # "linear" because this will serve as the word definition, to be input to other neural networks
         x = Dense(units=embed_size, activation='linear')(inp)
         # Standard softmax final layer
         x = Dense(units=Y.shape[1], activation='softmax')(x)
         model = Model(inputs=inp, outputs=x)
+        Log.debug('Output shape: ' + str(Y.shape))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
         model.summary()
 
@@ -158,7 +184,10 @@ class WordEmbedding:
 
         # The input layer (embedding weights)
         weights = model.get_weights()[0]
-        print(weights)
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Weights extracted as embedding layer: ' + str(weights)
+        )
         print(len(weights))
 
         # Creating a dictionary to store the embeddings in. The key is a unique word and

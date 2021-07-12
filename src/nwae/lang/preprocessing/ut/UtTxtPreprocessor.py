@@ -19,6 +19,7 @@ class UtTxtPreprocessor:
             #
             # URI Special Symbol Tests
             #
+            ['存款10次http://abc.com', ['存款', BasicPreprocessor.W_NUM, '次', BasicPreprocessor.W_URI]],
             # '网址' replaced with '网站' root word
             ['网址 https://wangzhi.com/?a=1&b=2 对吗？', ['网站', BasicPreprocessor.W_URI, '对', '吗', '？']],
             #
