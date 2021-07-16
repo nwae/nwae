@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.6.1',
+    version='1.7.0',
     packages=[
-        'nwae.config',
+        # 'nwae.config',
         'nwae.lib.lang',
         'nwae.lib.lang.characters',
         'nwae.lib.lang.classification',
@@ -31,8 +31,8 @@ setup(
         'nwae.lib.math.ml.metricspace.ut',
         'nwae.lib.math.ml.sequence',
         'nwae.lib.math.optimization',
-        'nwae.samples',
-        'nwae.ut',
+        # 'nwae.samples',
+        # 'nwae.ut',
     ],
     package_dir={'': 'src'},
     install_requires = [
