@@ -15,18 +15,21 @@ for keyvalue in "$@"; do
         echo "[$SCRIPT_NAME] Set version to $NWAE_VERSION."
     fi
 done
-PYTHON=/usr/local/bin/python3.6
-PIP=/usr/local/bin/pip3.6
+PYTHON=/usr/local/bin/python3.8
+PIP=/usr/local/bin/pip3.8
 
 if [ "$NWAE_VERSION" = "" ]; then
   echo "[$SCRIPT_NAME] Must specify version!"
   exit 1
 fi
 
+echo "[$SCRIPT_NAME] Using python $PYTHON"
+
 # Clear build folder
 rm -rf ./build/*
 
 # Create wheel
+echo "[$SCRIPT_NAME] Creating wheel..."
 $PYTHON src/setup.py bdist_wheel
 
 # Upload to pypi
