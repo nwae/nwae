@@ -20,6 +20,9 @@ from nwae.lang.detect.comwords.Indonesian import Indonesian
 from nwae.lang.detect.comwords.Vietnamese import Vietnamese
 
 
+#
+# Мы используем примитивный метод, проанализировать часто-используемые слова в языках
+#
 class LangDetect:
 
     SUPPORTED_LANGS = (

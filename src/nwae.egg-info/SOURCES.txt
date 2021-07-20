@@ -4,7 +4,6 @@ src/nwae.egg-info/SOURCES.txt
 src/nwae.egg-info/dependency_links.txt
 src/nwae.egg-info/requires.txt
 src/nwae.egg-info/top_level.txt
-src/nwae/config/Config.py
 src/nwae/lib/lang/LangFeatures.py
 src/nwae/lib/lang/LangHelper.py
 src/nwae/lib/lang/TextProcessor.py
@@ -66,5 +65,3 @@ src/nwae/lib/math/ml/metricspace/ModelData.py
 src/nwae/lib/math/ml/metricspace/ut/UtMetricSpaceModel.py
 src/nwae/lib/math/ml/sequence/SequenceModel.py
 src/nwae/lib/math/optimization/Eidf.py
-src/nwae/samples/SampleTextClassificationData.py
-src/nwae/ut/NwaeUnitTest.py
