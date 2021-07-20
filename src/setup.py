@@ -31,7 +31,6 @@ setup(
         'nwae.math.measures',
         'nwae.math.nn',
         'nwae.math.nn.loss',
-        'nwae.math.nn.optimization',
         'nwae.math.number',
         'nwae.math.optimization',
         'nwae.ml',
