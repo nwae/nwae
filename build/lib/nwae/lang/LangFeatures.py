@@ -99,6 +99,9 @@ class LangFeatures:
     LANG_ZH = 'zh'      # ISO-639-1
     # This is actually language code + localisation, not ISO-639-1
     LANG_ZH_CN = 'zh-cn'
+    # Japanese
+    LANG_JA  = 'ja'     # ISO-639-1
+    LANG_JPN = 'jpn'    # ISO-639-3
     #
     # Cyrillic Alphabet Family
     #
