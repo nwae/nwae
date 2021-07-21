@@ -1,0 +1,281 @@
+# -*- coding: utf-8 -*-
+
+from mozg.common.util.Log import Log
+from inspect import getframeinfo, currentframe
+import nagisa
+from tensorflow.keras.layers import Embedding, Flatten, LSTM, Dense, Dropout, Bidirectional
+from tensorflow.keras.models import Sequential
+import numpy as np
+from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
+from nwae.lang.corpora.Scrape import Scrape
+
+
+class WordSegmentationModel:
+
+    EXAMPLE_SENT_TRAIN_LIST = [
+        ('数学は常に正しい？', '数学 は 常に 正しい', [0,1,1,0,1,0,0,1,1]),
+        ('合理的な人は世界に適応します', '合理 的 な 人 は 世界 に 適応 し ます', [0,1,1,1,1,1,0,1,1,0,1,1,0,1]),
+        ('進歩は非合理的な人々に依存します', '進歩 は 非 合理 的 な 人々 に 依存 し ます', [0,1,1,1,0,1,1,1,0,1,1,0,1,1,0,1]),
+    ]
+
+    @staticmethod
+    def get_training_data_by_scraping(
+            url,
+            tag_to_find = 'p',
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+    ):
+        # Пример данных из википедии
+        sentences_list_from_wiki_scraping = Scrape().scrape_url(
+            url = url,
+            tag_to_find = tag_to_find
+        )
+        Log.debug(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Scraped ' + str(len(sentences_list_from_wiki_scraping)) + ' sentences from url "' + str(url) + '"'
+        )
+        # Only take length 10-20
+        sentences_list = [
+            s for s in sentences_list_from_wiki_scraping
+            if ((len(s) >= min_char_per_sent) and (len(s) <= max_char_per_sent))
+        ]
+        Log.debug(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Filtered to ' + str(len(sentences_list)) + ' sentences from url "' + str(url) + '"'
+        )
+
+        tokens_tags_list, tokens_list, tags_list = WordSegmentationModel.tokenize_jp(
+            sentences_list=sentences_list
+        )
+        is_sep_list = []
+        for i in range(len(sentences_list)):
+            s = sentences_list[i]
+            split_tokens = tokens_list[i]
+            is_sep = [0] * len(s)
+            j_cum = 0
+            for tok in split_tokens:
+                j_cum += len(tok)
+                is_sep[j_cum - 1] = 1
+            is_sep_list.append(is_sep)
+            Log.debug('Sentence "' + str(s) + '"')
+            Log.debug('Tokenized "' + str(split_tokens) + '"')
+            Log.debug('Is Sep: ' + str(is_sep))
+
+        return sentences_list, tokens_list, is_sep_list
+
+    def __init__(
+            self,
+            sentences_list,
+            is_separators_list,
+            embedding_vector_len = 2,
+    ):
+        self.sentences = sentences_list
+        self.is_separators_list = is_separators_list
+        self.embedding_vector_len = embedding_vector_len
+
+        for i in range(len(self.sentences)):
+            sent = self.sentences[i]
+            seps = self.is_separators_list[i]
+            assert len(sent) == len(seps), 'Sentence ' + str(sent) + ', seps ' + str(seps) + ' must be same len'
+        self.__preprocess()
+        return
+
+    def __preprocess(self):
+        # TODO Do proper embedding model, etc. Below only to demo
+        self.max_sent_len = BasicPreprocessor.extract_max_length(corpora=self.sentences)
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Max len = ' + str(self.max_sent_len)
+        )
+        self.indexed_dict = BasicPreprocessor.create_indexed_dictionary(
+            sentences = self.sentences,
+            include_indexed_dict_base = True,
+        )
+        self.total_words = len(self.indexed_dict)
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Total words = ' + str(self.total_words) + ', Indexed dict: ' + str(self.indexed_dict)
+        )
+        self.sentences_index = BasicPreprocessor.sentences_to_indexes(
+            sentences = self.sentences,
+            indexed_dict = self.indexed_dict,
+        )
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentences numerized: ' + str(self.sentences_index)
+        )
+        check_sentences = BasicPreprocessor.indexes_to_sentences(
+            indexes = self.sentences_index,
+            indexed_dict = self.indexed_dict,
+        )
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentences check: ' + str(check_sentences)
+        )
+        self.sentences_index_samelen = []
+        self.is_separators_samelen = []
+
+        for i in range(len(self.sentences_index)):
+            sent = self.sentences_index[i]
+            padding_len = self.max_sent_len - len(sent)
+            pad_sentence = ([BasicPreprocessor.PAD_ID]*padding_len) + sent
+            pad_is_separator = ([1]*padding_len) + self.is_separators_list[i]
+            self.sentences_index_samelen.append(pad_sentence)
+            self.is_separators_samelen.append(pad_is_separator)
+
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentences padded: ' + str(self.sentences_index_samelen)
+        )
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Is separators padded: ' + str(self.is_separators_samelen)
+        )
+        check_sentences = BasicPreprocessor.indexes_to_sentences(
+            indexes = self.sentences_index_samelen,
+            indexed_dict = self.indexed_dict,
+        )
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Sentences check: ' + str(check_sentences)
+        )
+        self.X = np.array(self.sentences_index_samelen)
+        self.Y = np.array((self.is_separators_samelen))
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': X: ' + str(self.X)
+        )
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Y: ' + str(self.Y)
+        )
+
+
+    """
+    Мы создаем простую модель основаная на sequential NN
+    Входные данные преобразовывает в векторы слов (модель слов embedding), выходные данные представляет собой 1 или 0,
+    Например входное предложение '数学は常に正しい？' будет разбитое по словам к '数学 は 常に 正しい',
+    то выходные данные будет [0,1,1,0,1,0,0,1] или более четко [数/0, 学/1, は/1, 常/0, に/1, 正/0, し/0, い/1]
+    1 означает что эта буква является границей и 0 нет
+      - Embedding Layer как первым слоем
+      - LSTM
+    """
+    def tokenize_model(
+            self
+    ):
+        model = Sequential()
+
+        # Use the text vectorization layer to normalize, split, and map strings to
+        # integers. Note that the layer uses the custom standardization defined above.
+        # Set maximum_sequence length as all samples are not of the same length.
+        # model.add(TextVectorization(
+        #     standardize  = custom_standardization,
+        #     max_tokens   = self.total_words,
+        #     output_mode  = 'int',
+        #     output_sequence_length = sequence_length
+        # ))
+
+        # Input is max sentence length of dimension (None, max_sent_len)
+        # Output is (None, max_sent_len, embedding_vector_len)
+        model.add(Embedding(
+            # input_dim: Size of the vocabulary, i.e. maximum integer index + 1.
+            input_dim    = self.total_words,
+            # output_dim: Dimension of the dense embedding.
+            output_dim   = self.embedding_vector_len,
+            # Length of input sequences, when it is constant. This argument is required if you are going to connect
+            # Flatten then Dense layers upstream (without it, the shape of the dense outputs cannot be computed).
+            input_length = self.max_sent_len
+        ))
+        model.add(LSTM(
+            units            = self.embedding_vector_len,
+            return_state     = False,
+            return_sequences = True,
+            activation       = 'tanh',
+        ))
+        model.add(Dropout(0.2))
+        model.add(LSTM(
+            units            = 1,
+            return_state     = False,
+            return_sequences = True,
+            activation       = 'softmax',
+        ))
+
+        # model.add(Dense(
+        #     units      = 100,
+        #     activation = 'relu',
+        #     # kernel_regularizer=regularizers.l2(0.01)
+        # ))
+        # model.add(Dense(
+        #     units      = 1,
+        #     activation = 'softmax'
+        # ))
+
+        #model.compile('rmsprop', 'mse')
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['mse'])
+        Log.important(model.summary())
+
+        model.fit(self.X, self.Y, epochs=20, verbose=1)
+
+        #y = model.predict(x=self.X)
+        #print('For ' + str(self.X) + ', y: '+ str(y) + ', shape ' + str(y.shape))
+        for x in self.X:
+            y = model.predict(x=np.array([x]))
+            print('For ' + str(x) + ', y: '+ str(y) + ', shape ' + str(y.shape))
+
+    @staticmethod
+    def tokenize_jp(sentences_list):
+        tokens_tags_list = []
+        tokens_list = []
+        tags_list = []
+        for s in sentences_list:
+            words_tags = nagisa.tagging(s)
+            tokens_tags_list.append(str(words_tags))
+            tokens_list.append(words_tags.words)
+            tags_list.append(words_tags.postags)
+        return tokens_tags_list, tokens_list, tags_list
+
+    def word_tokenize(self, sentences_list):
+        sentences_segmt = [s.split(' ') for s in sentences_list]
+
+        # Remove basic punctuations stuck to word
+        sentences_cleanpunc = [BasicPreprocessor.clean_punctuations(sentence=s) for s in sentences_segmt]
+        for i in range(len(sentences_cleanpunc)):
+            Log.debug(
+                #str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno),
+                #+ ': Text "' + str(sentences_segmt[i])
+                #+ '" clean punctuations to: ' + str(sentences_cleanpunc[i])
+                sentences_cleanpunc[i]
+            )
+
+
+if __name__ == '__main__':
+    Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+
+    # Пример данных из википедии
+    sentences_list, tokens_list, is_sep_list = WordSegmentationModel.get_training_data_by_scraping(
+        url = 'https://ja.wikipedia.org/wiki/ソニー',
+        tag_to_find = 'p',
+    )
+
+    # sentences_list = [s[0] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
+    # tokenized_list = [s[1].split(' ') for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
+    # is_sep_list = [s[2] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
+
+    t = WordSegmentationModel(
+        sentences_list = sentences_list,
+        is_separators_list = is_sep_list,
+        embedding_vector_len = 2,
+    )
+    s = 'したがって、進歩は非合理的な人々に依存します。'
+    s_t = t.tokenize_jp(sentences_list=[s])
+    print(s_t)
+    # exit(0)
+
+    # tokens_tags_list, tokens_list, tags_list = t.tokenize_jp(sentences_list=sentences_list)
+    # print(tokens_tags_list)
+    # print(tokens_list)
+    # print(tags_list)
+
+    t.tokenize_model()
+
