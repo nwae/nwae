@@ -145,6 +145,20 @@ class LangCharacters(object):
         UNICODE_BLOCK_HANGUL_JAMO + UNICODE_BLOCK_HANGUL_COMPATIBILITY_JAMO + UNICODE_BLOCK_HANGUL_SYLLABLE
 
     #
+    # Japanese Hiragana/Katakana
+    #
+    UNICODE_BLOCK_ORDINAL_HIRAGANA = tuple( range(0x3040, 0x309F+1, 1) )
+    UNICODE_BLOCK_HIRAGANA = tuple(
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_HIRAGANA]
+    )
+    UNICODE_BLOCK_ORDINAL_KATAKANA = tuple( range(0x30A0, 0x30FF+1, 1) )
+    UNICODE_BLOCK_KATAKANA = tuple(
+        [chr(ordinal) for ordinal in UNICODE_BLOCK_ORDINAL_KATAKANA]
+    )
+
+    UNICODE_BLOCK_HIRAGANA_KATAKANA = UNICODE_BLOCK_HIRAGANA + UNICODE_BLOCK_KATAKANA
+
+    #
     # Thai
     # From http://sites.psu.edu/symbolcodes/languages/asia/thai/thaichart/
     #
@@ -531,6 +545,9 @@ if __name__ == '__main__':
     LangCharactersUnitTest(
         ut_params = None
     ).run_unit_test()
+
+    print(LangCharacters.UNICODE_BLOCK_HIRAGANA_KATAKANA)
+    exit(0)
 
     #
     # Check UNICODE BLOCKS
