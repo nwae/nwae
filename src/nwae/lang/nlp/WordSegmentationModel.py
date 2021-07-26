@@ -288,7 +288,12 @@ class WordSegmentationModel:
         for i in range(len(self.X)):
             x = self.X[i]
             y = model.predict(x=np.array([x]))
-            print('For ' + str(x) + ', y: '+ str(y) + ', Expected: ' + str(self.Y[i]))
+            # Convert to characters
+            x_words = BasicPreprocessor.indexes_to_sentences(
+                indexes      = x,
+                indexed_dict = self.indexed_dict,
+            )
+            print('For ' + str(x_words) + ', y: '+ str(y) + ', Expected: ' + str(self.Y[i]))
             correct.append((int(y[0]) == int(self.Y[i]))*1)
         np_correct = np.array(correct)
         print('Correct = ' + str(np.sum(np_correct)) + ' of ' + str(len(np_correct)))
@@ -321,7 +326,7 @@ class WordSegmentationModel:
 
 if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
     # Пример данных из википедии
     sentences_list, tokens_list, is_sep_list = WordSegmentationModel.get_training_data_by_scraping_urls(
