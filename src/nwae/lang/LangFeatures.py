@@ -59,6 +59,8 @@ class LangFeatures:
     #   Japanese, Hanja, etc.
     ALPHABET_HANGUL   = 'hangul'
     ALPHABET_CJK      = 'cjk'
+    # CJK + Hiragana + Katakana
+    ALPHABET_JAPANESE = 'japanese'
     #
     # Cyrillic Blocks (Russian, Belarusian, Ukrainian, etc.)
     # TODO Break into detailed blocks
@@ -71,7 +73,7 @@ class LangFeatures:
 
     ALPHABETS_ALL = [
         ALPHABET_LATIN, ALPHABET_LATIN_AZ, ALPHABET_LATIN_VI, ALPHABET_LATIN_VI_AZ,
-        ALPHABET_HANGUL, ALPHABET_CJK,
+        ALPHABET_HANGUL, ALPHABET_CJK, ALPHABET_JAPANESE,
         ALPHABET_CYRILLIC,
         ALPHABET_THAI,
     ]
@@ -136,8 +138,7 @@ class LangFeatures:
     LANG_IND = 'ind'     # ISO-639-3
 
     ALL_ISO369_1_SUPPORTED_LANGS = (
-        LANG_KO,
-        LANG_ZH,
+        LANG_KO, LANG_ZH, LANG_JA,
         LANG_RU,
         LANG_TH,
         LANG_EN, LANG_ES, LANG_FR, LANG_VI, LANG_ID
@@ -220,6 +221,22 @@ class LangFeatures:
             LangFeatures.C_HAVE_WORD_SEP: False,
             LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
             LangFeatures.C_HAVE_VERB_CONJ: False
+        }
+        #
+        # Japanese Hiragana/Katakana
+        #
+        lang_index += 1
+        lang_ja = {
+            LangFeatures.C_LANG_ID:       LangFeatures.LANG_JA,
+            LangFeatures.C_LANG_NUMBER:   lang_index,
+            LangFeatures.C_LANG_NAME:     'Japanese',
+            LangFeatures.C_HAVE_ALPHABET: False,
+            LangFeatures.C_CHAR_TYPE:     LangFeatures.ALPHABET_JAPANESE,
+            LangFeatures.C_HAVE_SYL_SEP:  True,
+            LangFeatures.C_SYL_SEP_TYPE:  LangFeatures.T_CHAR,
+            LangFeatures.C_HAVE_WORD_SEP: False,
+            LangFeatures.C_WORD_SEP_TYPE: LangFeatures.T_NONE,
+            LangFeatures.C_HAVE_VERB_CONJ: True
         }
         #
         # Cyrillic Alphabet Family
@@ -325,6 +342,7 @@ class LangFeatures:
         self.langs = {
             # Hangul/CJK
             LangFeatures.LANG_KO: lang_ko,
+            LangFeatures.LANG_JA: lang_ja,
             # CJK
             LangFeatures.LANG_ZH: lang_zh,
             # Cyrillic
@@ -383,11 +401,17 @@ class LangFeatures:
     # For example, in English, the language token is the word, formed by latin alphabets,
     # thus the token is a set of alphabets and not the alphabet itself.
     # Same with Korean, an example token '한국어' is a word formed by Hangul alphabets or 자무
-    #
     # But Chinese (or Japanese) token is the character set itself '我在学中文', where each token
     # is the character.
     # Same thing with Thai, since it has no space at all to split syllables or words, such that
     # the smallest token is the character itself.
+    #
+    # В языках, есть возможности присутствии
+    #    - наглядно разделяемое слово,
+    #    - наглядно разделяемый слог,
+    #    - или буква
+    # "Токен" в нашем применении определяется как один из приведенного выше списка,
+    # по порядку сверху вниз, при первом присутствии слова, слога или буквы
     #
     def is_lang_token_same_with_charset(
             self,
@@ -615,7 +639,7 @@ class LangFeaturesUnitTest:
 
         observed = lf.get_languages_with_syllable_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_KO, LangFeatures.LANG_VI]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_KO, LangFeatures.LANG_JA, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -626,18 +650,18 @@ class LangFeaturesUnitTest:
 
         observed = lf.get_languages_with_no_word_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_TH, LangFeatures.LANG_VI]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_JA, LangFeatures.LANG_TH, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
             observed = observed,
             expected = expected,
-            test_comment = 'test languages with no word or syllable separator'
+            test_comment = 'test languages with no word separator'
         ))
 
         observed = lf.get_languages_with_only_syllable_separator()
         observed.sort()
-        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_VI]
+        expected = [LangFeatures.LANG_ZH, LangFeatures.LANG_JA, LangFeatures.LANG_VI]
         expected.sort()
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -703,7 +727,7 @@ class LangFeaturesUnitTest:
 
         res_final.update_bool(res_bool=ut.UnitTest.assert_true(
             observed     = sorted(langs_with_token_same_as_charset),
-            expected     = sorted([LangFeatures.LANG_ZH, LangFeatures.LANG_TH]),
+            expected     = sorted([LangFeatures.LANG_ZH, LangFeatures.LANG_JA, LangFeatures.LANG_TH]),
             test_comment = 'Test langs with token = charset'
         ))
 
