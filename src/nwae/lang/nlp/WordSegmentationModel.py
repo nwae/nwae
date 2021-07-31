@@ -24,19 +24,26 @@ class WordSegmentationModel:
             tag_to_find       = 'p',
             min_char_per_sent = 10,
             max_char_per_sent = 30,
+            write_to_filepath = None,
     ):
-        sentences_list_agg, tokens_list_agg, is_sep_list_agg = [], [], []
+        sentences_list_agg = []
         for url in url_list:
-            sentences_list, tokens_list, is_sep_list = WordSegmentationModel.get_training_data_by_scraping(
+            sentences_list = WordSegmentationModel.get_training_data_by_scraping(
                 url = url,
                 tag_to_find = tag_to_find,
                 min_char_per_sent = min_char_per_sent,
                 max_char_per_sent = max_char_per_sent,
             )
             sentences_list_agg += sentences_list
-            tokens_list_agg += tokens_list
-            is_sep_list_agg += is_sep_list
-        return sentences_list_agg, tokens_list_agg, is_sep_list_agg
+            #tokens_list_agg += tokens_list
+            #is_sep_list_agg += is_sep_list
+
+        if write_to_filepath:
+            f = open(file=str(write_to_filepath), mode='w', encoding='utf-8')
+            [ f.write(str(s) + '\n') for s in sentences_list_agg ]
+            f.close()
+
+        return sentences_list_agg
 
     @staticmethod
     def get_training_data_by_scraping(
@@ -50,7 +57,7 @@ class WordSegmentationModel:
             url = url,
             tag_to_find = tag_to_find
         )
-        Log.debug(
+        Log.info(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Scraped ' + str(len(sentences_list_from_wiki_scraping)) + ' sentences from url "' + str(url) + '"'
         )
@@ -59,11 +66,14 @@ class WordSegmentationModel:
             s for s in sentences_list_from_wiki_scraping
             if ((len(s) >= min_char_per_sent) and (len(s) <= max_char_per_sent))
         ]
-        Log.debug(
+        Log.info(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Filtered to ' + str(len(sentences_list)) + ' sentences from url "' + str(url) + '"'
         )
+        return sentences_list
 
+    @staticmethod
+    def extract_tokens(sentences_list):
         tokens_tags_list, tokens_list, tags_list = WordSegmentationModel.tokenize_jp(
             sentences_list=sentences_list
         )
@@ -81,7 +91,7 @@ class WordSegmentationModel:
             Log.debug('Tokenized "' + str(split_tokens) + '"')
             Log.debug('Is Sep: ' + str(is_sep))
 
-        return sentences_list, tokens_list, is_sep_list
+        return tokens_list, is_sep_list
 
     def __init__(
             self,
@@ -293,10 +303,17 @@ class WordSegmentationModel:
                 indexes      = x,
                 indexed_dict = self.indexed_dict,
             )
-            print('For ' + str(x_words) + ', y: '+ str(y) + ', Expected: ' + str(self.Y[i]))
-            correct.append((int(y[0]) == int(self.Y[i]))*1)
-        np_correct = np.array(correct)
-        print('Correct = ' + str(np.sum(np_correct)) + ' of ' + str(len(np_correct)))
+            expected = int(self.Y[i])*1
+            observed = round(y[0][0])
+            is_correct = observed == expected
+            print('For ' + str(x_words) + ', y: '+ str(y) + ', Expected: ' + str(self.Y[i]) + ', Correct = ' + str(is_correct))
+            correct.append(is_correct)
+
+            np_correct = np.array(correct)
+            total_len = len(np_correct)
+            count_correct = np.sum(np_correct)
+            percentage_correct = round(100 * count_correct / total_len, 2)
+            print('   Correct = ' + str(np.sum(np_correct)) + ' of ' + str(len(np_correct)) + ', ' + str(percentage_correct) + '%')
 
     @staticmethod
     def tokenize_jp(sentences_list):
@@ -328,21 +345,34 @@ if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
-    # Пример данных из википедии
-    sentences_list, tokens_list, is_sep_list = WordSegmentationModel.get_training_data_by_scraping_urls(
-        url_list = [
-            'https://ja.wikipedia.org/wiki/ソニー',
-            'https://ja.wikipedia.org/wiki/2020年東京オリンピック',
-            'https://ja.wikipedia.org/wiki/新型コロナウイルス感染症の世界的流行_(2019年-)',
-            'https://ja.wikipedia.org/wiki/SARSコロナウイルス2',
-            'https://ja.wikipedia.org/wiki/新型コロナウイルス感染拡大による東京オリンピック・パラリンピックへの影響',
-        ],
-        tag_to_find = 'p',
-        min_char_per_sent = 10,
-        max_char_per_sent = 30,
-    )
-    print('***** TOTAL SCRAPED = ' + str(len(sentences_list)))
+    SCRAPE_FROM_WIKI = False
 
+    if SCRAPE_FROM_WIKI:
+        # Пример данных из википедии
+        sentences_list = WordSegmentationModel.get_training_data_by_scraping_urls(
+            url_list = [
+                'https://ja.wikipedia.org/wiki/ソニー',
+                'https://ja.wikipedia.org/wiki/2020年東京オリンピック',
+                'https://ja.wikipedia.org/wiki/新型コロナウイルス感染症の世界的流行_(2019年-)',
+                'https://ja.wikipedia.org/wiki/SARSコロナウイルス2',
+                'https://ja.wikipedia.org/wiki/新型コロナウイルス感染拡大による東京オリンピック・パラリンピックへの影響',
+            ],
+            tag_to_find = 'p',
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+            write_to_filepath = None,
+        )
+        print('***** TOTAL SCRAPED = ' + str(len(sentences_list)))
+    else:
+        f = open(file='sample.japanese.txt', mode='r', encoding='utf-8')
+        sentences_list = f.readlines()
+        # sentences_list = [s for s in sentences_list if (len(s) >= 10) and (len(s) <= 30)]
+        print('***** TOTAL READ = ' + str(len(sentences_list)))
+        print(sentences_list)
+
+    tokens_list, is_sep_list = WordSegmentationModel.extract_tokens(
+        sentences_list=sentences_list
+    )
     # sentences_list = [s[0] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
     # tokenized_list = [s[1].split(' ') for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
     # is_sep_list = [s[2] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
