@@ -17,7 +17,8 @@ class MultiTreeNode:
             # If dead node, cannot add child, or no one can add it as parent
             dead_node,
     ):
-        self.name = name
+        # Standardize to string
+        self.name = str(name)
         self.dead_node = dead_node
         # If more than 1 parent, each parent represents a different tree
         self.parents = []
