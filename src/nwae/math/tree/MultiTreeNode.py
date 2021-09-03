@@ -82,7 +82,7 @@ class MultiTreeNode:
                 return
             self.parents.append(parent)
             self.update()
-            Log.important(
+            Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': For node "' + str(self.name) + '" successfully added parent "' + str(parent.name) + '"'
             )
@@ -109,7 +109,7 @@ class MultiTreeNode:
                 return
             self.children.append(child)
             self.update()
-            Log.important(
+            Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': For node "' + str(self.name) + '" successfully added child "' + str(child.name) + '"'
             )

@@ -100,7 +100,7 @@ class MultiTree:
         # Find root tree nodes
         self.tree_roots = {}
         for name in self.tree_nodes.keys():
-            Log.info(
+            Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Checking if ' + str(name) + ' is a tree root...'
             )
@@ -145,7 +145,7 @@ class MultiTree:
                 trees_dict[root.name] = root
         return trees_dict
 
-    def print_tree(self, level, tnode, max_levels=8):
+    def print_tree(self, level, tnode, max_levels=8, newline='\n\r', tabchar='\t'):
         if level > max_levels:
             Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -154,10 +154,12 @@ class MultiTree:
             return ''
         tabstr = ''
         for i in range(level):
-            tabstr += '\t'
-        string_to_print = str(tabstr) + 'Level ' + str(level) + ': ' + str(tnode.name) + '\n\r'
+            tabstr += tabchar
+        string_to_print = str(tabstr) + 'Level ' + str(level) + ': ' + str(tnode.name) + str(newline)
         for child in tnode.children:
-            string_to_print += self.print_tree(level=level+1, tnode=child, max_levels=max_levels)
+            string_to_print += self.print_tree(
+                level=level+1, tnode=child, max_levels=max_levels, newline=newline, tabchar=tabchar
+            )
         return string_to_print
 
     def reverse_build_native_dict(self, node, dict_tree={}):
@@ -204,7 +206,7 @@ class MultiTreeUnitTest:
         mt = MultiTree()
         mt.build_tree(dict_parent_childs=SAMPLE_DATA)
         for t in mt.tree_roots.values():
-            s = mt.print_tree(level=0, tnode=t, max_levels=100)
+            s = mt.print_tree(level=0, tnode=t, max_levels=100, newline='\n\r', tabchar='   ')
             #print(s)
             reverse_dict = mt.reverse_build_native_dict(node=t, dict_tree={})
             #print(reverse_dict)
