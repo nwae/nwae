@@ -11,6 +11,7 @@ from nwae.math.Obfuscate import ObfuscateUnitTest
 from nwae.math.data.Rank import RankUnitTest
 from nwae.math.data.Grouping import GroupingUnitTest
 from nwae.math.measures.CenterOfMass import CenterOfMassUnitTest
+from nwae.math.tree.MultiTree import MultiTreeUnitTest
 
 
 #
@@ -60,6 +61,10 @@ class NwaeMathUnitTest:
         res = CenterOfMassUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.math>> Center of Mass Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = MultiTreeUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.math>> Multi Tree Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical('PROJECT <<nwae.math>> TOTAL PASS = ' + str(res_final.count_ok) + ', TOTAL FAIL = ' + str(res_final.count_fail))
         return res_final

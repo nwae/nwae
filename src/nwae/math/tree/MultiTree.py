@@ -170,6 +170,9 @@ class MultiTree:
 
 
 class MultiTreeUnitTest:
+    def __init__(self, ut_params=None):
+        return
+
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
