@@ -7,7 +7,7 @@ from inspect import currentframe, getframeinfo
 """
 Представляет структуры дерева
 Каждый класс представляет только одного узла, либо корневого, внутреннего, или терминального (лист),
-но связан с другими объектов, в результате создающий несколько отдельных деревьев 
+но связан с другими объектов, в результате создающий несколько отдельных деревьев
 """
 class MultiTreeNode:
 
@@ -66,79 +66,66 @@ class MultiTreeNode:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Parent "' + str(parent.name)
-                + '" is dead node, not adding parent for node "' + str(self.name) + '"'
+                + '" is dead node (cant have children), not adding parent for node "' + str(self.name) + '"'
             )
             return
 
         assert type(parent) is MultiTreeNode
-        self.update()
         if parent.name in self.parent_names:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': For node "' + str(self.name) + '" parent "' + str(parent.name) + '" already exists'
             )
         else:
-            # Don't add if already exists as parent
+            # Don't add if already exists as parent, anywhere higher up the tree hierarchy
             if self.is_higher_level(node=parent, supposed_child_node=self):
                 return
+            # Update for both parent and child
             self.parents.append(parent)
             self.update()
+            parent.children.append(self)
+            parent.update()
             Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': For node "' + str(self.name) + '" successfully added parent "' + str(parent.name) + '"'
             )
 
-    def add_child(self, child):
-        if self.dead_node:
-            Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Node "' + str(self.name)
-                + '" is dead node, not adding child node "' + str(child.name) + '"'
-            )
-            return
-
-        assert type(child) is MultiTreeNode
-        self.update()
-        if child.name in self.children_names:
-            Log.important(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': For node "' + str(self.name) + '" child "' + str(child.name) + '" already exists'
-            )
-        else:
-            # Don't add if already exists as parent
-            if self.is_higher_level(node=self, supposed_child_node=child):
-                return
-            self.children.append(child)
-            self.update()
-            Log.debug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': For node "' + str(self.name) + '" successfully added child "' + str(child.name) + '"'
-            )
-
 
 if __name__ == '__main__':
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+    Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+
     SAMPLE_DATA = {
         1: [2,3,4],
         2: [5,6,7],
         3: [7,8],
         4: [9],
         # Recursive 5 point back to 1 not allowed
-        5: [10,11,1],
+        5: [10,11,1,7],
     }
 
     trees = {}
     for k in SAMPLE_DATA.keys():
+        # standardize to string
+        k = str(k)
         if k not in trees.keys():
             parent = MultiTreeNode(name=k, dead_node=False)
             trees[k] = parent
         else:
             parent = trees[k]
-        child_keys = SAMPLE_DATA[k]
+        child_keys = SAMPLE_DATA[int(k)]
         for child_k in child_keys:
+            child_k = str(child_k)
             if child_k not in trees.keys():
                 child = MultiTreeNode(name=child_k, dead_node=False)
                 trees[child_k] = child
-                child.add_parent(parent=parent)
-                parent.add_child(child=child)
+            else:
+                child = trees[child_k]
+            child.add_parent(parent=parent)
+
+    print('***** Parent: Children *****')
+    [print(str(k) + ': ' + str(trees[k].children_names)) for k in trees.keys()]
+    print('***** Child: Parents *****')
+    [print(str(k) + ': ' + str(trees[k].parent_names)) for k in trees.keys()]
 
     exit(0)
