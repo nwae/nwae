@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.7.2',
+    version='1.7.3',
     packages=[
         'nwae.lang',
         'nwae.lang.characters',
@@ -33,6 +33,7 @@ setup(
         'nwae.math.nn.loss',
         'nwae.math.number',
         'nwae.math.optimization',
+        'nwae.math.tree',
         'nwae.ml',
         'nwae.ml.boosting',
         'nwae.ml.config',
