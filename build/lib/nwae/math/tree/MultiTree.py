@@ -34,6 +34,9 @@ class MultiTree:
         # Recursive 5 point back to 1 not allowed
         5: [10, 11, 1],
     }
+    Алгоритм построить дерево последовательно
+      - отдельное дерево только включает один корень
+      - повторяющиеся точки в одном дереве не создают бесконечных циклов
     """
     def build_tree(self, dict_parent_childs):
         self.reset_tree()
@@ -82,11 +85,6 @@ class MultiTree:
                         + ': Retrieved child ' + str(child.name)
                     )
 
-                Log.debug(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Parent ' + str(parent.name) + ' adding child ' + str(child.name)
-                )
-                parent.add_child(child=child)
                 Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Child ' + str(child.name) + ' adding parent ' + str(parent.name)
@@ -179,11 +177,14 @@ class MultiTreeUnitTest:
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
         SAMPLE_DATA = {
+            # 7 repeats many times, but consistent
             1: [2, 3, 4],
             2: [5, 6, 7],
-            3: [7, 8],
+            3: [7, 8, 7],  # Repeat 7 will not be added
             4: [9],
-            5: [10, 11, 1],  # Recursive 5 point back to 1 not allowed
+            5: [10, 11, 1,7],  # Recursive 5 point back to 1 not allowed
+            7: [7, 3],  # Recursive not allowed
+            # 7: [3],  # Recursive not allowed
             # Separate tree
             100: [101, 102, 103, 104],
             101: [110, 111, 112],
@@ -197,7 +198,7 @@ class MultiTreeUnitTest:
         }
 
         expected_reverse_root_dicts = {
-            '1': {'1':['2','3','4'], '2':['5','6','7'], '3':['7','8'], '4':['9'], '5':['10','11']},
+            '1': {'1':['2','3','4'], '2':['5','6','7'], '3':['7','8'], '4':['9'], '5':['10','11','7']},
             '100': {'100': ['101', '102', '103', '104'], '101': ['110', '111', '112']},
             '1000': {'1000': ['1001', '1002'], '1002': ['1100', '1101', '1102', '1103'], '1100': ['1200', '1201', '1202'], '1202': ['1300', '1301']},
             '999': {},
