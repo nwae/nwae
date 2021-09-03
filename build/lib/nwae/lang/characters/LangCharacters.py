@@ -157,6 +157,7 @@ class LangCharacters(object):
     )
 
     UNICODE_BLOCK_HIRAGANA_KATAKANA = UNICODE_BLOCK_HIRAGANA + UNICODE_BLOCK_KATAKANA
+    UNICODE_BLOCK_HIRAGANA_KATAKANA_KANJI = UNICODE_BLOCK_HIRAGANA + UNICODE_BLOCK_KATAKANA + UNICODE_BLOCK_CJK
 
     #
     # Thai
@@ -289,6 +290,8 @@ class LangCharacters(object):
             return LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE
         elif alphabet == lf.LangFeatures.ALPHABET_CJK:
             return LangCharacters.UNICODE_BLOCK_CJK
+        elif alphabet == lf.LangFeatures.ALPHABET_JAPANESE:
+            return LangCharacters.UNICODE_BLOCK_HIRAGANA_KATAKANA_KANJI
         #
         # Cyrillic Blocks (Russian, Belarusian, Ukrainian, etc.)
         #
@@ -514,6 +517,12 @@ class LangCharactersUnitTest:
             (LangCharacters.UNICODE_BLOCK_CJK,
              '中国Китай专家 전문 到了！巴铁兄弟的诗，真令人make动容',
              '中国专家  到了！巴铁兄弟的诗，真令人动容'),
+            (LangCharacters.UNICODE_BLOCK_HIRAGANA_KATAKANA_KANJI,
+             '単語の相関と文書の相関を与える行列積は、次のように展開される。',
+             '単語の相関と文書の相関を与える行列積は、次のように展開される。'),
+            (LangCharacters.UNICODE_BLOCK_HIRAGANA_KATAKANA,
+             '単語の相関と文書の相関を与える行列積は、次のように展開される。',
+             'のとのをえるは、のようにされる。'),
             (LangCharacters.UNICODE_BLOCK_THAI,
              'ยอดสะสม количество ของผู้ติดเชื้อ 감염증 โควิด-19 ทั่วโลกเพิ่มขึ้นจนมากกว่า 700,000',
              'ยอดสะสม  ของผู้ติดเชื้อ  โควิด-19 ทั่วโลกเพิ่มขึ้นจนมากกว่า 700,000'),
@@ -548,85 +557,3 @@ if __name__ == '__main__':
 
     print(LangCharacters.UNICODE_BLOCK_HIRAGANA_KATAKANA)
     exit(0)
-
-    #
-    # Check UNICODE BLOCKS
-    #
-    print('****************************** LATIN ALL ('
-          + str(len(LangCharacters.UNICODE_BLOCK_LATIN_ALL))
-          + ') BLOCK ******************************')
-    print(LangCharacters.UNICODE_BLOCK_LATIN_ALL)
-
-    print('****************************** HANGUL ('
-          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL_JAMO))
-          + ') BLOCK ******************************')
-    print(LangCharacters.UNICODE_BLOCK_HANGUL_JAMO)
-    print('****************************** HANGUL SYLLABLE BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL_SYLLABLE))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_HANGUL_SYLLABLE)
-    print('****************************** HANGUL + SYLLABLE BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_HANGUL_ALL_INCLUDING_SYLLABLE)
-
-    print('****************************** THAI BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI)
-    print('****************************** THAI CONSONANTS BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI_CONSONANTS))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI_CONSONANTS)
-    print('****************************** THAI NUMBERS BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI_NUMBERS))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI_NUMBERS)
-    print('****************************** THAI TONEMARKS BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI_TONEMARKS)
-    print('****************************** THAI VOWELS BEFORE CONSONANT BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_BEFORE_CONSONANT)
-    print('****************************** THAI VOWELS AFTER CONSONANT BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_THAI_VOWELS_AFTER_CONSONANT)
-
-    print('****************************** CJK BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_CJK))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_CJK)
-
-    print('****************************** VIETNAMESE BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_LATIN_VIETNAMESE))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_LATIN_VIETNAMESE)
-
-    print('****************************** PUNCTUATIONS BLOCK ('
-          + str(len(LangCharacters.UNICODE_BLOCK_PUNCTUATIONS))
-          + ') ******************************')
-    print(LangCharacters.UNICODE_BLOCK_PUNCTUATIONS)
-
-    s = u'북핵 英国前首мешание相卡梅伦（David Cameron）将要接受一个新的война官方工作，领导一个关于英中合สวยจีง作的英国政府投资计划。'
-    print ( s )
-    lc = LangCharacters()
-
-    print( lc.filter_allowed_characters(LangCharacters.UNICODE_BLOCK_CJK +
-                                       LangCharacters.UNICODE_BLOCK_LATIN_BASIC +
-                                       LangCharacters.UNICODE_BLOCK_WORD_SEPARATORS +
-                                       LangCharacters.UNICODE_BLOCK_PUNCTUATIONS
-                                       , s)
-    )
-
-    s = 'สวัสดีการเดือนงงดารา'
-    print(lc.convert_string_to_number(s=s, verbose=1))
-
-    s = 'ผู้ว่าฯ ควรเร่งแก้ไขปัญหาจราจรในกรุงเทพฯ และเพิ่มประสิทธิภาพการขนส่งมวลชน'
-    print(lc.convert_string_to_number(s=s, verbose=1))
-
-    words = ['สวัสดี', 'สวัดดี', 'วัดดี']
-    for w in words:
-        print(lc.convert_string_to_number(s=w, verbose=1))

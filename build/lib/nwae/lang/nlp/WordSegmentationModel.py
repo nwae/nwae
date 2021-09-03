@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from mozg.common.util.Log import Log
+from nwae.utils.Log import Log
 from inspect import getframeinfo, currentframe
 import nagisa
 from tensorflow.keras.layers import Embedding, Flatten, LSTM, Dense, Dropout, Bidirectional
@@ -19,6 +19,33 @@ class WordSegmentationModel:
     ]
 
     @staticmethod
+    def get_training_data_by_scraping_urls(
+            url_list,
+            tag_to_find       = 'p',
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+            write_to_filepath = None,
+    ):
+        sentences_list_agg = []
+        for url in url_list:
+            sentences_list = WordSegmentationModel.get_training_data_by_scraping(
+                url = url,
+                tag_to_find = tag_to_find,
+                min_char_per_sent = min_char_per_sent,
+                max_char_per_sent = max_char_per_sent,
+            )
+            sentences_list_agg += sentences_list
+            #tokens_list_agg += tokens_list
+            #is_sep_list_agg += is_sep_list
+
+        if write_to_filepath:
+            f = open(file=str(write_to_filepath), mode='w', encoding='utf-8')
+            [ f.write(str(s) + '\n') for s in sentences_list_agg ]
+            f.close()
+
+        return sentences_list_agg
+
+    @staticmethod
     def get_training_data_by_scraping(
             url,
             tag_to_find = 'p',
@@ -30,7 +57,7 @@ class WordSegmentationModel:
             url = url,
             tag_to_find = tag_to_find
         )
-        Log.debug(
+        Log.info(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Scraped ' + str(len(sentences_list_from_wiki_scraping)) + ' sentences from url "' + str(url) + '"'
         )
@@ -39,11 +66,14 @@ class WordSegmentationModel:
             s for s in sentences_list_from_wiki_scraping
             if ((len(s) >= min_char_per_sent) and (len(s) <= max_char_per_sent))
         ]
-        Log.debug(
+        Log.info(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Filtered to ' + str(len(sentences_list)) + ' sentences from url "' + str(url) + '"'
         )
+        return sentences_list
 
+    @staticmethod
+    def extract_tokens(sentences_list):
         tokens_tags_list, tokens_list, tags_list = WordSegmentationModel.tokenize_jp(
             sentences_list=sentences_list
         )
@@ -61,7 +91,7 @@ class WordSegmentationModel:
             Log.debug('Tokenized "' + str(split_tokens) + '"')
             Log.debug('Is Sep: ' + str(is_sep))
 
-        return sentences_list, tokens_list, is_sep_list
+        return tokens_list, is_sep_list
 
     def __init__(
             self,
@@ -73,12 +103,50 @@ class WordSegmentationModel:
         self.is_separators_list = is_separators_list
         self.embedding_vector_len = embedding_vector_len
 
+        # Задние и передные буквы для подсказывания наличия или отсутствия пробела
+        self.len_chr_lookback = 2
+        self.len_chr_lookfwd = 2
+
         for i in range(len(self.sentences)):
             sent = self.sentences[i]
             seps = self.is_separators_list[i]
             assert len(sent) == len(seps), 'Sentence ' + str(sent) + ', seps ' + str(seps) + ' must be same len'
         self.__preprocess()
         return
+
+    def get_sequence_and_prediction_x_y(
+            self,
+            sentences,
+            is_separators,
+    ):
+        # Каждое предложение разделивает на некоторые последовательности, каждое предсказывает
+        # о наличии пробела (1) или отсутствии (0)
+        char_sequences_list = []
+        space_predict_list = []
+        for i in range(len(sentences)):
+            s = sentences[i]
+            is_sep = is_separators[i]
+            for j in range(self.len_chr_lookback):
+                # TODO Instead of 0, put correct variable
+                s = [0] + s
+                is_sep = [1] + is_sep
+            for j in range(self.len_chr_lookfwd):
+                # TODO Instead of 0, put correct variable
+                s += [0]
+                is_sep += [1]
+            s_len = len(s)
+            #print('For sentence\n\r"' + str(s) + '"\n\r' + str(is_sep))
+            for j in range(0, s_len - self.len_chr_lookfwd, 1):
+                end_index = j + self.len_chr_lookback + 1 + self.len_chr_lookfwd
+                if end_index > s_len:
+                    break
+                chr_seq = [ s[j:end_index] ]
+                sp_predict = [ is_sep[j + self.len_chr_lookback] ]
+                char_sequences_list.append(chr_seq)
+                space_predict_list.append(sp_predict)
+                #print('Char seq: "' + str(chr_seq) + '" sep = ' + str(sp_predict))
+            #raise Exception('debiug')
+        return char_sequences_list, space_predict_list
 
     def __preprocess(self):
         # TODO Do proper embedding model, etc. Below only to demo
@@ -139,8 +207,12 @@ class WordSegmentationModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Sentences check: ' + str(check_sentences)
         )
-        self.X = np.array(self.sentences_index_samelen)
-        self.Y = np.array((self.is_separators_samelen))
+        chars_seq_list, is_separator_list = self.get_sequence_and_prediction_x_y(
+            sentences = self.sentences_index_samelen,
+            is_separators = self.is_separators_samelen,
+        )
+        self.X = np.array(chars_seq_list)
+        self.Y = np.array(is_separator_list)
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': X: ' + str(self.X)
@@ -149,6 +221,7 @@ class WordSegmentationModel:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Y: ' + str(self.Y)
         )
+        return
 
 
     """
@@ -177,50 +250,70 @@ class WordSegmentationModel:
 
         # Input is max sentence length of dimension (None, max_sent_len)
         # Output is (None, max_sent_len, embedding_vector_len)
-        model.add(Embedding(
-            # input_dim: Size of the vocabulary, i.e. maximum integer index + 1.
-            input_dim    = self.total_words,
-            # output_dim: Dimension of the dense embedding.
-            output_dim   = self.embedding_vector_len,
-            # Length of input sequences, when it is constant. This argument is required if you are going to connect
-            # Flatten then Dense layers upstream (without it, the shape of the dense outputs cannot be computed).
-            input_length = self.max_sent_len
-        ))
+        # model.add(Embedding(
+        #     # input_dim: Size of the vocabulary, i.e. maximum integer index + 1.
+        #     input_dim    = self.total_words,
+        #     # output_dim: Dimension of the dense embedding.
+        #     output_dim   = self.embedding_vector_len,
+        #     # Length of input sequences, when it is constant. This argument is required if you are going to connect
+        #     # Flatten then Dense layers upstream (without it, the shape of the dense outputs cannot be computed).
+        #     input_length = self.max_sent_len
+        # ))
+        Log.info('Input shape = ' + str(self.X.shape[1:]))
         model.add(LSTM(
-            units            = self.embedding_vector_len,
+            input_shape      = self.X.shape[1:],
+            # units            = self.embedding_vector_len,
+            units            = 300,
             return_state     = False,
-            return_sequences = True,
+            return_sequences = False,
             activation       = 'tanh',
         ))
-        model.add(Dropout(0.2))
-        model.add(LSTM(
-            units            = 1,
-            return_state     = False,
-            return_sequences = True,
-            activation       = 'softmax',
-        ))
+        # model.add(Dropout(0.2))
+        # model.add(LSTM(
+        #     units            = 1,
+        #     return_state     = False,
+        #     return_sequences = True,
+        #     activation       = 'softmax',
+        # ))
 
         # model.add(Dense(
         #     units      = 100,
         #     activation = 'relu',
         #     # kernel_regularizer=regularizers.l2(0.01)
         # ))
-        # model.add(Dense(
-        #     units      = 1,
-        #     activation = 'softmax'
-        # ))
+        model.add(Dense(
+            units      = 1,
+            activation = 'linear'
+        ))
 
-        #model.compile('rmsprop', 'mse')
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['mse'])
+        # model.compile(optimizer='rmsprop', loss='mse')
+        model.compile(optimizer='adam', loss='mse', metrics=['mse'])
         Log.important(model.summary())
 
         model.fit(self.X, self.Y, epochs=20, verbose=1)
 
         #y = model.predict(x=self.X)
         #print('For ' + str(self.X) + ', y: '+ str(y) + ', shape ' + str(y.shape))
-        for x in self.X:
+        correct = []
+        for i in range(len(self.X)):
+            x = self.X[i]
             y = model.predict(x=np.array([x]))
-            print('For ' + str(x) + ', y: '+ str(y) + ', shape ' + str(y.shape))
+            # Convert to characters
+            x_words = BasicPreprocessor.indexes_to_sentences(
+                indexes      = x,
+                indexed_dict = self.indexed_dict,
+            )
+            expected = int(self.Y[i])*1
+            observed = round(y[0][0])
+            is_correct = observed == expected
+            print('For ' + str(x_words) + ', y: '+ str(y) + ', Expected: ' + str(self.Y[i]) + ', Correct = ' + str(is_correct))
+            correct.append(is_correct)
+
+            np_correct = np.array(correct)
+            total_len = len(np_correct)
+            count_correct = np.sum(np_correct)
+            percentage_correct = round(100 * count_correct / total_len, 2)
+            print('   Correct = ' + str(np.sum(np_correct)) + ' of ' + str(len(np_correct)) + ', ' + str(percentage_correct) + '%')
 
     @staticmethod
     def tokenize_jp(sentences_list):
@@ -250,14 +343,36 @@ class WordSegmentationModel:
 
 if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
+    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
-    # Пример данных из википедии
-    sentences_list, tokens_list, is_sep_list = WordSegmentationModel.get_training_data_by_scraping(
-        url = 'https://ja.wikipedia.org/wiki/ソニー',
-        tag_to_find = 'p',
+    SCRAPE_FROM_WIKI = False
+
+    if SCRAPE_FROM_WIKI:
+        # Пример данных из википедии
+        sentences_list = WordSegmentationModel.get_training_data_by_scraping_urls(
+            url_list = [
+                'https://ja.wikipedia.org/wiki/ソニー',
+                'https://ja.wikipedia.org/wiki/2020年東京オリンピック',
+                'https://ja.wikipedia.org/wiki/新型コロナウイルス感染症の世界的流行_(2019年-)',
+                'https://ja.wikipedia.org/wiki/SARSコロナウイルス2',
+                'https://ja.wikipedia.org/wiki/新型コロナウイルス感染拡大による東京オリンピック・パラリンピックへの影響',
+            ],
+            tag_to_find = 'p',
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+            write_to_filepath = None,
+        )
+        print('***** TOTAL SCRAPED = ' + str(len(sentences_list)))
+    else:
+        f = open(file='sample.japanese.txt', mode='r', encoding='utf-8')
+        sentences_list = f.readlines()
+        # sentences_list = [s for s in sentences_list if (len(s) >= 10) and (len(s) <= 30)]
+        print('***** TOTAL READ = ' + str(len(sentences_list)))
+        print(sentences_list)
+
+    tokens_list, is_sep_list = WordSegmentationModel.extract_tokens(
+        sentences_list=sentences_list
     )
-
     # sentences_list = [s[0] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
     # tokenized_list = [s[1].split(' ') for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
     # is_sep_list = [s[2] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]

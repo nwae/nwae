@@ -11,6 +11,7 @@ src/nwae/lang/TextProcessor.py
 src/nwae/lang/characters/LangCharacters.py
 src/nwae/lang/classification/TextClusterBasic.py
 src/nwae/lang/classification/TextClusterBasicUnitTest.py
+src/nwae/lang/classification/TxtCluster.py
 src/nwae/lang/config/Config.py
 src/nwae/lang/corpora/Scrape.py
 src/nwae/lang/detect/CommonWords.py
@@ -21,8 +22,10 @@ src/nwae/lang/detect/comwords/French.py
 src/nwae/lang/detect/comwords/Indonesian.py
 src/nwae/lang/detect/comwords/Spanish.py
 src/nwae/lang/detect/comwords/Vietnamese.py
+src/nwae/lang/model/FeatureVect.py
 src/nwae/lang/model/FeatureVector.py
 src/nwae/lang/model/WordEmbedding.py
+src/nwae/lang/model/WordFreqDocMatrix.py
 src/nwae/lang/nlp/Corpora.py
 src/nwae/lang/nlp/LatinEquivalentForm.py
 src/nwae/lang/nlp/PosTagging.py
@@ -124,6 +127,8 @@ src/nwae/math/nn/loss/CategoricalCrossEntropy.py
 src/nwae/math/number/e.py
 src/nwae/math/number/pi.py
 src/nwae/math/optimization/Eidf.py
+src/nwae/math/tree/MultiTree.py
+src/nwae/math/tree/MultiTreeNode.py
 src/nwae/ml/ModelBackTest.py
 src/nwae/ml/ModelInterface.py
 src/nwae/ml/ModelTemplate.py
