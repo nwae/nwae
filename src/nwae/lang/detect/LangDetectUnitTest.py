@@ -38,6 +38,11 @@ class LangDetectUnitTest:
         # On the computer, this should print out the individual Jamos, 'ㅈㅏㅁㅗ'
         (chr(0x3148) + chr(0x314f) + chr(0x3141) + chr(0x3157),
          [LangFeatures.LANG_KO]),
+        # Japanese
+        ('本日はチャットサービスをご利用いただき、ありがとうございます。オペレーターと接続中です。',
+         [LangFeatures.LANG_JA]),
+        ('江戸時代には江戸前や江戸前海などの呼び名があった。',
+         [LangFeatures.LANG_JA]),
         #
         # CJK
         #
@@ -147,7 +152,7 @@ class LangDetectUnitTest:
             observed = dt.detect(
                 text = text
             )
-            ms = round(1000*Profiling.get_time_dif_secs(start=start_time, stop=Profiling.stop()),2)
+            ms = round(1000*Profiling.get_time_dif_secs(start=start_time, stop=Profiling.stop()), 2)
             Log.debug('Took ' + str(ms) + ' ms')
 
             res_final.update_bool(res_bool=ut.UnitTest.assert_true(
@@ -171,10 +176,11 @@ class LangDetectUnitTest:
 
 
 if __name__ == '__main__':
-    Log.LOGLEVEL = Log.LOG_LEVEL_INFO
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
 
-    LangDetectUnitTest(ut_params=None).run_unit_test()
-    # exit(0)
+    res = LangDetectUnitTest(ut_params=None).run_unit_test()
+    print('Pass=' + str(res.count_ok) + ', Fail=' + str(res.count_fail))
+    exit(0)
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
     #text = 'rút bao nhiêu'

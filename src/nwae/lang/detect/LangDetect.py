@@ -7,10 +7,10 @@ from nwae.lang.characters.LangCharacters import LangCharacters
 # from iso639 import languages
 import numpy as np
 import pandas as pd
-from nwae.utils.Profiling import Profiling
 import random
 import math
 from nwae.utils.StringUtils import StringUtils
+from nwae.utils.Profiling import Profiling, ProfilingHelper
 from nwae.lang.nlp.lemma.Lemmatizer import Lemmatizer
 from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lang.detect.comwords.English import English
@@ -21,17 +21,30 @@ from nwae.lang.detect.comwords.Vietnamese import Vietnamese
 
 
 #
-# Мы используем примитивный метод, проанализировать часто-используемые слова в языках
+# Мы используем простой (но все равно быстро и точно) метод, проанализировать часто-используемые слова в языках
+# Algo description:
+#   STEP 1: Detect alphabet type
+#      For now we don't support "latinization", e.g. "dobroe ytro", "tieng viet" (tiếng việt)
+#      1. Break string of "meaningless symbols" into blocks, e.g. "для незнакомых слов строятся гипотезы" into
+#         ["для незнак", "омых слов ", "строятся г", "ипотезы"]
+#      2. Pick at random a few blocks, for now is hardcoded at no more than 5 blocks, not good
+#      3. Then every character is labeled the alphabet name/type it belongs to
+#   STEP 2: Check possible languages from alphabet types
+#      The process is different for alphabet types Hangul, Latin, CJK, etc
 #
 class LangDetect:
 
     SUPPORTED_LANGS = (
         LangFeatures.LANG_KO,
+        LangFeatures.LANG_JA,
         LangFeatures.LANG_RU,
         LangFeatures.LANG_ZH,
         LangFeatures.LANG_TH,
-        LangFeatures.LANG_EN, LangFeatures.LANG_ES, LangFeatures.LANG_FR,
-        LangFeatures.LANG_VI, LangFeatures.LANG_ID,
+        LangFeatures.LANG_EN,
+        LangFeatures.LANG_ES,
+        LangFeatures.LANG_FR,
+        LangFeatures.LANG_VI,
+        LangFeatures.LANG_ID,
     )
 
     THRESHOLD_PCT_WORDS_IN_MOST_COMMON = 0.15
@@ -56,6 +69,10 @@ class LangDetect:
     TEST_HANGUL_BY_ORDER = [
         LangFeatures.ALPHABET_HANGUL
     ]
+    TEST_JAPANESE_BY_ORDER = [
+        # No point to test CJK
+        LangFeatures.ALPHABET_HIRAGANA_KATAKANA,
+    ]
     TEST_CJK_BY_ORDER = [
         LangFeatures.ALPHABET_CJK
     ]
@@ -63,10 +80,15 @@ class LangDetect:
         LangFeatures.ALPHABET_THAI
     ]
 
+    """
+    Notes:
+      - Need to test CJK first, then only Japanese that also contains CJK
+    """
     TESTS_BY_ORDER = TEST_LATIN_BY_ORDER \
             + TEST_CYRILLIC_BY_ORDER \
             + TEST_HANGUL_BY_ORDER \
             + TEST_CJK_BY_ORDER \
+            + TEST_JAPANESE_BY_ORDER \
             + TEST_THAI_BY_ORDER
 
     def __init__(
@@ -76,7 +98,7 @@ class LangDetect:
 
         # Map alphabet name to unicode character set array
         self.alphabet_dict = {}
-        for alp in LangDetect.TESTS_BY_ORDER:
+        for alp in self.TESTS_BY_ORDER:
             self.alphabet_dict[alp] = LangCharacters.get_alphabet_charset(
                 alphabet = alp
             )
@@ -98,7 +120,7 @@ class LangDetect:
 
         # Load stemmers
         self.word_stemmer = {}
-        for lang in LangDetect.SUPPORTED_LANGS:
+        for lang in self.SUPPORTED_LANGS:
             lang_have_verb_conj = self.lang_features.have_verb_conjugation(
                 lang = lang
             )
@@ -121,6 +143,8 @@ class LangDetect:
                              + ': Lang "' + str(lang) + ' stemmer/lemmatizer failed to initialize: ' \
                              + str(ex_stemmer) + '.'
                     Log.warning(errmsg)
+
+        self.profiler_detect_alp = ProfilingHelper(profiler_name = str(self.__class__))
 
         return
 
@@ -152,13 +176,18 @@ class LangDetect:
             self,
             text,
             test_coverage_pct = DEFAULT_TEST_COVERAGE_PCT,
-            max_test_coverage_len = DEFAULT_TEST_MAX_RANGE_BLOCKS * TEXT_BLOCK_LEN
+            max_test_coverage_len = DEFAULT_TEST_MAX_RANGE_BLOCKS * TEXT_BLOCK_LEN,
+            detailed = False
     ):
+        det_start_time = Profiling.start()
         text = str(text)
 
         if len(text) == 0:
             return None
 
+        #
+        # First step
+        #
         alps = self.__detect_alphabet_type(
             text   = text,
             test_coverage_pct = test_coverage_pct,
@@ -169,9 +198,28 @@ class LangDetect:
         if not alps:
             return None
 
+        # Return value in this format ['hiragana_katakana', 'cjk']
         detected_top_alps = list(alps.keys())
-        Log.debugdebug('Top alphabets = ' + str(detected_top_alps))
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Top alphabets = ' + str(detected_top_alps)
+        )
 
+        """
+        Первый специальный алгоритм - совсем "вручную" обрабатывает исключения из общих правил
+        """
+        pos_alphabets_manual = self.detect_via_manual_rules(detected_top_alphabet_names=detected_top_alps)
+        if pos_alphabets_manual is not None:
+            self.profiler_detect_alp.profile_time(
+                start_time = det_start_time,
+                additional_info = 'Manual detect lang "' + str(pos_alphabets_manual) + '" for "' + str(text) + '"'
+            )
+            return pos_alphabets_manual
+
+        """
+        Второй общий алгоритм - цикл по наиболее частым типам алфавита
+        """
+        # Loop by the top detected alphabet types
         loop_top_x = 2
         loop_counter = 0
         while loop_counter < loop_top_x:
@@ -201,22 +249,29 @@ class LangDetect:
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Only 1 possible language for alphabet: ' + str(possible_langs_for_alphabet)
                 )
+                self.profiler_detect_alp.profile_time(
+                    start_time = det_start_time,
+                    additional_info = 'Detect lang "' + str(possible_langs_for_alphabet) + '" for "' + str(text) + '"'
+                )
                 return possible_langs_for_alphabet
 
             det_langs = []
             #
-            # Alphabet belongs to Hangul family
+            # From alphabets detected, try to determine language
             #
-            if loop_alp in LangDetect.TEST_HANGUL_BY_ORDER:
-                det_langs = self.detect_lang_from_hangul(text=text)
-            elif loop_alp in LangDetect.TEST_CYRILLIC_BY_ORDER:
-                det_langs = self.detect_lang_from_cyrillic(text=text)
-            elif loop_alp in LangDetect.TEST_THAI_BY_ORDER:
-                det_langs = self.detect_lang_from_thai_alphabet(text=text)
+            if loop_alp in self.TEST_HANGUL_BY_ORDER:
+                det_langs = self.detect_lang_from_hangul(text=text, detailed=detailed)
+            # Check Japanese first before CJK because CJK is a subset of Japanese
+            elif loop_alp in self.TEST_JAPANESE_BY_ORDER:
+                det_langs = self.detect_lang_from_japanese(text=text, detailed=detailed)
+            elif loop_alp in self.TEST_CYRILLIC_BY_ORDER:
+                det_langs = self.detect_lang_from_cyrillic(text=text, detailed=detailed)
+            elif loop_alp in self.TEST_THAI_BY_ORDER:
+                det_langs = self.detect_lang_from_thai_alphabet(text=text, detailed=detailed)
             #
             # Alphabet belongs to the Latin family
             #
-            elif loop_alp in LangDetect.TEST_LATIN_BY_ORDER:
+            elif loop_alp in self.TEST_LATIN_BY_ORDER:
                 # Almost all Latin Family languages will have LatinAZ come out tops first
                 if loop_alp == LangFeatures.ALPHABET_LATIN_AZ:
                     det_langs = self.detect_lang_from_latin_az(
@@ -234,37 +289,100 @@ class LangDetect:
 
             # If have result, return the result and quit the loop
             if det_langs:
+                self.profiler_detect_alp.profile_time(
+                    start_time = det_start_time,
+                    additional_info='Detect lang "' + str(det_langs) + '" for "' + str(text) + '"'
+                )
                 return det_langs
 
+        self.profiler_detect_alp.profile_time(
+            start_time = det_start_time,
+            additional_info = 'Detect lang "' + str([]) + '" for "' + str(text) + '"'
+        )
         return []
+
+    def detect_via_manual_rules(
+            self,
+            detected_top_alphabet_names,
+    ):
+        # Don't change the original order of detected langs
+        list_copy = detected_top_alphabet_names.copy()
+        list_copy.sort()
+
+        list_jap = [LangFeatures.ALPHABET_CJK, LangFeatures.ALPHABET_HIRAGANA_KATAKANA]
+        list_jap.sort()
+        if list_copy == list_jap:
+            return [LangFeatures.LANG_JA]
+        return None
 
     def detect_lang_from_hangul(
             self,
-            text
+            text,
+            detailed = False,
     ):
-        # TODO Handle different dialects
-        return [LangFeatures.LANG_KO]
+        if not detailed:
+            return [LangFeatures.LANG_KO]
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not yet implemented'
+            )
+
+    def detect_lang_from_japanese(
+            self,
+            text,
+            detailed = False,
+    ):
+        # TODO Handle the whole cyrillic family
+        if not detailed:
+            return [LangFeatures.LANG_JA]
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not yet implemented'
+            )
 
     def detect_lang_from_cyrillic(
             self,
-            text
+            text,
+            detailed = False,
     ):
         # TODO Handle the whole cyrillic family
-        return [LangFeatures.LANG_RU]
+        if not detailed:
+            return [LangFeatures.LANG_RU]
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not yet implemented'
+            )
 
     def detect_lang_from_cjk(
             self,
-            text
+            text,
+            detailed = False,
     ):
         # TODO Differentiate Chinese (simplified, traditional, etc.), Japanese, ..
-        return [LangFeatures.LANG_ZH]
+        if not detailed:
+            return [LangFeatures.LANG_ZH]
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not yet implemented'
+            )
 
     def detect_lang_from_thai_alphabet(
             self,
-            text
+            text,
+            detailed = False,
     ):
         # TODO Handle the different dialects
-        return [LangFeatures.LANG_TH]
+        if not detailed:
+            return [LangFeatures.LANG_TH]
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not yet implemented'
+            )
 
     def detect_lang_from_latin_az(
             self,
@@ -299,7 +417,7 @@ class LangDetect:
             idx_max = np.argmax(lang_pct)
             idx_max = int(idx_max)
 
-            if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+            if lang_pct[idx_max] > self.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
                 return [lang_codes[idx_max]]
             else:
                 # Check word stems
@@ -320,7 +438,7 @@ class LangDetect:
                     pct_int = self.common_words[lang].get_pct_intersection_with_common_words(
                         word_list = sent_stems
                     )
-                    if pct_int > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+                    if pct_int > self.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
                         return [lang]
 
                 # Although French, Spanish could also have these characters, we favor Vietnamese
@@ -333,6 +451,7 @@ class LangDetect:
             self,
             text
     ):
+        # TODO This logic doesn't do anything
         sent = self.__segment_words(text=text)
 
         lang_codes = []
@@ -342,7 +461,7 @@ class LangDetect:
             idx_max = np.argmax(lang_pct)
             idx_max = int(idx_max)
 
-            if lang_pct[idx_max] > LangDetect.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
+            if lang_pct[idx_max] > self.THRESHOLD_PCT_WORDS_IN_MOST_COMMON:
                 return [lang_codes[idx_max]]
 
         return []
@@ -360,10 +479,10 @@ class LangDetect:
         i = 0
         len_text = len(text)
         while i < len_text:
-            end_range = min(len_text, i+10)
+            end_range = min(len_text, i+self.TEXT_BLOCK_LEN)
             # range_blocks.append(range(i, end_range, 1))
             range_blocks.append((i,end_range))
-            i = i + 10
+            i = i + self.TEXT_BLOCK_LEN
         return range_blocks
 
     def __detect_alphabet_type(
@@ -380,8 +499,9 @@ class LangDetect:
         n_range = len(range_blocks)
         how_many_range_to_check = max(1, min(
             math.ceil(test_coverage_pct * n_range),
-            math.ceil(max_test_coverage_len / LangDetect.TEXT_BLOCK_LEN)
+            math.ceil(max_test_coverage_len / self.TEXT_BLOCK_LEN)
         ))
+        Log.debugdebug('Range blocks: ' + str(range_blocks) + ' how many to check ' + str(how_many_range_to_check))
 
         # Randomly pick the ranges
         random_ranges_index = random.sample(range(n_range), how_many_range_to_check)
@@ -392,7 +512,7 @@ class LangDetect:
             total_len += (end - start + 1)
 
         # Means we got the last truncated block
-        if total_len < LangDetect.TEXT_BLOCK_LEN:
+        if total_len < self.TEXT_BLOCK_LEN:
             if 0 not in random_ranges_index:
                 random_ranges_index = [0] + random_ranges_index
 
@@ -406,13 +526,15 @@ class LangDetect:
             + ': Random ranges index: ' + str(random_ranges_index) + ' or: ' + str(text_excerps)
         )
 
+        # TODO
+        #   How to check without looping, loop is slow
+        #   One way is to build a reverse dictionary of all characters to alphabet name/type
         for rge_idx in random_ranges_index:
             #for i in range_blocks[rge_idx]:
             start, end = range_blocks[rge_idx]
             for i in range(start, end, 1):
                 c = text[i]
-                # Test Latin first, but from the smaller subsets first
-                for alp in LangDetect.TESTS_BY_ORDER:
+                for alp in self.TESTS_BY_ORDER:
                     if c in self.alphabet_dict[alp]:
                         alp_chars.append(alp)
                         # Go to next character when found alphabet type
@@ -431,11 +553,16 @@ class LangDetect:
         results_list = sorted(results.items(), reverse=True)
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Alphabet detection: ' + str(results_list)
+            + ': Alphabet detection: ' + str(results_list) + ' details: ' + str(results)
         )
 
         # Reverse back the mapping
-        return {kv[1]:kv[0] for kv in results_list}
+        results_rev = {kv[1]:kv[0] for kv in results_list}
+        Log.debug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Alphabet detection results: ' + str(results_rev)
+        )
+        return results_rev
 
 
 if __name__ == '__main__':
@@ -453,6 +580,12 @@ if __name__ == '__main__':
          [None]),
         ('存款10次http://abc.com',
          [None]),
+        ('手伝いをお願いしてもよろしいでしょうか',
+         [None]),
+        ('本日はチャットサービスをご利用いただき、ありがとうございます。オペレーターと接続中です。',
+         [None]),
+        ('木兰辞 唧唧复唧唧，木兰当户织。……雄兔脚扑朔，雌兔眼迷离，双兔傍地走，安能辨我是雄雌？',
+         [None]),
     ]
 
     ld = LangDetect()
@@ -461,8 +594,8 @@ if __name__ == '__main__':
         print('Text: ' + str(s))
         lang = ld.detect(
             text   = s,
-            #test_coverage_pct = 0.5,
-            #max_test_coverage_len = 30
+            test_coverage_pct = 0.5,
+            max_test_coverage_len = 30
         )
         timedif = Profiling.get_time_dif_secs(
             start = start_time,
