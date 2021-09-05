@@ -204,6 +204,12 @@ class TxtPreprocessor:
         is_username_nonword_type = params_dict['u'] is not None
         return is_username_nonword_type
 
+    def preprocess_list(
+            self,
+            sentences_list,
+    ):
+        return [self.process_text(inputtext=s, return_as_string=False) for s in sentences_list]
+
     #
     # Some things we do
     #   1. Replace special tokens like URLs with special symbols
@@ -325,9 +331,10 @@ class TxtPreprocessor:
         # Stemming / Lemmatization
         #
         log.Log.debug(
-            '***** Lang ' + str(self.lang)
-            + ', Do stemming = ' + str(self.do_word_stemming)
-            + ' ,Have verb conjugation = ' + str(self.lang_have_verb_conj)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Lang "' + str(self.lang)
+            + '" do stemming = ' + str(self.do_word_stemming)
+            + ', have verb conjugation = ' + str(self.lang_have_verb_conj)
         )
         if self.do_word_stemming and self.lang_have_verb_conj:
             if self.word_stemmer_lemmatizer:

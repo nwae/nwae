@@ -409,7 +409,7 @@ if __name__ == '__main__':
     )
     print('Unit Test Params: ' + str(ut_params.to_string()))
 
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_INFO
+    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
 
     for model_name in [
             ModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE,
