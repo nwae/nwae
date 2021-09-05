@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import json
 import datetime as dt
-import os
 import threading
 import nwae.ml.TrainingDataModel as tdm
 import nwae.ml.ModelInterface as modelIf
@@ -14,7 +13,7 @@ import nwae.math.Constants as const
 import nwae.math.NumpyUtil as npUtil
 import os
 import re
-import nwae.lang.model.FeatureVector as fv
+from nwae.lang.model.FeatureVect import FeatureVector
 
 
 class ModelData:
@@ -516,7 +515,7 @@ class ModelData:
             #
             # Helper object to convert sentence to a mathematical object (feature vector)
             #
-            model_fv = fv.FeatureVector()
+            model_fv = FeatureVector()
             model_fv.set_freq_feature_vector_template(
                 list_symbols = features
             )
@@ -552,8 +551,8 @@ class ModelData:
                             )
                             continue
                         df_text_counter = pd.DataFrame({
-                            fv.FeatureVector.COL_SYMBOL: line_x_name,
-                            fv.FeatureVector.COL_FREQUENCY: line_x
+                            FeatureVector.COL_SYMBOL: line_x_name,
+                            FeatureVector.COL_FREQUENCY: line_x
                         })
                         # Get feature vector of text
                         try:
@@ -573,8 +572,8 @@ class ModelData:
                         # This creates a single row matrix that needs to be transposed before matrix multiplications
                         # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
                         # For now we make it 1D first
-                        fv_text_1d = np.array(df_fv[fv.FeatureVector.COL_FREQUENCY].values, ndmin=1)
-                        fv_text_1d_norm = np.array(df_fv[fv.FeatureVector.COL_FREQ_NORM].values, ndmin=1)
+                        fv_text_1d = np.array(df_fv[FeatureVector.COL_FREQUENCY].values, ndmin=1)
+                        fv_text_1d_norm = np.array(df_fv[FeatureVector.COL_FREQ_NORM].values, ndmin=1)
                         if fv_text_1d.ndim != 1:
                             raise Exception(
                                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

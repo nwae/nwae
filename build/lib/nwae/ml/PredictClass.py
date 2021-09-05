@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import time
 import nwae.utils.Profiling as prf
-import nwae.lang.model.FeatureVector as fv
 from nwae.lang.LangFeatures import LangFeatures
-import nwae.math.NumpyUtil as npUtil
 from nwae.ml.ModelInterface import ModelInterface
 from nwae.ml.modelhelper.ModelHelper import ModelHelper
 import threading

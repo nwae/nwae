@@ -35,6 +35,10 @@ class FeatureVector:
             self,
             list_symbols
     ):
+        lg.Log.warning(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': DEPRECATED. Use nwae.lang.model.FeatureVect.py instead'
+        )
         # This number will become default vector ordering in all feature vectors
         len_symbols = len(list_symbols)
         no = range(1, len_symbols+1, 1)

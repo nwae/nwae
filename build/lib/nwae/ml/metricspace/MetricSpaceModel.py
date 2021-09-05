@@ -12,7 +12,7 @@ import nwae.math.optimization.Eidf as eidf
 import nwae.ml.metricspace.ModelData as modelData
 import nwae.ml.ModelInterface as modelIf
 import nwae.utils.Profiling as prf
-from nwae.lang.model.FeatureVector import FeatureVector
+from nwae.lang.model.FeatureVect import FeatureVector
 
 
 #
@@ -234,7 +234,7 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # This creates a single row matrix that needs to be transposed before matrix multiplications
         # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
         # For now we make it 1D first
-        fv_text_1d = np.array(df_fv['Frequency'].values, ndmin=1)
+        fv_text_1d = np.array(df_fv[FeatureVector.COL_FREQUENCY].values, ndmin=1)
         if fv_text_1d.ndim != 1:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

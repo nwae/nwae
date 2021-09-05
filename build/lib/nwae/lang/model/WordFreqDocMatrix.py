@@ -356,7 +356,6 @@ class WordFreqDocMatrixUnitTest:
             default_config_file='/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
         )
         from nwae.lang.LangFeatures import LangFeatures
-        Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
         tpp = TxtPreprocessor(
             identifier_string      = 'test',
