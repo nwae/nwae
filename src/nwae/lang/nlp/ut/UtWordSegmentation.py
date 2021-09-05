@@ -5,6 +5,7 @@ import nwae.lang.LangFeatures as lf
 import nwae.utils.UnitTest as ut
 import nwae.lang.LangHelper as langhelper
 from nwae.utils.Log import Log
+from inspect import getframeinfo, currentframe
 
 
 #
@@ -105,6 +106,14 @@ class UnitTestWordSegmentation:
         )
 
     def test_japanese(self):
+        try:
+            import nagisa
+        except:
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not testing japanese, cannot load nagisa'
+            )
+            return ut.ResultObj(count_ok=0, count_fail=0)
         list_sent_exp = [
             ['本日はチャットサービスをご利用いただき、ありがとうございます。オペレーターと接続中です。',
              ['本日', 'は', 'チャット', 'サービス', 'を', 'ご', '利用', 'いただき', '、', 'ありがとう', 'ござい', 'ます', '。', 'オペレーター', 'と', '接続', '中', 'です', '。']],
