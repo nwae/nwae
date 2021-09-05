@@ -239,8 +239,10 @@ class WordList:
                     + ': Lang "' + str(self.lang) + '" ngram length for ' + self.lang + ' is just the SYLLABLE length.'
                 )
                 if df_wordlist.shape[0] > 0:
+                    # TODO FutureWarning: The default value of regex will change from True to False in a future version.
                     # We remove all non-space character, so we only count the spaces+1, which is the unigram length
-                    df_wordlist[WordList.COL_NGRAM_LEN] = pd.Series(data=words).str.replace('[^ ]','').str.len() + 1
+                    df_wordlist[WordList.COL_NGRAM_LEN] = \
+                        pd.Series(data=words).str.replace('[^ ]', '', regex=True).str.len() + 1
 
             df_wordlist = df_wordlist.drop_duplicates(subset=[WordList.COL_WORD])
             # Need to reset indexes, otherwise some index will be missing

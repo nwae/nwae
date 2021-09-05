@@ -12,9 +12,19 @@ import hanziconv as hzc
 import nwae.utils.Profiling as prf
 import re
 try:
-    import nagisa
     """
-    There are many problems with this library, firstly it requires external JVM, it is quite slow
+    Japanese word segmentation
+    """
+    import nagisa
+except Exception as ex:
+    Log.warning(
+        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        + ': Error importing libraries for japanese tokenization: ' + str(ex)
+    )
+try:
+    """
+    Korean word segmentation
+    There are many problems with this library kkma, firstly it requires external JVM, it is quite slow
     and will also split wrong (e.g. '탈레반이' will be split wrongly to '탈', '레', '반이') or not in our
     desired application way (e.g. '장악한' split to '장악', '하', 'ㄴ')
     We should write our own, korean language is quite systematic, and we could control the following
@@ -27,7 +37,8 @@ try:
     from konlpy.tag import Kkma
 except Exception as ex:
     Log.warning(
-        'Error importing libraries for japanese/korean tokenization: ' + str(ex)
+        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        + ': Error importing libraries for korean tokenization: ' + str(ex)
     )
 
 
@@ -69,6 +80,7 @@ class WordSegmentation(object):
             dirpath_wordlist,
             postfix_wordlist,
             do_profiling = False,
+            use_external_lib = False,
             # For kkma
             jvmpath = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/lib/jli/libjli.dylib',
     ):
@@ -78,6 +90,7 @@ class WordSegmentation(object):
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist
         self.do_profiling = do_profiling
+        self.use_external_lib = use_external_lib
         self.jvmpath = jvmpath
 
         # Languages not requiring any specialized algorithm to tokenize word like English
@@ -90,11 +103,36 @@ class WordSegmentation(object):
 
         self.lang_features = lf.LangFeatures()
         word_sep_type = self.lang_features.get_word_separator_type(lang = self.lang)
+
         #
         # If the language unigram/word separator is a space, then it is just a simple re.split(),
         # no need to load word lists, etc.
         #
-        if word_sep_type == lf.LangFeatures.T_SPACE:
+        if self.use_external_lib:
+            self.have_simple_word_separator = False
+            self.lang_wordlist = None
+            self.syl_split_token = self.lang_features.get_split_token(
+                lang  = self.lang,
+                level = lf.LangFeatures.LEVEL_SYLLABLE
+            )
+            if self.lang == lf.LangFeatures.LANG_KO:
+                try:
+                    self.kkma = Kkma(jvmpath=self.jvmpath)
+                    self.warn_korean()
+                except Exception as ex:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                             + ': Unable to load Kkma() class, exception: ' + str(ex)
+                    Log.error(errmsg)
+                    raise Exception(errmsg)
+            elif self.lang == lf.LangFeatures.LANG_JA:
+                try:
+                    import nagisa
+                except Exception as ex:
+                    errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                             + ': Unable to load nagisa library, exception: ' + str(ex)
+                    Log.error(errmsg)
+                    raise Exception(errmsg)
+        elif word_sep_type == lf.LangFeatures.T_SPACE:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Ignoring word list for simple language "' + str(self.lang) + '"..'
@@ -103,22 +141,6 @@ class WordSegmentation(object):
             self.simple_word_separator = BasicPreprocessor.get_word_separator(lang=self.lang)
             self.lang_wordlist = None
             self.syl_split_token = None
-        elif self.lang == lf.LangFeatures.LANG_KO:
-            try:
-                self.kkma = Kkma(jvmpath=self.jvmpath)
-            except Exception as ex:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                         + ': Unable to load Kkma() class, exception: ' + str(ex)
-                Log.error(errmsg)
-                raise Exception(errmsg)
-        elif self.lang == lf.LangFeatures.LANG_JA:
-            try:
-                import nagisa
-            except Exception as ex:
-                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                         + ': Unable to load nagisa library, exception: ' + str(ex)
-                Log.error(errmsg)
-                raise Exception(errmsg)
         else:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -150,8 +172,19 @@ class WordSegmentation(object):
                 + '" requires syllable separation & cleaning punctuations stuck to word before tokenization = '
                 + str(self.need_to_split_by_syllables_before_tokenization)
             )
-
         return
+
+    def get_wordlist_length(self):
+        if self.use_external_lib:
+            return 0
+        else:
+            return self.lang_wordlist.wordlist.shape[0]
+
+    def warn_korean(self):
+        Log.warning(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Korean splitting currently uses kkma which is super slow and unusable for production purposes'
+        )
 
     def convert_to_simplified_chinese(self, text):
         try:
@@ -168,14 +201,19 @@ class WordSegmentation(object):
             self,
             dirpath,
             postfix,
-            array_words=None,
+            array_words = None,
     ):
+        if self.use_external_lib:
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not adding word list for language "' + str(self.lang) + '" using external lib'
+            )
+            return
         self.lang_wordlist.append_wordlist(
             dirpath     = dirpath,
             postfix     = postfix,
             array_words = array_words,
         )
-        return
 
     #
     # Returns possible word matches from first character, no longer than <max_lookforward_chars>
@@ -275,7 +313,7 @@ class WordSegmentation(object):
         return
 
     #
-    # Segment words based on highest likelihood of all possible segmentations.
+    # TODO Use WordSegmentionModel.py where we use LSTM to learn any language segmentation
     #
     def segment_words_ml(
             self,
@@ -309,6 +347,51 @@ class WordSegmentation(object):
         else:
             return False
 
+    """Exception that uses external libraries temporarily while we write our own"""
+    def segment_ko_ja(
+            self,
+            text,
+            return_array_of_split_words = False
+    ):
+        try:
+            if self.lang in [lf.LangFeatures.LANG_JA]:
+                words_postags = nagisa.tagging(text)
+                txt_sym_tok = words_postags.words
+                txt_sym_postags = words_postags.postags
+                Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Japanese segmentation "' + str(txt_sym_tok) + '", word & POS tags: ' + str(words_postags)
+                )
+                if return_array_of_split_words:
+                    return txt_sym_tok
+                else:
+                    return BasicPreprocessor.get_word_separator(lang=self.lang).join(txt_sym_tok)
+            elif self.lang in [lf.LangFeatures.LANG_KO]:
+                self.warn_korean()
+                words_postags = self.kkma.pos(
+                    phrase = text
+                )
+                txt_sym_tok = [wp[0] for wp in words_postags]
+                txt_sym_postags = [wp[1] for wp in words_postags]
+                Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Korean segmentation "' + str(txt_sym_tok) + '", word & POS tags: ' + str(words_postags)
+                )
+                if return_array_of_split_words:
+                    return txt_sym_tok
+                else:
+                    return BasicPreprocessor.get_word_separator(lang=self.lang).join(txt_sym_tok)
+            else:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': No external library supported for language "' + str(self.lang) + '"'
+                )
+        except Exception as ex:
+            errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                     + ': Error segmenting lang "' + str(self.lang) + '", text "' + str(text) \
+                     + '", exception: ' + str(ex)
+            Log.error(errmsg)
+            raise Exception(errmsg)
     #
     # Segment by simple word separator
     #
@@ -361,26 +444,18 @@ class WordSegmentation(object):
             join_single_meaningless_alphabets_as_one = True,
             return_array_of_split_words = False
     ):
-        if self.have_simple_word_separator:
+        """Exception that uses external libraries temporarily while we write our own"""
+        if self.use_external_lib:
+            return self.segment_ko_ja(
+                text = text,
+                return_array_of_split_words = return_array_of_split_words,
+            )
+        elif self.have_simple_word_separator:
             # For languages not requiring any specialized algorithm for word tokenization
             return self.segment_words_simple(
                 text = text,
-                return_array_of_split_words = return_array_of_split_words
+                return_array_of_split_words = return_array_of_split_words,
             )
-        elif lang in [lf.LangFeatures.LANG_JA]:
-            words_postags = nagisa.tagging(text)
-            txt_sym_tok = words_postags.words
-            txt_sym_postags = words_postags.postags
-        elif lang in [lf.LangFeatures.LANG_KO]:
-            words_postags = self.kkma.pos(
-                phrase = text
-            )
-            Log.debug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Korean word & POS tags: ' + str(words_postags)
-            )
-            txt_sym_tok = [wp[0] for wp in words_postags]
-            txt_sym_postags = [wp[1] for wp in words_postags]
 
         a = prf.Profiling.start()
 
@@ -659,7 +734,24 @@ if __name__ == '__main__':
     )
     text = 'Аккаунт   популярного;южнокорейского чат-бота 이우다   был заблокирован после жалоб на ненавистнические '\
            'высказывания в    адрес   сексуальных меньшинств.'
-
-    #print(ws.segment_words(text=text, look_from_longest=False))
     print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
+
+    ws = WordSegmentation(
+        lang             = lf.LangFeatures.LANG_KO,
+        dirpath_wordlist = None,
+        postfix_wordlist = None,
+        do_profiling     = True
+    )
+    text = '구글 드론 배달 서비스의 누적 배달 건수가 10만건을 돌파했다.'
+    print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
+
+    ws = WordSegmentation(
+        lang             = lf.LangFeatures.LANG_JA,
+        dirpath_wordlist = None,
+        postfix_wordlist = None,
+        do_profiling     = True
+    )
+    text = '江戸時代には江戸前や江戸前海などの呼び名があった。'
+    print('"' + ws.segment_words(text=text, look_from_longest=True) + '"')
+
     exit(0)
