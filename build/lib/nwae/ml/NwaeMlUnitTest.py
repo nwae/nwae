@@ -8,6 +8,7 @@ from nwae.utils.ObjectPersistence import UnitTestObjectPersistence
 from nwae.lang.NwaeLangUnitTest import NwaeLangUnitTest
 from nwae.math.NwaeMathUnitTest import NwaeMathUnitTest
 from nwae.ml.text.preprocessing.TrDataPreprocessorUnitTest import TrDataPreprocessorUnitTest
+from nwae.ml.TrainingDataModel import TrainingDataModelUnitTest
 from nwae.ml.metricspace.ut.UtMetricSpaceModel import UnitTestMetricSpaceModel
 from nwae.ml.PredictClass import PredictClassUnitTest
 from nwae.ml.modelhelper.TextModelHelper import TextModelHelper
@@ -48,6 +49,11 @@ class NwaeMlUnitTest:
         if res.count_fail > 0: raise Exception('TD Data Preprocessor failed: ' + str(res.count_fail))
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.ml>> TD Data Preprocessor Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = TrainingDataModelUnitTest(ut_params=self.ut_params).run_unit_test()
+        if res.count_fail > 0: raise Exception('Training Data Model failed: ' + str(res.count_fail))
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.ml>> Training Data Model Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = UnitTestMetricSpaceModel(
             ut_params  = self.ut_params,

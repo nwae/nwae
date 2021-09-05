@@ -3,9 +3,10 @@
 import numpy as np
 import nwae.utils.Log as log
 from inspect import currentframe, getframeinfo
-import nwae.lang.classification.TextClusterBasic as tcb
+from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrix
 import nwae.math.Constants as const
 import nwae.math.NumpyUtil as npUtil
+from nwae.utils.UnitTest import ResultObj, UnitTest
 
 
 #
@@ -353,7 +354,8 @@ class TrainingDataModel:
             # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
             label_name,
             keywords_remove_quartile,
-            is_convert_y_label_to_str_type = False
+            is_convert_y_label_to_str_type = False,
+            add_unknown_word_in_keywords_list = True,
     ):
         log_training = []
 
@@ -396,18 +398,6 @@ class TrainingDataModel:
             + ': Starting text cluster, calculate top keywords...'
             , log_list = log_training
         )
-        textcluster = tcb.TextClusterBasic(
-            sentences_list = sentences_list
-        )
-        textcluster.calculate_top_keywords(
-            remove_quartile = keywords_remove_quartile,
-            # Add an unknown symbol together with the keywords, this is for handling words outside of the vocabulary
-            add_unknown_word_in_list = True
-        )
-        log.Log.info(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Keywords extracted as follows:\n\r' + str(textcluster.keywords_for_fv)
-        )
 
         # Extract unique Commands/Intents
         log.Log.info(
@@ -433,14 +423,21 @@ class TrainingDataModel:
             + ': Calculating sentence matrix for all training data...'
             , log_list = log_training
         )
-        textcluster.calculate_sentence_matrix(
-            freq_measure          = 'normalized',
-            feature_presence_only = False,
-            idf_matrix            = None
+        word_freq_doc_matrix = WordFreqDocMatrix()
+        word_doc_matrix, keywords_for_fv = word_freq_doc_matrix.get_word_doc_matrix(
+            sentences_list           = sentences_list,
+            freq_measure             = WordFreqDocMatrix.BY_FREQ_NORM,
+            feature_presence_only    = False,
+            idf_matrix               = None,
+            add_unknown_word_in_list = add_unknown_word_in_keywords_list,
+        )
+        log.Log.info(
+            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Keywords extracted as follows:\n\r' + str(keywords_for_fv)
         )
 
-        fv_wordlabels = textcluster.keywords_for_fv
-        sentence_fv = textcluster.sentence_matrix
+        fv_wordlabels = keywords_for_fv
+        sentence_fv = np.transpose(word_doc_matrix)
 
         # Sanity check
         for i in range(0, sentence_fv.shape[0], 1):
@@ -470,44 +467,112 @@ class TrainingDataModel:
         )
 
 
+class TrainingDataModelUnitTest:
+    def __init__(self, ut_params):
+        return
+
+    def run_unit_test(self):
+        res_final = ResultObj(count_ok=0, count_fail=0)
+
+        x = np.array(
+            [
+                # 무리 A
+                [1, 2, 1, 1, 0, 0],
+                [2, 1, 2, 1, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                # 무리 B
+                [0, 1, 2, 1, 0, 0],
+                [0, 2, 2, 2, 0, 0],
+                [0, 2, 1, 2, 0, 0],
+                # 무리 C
+                [0, 0, 0, 1, 2, 3],
+                [0, 1, 0, 2, 1, 2],
+                [0, 1, 0, 1, 1, 2],
+                # Bad row on purpose
+                [0, 0, 0, 0, 0, 0],
+            ]
+        )
+        y = np.array(
+            [1, 1, 1, 2, 2, 2, 3, 3, 3, 3]
+        )
+        x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
+
+        x_model_expected = [
+            [0.37796447, 0.75592895, 0.37796447, 0.37796447, 0.        , 0.        ],
+            [0.63245553, 0.31622777, 0.63245553, 0.31622777, 0.        , 0.        ],
+            [0.5       , 0.5       , 0.5       , 0.5       , 0.        , 0.        ],
+            [0.        , 0.40824829, 0.81649658, 0.40824829, 0.        , 0.        ],
+            [0.        , 0.57735027, 0.57735027, 0.57735027, 0.        , 0.        ],
+            [0.        , 0.66666667, 0.33333333, 0.66666667, 0.        , 0.        ],
+            [0.        , 0.        , 0.        , 0.26726124, 0.53452248, 0.80178373],
+            [0.        , 0.31622777, 0.        , 0.63245553, 0.31622777, 0.63245553],
+            [0.        , 0.37796447, 0.        , 0.37796447, 0.37796447, 0.75592895],
+        ]
+        y_model_expected = [1, 1, 1, 2, 2, 2, 3, 3, 3]
+        x_friendly_expected = {
+            '0': {'index': 0, 'x_name': ['하나', '두', '셋', '넷'],
+                  'x': [0.3779644730092272, 0.7559289460184544, 0.3779644730092272, 0.3779644730092272], 'y': 1},
+            '1': {'index': 1, 'x_name': ['하나', '두', '셋', '넷'],
+                  'x': [0.6324555320336759, 0.31622776601683794, 0.6324555320336759, 0.31622776601683794], 'y': 1},
+            '2': {'index': 2, 'x_name': ['하나', '두', '셋', '넷'],
+                  'x': [0.5, 0.5, 0.5, 0.5], 'y': 1},
+            '3': {'index': 3, 'x_name': ['두', '셋', '넷'],
+                  'x': [0.4082482904638631, 0.8164965809277261, 0.4082482904638631], 'y': 2},
+            '4': {'index': 4, 'x_name': ['두', '셋', '넷'],
+                  'x': [0.5773502691896258, 0.5773502691896258, 0.5773502691896258], 'y': 2},
+            '5': {'index': 5, 'x_name': ['두', '셋', '넷'],
+                  'x': [0.6666666666666666, 0.3333333333333333, 0.6666666666666666], 'y': 2},
+            '6': {'index': 6, 'x_name': ['넷', '다섯', '여섯'],
+                  'x': [0.2672612419124244, 0.5345224838248488, 0.8017837257372732], 'y': 3},
+            '7': {'index': 7, 'x_name': ['두', '넷', '다섯', '여섯'],
+                  'x': [0.31622776601683794, 0.6324555320336759, 0.31622776601683794, 0.6324555320336759], 'y': 3},
+            '8': {'index': 8, 'x_name': ['두', '넷', '다섯', '여섯'],
+                  'x': [0.3779644730092272, 0.3779644730092272, 0.3779644730092272, 0.7559289460184544], 'y': 3},
+        }
+
+        map_to_hypersphere = True
+
+        obj = TrainingDataModel(
+            x      = x,
+            y      = y,
+            x_name = x_name,
+            is_map_points_to_hypersphere   = map_to_hypersphere,
+            is_convert_y_label_to_str_type = False
+        )
+
+        x_model = obj.get_x()
+        for i in range(len(x_model_expected)):
+            x_line = np.round(x_model[i], 8).tolist()
+            res_final.update_bool(res_bool=UnitTest.assert_true(
+                observed = x_line,
+                expected = x_model_expected[i],
+                test_comment = 'Compare x model ' + str(x_line)
+            ))
+
+        y_model = obj.get_y()
+        res_final.update_bool(res_bool=UnitTest.assert_true(
+            observed = y_model.tolist(),
+            expected = y_model_expected,
+            test_comment = 'Compare y model ' + str(y_model)
+        ))
+
+        x_friendly = obj.get_print_friendly_x()
+        # print(x_friendly)
+        # for k in x_friendly.keys():
+        #     print(str(k) + ': ' + str(x_friendly[k]))
+        for i in x_friendly_expected.keys():
+            x_line_f = x_friendly[i]
+            res_final.update_bool(res_bool=UnitTest.assert_true(
+                observed = x_line_f,
+                expected = x_friendly_expected[i],
+                test_comment = 'Compare x model ' + str(x_line_f)
+            ))
+
+        return res_final
+
+
 if __name__ == '__main__':
     log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_1
-
-    x = np.array(
-        [
-            # 무리 A
-            [1, 2, 1, 1, 0, 0],
-            [2, 1, 2, 1, 0, 0],
-            [1, 1, 1, 1, 0, 0],
-            # 무리 B
-            [0, 1, 2, 1, 0, 0],
-            [0, 2, 2, 2, 0, 0],
-            [0, 2, 1, 2, 0, 0],
-            # 무리 C
-            [0, 0, 0, 1, 2, 3],
-            [0, 1, 0, 2, 1, 2],
-            [0, 1, 0, 1, 1, 2],
-            # Bad row on purpose
-            [0, 0, 0, 0, 0, 0],
-        ]
-    )
-    y = np.array(
-        [1, 1, 1, 2, 2, 2, 3, 3, 3, 3]
-    )
-    x_name = np.array(['하나', '두', '셋', '넷', '다섯', '여섯'])
-
-    map_to_hypersphere = True
-
-    obj = TrainingDataModel(
-        x = x,
-        y = y,
-        x_name = x_name,
-        is_map_points_to_hypersphere = map_to_hypersphere,
-        is_convert_y_label_to_str_type = False
-    )
-    print(obj.get_x())
-    print(obj.get_y())
-    x_friendly = obj.get_print_friendly_x()
-    print(x_friendly)
-    for k in x_friendly.keys():
-        print(str(k) + ': ' + str(x_friendly[k]))
+    utest = TrainingDataModelUnitTest(ut_params=None)
+    res = utest.run_unit_test()
+    exit(res.count_fail)

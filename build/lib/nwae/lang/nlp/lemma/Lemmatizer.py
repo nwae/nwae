@@ -23,7 +23,7 @@ class Lemmatizer:
         lf.LangFeatures.LANG_EN,
         lf.LangFeatures.LANG_KO,
         # TODO Below
-        # lf.LangFeatures.LANG_RU,
+        lf.LangFeatures.LANG_RU,
         # lf.LangFeatures.LANG_FR,
         # lf.LangFeatures.LANG_ES,
     ]
@@ -31,6 +31,7 @@ class Lemmatizer:
     def __init__(
             self,
             lang = lf.LangFeatures.LANG_EN,
+            # Choice of stemmer type only applies to english
             stemmer_type = TYPE_PORTER_STEMMER
     ):
         self.lang = lf.LangFeatures.map_to_lang_code_iso639_1(
@@ -47,6 +48,11 @@ class Lemmatizer:
                      + ': Stemmer for language "' + str(lang) + '" not supported.'
             lg.Log.warning(errmsg)
             raise Exception(errmsg)
+        else:
+            lg.Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                + ': Stemmer for lang "' + str(lang) + '" ok'
+            )
 
         self.stemmer = None
 
@@ -69,6 +75,8 @@ class Lemmatizer:
             self.stem(word='initialize')
         elif self.lang == lf.LangFeatures.LANG_KO:
             self.stemmer = LemmatizerKorean()
+        elif self.lang == lf.LangFeatures.LANG_RU:
+            self.stemmer = self.stemmer = snowball.SnowballStemmer(language = 'russian')
         else:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -83,13 +91,14 @@ class Lemmatizer:
     ):
         try:
             if self.stemmer_type == Lemmatizer.TYPE_WORDNET_LEMMATIZER:
-                return self.stemmer.lemmatize(
-                    word = word
-                )
+                word_stem = self.stemmer.lemmatize(word = word)
             else:
-                return self.stemmer.stem(
-                    word = word
-                )
+                word_stem = self.stemmer.stem(word = word)
+            lg.Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(self.lang) + '" word "' + str(word) + '", word stem "' + str(word_stem) + '"'
+            )
+            return word_stem
         except Exception as ex:
             lg.Log.error(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
