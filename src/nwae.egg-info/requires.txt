@@ -1,3 +1,4 @@
 nwae.utils
-mexnltk
+mex
+nltk
 googletrans
