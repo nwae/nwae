@@ -54,7 +54,7 @@ setup(
     package_dir={'': 'src'},
     install_requires = [
         'nwae.utils',
-        'mex'
+        'mex',
         'nltk',
         'googletrans'
     ],
