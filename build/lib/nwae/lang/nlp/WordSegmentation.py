@@ -5,12 +5,30 @@ import nwae.lang.LangFeatures as lf
 import nwae.lang.nlp.WordList as wl
 import nwae.lang.nlp.SynonymList as slist
 from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
 import nwae.utils.Profiling as prf
 import re
+try:
+    import nagisa
+    """
+    There are many problems with this library, firstly it requires external JVM, it is quite slow
+    and will also split wrong (e.g. '탈레반이' will be split wrongly to '탈', '레', '반이') or not in our
+    desired application way (e.g. '장악한' split to '장악', '하', 'ㄴ')
+    We should write our own, korean language is quite systematic, and we could control the following
+      - by default a whole word '탈레반이' if not recognized should just keep as is, and split out only
+        particles like '이'
+      - naturally in most application the word '장악한' (verb) should not be split to
+          ('장악', 'NNG'), ('하', 'XSV'), ('ㄴ', 'ETD')
+        and only stemming or lemmatization should bring it to '장악하다' (verb) and not '장악' (noun)
+    """
+    from konlpy.tag import Kkma
+except Exception as ex:
+    Log.warning(
+        'Error importing libraries for japanese/korean tokenization: ' + str(ex)
+    )
 
 
 #
@@ -51,12 +69,16 @@ class WordSegmentation(object):
             dirpath_wordlist,
             postfix_wordlist,
             do_profiling = False,
-            lang_stats = None
+            # For kkma
+            jvmpath = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/lib/jli/libjli.dylib',
     ):
         self.lang = lf.LangFeatures.map_to_lang_code_iso639_1(
             lang_code = lang
         )
+        self.dirpath_wordlist = dirpath_wordlist
+        self.postfix_wordlist = postfix_wordlist
         self.do_profiling = do_profiling
+        self.jvmpath = jvmpath
 
         # Languages not requiring any specialized algorithm to tokenize word like English
         self.have_simple_word_separator = False
@@ -73,7 +95,7 @@ class WordSegmentation(object):
         # no need to load word lists, etc.
         #
         if word_sep_type == lf.LangFeatures.T_SPACE:
-            log.Log.important(
+            Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Ignoring word list for simple language "' + str(self.lang) + '"..'
             )
@@ -81,17 +103,33 @@ class WordSegmentation(object):
             self.simple_word_separator = BasicPreprocessor.get_word_separator(lang=self.lang)
             self.lang_wordlist = None
             self.syl_split_token = None
+        elif self.lang == lf.LangFeatures.LANG_KO:
+            try:
+                self.kkma = Kkma(jvmpath=self.jvmpath)
+            except Exception as ex:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+                         + ': Unable to load Kkma() class, exception: ' + str(ex)
+                Log.error(errmsg)
+                raise Exception(errmsg)
+        elif self.lang == lf.LangFeatures.LANG_JA:
+            try:
+                import nagisa
+            except Exception as ex:
+                errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                         + ': Unable to load nagisa library, exception: ' + str(ex)
+                Log.error(errmsg)
+                raise Exception(errmsg)
         else:
-            log.Log.important(
+            Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Loading word list for complex language "' + str(self.lang)
-                + '" using dirpath wordlist "' + str(dirpath_wordlist)
-                + '", postfix wordlist "' + str(postfix_wordlist)
+                + '" using dirpath wordlist "' + str(self.dirpath_wordlist)
+                + '", postfix wordlist "' + str(self.postfix_wordlist)
             )
             self.lang_wordlist = wl.WordList(
-                lang             = lang,
-                dirpath_wordlist = dirpath_wordlist,
-                postfix_wordlist = postfix_wordlist
+                lang             = self.lang,
+                dirpath_wordlist = self.dirpath_wordlist,
+                postfix_wordlist = self.postfix_wordlist
             )
 
             #
@@ -106,7 +144,7 @@ class WordSegmentation(object):
             if self.syl_split_token is None:
                 self.syl_split_token = ''
             self.need_to_split_by_syllables_before_tokenization = self.syl_split_token != ''
-            log.Log.important(
+            Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Language "' + str(self.lang) + '" with syllable split token "' + str(self.syl_split_token)
                 + '" requires syllable separation & cleaning punctuations stuck to word before tokenization = '
@@ -120,7 +158,7 @@ class WordSegmentation(object):
             text_sim = hzc.HanziConv.toSimplified(text)
             return text_sim
         except Exception as ex:
-            log.Log.error(
+            Log.error(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Error converting "' + str(text) + '" to simplified chinese. Exception ' + str(ex) + '.'
             )
@@ -191,13 +229,13 @@ class WordSegmentation(object):
             if n_gram not in self.lang_wordlist.ngrams.keys():
                 continue
             if word_tmp not in self.lang_wordlist.ngrams[n_gram]:
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': "' + word_tmp + '" not in ' + str(n_gram) + '-gram'
                 )
                 continue
             else:
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': "' + word_tmp + '" in ' + str(n_gram) + '-gram'
                 )
@@ -220,7 +258,7 @@ class WordSegmentation(object):
 
             # Record the match
             matches[i_match] = True
-            log.Log.debugdebug(
+            Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Word [' + word_tmp + '] = ' + matches[i_match].__str__() + '.'
             )
@@ -283,13 +321,13 @@ class WordSegmentation(object):
         if self.lang == lf.LangFeatures.LANG_EN:
             # For English don't include "'" as words like "can't", "don't", etc includes them
             regex_punctuations = re.sub(pattern='[\']', repl='', string=regex_punctuations)
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Using punctuations: ' + str(regex_punctuations)
         )
 
         word_array = text.split(sep=self.simple_word_separator)
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Split words: ' + str(word_array)
         )
@@ -299,7 +337,7 @@ class WordSegmentation(object):
             punctuations_pattern = regex_punctuations,
             convert_to_lower_case = False
         )
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Split punctuations: ' + str(word_array)
         )
@@ -329,18 +367,32 @@ class WordSegmentation(object):
                 text = text,
                 return_array_of_split_words = return_array_of_split_words
             )
+        elif lang in [lf.LangFeatures.LANG_JA]:
+            words_postags = nagisa.tagging(text)
+            txt_sym_tok = words_postags.words
+            txt_sym_postags = words_postags.postags
+        elif lang in [lf.LangFeatures.LANG_KO]:
+            words_postags = self.kkma.pos(
+                phrase = text
+            )
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Korean word & POS tags: ' + str(words_postags)
+            )
+            txt_sym_tok = [wp[0] for wp in words_postags]
+            txt_sym_postags = [wp[1] for wp in words_postags]
 
         a = prf.Profiling.start()
 
         if self.lang == lf.LangFeatures.LANG_ZH:
             text_simplified = self.convert_to_simplified_chinese(text = text)
             if text != text_simplified:
-                log.Log.important(
+                Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Converted to simplified chinese for "' + str(text) + '" to "' + str(text_simplified) + '".'
                 )
                 if self.do_profiling:
-                    log.Log.important(
+                    Log.important(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Took ' + str(prf.Profiling.get_time_dif_str(start=a, stop=prf.Profiling.stop())) + ' secs.'
                     )
@@ -364,7 +416,7 @@ class WordSegmentation(object):
             )
             if type(tmp_arr) in [list, tuple]:
                 text_array = tmp_arr
-            log.Log.debug(
+            Log.debug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Text "' + str(text) + '" clean punctuations to: ' + str(text_array)
             )
@@ -375,10 +427,10 @@ class WordSegmentation(object):
         # Default to Thai
         lookforward_chars = self.get_optimal_lookforward_chars(lang = self.lang)
 
-        # log.Log.debugdebug('Using ' + str(lookforward_chars) + ' lookforward characters')
+        # Log.debugdebug('Using ' + str(lookforward_chars) + ' lookforward characters')
 
         tlen = len(text_array)
-        log.Log.debugdebug(
+        Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text Length (by syllable): ' + str(tlen)
         )
@@ -401,7 +453,7 @@ class WordSegmentation(object):
                 word_sep[curpos] = True
                 break
 
-            log.Log.debugdebug(
+            Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Current position ' + str(curpos) + ', search word "' + str(text_array[curpos:tlen]) + '".'
             )
@@ -411,7 +463,7 @@ class WordSegmentation(object):
 
             # Check if this character is a natural word separator in this language
             if self.__is_natural_word_separator(c=text_array[curpos]):
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '  Word separator true for character "' + str(text_array[curpos]) + '".'
                 )
@@ -423,14 +475,14 @@ class WordSegmentation(object):
                 # Look for continuous string of foreign characters, no limit up to the end of word
                 lookforward_window = tlen - curpos
                 match_longest = lookforward_window - 1
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Lookforward Window = ' + str(lookforward_window)
                 )
 
                 for i in range(curpos, curpos+lookforward_window, 1):
                     # Found a local character or space
-                    log.Log.debugdebug(
+                    Log.debugdebug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + '   Text "' + str(i) + '"="' + text_array[i]+'"'
                     )
@@ -452,7 +504,7 @@ class WordSegmentation(object):
             if match_longest >= 0:
                 word_sep[curpos + match_longest] = True
 
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + '    Found word "'
                     + str(self.syl_split_token.join(text_array[curpos:(curpos+match_longest+1)])) + '".'
@@ -493,7 +545,7 @@ class WordSegmentation(object):
         #
         # Break into array
         #
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Text "' + str(text) + '", separators ' + str(word_sep)
             + '\n\rSplit words: ' + str(array_words)
@@ -514,7 +566,7 @@ class WordSegmentation(object):
 
         if self.do_profiling:
             b = prf.Profiling.stop()
-            log.Log.critical(
+            Log.critical(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ':      PROFILING Segment Words for [' + text + '] to [' + s
                 + '] took ' + prf.Profiling.get_time_dif_str(start=a, stop=b)
@@ -565,7 +617,7 @@ if __name__ == '__main__':
     )
 
     lang = lf.LangFeatures.LANG_TH
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     synonymlist_ro = slist.SynonymList(
         lang                = lang,

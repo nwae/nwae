@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.7.7',
+    version='1.7.8',
     packages=[
         'nwae.lang',
         'nwae.lang.characters',
