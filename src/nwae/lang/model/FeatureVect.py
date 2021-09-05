@@ -32,6 +32,8 @@ class FeatureVector:
     COL_SIGMOID_FREQ_NORM = 'SigmoidFreqNormalized'
     COL_SIGMOID_FREQ_PROB = 'SigmoidFreqProbability'
 
+    DEFAULT_LOG_BASE = 10
+
     def __init__(self):
         self.fv_template = None
         self.fv_weights = None
@@ -83,7 +85,7 @@ class FeatureVector:
             text_list,
             feature_as_presence_only = False,
             # Log base has no effect on LogFreqNormalized & LogFreqProbability as it is just a constant factor
-            log_base = 10,
+            log_base = DEFAULT_LOG_BASE,
     ):
         counter = col.Counter(text_list)
         # Order the counter
@@ -121,7 +123,7 @@ class FeatureVector:
             self,
             # Data frame of columns 'Symbol', 'Frequency'
             df_text_counter,
-            log_base,
+            log_base = DEFAULT_LOG_BASE,
     ):
         # Merge feature vector template with counter
         df_merge = pd.merge(
