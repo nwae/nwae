@@ -44,9 +44,9 @@ class UnitTestWordSegmentation:
         )
         return res
 
-    def get_word_segmenter(self, lang):
+    def get_word_segmenter(self, lang, use_external_lib = False):
         return langhelper.LangHelper.get_word_segmenter(
-            lang = lang,
+            lang                 = lang,
             dirpath_wordlist     = self.ut_params.dirpath_wordlist,
             postfix_wordlist     = self.ut_params.postfix_wordlist,
             dirpath_app_wordlist = self.ut_params.dirpath_app_wordlist,
@@ -57,8 +57,9 @@ class UnitTestWordSegmentation:
             # We just take the first word in the synonym list as root
             # word. Only during detection, we need to do this to make
             # sure that whatever word we replace is in the feature list.
-            allowed_root_words = None,
-            do_profiling = False
+            allowed_root_words   = None,
+            do_profiling         = False,
+            use_external_lib     = use_external_lib
         ).wseg
 
     def test_chinese(self):
@@ -89,7 +90,31 @@ class UnitTestWordSegmentation:
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_ZH),
             list_sent_exp  = list_sent_exp
         )
+        return retv
 
+    def test_korean(self):
+        list_sent_exp = [
+            ['그러곤 지나가는 동네 사람에게 큰 소리로 말을 건넨다. “금동아, 어디 가냐?”',
+             ['그러곤', '지나가는', '동네', '사람에게', '큰', '소리로', '말을', '건넨다', '.', '“', '금동아', ',', '어디', '가냐', '?', '”']],
+            ['하아 둘 (셋), {넷}. [다섯]',
+             ['하아', '둘', '(', '셋', ')', ',', '{', '넷', '}', '.', '[', '다섯', ']']],
+        ]
+        return self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_KO),
+            list_sent_exp  = list_sent_exp
+        )
+
+    def test_japanese(self):
+        list_sent_exp = [
+            ['本日はチャットサービスをご利用いただき、ありがとうございます。オペレーターと接続中です。',
+             ['本日', 'は', 'チャット', 'サービス', 'を', 'ご', '利用', 'いただき', '、', 'ありがとう', 'ござい', 'ます', '。', 'オペレーター', 'と', '接続', '中', 'です', '。']],
+            ['江戸時代には江戸前や江戸前海などの呼び名があった。',
+             ['江戸', '時代', 'に', 'は', '江戸', '前', 'や', '江戸', '前海', 'など', 'の', '呼び名', 'が', 'あっ', 'た', '。']],
+        ]
+        retv = self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_JA, use_external_lib = True),
+            list_sent_exp  = list_sent_exp
+        )
         return retv
 
     def test_thai(self):
@@ -152,18 +177,6 @@ class UnitTestWordSegmentation:
             list_sent_exp  = list_sent_exp
         )
 
-    def test_korean(self):
-        list_sent_exp = [
-            ['그러곤 지나가는 동네 사람에게 큰 소리로 말을 건넨다. “금동아, 어디 가냐?”',
-             ['그러곤', '지나가는', '동네', '사람에게', '큰', '소리로', '말을', '건넨다', '.', '“', '금동아', ',', '어디', '가냐', '?', '”']],
-            ['하아 둘 (셋), {넷}. [다섯]',
-             ['하아', '둘', '(', '셋', ')', ',', '{', '넷', '}', '.', '[', '다섯', ']']],
-        ]
-        return self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_KO),
-            list_sent_exp  = list_sent_exp
-        )
-
     def test_russian(self):
         list_sent_exp = [
             ['Черный человек, /Водит пальцем по мерзкой книге/..',
@@ -182,6 +195,7 @@ class UnitTestWordSegmentation:
         for test_func in [
             self.test_chinese, self.test_thai, self.test_viet,
             self.test_en, self.test_korean, self.test_russian,
+            self.test_japanese,
         ]:
             res = test_func()
             res_final.update(other_res_obj=res)

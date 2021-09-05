@@ -21,7 +21,8 @@ class LangHelper:
             postfix_synonymlist,
             # If this is not None, then the synonym list will only choose root words from here
             allowed_root_words = None,
-            do_profiling = False
+            do_profiling       = False,
+            use_external_lib   = False,
     ):
         lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
             lang_code = lang
@@ -30,7 +31,8 @@ class LangHelper:
             lang             = lang_std,
             dirpath_wordlist = dirpath_wordlist,
             postfix_wordlist = postfix_wordlist,
-            do_profiling     = do_profiling
+            do_profiling     = do_profiling,
+            use_external_lib = use_external_lib,
         )
 
         # We need synonyms to normalize all text with "rootwords"
@@ -51,7 +53,7 @@ class LangHelper:
                 postfix = postfix_app_wordlist,
             )
 
-            len_before = wseg_obj.lang_wordlist.wordlist.shape[0]
+            len_before = wseg_obj.get_wordlist_length()
 
             # We assume words from model features are the same with allowed root words
             words_from_model_features = allowed_root_words
@@ -72,7 +74,7 @@ class LangHelper:
                 postfix     = None,
                 array_words = sl_obj.get_synonym_list_words()
             )
-            len_after = wseg_obj.lang_wordlist.wordlist.shape[0]
+            len_after = wseg_obj.get_wordlist_length()
             if len_after - len_before > 0:
                 words_not_synched = wseg_obj.lang_wordlist.wordlist[wl.WordList.COL_WORD][len_before:len_after]
                 lg.Log.warning(

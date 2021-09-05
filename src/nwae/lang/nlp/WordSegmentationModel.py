@@ -10,13 +10,28 @@ from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lang.corpora.Scrape import Scrape
 
 
+#
+# TODO
+#    Обобщи код для любого языка
+#
 class WordSegmentationModel:
 
-    EXAMPLE_SENT_TRAIN_LIST = [
-        ('数学は常に正しい？', '数学 は 常に 正しい', [0,1,1,0,1,0,0,1,1]),
-        ('合理的な人は世界に適応します', '合理 的 な 人 は 世界 に 適応 し ます', [0,1,1,1,1,1,0,1,1,0,1,1,0,1]),
-        ('進歩は非合理的な人々に依存します', '進歩 は 非 合理 的 な 人々 に 依存 し ます', [0,1,1,1,0,1,1,1,0,1,1,0,1,1,0,1]),
-    ]
+    HIDDEN_STATE_NOT_WORD_SEPARATOR = 0
+    HIDDEN_STATE_IS_WORD_SEPARATOR  = 1
+
+    @staticmethod
+    def get_training_data_from_file(
+            filepath,
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+    ):
+        f = open(file=filepath, mode='r', encoding='utf-8')
+        sentences_list = f.readlines()
+        sentences_list = [
+            s for s in sentences_list
+            if (len(s) >= min_char_per_sent) and (len(s) <= max_char_per_sent)
+        ]
+        return sentences_list
 
     @staticmethod
     def get_training_data_by_scraping_urls(
@@ -127,13 +142,12 @@ class WordSegmentationModel:
             s = sentences[i]
             is_sep = is_separators[i]
             for j in range(self.len_chr_lookback):
-                # TODO Instead of 0, put correct variable
-                s = [0] + s
-                is_sep = [1] + is_sep
+                s = [BasicPreprocessor.PAD_ID] + s
+                is_sep = [self.HIDDEN_STATE_IS_WORD_SEPARATOR] + is_sep
             for j in range(self.len_chr_lookfwd):
                 # TODO Instead of 0, put correct variable
-                s += [0]
-                is_sep += [1]
+                s += [BasicPreprocessor.PAD_ID]
+                is_sep += [self.HIDDEN_STATE_IS_WORD_SEPARATOR]
             s_len = len(s)
             #print('For sentence\n\r"' + str(s) + '"\n\r' + str(is_sep))
             for j in range(0, s_len - self.len_chr_lookfwd, 1):
@@ -229,13 +243,17 @@ class WordSegmentationModel:
     Входные данные преобразовывает в векторы слов (модель слов embedding), выходные данные представляет собой 1 или 0,
     Например входное предложение '数学は常に正しい？' будет разбитое по словам к '数学 は 常に 正しい',
     то выходные данные будет [0,1,1,0,1,0,0,1] или более четко [数/0, 学/1, は/1, 常/0, に/1, 正/0, し/0, い/1]
-    1 означает что эта буква является границей и 0 нет
-      - Embedding Layer как первым слоем
-      - LSTM
+    Но тренинг проходит такого - входные данные состоются векторами длины 5 слов, и выходный только 0 или 1,
+    означающий что третым словом является разделитель слов или нет
     """
     def tokenize_model(
             self
     ):
+        """
+        TODO
+           - Следует выделить одно предложение в одну партию (batch), сохраняющая состояние последовательности
+             слов в предложении в LSTM
+        """
         model = Sequential()
 
         # Use the text vectorization layer to normalize, split, and map strings to
@@ -267,6 +285,8 @@ class WordSegmentationModel:
             return_state     = False,
             return_sequences = False,
             activation       = 'tanh',
+            # Нет
+            stateful         = False,
         ))
         # model.add(Dropout(0.2))
         # model.add(LSTM(
@@ -287,17 +307,26 @@ class WordSegmentationModel:
         ))
 
         # model.compile(optimizer='rmsprop', loss='mse')
-        model.compile(optimizer='adam', loss='mse', metrics=['mse'])
+        model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
         Log.important(model.summary())
 
-        model.fit(self.X, self.Y, epochs=20, verbose=1)
+        model.fit(self.X, self.Y, epochs=20, batch_size=100 , verbose=1)
 
-        #y = model.predict(x=self.X)
-        #print('For ' + str(self.X) + ', y: '+ str(y) + ', shape ' + str(y.shape))
+        y = model.predict(x=self.X)
+        # Convert to 0, 1
+        y = np.round(y, decimals=0)
+        # print('For ' + str(self.X) + ', y: '+ str(y) + ', expected: ' + str(self.Y) + ', y shape ' + str(y.shape))
+        correct = np.reshape(1*(y == self.Y), newshape=(len(self.Y)))
+        correct_pct = np.round(100 * np.sum(correct) / len(correct), decimals=2)
+        print('Correct %: ' + str(correct_pct))
+        # self.check_result_one_by_one(model_tk=model)
+        return
+
+    def check_result_one_by_one(self, model_tk):
         correct = []
         for i in range(len(self.X)):
             x = self.X[i]
-            y = model.predict(x=np.array([x]))
+            y = model_tk.predict(x=np.array([x]))
             # Convert to characters
             x_words = BasicPreprocessor.indexes_to_sentences(
                 indexes      = x,
@@ -345,6 +374,15 @@ if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     Log.LOGLEVEL = Log.LOG_LEVEL_INFO
 
+    # EXAMPLE_SENT_TRAIN_LIST = [
+    #     ('数学は常に正しい？', '数学 は 常に 正しい', [0,1,1,0,1,0,0,1,1]),
+    #     ('合理的な人は世界に適応します', '合理 的 な 人 は 世界 に 適応 し ます', [0,1,1,1,1,1,0,1,1,0,1,1,0,1]),
+    #     ('進歩は非合理的な人々に依存します', '進歩 は 非 合理 的 な 人々 に 依存 し ます', [0,1,1,1,0,1,1,1,0,1,1,0,1,1,0,1]),
+    # ]
+    # sentences_list = [s[0] for s in EXAMPLE_SENT_TRAIN_LIST]
+    # tokenized_list = [s[1].split(' ') for s in EXAMPLE_SENT_TRAIN_LIST]
+    # is_sep_list = [s[2] for s in EXAMPLE_SENT_TRAIN_LIST]
+
     SCRAPE_FROM_WIKI = False
 
     if SCRAPE_FROM_WIKI:
@@ -365,7 +403,11 @@ if __name__ == '__main__':
         print('***** TOTAL SCRAPED = ' + str(len(sentences_list)))
     else:
         f = open(file='sample.japanese.txt', mode='r', encoding='utf-8')
-        sentences_list = f.readlines()
+        sentences_list = WordSegmentationModel.get_training_data_from_file(
+            filepath = 'sample.japanese.txt',
+            min_char_per_sent = 10,
+            max_char_per_sent = 30,
+        )
         # sentences_list = [s for s in sentences_list if (len(s) >= 10) and (len(s) <= 30)]
         print('***** TOTAL READ = ' + str(len(sentences_list)))
         print(sentences_list)
@@ -373,9 +415,6 @@ if __name__ == '__main__':
     tokens_list, is_sep_list = WordSegmentationModel.extract_tokens(
         sentences_list=sentences_list
     )
-    # sentences_list = [s[0] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
-    # tokenized_list = [s[1].split(' ') for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
-    # is_sep_list = [s[2] for s in WordSegmentationModel.EXAMPLE_SENT_TRAIN_LIST]
 
     t = WordSegmentationModel(
         sentences_list = sentences_list,
