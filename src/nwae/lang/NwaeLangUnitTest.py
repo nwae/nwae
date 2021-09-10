@@ -16,6 +16,7 @@ from nwae.lang.nlp.sajun.TrieNode import TrieNodeUnitTest
 from nwae.lang.nlp.sajun.SpellCheckWord import SpellCheckWordUnitTest
 from nwae.lang.nlp.sajun.SpellCheckSentence import SpellCheckSentenceUnitTest
 from nwae.lang.classification.TextClusterBasicUnitTest import TextClusterBasicUnitTest
+from nwae.lang.model.FeatureVect import FeatureVectorUnitTest
 from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrixUnitTest
 
 
@@ -86,6 +87,10 @@ class NwaeLangUnitTest:
         res = TextClusterBasicUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Text Cluster Basic Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = FeatureVectorUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.lang>> Feature Vector Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         res = WordFreqDocMatrixUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)

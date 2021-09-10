@@ -6,6 +6,7 @@ import pandas as pd
 import collections as col
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
+from nwae.utils.UnitTest import ResultObj, UnitTest
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -119,6 +120,9 @@ class FeatureVector:
         )
         return df_merge
 
+    """
+    Для LOG и SIGMOID веса не имеют влияние на вычисление, так как LOG/SIGMOID сами является взвешенными мерами
+    """
     def get_freq_feature_vector_df(
             self,
             # Data frame of columns 'Symbol', 'Frequency'
@@ -171,6 +175,7 @@ class FeatureVector:
                1.79175947, 1.94591015, 2.07944154, 2.19722458, 2.30258509])
         As we can see, the growth becomes much slower as frequency increases, thus controlling stopwords effect
         without having to filter out stopwords
+        *** Для LOG и SIGMOID веса не имеют влияние на вычисление, так как LOG/SIGMOID сами является взвешенными мерами
         """
         df_merge[self.COL_LOG_FREQ] = np.log(1.0 + df_merge[self.COL_FREQUENCY]) / np.log(log_base)
         self.__normalize(
@@ -180,6 +185,7 @@ class FeatureVector:
             prob_colname = self.COL_LOG_FREQ_PROB,
         )
 
+        """*** Для LOG и SIGMOID веса не имеют влияние на вычисление, так как LOG/SIGMOID сами является взвешенными мерами"""
         df_merge[self.COL_SIGMOID_FREQ] = 1 / (1 + np.exp(- df_merge[self.COL_FREQUENCY]))
         # So that 0 frequency is 0, and multiply by 2 to normalize back to 1.0 as max value
         df_merge[self.COL_SIGMOID_FREQ] = 2 * ( df_merge[self.COL_SIGMOID_FREQ] - 0.5 )
@@ -207,37 +213,95 @@ class FeatureVector:
         df[prob_colname] = freq_weighted / sum_freq_weighted
 
 
+class FeatureVectorUnitTest:
+    def __init__(self, ut_params = None):
+        return
+
+    def check(
+            self,
+            name,
+            df,
+            expected_freq,
+            base,
+            unit_test_res,
+            feature_weights = None,
+            feature_as_presence_only = False,
+    ):
+        v_freq = np.array( df[FeatureVector.COL_FREQUENCY] )
+        if feature_as_presence_only:
+            v_freq = 1 * (v_freq > 0)
+        v_freq_w = np.array( df[FeatureVector.COL_FREQ_WEIGHTED] )
+        v_log_freq = np.array( df[FeatureVector.COL_LOG_FREQ] )
+        v_sigm_freq = np.array( df[FeatureVector.COL_SIGMOID_FREQ] )
+
+        expected_v_freq = np.array(expected_freq)
+        if feature_as_presence_only:
+            expected_v_freq = 1.0 * (v_freq > 0)
+        expected_v_freq_w = np.array((v_freq_w))
+        if feature_weights:
+            expected_v_freq_w = expected_v_freq * np.array(feature_weights)
+        expected_v_log_freq = np.log(1 + v_freq) / np.log(base)
+        expected_v_sigm_freq = 2 * ( ( 1 / ( 1 + np.exp(-v_freq) ) ) - 0.5 )
+
+        for (tname, observed, expected) in (
+                ('freq', v_freq, expected_v_freq),
+                ('freq_w', v_freq_w, expected_v_freq_w),
+                ('log_freq', v_log_freq, expected_v_log_freq),
+                ('sigm_freq', v_sigm_freq, expected_v_sigm_freq)
+        ):
+            ok = UnitTest.assert_true(
+                observed = observed.tolist(),
+                expected = expected.tolist(),
+                test_comment = 'Test "' + str(name) + ':' + str(tname) + '"'
+            )
+            unit_test_res.update_bool(res_bool=ok)
+
+
+    def run_unit_test(self):
+        res = ResultObj(count_ok=0, count_fail=0)
+
+        sb = ['我', '帮', '崔', 'I', '确实']
+        base = 10
+        f = FeatureVector()
+        f.set_freq_feature_vector_template(sb)
+        # print(f.fv_template)
+
+        # Use word frequency
+        txt_list = '确实 有 在 帮 我 崔 吧 帮 我'.split(sep=' ')
+        df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False, log_base=base)
+        # print(df_fv)
+        self.check(name=1, df=df_fv, expected_freq=[2.0, 2.0, 1.0, 0.0, 1.0], base=base, unit_test_res=res)
+
+        # Now try with different weights
+        f.set_feature_weights([1, 2, 3, 4, 5])
+        df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False, log_base=base)
+        # print(df_fv)
+        self.check(name=1, df=df_fv, expected_freq=[2.0, 2.0, 1.0, 0.0, 1.0], base=base, unit_test_res=res, feature_weights=[1, 2, 3, 4, 5])
+
+        # Use word presence
+        txt_list = '确实 有 在 帮 我 崔 吧 帮 我'.split(' ')
+        f.set_feature_weights([1, 1, 1, 1, 1])
+        df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
+        # print(df_fv)
+        self.check(name=3, df=df_fv, expected_freq=[2.0, 2.0, 1.0, 0.0, 1.0], base=base, unit_test_res=res, feature_as_presence_only=True)
+
+        # Now try with different weights
+        f.set_feature_weights([1, 2, 3, 4, 5])
+        df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
+        # print(df_fv)
+        self.check(name=4, df=df_fv, expected_freq=[2.0, 2.0, 1.0, 0.0, 1.0], base=base, unit_test_res=res, feature_as_presence_only=True)
+
+        txt_list = '为什么 无法 兑换 商品 ？'.split(' ')
+        f.set_feature_weights([1, 1, 1, 1, 1])
+        df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
+        # print(df_fv)
+        self.check(name=5, df=df_fv, expected_freq=[0.0, 0.0, 0.0, 0.0, 0.0], base=base, unit_test_res=res, feature_as_presence_only=True)
+
+        return res
+
+
 if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-
-    sb = ['我', '帮', '崔', 'I', '确实']
-    base = np.exp(1)
-    base = 10
-    f = FeatureVector()
-    f.set_freq_feature_vector_template(sb)
-    print(f.fv_template)
-
-    # Use word frequency
-    txt_list = '确实 有 在 帮 我 崔 吧 帮 我'.split(sep=' ')
-    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False, log_base=base)
-    print(df_fv)
-    # Now try with different weights
-    f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=False, log_base=base)
-    print(df_fv)
-
-    # Use word presence
-    txt_list = '确实 有 在 帮 我 崔 吧 帮 我'.split(' ')
-    f.set_feature_weights([1,1,1,1,1])
-    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
-    print(df_fv)
-    # Now try with different weights
-    f.set_feature_weights([1,2,3,4,5])
-    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
-    print(df_fv)
-
-    txt_list = '为什么 无法 兑换 商品 ？'.split(' ')
-    f.set_feature_weights([1,1,1,1,1])
-    df_fv = f.get_freq_feature_vector(text_list=txt_list, feature_as_presence_only=True, log_base=base)
-    print(df_fv)
+    res = FeatureVectorUnitTest().run_unit_test()
+    exit(res.count_fail)

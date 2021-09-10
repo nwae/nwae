@@ -80,7 +80,6 @@ class WordSegmentation(object):
             dirpath_wordlist,
             postfix_wordlist,
             do_profiling = False,
-            use_external_lib = False,
             # For kkma
             jvmpath = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/lib/jli/libjli.dylib',
     ):
@@ -90,7 +89,8 @@ class WordSegmentation(object):
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist
         self.do_profiling = do_profiling
-        self.use_external_lib = use_external_lib
+        # Don't use for Korean KKMA for now
+        self.use_external_lib = self.lang in [lf.LangFeatures.LANG_JA]
         self.jvmpath = jvmpath
 
         # Languages not requiring any specialized algorithm to tokenize word like English

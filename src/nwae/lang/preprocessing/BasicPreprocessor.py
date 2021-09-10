@@ -21,6 +21,7 @@ class BasicPreprocessor:
     DEFAULT_WORD_SPLITTER = '--||--'
     DEFAULT_SPACE_SPLITTER = ' '
 
+    # Need '◦'?
     DEFAULT_PUNCTUATIONS = '([!?.,/？。，:;$“"\')(\[\]{}«»、])'
 
     # Sentence padding if shorter than min length
