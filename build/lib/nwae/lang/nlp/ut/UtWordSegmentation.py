@@ -45,7 +45,7 @@ class UnitTestWordSegmentation:
         )
         return res
 
-    def get_word_segmenter(self, lang, use_external_lib = False):
+    def get_word_segmenter(self, lang):
         return langhelper.LangHelper.get_word_segmenter(
             lang                 = lang,
             dirpath_wordlist     = self.ut_params.dirpath_wordlist,
@@ -60,7 +60,6 @@ class UnitTestWordSegmentation:
             # sure that whatever word we replace is in the feature list.
             allowed_root_words   = None,
             do_profiling         = False,
-            use_external_lib     = use_external_lib
         ).wseg
 
     def test_chinese(self):
@@ -121,7 +120,7 @@ class UnitTestWordSegmentation:
              ['江戸', '時代', 'に', 'は', '江戸', '前', 'や', '江戸', '前海', 'など', 'の', '呼び名', 'が', 'あっ', 'た', '。']],
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_JA, use_external_lib = True),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_JA),
             list_sent_exp  = list_sent_exp
         )
         return retv

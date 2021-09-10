@@ -22,7 +22,6 @@ class LangHelper:
             # If this is not None, then the synonym list will only choose root words from here
             allowed_root_words = None,
             do_profiling       = False,
-            use_external_lib   = False,
     ):
         lang_std = lf.LangFeatures.map_to_lang_code_iso639_1(
             lang_code = lang
@@ -32,7 +31,6 @@ class LangHelper:
             dirpath_wordlist = dirpath_wordlist,
             postfix_wordlist = postfix_wordlist,
             do_profiling     = do_profiling,
-            use_external_lib = use_external_lib,
         )
 
         # We need synonyms to normalize all text with "rootwords"

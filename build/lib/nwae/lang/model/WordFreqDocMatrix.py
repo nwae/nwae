@@ -76,11 +76,27 @@ class WordFreqDocMatrix:
             self,
             sents_list,
             remove_quartile = 0,
+            stopwords_list = (),
             add_unknown_word_in_list = False
     ):
         # Paste all sentences into a single huge vector
         all_words = [w for sent in sents_list for w in sent]
-        all_words_pure = self.remove_non_keywords(words_list=all_words)
+        all_words_pure = self.remove_non_keywords(words_list = all_words)
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Remain ' + str(len(all_words_pure))
+            + ' words after removing non words (punctuations, etc)'
+        )
+        if stopwords_list:
+            all_words_pure = self.remove_non_keywords(
+                words_list = all_words_pure,
+                non_words_list = stopwords_list,
+            )
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Remain ' + str(len(all_words_pure))
+            + ' words after removing non words and stopwords ' + str(stopwords_list)
+        )
         w_freq = collections.Counter(all_words_pure)
 
         Log.info(
@@ -150,14 +166,15 @@ class WordFreqDocMatrix:
             # A list of text sentences in list type, already in lowercase and cleaned of None or ''.
             # Preprocessing assumed to be done and no text processing will be done here.
             sentences_list,
-            freq_measure          = BY_FREQ,
-            feature_presence_only = False,
-            idf_matrix            = None,
+            freq_measure             = BY_FREQ,
+            feature_presence_only    = False,
+            idf_matrix               = None,
             # For keywords list
             remove_quartile_keywords = 0,
             add_unknown_word_in_list = False,
             # Log base has no effect on LogFreqNormalized & LogFreqProbability as it is just a constant factor
             log_base                 = 10.0,
+            stopwords_list           = (),
     ):
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -173,6 +190,7 @@ class WordFreqDocMatrix:
             sents_list = sentences_list,
             remove_quartile = remove_quartile_keywords,
             add_unknown_word_in_list = add_unknown_word_in_list,
+            stopwords_list = stopwords_list,
         )
         no_keywords = len(keywords_for_fv)
 
