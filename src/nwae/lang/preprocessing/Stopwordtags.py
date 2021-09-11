@@ -4,6 +4,14 @@ from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 from nwae.lang.detect.LangDetect import LangDetect
 from nwae.lang.LangFeatures import LangFeatures
+try:
+    from nltk import pos_tag, word_tokenize, download
+    download('punkt')
+except Exception as ex:
+    raise Exception(
+        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        + ': Unable to load nltk pos_tag: ' + str(ex)
+    )
 
 
 """
@@ -34,13 +42,6 @@ class Stopwordtags:
             word_list,
             keep_tags = DEFAULT_KEEP_TAGS_ENG,
     ):
-        try:
-            from nltk import pos_tag, word_tokenize
-        except Exception as ex:
-            raise Exception(
-                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Unable to load nltk pos_tag: ' + str(ex)
-            )
         if type(word_list) is str:
             word_list = word_tokenize(text=word_list, language='english')
         words_postags = pos_tag(word_list)
