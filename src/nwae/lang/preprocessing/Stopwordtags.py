@@ -7,6 +7,7 @@ from nwae.lang.LangFeatures import LangFeatures
 try:
     from nltk import pos_tag, word_tokenize, download
     download('punkt')
+    download('averaged_perceptron_tagger')
 except Exception as ex:
     raise Exception(
         str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
