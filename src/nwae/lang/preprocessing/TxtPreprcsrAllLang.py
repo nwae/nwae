@@ -55,6 +55,7 @@ class TextPreprscrAllLang:
             postfix_app_wordlist,
             dir_synlist,
             postfix_synlist,
+            stopwords_list = (),
     ):
         self.dir_wordlist = dir_wordlist
         self.postfix_wordlist = postfix_wordlist
@@ -62,6 +63,7 @@ class TextPreprscrAllLang:
         self.postfix_app_wordlist = postfix_app_wordlist
         self.dir_synlist = dir_synlist
         self.postfix_synlist = postfix_synlist
+        self.stopwords_list = stopwords_list
 
         self.lang_detect = LangDetect()
         # By language, created when need
@@ -109,6 +111,7 @@ class TextPreprscrAllLang:
                 postfix_wordlist_app = self.postfix_app_wordlist,
                 dirpath_synonymlist  = self.dir_synlist,
                 postfix_synonymlist  = self.postfix_synlist,
+                stopwords_list       = self.stopwords_list,
             )
         sentences_list_processed = []
         for i in range(len(sentences_list)):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import nwae.utils.Log as log
+from nwae.utils.Log import Log
 import nwae.utils.StringUtils as su
 from inspect import currentframe, getframeinfo
 from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
@@ -87,7 +87,7 @@ class TxtPreprocessor:
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
 
-        log.Log.info(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Using wordlist dir "' + str(self.dir_wordlist)
             + '", app wordlist dir "' + str(self.dir_wordlist_app)
@@ -101,7 +101,7 @@ class TxtPreprocessor:
             list(BasicPreprocessor.ALL_SPECIAL_SYMBOLS)
 
         self.words_no_replace_with_special_symbols = list(set(self.words_no_replace_with_special_symbols))
-        log.Log.important(
+        Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': For model "' + str(self.identifier_string)
             + '", words that will not replace with special symbols: '
@@ -147,7 +147,7 @@ class TxtPreprocessor:
                     identifier_string = self.identifier_string,
                     do_profiling      = self.do_profiling
                 )
-                log.Log.important(
+                Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Spelling Correction for model "' + str(self.identifier_string)
                     + '" initialized successfully.'
@@ -158,7 +158,7 @@ class TxtPreprocessor:
                          + ': Error initializing spelling correction for model "' \
                          + str(self.identifier_string) \
                          + '", got exception "' + str(ex_spellcor) + '".'
-                log.Log.error(errmsg)
+                Log.error(errmsg)
 
         #
         # For stemmer / lemmatization
@@ -166,7 +166,7 @@ class TxtPreprocessor:
         if self.do_word_stemming:
             lfobj = langfeatures.LangFeatures()
             self.lang_have_verb_conj = lfobj.have_verb_conjugation(lang=self.lang)
-            log.Log.important(
+            Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Lang "' + str(self.lang) + '" verb conjugation = ' + str(self.lang_have_verb_conj) + '.'
             )
@@ -176,7 +176,7 @@ class TxtPreprocessor:
                     self.word_stemmer_lemmatizer = lmtz.Lemmatizer(
                         lang=self.lang
                     )
-                    log.Log.important(
+                    Log.important(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': Lang "' + str(self.lang) + '" stemmer/lemmatizer initialized successfully.'
                     )
@@ -184,7 +184,7 @@ class TxtPreprocessor:
                     errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                              + ': Lang "' + str(self.lang) + ' stemmer/lemmatizer failed to initialize: ' \
                              + str(ex_stemmer) + '.'
-                    log.Log.error(errmsg)
+                    Log.error(errmsg)
                     self.word_stemmer_lemmatizer = None
 
         self.mex_username_nonword = MatchExpression(
@@ -203,6 +203,24 @@ class TxtPreprocessor:
         )
         is_username_nonword_type = params_dict['u'] is not None
         return is_username_nonword_type
+
+    def __remove_stopwords(
+            self,
+            word_list
+    ):
+        if self.stopwords_list:
+            word_list_remove = []
+            for w in word_list:
+                if w not in self.stopwords_list:
+                    word_list_remove.append(w)
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(self.lang) + '", Word list "' + str(word_list)
+                + '", removed stopwords to "' + str(word_list_remove) + '".'
+            )
+            return word_list_remove
+        else:
+            return word_list
 
     def preprocess_list(
             self,
@@ -246,7 +264,7 @@ class TxtPreprocessor:
                 repl    = pat_rep['repl'],
                 string  = inputtext_sym
             )
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '" special pattern replacement to: ' + str(inputtext_sym)
@@ -260,7 +278,7 @@ class TxtPreprocessor:
             text = inputtext_sym,
             return_array_of_split_words = True
         )
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '" segmented to: ' + str(text_segmented_arr)
@@ -275,7 +293,7 @@ class TxtPreprocessor:
         )
         if type(tmp_arr) in [list, tuple]:
             text_segmented_arr = tmp_arr
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '" clean punctuations to: ' + str(text_segmented_arr)
@@ -292,7 +310,7 @@ class TxtPreprocessor:
 
         text_normalized_arr_lower = [s.lower() for s in text_normalized_arr]
 
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
             + '", normalized to "' + str(text_normalized_arr_lower) + '"'
@@ -306,31 +324,23 @@ class TxtPreprocessor:
                 text_normalized_arr_lower = self.spell_correction.check(
                     text_segmented_arr = text_normalized_arr_lower
                 )
-                log.Log.info(
+                Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", corrected spelling to "' + str(text_normalized_arr_lower) + '".'
                 )
 
         #
-        # Remove stopwords
+        # Remove stopwords before stemming
         #
-        if self.stopwords_list:
-            text_remove_stopwords_arr = []
-            for w in text_normalized_arr_lower:
-                if w not in self.stopwords_list:
-                    text_remove_stopwords_arr.append(w)
-            log.Log.debug(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
-                + '", removed stopwords to "' + str(text_remove_stopwords_arr) + '".'
-            )
-            text_normalized_arr_lower = text_remove_stopwords_arr
+        text_normalized_arr_lower = self.__remove_stopwords(
+            word_list = text_normalized_arr_lower
+        )
 
         #
         # Stemming / Lemmatization
         #
-        log.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang)
             + '" do stemming = ' + str(self.do_word_stemming)
@@ -342,7 +352,7 @@ class TxtPreprocessor:
                     text_normalized_arr_lower[i] = self.word_stemmer_lemmatizer.stem(
                         word = text_normalized_arr_lower[i]
                     )
-                log.Log.debug(
+                Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Lang "' + str(self.lang) + '", Text "' + str(inputtext)
                     + '", stemmed to "' + str(text_normalized_arr_lower) + '".'
@@ -364,7 +374,7 @@ class TxtPreprocessor:
             # Check numbers first, re.match() is fast enough
             # Replace numbers with separate symbol
             if re.match(pattern='^[0-9]+$', string=word):
-                log.Log.debugdebug(
+                Log.debugdebug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Found for number in word "' + str(word) + '"'
                 )
@@ -382,11 +392,18 @@ class TxtPreprocessor:
                         text_normalized_arr_lower[i] = BasicPreprocessor.W_USERNAME_NONWORD
 
         #
+        # Remove stopwords again after stemming
+        #
+        text_normalized_arr_lower = self.__remove_stopwords(
+            word_list = text_normalized_arr_lower
+        )
+
+        #
         # Finally remove empty words in array
         #
         text_normalized_arr_lower = [x for x in text_normalized_arr_lower if x != '']
 
-        log.Log.info(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Lang "' + str(self.lang)
             + '", Done text processing to: ' + str(text_normalized_arr_lower)
@@ -410,7 +427,7 @@ if __name__ == '__main__':
     )
 
     from nwae.lang.LangFeatures import LangFeatures
-    log.Log.LOGLEVEL = log.Log.LOG_LEVEL_DEBUG_2
+    Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_2
 
     obj = TxtPreprocessor(
         identifier_string      = 'test',

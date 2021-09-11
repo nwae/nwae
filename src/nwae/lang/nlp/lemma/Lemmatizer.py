@@ -94,7 +94,7 @@ class Lemmatizer:
                 word_stem = self.stemmer.lemmatize(word = word)
             else:
                 word_stem = self.stemmer.stem(word = word)
-            lg.Log.debug(
+            lg.Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Lang "' + str(self.lang) + '" word "' + str(word) + '", word stem "' + str(word_stem) + '"'
             )

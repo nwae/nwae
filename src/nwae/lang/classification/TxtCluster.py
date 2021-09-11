@@ -2,16 +2,15 @@
 
 import numpy as np
 import pandas as pd
-
 import nwae.math.Cluster as clst
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrix
 
 
-#
-# NOTE: This Class is NOT Thread Safe
-#
+"""
+NOTE: This class is not thread safe
+"""
 class TxtCluster:
 
     #
@@ -42,6 +41,7 @@ class TxtCluster:
             stopwords_list  = (),
             # In percent, e.g. 50 for 50%
             remove_quartile_keywords = 0.0,
+            feature_presense_only = False,
     ):
         docmodel = WordFreqDocMatrix()
         word_freq_doc_matrix, keywords_list = docmodel.get_word_doc_matrix(
@@ -50,6 +50,7 @@ class TxtCluster:
             freq_measure   = freq_measure,
             stopwords_list = stopwords_list,
             remove_quartile_keywords = remove_quartile_keywords,
+            feature_presence_only = feature_presense_only,
         )
 
         #
