@@ -12,6 +12,7 @@ src/nwae/lang/characters/LangCharacters.py
 src/nwae/lang/classification/TextClusterBasic.py
 src/nwae/lang/classification/TextClusterBasicUnitTest.py
 src/nwae/lang/classification/TxtCluster.py
+src/nwae/lang/classification/TxtClusterUnitTest.py
 src/nwae/lang/config/Config.py
 src/nwae/lang/corpora/Scrape.py
 src/nwae/lang/corpora/ScrapeUrl.py
@@ -50,6 +51,7 @@ src/nwae/lang/nlp/sajun/TrieNode.py
 src/nwae/lang/nlp/translation/Translator.py
 src/nwae/lang/nlp/ut/UtWordSegmentation.py
 src/nwae/lang/preprocessing/BasicPreprocessor.py
+src/nwae/lang/preprocessing/Stopwordtags.py
 src/nwae/lang/preprocessing/TxtPreprcsrAllLang.py
 src/nwae/lang/preprocessing/TxtPreprocessor.py
 src/nwae/lang/preprocessing/ut/SampleTextClassificationData.py

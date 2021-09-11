@@ -15,9 +15,9 @@ from nwae.lang.nlp.sajun.EditDistance import EditDistanceUnitTest
 from nwae.lang.nlp.sajun.TrieNode import TrieNodeUnitTest
 from nwae.lang.nlp.sajun.SpellCheckWord import SpellCheckWordUnitTest
 from nwae.lang.nlp.sajun.SpellCheckSentence import SpellCheckSentenceUnitTest
-from nwae.lang.classification.TextClusterBasicUnitTest import TextClusterBasicUnitTest
 from nwae.lang.model.FeatureVect import FeatureVectorUnitTest
 from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrixUnitTest
+from nwae.lang.classification.TxtClusterUnitTest import TxtClusterUnitTest
 
 
 #
@@ -83,11 +83,6 @@ class NwaeLangUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Spell Check Sentence Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        # TODO Deprecated, replaced by WordFreqDocMatrixUnitTest
-        res = TextClusterBasicUnitTest(ut_params=self.ut_params).run_unit_test()
-        res_final.update(other_res_obj=res)
-        Log.critical('<<nwae.lang>> Text Cluster Basic Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
-
         res = FeatureVectorUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Feature Vector Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
@@ -95,6 +90,10 @@ class NwaeLangUnitTest:
         res = WordFreqDocMatrixUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Word Freq Doc Matrix Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = TxtClusterUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.lang>> Text Cluster Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical('PROJECT <<nwae.lang>> TOTAL PASS = ' + str(res_final.count_ok) + ', TOTAL FAIL = ' + str(res_final.count_fail))
         return res_final

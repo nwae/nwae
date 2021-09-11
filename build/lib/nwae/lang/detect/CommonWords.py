@@ -82,21 +82,28 @@ class CommonWords:
                     end_index = cur_index+j
                     # For the j-tuple word
                     w = ' '.join(word_list[cur_index:end_index])
-                    Log.debug('***** Test word "' + str(w) + '", cur_index=' + str(cur_index) + ', j=' + str(j))
+                    Log.debugdebug(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Test word "' + str(w) + '", cur_index=' + str(cur_index) + ', j=' + str(j))
                     if w in self.get_common_words():
                         count_int += 1
                         # Move forward to the end of the token from the word found
                         cur_index += j-1
-                        Log.debug('Found word "' + str(w) + '"')
+                        Log.debugdebug(
+                            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                            + ': Found word "' + str(w) + '"')
                         break
                 cur_index += 1
                 actual_word_count += 1
 
-            Log.debug('Count Intersection = ' + str(count_int) + ', actual word count = ' + str(actual_word_count))
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Count Intersection = ' + str(count_int) + ', actual word count = ' + str(actual_word_count)
+            )
             pct_intersection = count_int / actual_word_count
 
         Log.debug(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': "' + str(self.lang) + '" intersection = ' + str(pct_intersection)
         )
         return pct_intersection
