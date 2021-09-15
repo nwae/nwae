@@ -356,6 +356,7 @@ class TrainingDataModel:
             keywords_remove_quartile,
             is_convert_y_label_to_str_type = False,
             add_unknown_word_in_keywords_list = True,
+            word_frequency_measure_model = WordFreqDocMatrix.BY_FREQ_NORM,
     ):
         log_training = []
 
@@ -395,7 +396,7 @@ class TrainingDataModel:
         #
         log.Log.important(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Starting text cluster, calculate top keywords...'
+            + ': Starting training data model using word freq measure model "' + str(word_frequency_measure_model) + '"'
             , log_list = log_training
         )
 
@@ -426,14 +427,15 @@ class TrainingDataModel:
         word_freq_doc_matrix = WordFreqDocMatrix()
         word_doc_matrix, keywords_for_fv = word_freq_doc_matrix.get_word_doc_matrix(
             sentences_list           = sentences_list,
-            freq_measure             = WordFreqDocMatrix.BY_FREQ_NORM,
+            freq_measure             = word_frequency_measure_model,
             feature_presence_only    = False,
             idf_matrix               = None,
             add_unknown_word_in_list = add_unknown_word_in_keywords_list,
         )
         log.Log.info(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Keywords extracted as follows:\n\r' + str(keywords_for_fv)
+            + ': Word frequency measure model "' + str(word_frequency_measure_model)
+            + '" Keywords extracted as follows:\n\r' + str(keywords_for_fv)
         )
 
         fv_wordlabels = keywords_for_fv

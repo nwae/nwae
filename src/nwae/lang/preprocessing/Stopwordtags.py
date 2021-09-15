@@ -106,6 +106,9 @@ if __name__ == '__main__':
         'An official of the Korea Meteorological Administration said the nation will continue to see subzero temperatures for the time being with the central regions and some southern inland areas projected to see morning lows plunge below minus 15 degrees',
         'Currently , a cold wave warning is in place for Seoul , Incheon , Daejeon and Sejong as well as the provinces of Gangwon , Chungcheong , North Jeolla and North Gyeongsang.',
         '本日はチャットサービスをご利用いただき、ありがとうございます。オペレーターと接続中です。',
+        'The code run is successful',
+        'I run the code',
+        'Run',
     ]
     ld = LangDetect()
     swt = Stopwordtags()

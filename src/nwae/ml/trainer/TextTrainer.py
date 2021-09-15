@@ -11,6 +11,7 @@ from inspect import currentframe, getframeinfo
 import nwae.lang.TextProcessor as txtprocessor
 import nwae.lang.nlp.daehua.DaehuaTrainDataModel as dhtdmodel
 from nwae.ml.text.EmbeddingParams import EmbeddingParams
+from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrix
 
 
 class TextTrainer(TrainerInterface):
@@ -23,6 +24,7 @@ class TextTrainer(TrainerInterface):
             # Can be in TrainingDataModel type or pandas DataFrame type with 3 columns (Intent ID, Intent, Text Segmented)
             # Preprocessing of text (tokenization, spelling corrections, stemming, etc) is assumed to be already done
             training_data,
+            word_freq_measure_model = None,
             # If training data is None, must pass a training_data_source object with method fetch_data() implemented
             training_data_source = None,
             model_name = None,
@@ -30,7 +32,7 @@ class TextTrainer(TrainerInterface):
             # Either 'train_model' (or None), or 'train_nlp_eidf', etc.
             train_mode = TrainerInterface.TRAIN_MODE_MODEL,
             # Train a single y/label ID only, regardless of train mode
-            y_id = None
+            y_id = None,
     ):
         super().__init__(
             identifier_string    = identifier_string,
@@ -42,6 +44,10 @@ class TextTrainer(TrainerInterface):
             train_mode           = train_mode,
             y_id                 = y_id
         )
+
+        self.word_freq_measure_model = word_freq_measure_model
+        if self.word_freq_measure_model is None:
+            self.word_freq_measure_model = WordFreqDocMatrix.BY_FREQ_NORM
 
         if self.model_name is None:
             self.model_name = TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE
@@ -94,7 +100,8 @@ class TextTrainer(TrainerInterface):
                     embedding_x        = self.embedding_params.x,
                     embedding_y        = self.embedding_params.y,
                     embedding_x_one_hot_dict = self.embedding_params.x_one_hot_dict,
-                    embedding_y_one_hot_dict = self.embedding_params.y_one_hot_dict
+                    embedding_y_one_hot_dict = self.embedding_params.y_one_hot_dict,
+                    word_freq_measure_model = self.word_freq_measure_model,
                 )
             except Exception as ex:
                 errmsg = \
@@ -267,10 +274,12 @@ class TextTrainer(TrainerInterface):
             embedding_y,
             embedding_x_one_hot_dict,
             embedding_y_one_hot_dict,
+            word_freq_measure_model = WordFreqDocMatrix.BY_FREQ_NORM,
     ):
         if model_name == TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
             return TextTrainer.__convert_processed_text_to_training_data_model_type_for_hypersphere_metricspace(
-                training_dataframe = training_dataframe
+                training_dataframe = training_dataframe,
+                word_freq_measure_model = word_freq_measure_model,
             )
         else:
             return TextTrainer.__convert_preprocessed_text_to_training_data_model_for_nn_dense(
@@ -300,8 +309,9 @@ class TextTrainer(TrainerInterface):
             # pandas DataFrame type with the intent, text, language etc columns
             # Preprocessing of text (tokenization, spelling corrections, stemming, etc) is assumed to be already done
             training_dataframe,
+            word_freq_measure_model,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
-            keep = -1
+            keep = -1,
     ):
         td = training_dataframe
 
@@ -375,7 +385,10 @@ class TextTrainer(TrainerInterface):
             text_segmented_list = list(text_segmented[np_indexes])
         )
         text_segmented_list_list = txtprocessor_obj.convert_segmented_text_to_array_form()
-        np_sentences_list = np.array(text_segmented_list_list)
+        # TODO numpy warning
+        #   VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray
+        #   np_sentences_list = np.array(text_segmented_list_list)
+        np_sentences_list = np.array(text_segmented_list_list, dtype=object)
 
         # Merge to get the label name
         df_tmp_id = pd.DataFrame(data={'id': np_label_id})
@@ -404,7 +417,8 @@ class TextTrainer(TrainerInterface):
             label_id       = np_label_id.tolist(),
             label_name     = np_label_name.tolist(),
             sentences_list = np_sentences_list.tolist(),
-            keywords_remove_quartile = 0
+            keywords_remove_quartile = 0,
+            word_frequency_measure_model = word_freq_measure_model,
         )
 
         Log.debugdebug('TDM x:\n\r' + str(tdm_obj.get_x()))

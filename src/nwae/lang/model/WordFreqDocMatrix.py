@@ -8,7 +8,7 @@ import nwae.lang.characters.LangCharacters as lc
 from nwae.lang.model.FeatureVect import FeatureVector
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
-import nwae.utils.UnitTest as ut
+from nwae.utils.UnitTest import ResultObj, UnitTest, UnitTestParams
 from nwae.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 
 pd.set_option('display.max_rows', 500)
@@ -307,10 +307,11 @@ class WordFreqDocMatrix:
 
 class WordFreqDocMatrixUnitTest:
     def __init__(self, ut_params):
+        self.ut_params = ut_params
         return
 
     def run_unit_test(self):
-        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+        res_final = ResultObj(count_ok=0, count_fail=0)
 
         sentences_list = [
             'искуссвенном матрице',
@@ -368,11 +369,6 @@ class WordFreqDocMatrixUnitTest:
             ], 12.567),
         ]
 
-        from nwae.lang.config.Config import Config
-        config = Config.get_cmdline_params_and_init_config_singleton(
-            Derived_Class=Config,
-            default_config_file='/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
-        )
         from nwae.lang.LangFeatures import LangFeatures
 
         tpp = TxtPreprocessor(
@@ -382,12 +378,12 @@ class WordFreqDocMatrixUnitTest:
             # Don't need features/vocabulary list from model
             model_features_list    = None,
             lang                   = LangFeatures.LANG_RU,
-            dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-            dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist       = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dir_wordlist_app       = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_wordlist_app   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+            dirpath_synonymlist    = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist    = self.ut_params.postfix_synonymlist,
+            dir_wordlist           = self.ut_params.dirpath_wordlist,
+            postfix_wordlist       = self.ut_params.postfix_wordlist,
+            dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
+            postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
             do_word_stemming       = True,
             do_profiling           = False,
@@ -410,7 +406,7 @@ class WordFreqDocMatrixUnitTest:
             )
             Log.info('Doc matrix (method=' + str(method) + '): ' + str(np.transpose(word_doc_matrix)))
             Log.info('Keywords (method=' + str(method) + '): ' + str(keywords))
-            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed = keywords,
                 expected = kw_expected,
                 test_comment = 'Method=' + str(method) + ', Keywords ' + str(keywords) + ', expected ' + str(kw_expected)
@@ -419,7 +415,7 @@ class WordFreqDocMatrixUnitTest:
                 doc = np.round(word_doc_matrix[:, i], 3)
                 doc_expected = expected_word_doc_matrix[i]
                 Log.info('Compare ' + str(doc) + ' with ' + str(doc_expected))
-                res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                res_final.update_bool(res_bool=UnitTest.assert_true(
                     observed = doc.tolist(),
                     expected = doc_expected,
                     test_comment = 'Document vec # ' + str(i) + ' ' + str(doc) + ', expected ' + str(doc_expected)
@@ -436,7 +432,7 @@ class WordFreqDocMatrixUnitTest:
                 # Compare words in list
                 s.sort()
                 s_reconstruct.sort()
-                res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                res_final.update_bool(res_bool=UnitTest.assert_true(
                     observed = s_reconstruct,
                     expected = s,
                     test_comment = 'Compare original sentence "' + str(s) + '" with reconstruct "' + str(s_reconstruct) + '"',
@@ -449,6 +445,21 @@ if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
 
-    res = WordFreqDocMatrixUnitTest(ut_params=None).run_unit_test()
+    from nwae.lang.config.Config import Config
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
+        default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
+    )
+    ut_params = UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = None,
+    )
+
+    res = WordFreqDocMatrixUnitTest(ut_params=ut_params).run_unit_test()
     print('Total passed ' + str(res.count_ok) + ', total fail ' + str(res.count_fail))
     exit(res.count_fail)
