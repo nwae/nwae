@@ -58,6 +58,7 @@ src/nwae/lang/preprocessing/ut/SampleTextClassificationData.py
 src/nwae/lang/preprocessing/ut/UtTxtPreprocessor.py
 src/nwae/lang/speech/recognition/SpeechRecognition.py
 src/nwae/lang/stats/LangStats.py
+src/nwae/lang/stats/WordStats.py
 src/nwae/math/Cluster.py
 src/nwae/math/Constants.py
 src/nwae/math/NumpyUtil.py
@@ -73,12 +74,12 @@ src/nwae/math/number/pi.py
 src/nwae/math/optimization/Eidf.py
 src/nwae/math/tree/MultiTree.py
 src/nwae/math/tree/MultiTreeNode.py
+src/nwae/ml/DeprecatedTrainer.py
 src/nwae/ml/ModelBackTest.py
 src/nwae/ml/ModelInterface.py
 src/nwae/ml/ModelTemplate.py
 src/nwae/ml/NwaeMlUnitTest.py
 src/nwae/ml/PredictClass.py
-src/nwae/ml/Trainer.py
 src/nwae/ml/TrainingDataModel.py
 src/nwae/ml/boosting/Boosting.py
 src/nwae/ml/config/Config.py

@@ -105,7 +105,8 @@ class NnDenseModel(ModelInterface):
             self,
             # For the model to interpret and transform in to x usable for model input
             # (e.g. map using one-hot dictionaries)
-            x_input
+            x_input,
+            word_freq_model = None,
     ):
         try:
             Log.debugdebug('***** x input: ' + str(x_input))

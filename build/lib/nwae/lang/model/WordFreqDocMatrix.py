@@ -8,7 +8,7 @@ import nwae.lang.characters.LangCharacters as lc
 from nwae.lang.model.FeatureVect import FeatureVector
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
-import nwae.utils.UnitTest as ut
+from nwae.utils.UnitTest import ResultObj, UnitTest, UnitTestParams
 from nwae.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 
 pd.set_option('display.max_rows', 500)
@@ -34,6 +34,28 @@ class WordFreqDocMatrix:
     BY_SIGMOID_FREQ_NORM = 'sigmoid_frequency_normalized'
 
     LOG_BASE = np.exp(1)
+
+    MAP_WORD_FREQ_FEATURE_VECT = {
+        BY_FREQ:              FeatureVector.COL_FREQUENCY,
+        BY_FREQ_PROB:         FeatureVector.COL_FREQ_PROB,
+        BY_FREQ_NORM:         FeatureVector.COL_FREQ_NORM,
+        BY_LOG_FREQ:          FeatureVector.COL_LOG_FREQ,
+        BY_LOG_FREQ_NORM:     FeatureVector.COL_LOG_FREQ_NORM,
+        BY_SIGMOID_FREQ:      FeatureVector.COL_SIGMOID_FREQ,
+        BY_SIGMOID_FREQ_NORM: FeatureVector.COL_SIGMOID_FREQ_NORM
+    }
+
+    @staticmethod
+    def map_to_feature_vect_word_freq_measure(
+            freq_measure,
+    ):
+        if freq_measure in WordFreqDocMatrix.MAP_WORD_FREQ_FEATURE_VECT.keys():
+            return WordFreqDocMatrix.MAP_WORD_FREQ_FEATURE_VECT[freq_measure]
+        else:
+            raise Exception(
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': No such freq measure "' + str(freq_measure) + '"'
+            )
 
     #
     # Initialize with a list of text, assumed to be already word separated by space.
@@ -152,7 +174,11 @@ class WordFreqDocMatrix:
                 )
         return keywords_for_fv, df_keywords_for_fv
 
-    def reconstruct_check(self, sent, sent_vec, keywords_list, do_sanity_check=False):
+    def reconstruct_check(self, sent_vec, keywords_list):
+        Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Reconstructing ' + str(sent_vec) + ' from keywords ' + str(keywords_list)
+        )
         s_reconstruct_arr = []
         for j in range(len(sent_vec)):
             freq = sent_vec[j]
@@ -210,25 +236,12 @@ class WordFreqDocMatrix:
         sentence_matrix = np.zeros((nrow, ncol))
 
         # By default, use Probability
-        if freq_measure == self.BY_FREQ_PROB:
-            col_to_use = FeatureVector.COL_FREQ_PROB
-        elif freq_measure == self.BY_FREQ:
-            col_to_use = FeatureVector.COL_FREQUENCY
-        elif freq_measure == self.BY_FREQ_NORM:
-            col_to_use = FeatureVector.COL_FREQ_NORM
-        elif freq_measure == self.BY_LOG_FREQ:
-            col_to_use = FeatureVector.COL_LOG_FREQ
-        elif freq_measure == self.BY_LOG_FREQ_NORM:
-            col_to_use = FeatureVector.COL_LOG_FREQ_NORM
-        elif freq_measure == self.BY_SIGMOID_FREQ:
-            col_to_use = FeatureVector.COL_SIGMOID_FREQ
-        elif freq_measure == self.BY_SIGMOID_FREQ_NORM:
-            col_to_use = FeatureVector.COL_SIGMOID_FREQ_NORM
-        else:
-            raise Exception(
-                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': No such freq measure "' + str(freq_measure) + '"'
-            )
+        col_to_use = self.map_to_feature_vect_word_freq_measure(freq_measure=freq_measure)
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Word frequency doc matrix using word freq model "' + str(freq_measure)
+            + '" or in FeatureVect is "' + str(col_to_use) + '"'
+        )
 
         # Fill matrix
         for i in range(0, sentence_matrix.shape[0], 1):
@@ -246,7 +259,7 @@ class WordFreqDocMatrix:
             Log.debugdebug(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Reconstruct "' + str(sentences_list[i]) + '" as "'
-                + str(self.reconstruct_check(sent=sent_arr, sent_vec=sentence_matrix[i], keywords_list=keywords_for_fv))
+                + str(self.reconstruct_check(sent_vec=sentence_matrix[i], keywords_list=keywords_for_fv))
             )
             if np.sum(sentence_matrix[i]) <= 0.0:
                 # Can happen if remove keywords by quartile
@@ -307,17 +320,18 @@ class WordFreqDocMatrix:
 
 class WordFreqDocMatrixUnitTest:
     def __init__(self, ut_params):
+        self.ut_params = ut_params
         return
 
     def run_unit_test(self):
-        res_final = ut.ResultObj(count_ok=0, count_fail=0)
+        res_final = ResultObj(count_ok=0, count_fail=0)
 
         sentences_list = [
             'искуссвенном матрице',
             'матрица, симуляция, Вселенная, реальный мир',
             'идеи симуляции',
             'Вселенная искусственна.',
-            'мозг симуляцией',
+            'мозг симуляцией симуляция симуляции',
             'реальный мир.. именно таковым.',
         ]
         kw_expected = [
@@ -329,7 +343,7 @@ class WordFreqDocMatrixUnitTest:
                 [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.,],
                 [1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,],
                 [0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0.,],
-                [1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,],
+                [3., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,],
                 [0., 0., 0., 1., 1., 0., 0., 0., 0., 1., 1.,],
             ], 10.0),
             # Using log base np.exp(1)
@@ -338,7 +352,7 @@ class WordFreqDocMatrixUnitTest:
                 [0.693, 0.693, 0.693, 0.693, 0.693, 0.,    0.,    0.,    0.,    0.,    0.,    ],
                 [0.693, 0.,    0.,    0.,    0.,    0.,    0.693, 0.,    0.,    0.,    0.,    ],
                 [0.,    0.,    0.693, 0.,    0.,    0.,    0.,    0.693, 0.,    0.,    0.,    ],
-                [0.693, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.693, 0.,    0.,    ],
+                [1.386, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.693, 0.,    0.,    ],
                 [0.,    0.,    0.,    0.693, 0.693, 0.,    0.,    0.,    0.,    0.693, 0.693, ],
             ], np.exp(1)),
             (WordFreqDocMatrix.BY_LOG_FREQ, [
@@ -346,7 +360,7 @@ class WordFreqDocMatrixUnitTest:
                 [0.301, 0.301, 0.301, 0.301, 0.301, 0.,    0.,    0.,    0.,    0.,    0.,    ],
                 [0.301, 0.,    0.,    0.,    0.,    0.,    0.301, 0.,    0.,    0.,    0.,    ],
                 [0.,    0.,    0.301, 0.,    0.,    0.,    0.,    0.301, 0.,    0.,    0.,    ],
-                [0.301, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.301, 0.,    0.,    ],
+                [0.602, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.301, 0.,    0.,    ],
                 [0.,    0.,    0.,    0.301, 0.301, 0.,    0.,    0.,    0.,    0.301, 0.301, ],
             ], 10.0),
             # No difference whatever log base for BY_LOG_FREQ_NORM
@@ -355,7 +369,7 @@ class WordFreqDocMatrixUnitTest:
                 [0.447, 0.447, 0.447, 0.447, 0.447, 0.,    0.,    0.,    0.,    0.,  0., ],
                 [0.707, 0.,    0.,    0.,    0.,    0.,    0.707, 0.,    0.,    0.,  0., ],
                 [0.,    0.,    0.707, 0.,    0.,    0.,    0.,    0.707, 0.,    0.,  0., ],
-                [0.707, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.707, 0.,  0., ],
+                [0.894, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.447, 0.,  0., ],
                 [0.,    0.,    0.,    0.5,   0.5,   0.,    0.,    0.,    0.,    0.5, 0.5, ],
             ], np.exp(1)),
             (WordFreqDocMatrix.BY_LOG_FREQ_NORM, [
@@ -363,16 +377,27 @@ class WordFreqDocMatrixUnitTest:
                 [0.447, 0.447, 0.447, 0.447, 0.447, 0.,    0.,    0.,    0.,    0.,  0., ],
                 [0.707, 0.,    0.,    0.,    0.,    0.,    0.707, 0.,    0.,    0.,  0., ],
                 [0.,    0.,    0.707, 0.,    0.,    0.,    0.,    0.707, 0.,    0.,  0., ],
-                [0.707, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.707, 0.,  0., ],
+                [0.894, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.447, 0.,  0., ],
                 [0.,    0.,    0.,    0.5,   0.5,   0.,    0.,    0.,    0.,    0.5, 0.5, ],
             ], 12.567),
+            (WordFreqDocMatrix.BY_SIGMOID_FREQ, [
+                [0.,    0.462, 0.,    0.,    0.,    0.462, 0.,    0.,    0.,    0.,    0.,    ],
+                [0.462, 0.462, 0.462, 0.462, 0.462, 0.,    0.,    0.,    0.,    0.,    0.,    ],
+                [0.462, 0.,    0.,    0.,    0.,    0.,    0.462, 0.,    0.,    0.,    0.,    ],
+                [0.,    0.,    0.462, 0.,    0.,    0.,    0.,    0.462, 0.,    0.,    0.,    ],
+                [0.905, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.462, 0.,    0.,    ],
+                [0.,    0.,    0.,    0.462, 0.462, 0.,    0.,    0.,    0.,    0.462, 0.462, ],
+            ], 10),
+            (WordFreqDocMatrix.BY_SIGMOID_FREQ_NORM, [
+                [0.,    0.707, 0.,    0.,    0.,    0.707, 0.,    0.,    0.,    0.,  0., ],
+                [0.447, 0.447, 0.447, 0.447, 0.447, 0.,    0.,    0.,    0.,    0.,  0., ],
+                [0.707, 0.,    0.,    0.,    0.,    0.,    0.707, 0.,    0.,    0.,  0., ],
+                [0.,    0.,    0.707, 0.,    0.,    0.,    0.,    0.707, 0.,    0.,  0., ],
+                [0.891, 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.455, 0.,  0., ],
+                [0.,    0.,    0.,    0.5,   0.5,   0.,    0.,    0.,    0.,    0.5, 0.5, ],
+            ], 10),
         ]
 
-        from nwae.lang.config.Config import Config
-        config = Config.get_cmdline_params_and_init_config_singleton(
-            Derived_Class=Config,
-            default_config_file='/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
-        )
         from nwae.lang.LangFeatures import LangFeatures
 
         tpp = TxtPreprocessor(
@@ -382,12 +407,12 @@ class WordFreqDocMatrixUnitTest:
             # Don't need features/vocabulary list from model
             model_features_list    = None,
             lang                   = LangFeatures.LANG_RU,
-            dirpath_synonymlist    = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
-            postfix_synonymlist    = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-            dir_wordlist           = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
-            postfix_wordlist       = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
-            dir_wordlist_app       = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
-            postfix_wordlist_app   = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+            dirpath_synonymlist    = self.ut_params.dirpath_synonymlist,
+            postfix_synonymlist    = self.ut_params.postfix_synonymlist,
+            dir_wordlist           = self.ut_params.dirpath_wordlist,
+            postfix_wordlist       = self.ut_params.postfix_wordlist,
+            dir_wordlist_app       = self.ut_params.dirpath_app_wordlist,
+            postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             do_spelling_correction = False,
             do_word_stemming       = True,
             do_profiling           = False,
@@ -410,7 +435,7 @@ class WordFreqDocMatrixUnitTest:
             )
             Log.info('Doc matrix (method=' + str(method) + '): ' + str(np.transpose(word_doc_matrix)))
             Log.info('Keywords (method=' + str(method) + '): ' + str(keywords))
-            res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+            res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed = keywords,
                 expected = kw_expected,
                 test_comment = 'Method=' + str(method) + ', Keywords ' + str(keywords) + ', expected ' + str(kw_expected)
@@ -419,10 +444,10 @@ class WordFreqDocMatrixUnitTest:
                 doc = np.round(word_doc_matrix[:, i], 3)
                 doc_expected = expected_word_doc_matrix[i]
                 Log.info('Compare ' + str(doc) + ' with ' + str(doc_expected))
-                res_final.update_bool(res_bool=ut.UnitTest.assert_true(
+                res_final.update_bool(res_bool=UnitTest.assert_true(
                     observed = doc.tolist(),
                     expected = doc_expected,
-                    test_comment = 'Document vec # ' + str(i) + ' ' + str(doc) + ', expected ' + str(doc_expected)
+                    test_comment = 'Method=' + str(method) + ', Document vec # ' + str(i) + ' ' + str(doc) + ', expected ' + str(doc_expected)
                 ))
 
             for i in range(len(sentences_list)):
@@ -430,17 +455,19 @@ class WordFreqDocMatrixUnitTest:
                 s = [w for w in s if w in keywords]
                 s_vec = word_doc_matrix[:, i]
                 Log.debug('Reconstructing: ' + str(s_vec) + ', length ' + str(len(s_vec)))
-                s_reconstruct = cl.reconstruct_check(sent=s, sent_vec=s_vec, keywords_list=keywords)
-                Log.debug('   Reconstruct ' + str(i) + ': ' + str(s_reconstruct))
-                Log.debug('   Original: ' + str(s))
-                # Compare words in list
-                s.sort()
-                s_reconstruct.sort()
-                res_final.update_bool(res_bool=ut.UnitTest.assert_true(
-                    observed = s_reconstruct,
-                    expected = s,
-                    test_comment = 'Compare original sentence "' + str(s) + '" with reconstruct "' + str(s_reconstruct) + '"',
-                ))
+                # No point reconstruct check for other than raw frequency count
+                if method == WordFreqDocMatrix.BY_FREQ:
+                    s_reconstruct = cl.reconstruct_check(sent_vec=s_vec, keywords_list=keywords)
+                    Log.debug('   Reconstruct ' + str(i) + ': ' + str(s_reconstruct))
+                    Log.debug('   Original: ' + str(s))
+                    # Compare words in list
+                    s.sort()
+                    s_reconstruct.sort()
+                    res_final.update_bool(res_bool=UnitTest.assert_true(
+                        observed = s_reconstruct,
+                        expected = s,
+                        test_comment = 'Method=' + str(method) + ', Compare original sentence "' + str(s) + '" with reconstruct "' + str(s_reconstruct) + '"',
+                    ))
 
         return res_final
 
@@ -449,6 +476,21 @@ if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = True
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
 
-    res = WordFreqDocMatrixUnitTest(ut_params=None).run_unit_test()
+    from nwae.lang.config.Config import Config
+    config = Config.get_cmdline_params_and_init_config_singleton(
+        Derived_Class = Config,
+        default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
+    )
+    ut_params = UnitTestParams(
+        dirpath_wordlist     = config.get_config(param=Config.PARAM_NLP_DIR_WORDLIST),
+        postfix_wordlist     = config.get_config(param=Config.PARAM_NLP_POSTFIX_WORDLIST),
+        dirpath_app_wordlist = config.get_config(param=Config.PARAM_NLP_DIR_APP_WORDLIST),
+        postfix_app_wordlist = config.get_config(param=Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+        dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
+        postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = None,
+    )
+
+    res = WordFreqDocMatrixUnitTest(ut_params=ut_params).run_unit_test()
     print('Total passed ' + str(res.count_ok) + ', total fail ' + str(res.count_fail))
     exit(res.count_fail)

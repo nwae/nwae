@@ -12,6 +12,7 @@ from nwae.math.data.Rank import RankUnitTest
 from nwae.math.data.Grouping import GroupingUnitTest
 from nwae.math.measures.CenterOfMass import CenterOfMassUnitTest
 from nwae.math.tree.MultiTree import MultiTreeUnitTest
+from nwae.math.fit.markov.HiddenMarkov import HiddenMarkovUnitTest
 
 
 #
@@ -65,6 +66,10 @@ class NwaeMathUnitTest:
         res = MultiTreeUnitTest(ut_params=self.ut_params).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.math>> Multi Tree Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
+
+        res = HiddenMarkovUnitTest(ut_params=self.ut_params).run_unit_test()
+        res_final.update(other_res_obj=res)
+        Log.critical('<<nwae.math>> Hidden Markov Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
         Log.critical('PROJECT <<nwae.math>> TOTAL PASS = ' + str(res_final.count_ok) + ', TOTAL FAIL = ' + str(res_final.count_fail))
         return res_final

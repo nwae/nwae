@@ -310,11 +310,11 @@ class NumpyUtilUnittest:
         x_input = np.array([
             [5.6, 2.4, 55.6, 6.8],
             [55, 66, 22, 77, 33, 22],
-        ])
+        ], dtype=object)
         out_expected = np.array([
             [2, 3, 0, 1],
             [3, 1, 0, 4, 2],
-        ])
+        ], dtype=object)
         for i in range(x_input.shape[0]):
             data = np.array(x_input[i])
             expected = np.array(out_expected[i])

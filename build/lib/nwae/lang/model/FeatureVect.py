@@ -203,7 +203,7 @@ class FeatureVector:
         freq_weighted = np.array( df[freq_colname] )
         sum_freq_weighted = np.sum(freq_weighted)
         if sum(freq_weighted) > 0.000000001:
-            normalize_factor = sum(np.multiply(freq_weighted, freq_weighted)) ** 0.5
+            normalize_factor = np.sum(np.multiply(freq_weighted, freq_weighted)) ** 0.5
         else:
             normalize_factor = 1.0
             sum_freq_weighted = 1.0

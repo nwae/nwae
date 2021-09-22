@@ -11,6 +11,7 @@ import threading
 from nwae.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.lang.detect.LangDetect import LangDetect
 import nwae.utils.UnitTest as ut
+from nwae.lang.model.FeatureVect import FeatureVector
 
 
 #
@@ -43,11 +44,12 @@ class PredictClass(threading.Thread):
             postfix_wordlist,
             dir_wordlist_app,
             postfix_wordlist_app,
+            word_freq_model         = FeatureVector.COL_FREQUENCY,
             confidence_level_scores = None,
-            do_spelling_correction = False,
-            do_word_stemming = True,
-            do_profiling = False,
-            lang_additional = ()
+            do_spelling_correction  = False,
+            do_word_stemming        = True,
+            do_profiling            = False,
+            lang_additional         = ()
     ):
         super(PredictClass, self).__init__()
 
@@ -62,6 +64,7 @@ class PredictClass(threading.Thread):
         self.postfix_wordlist = postfix_wordlist
         self.dir_wordlist_app = dir_wordlist_app
         self.postfix_wordlist_app = postfix_wordlist_app
+        self.word_freq_model = word_freq_model
         self.do_spelling_correction = do_spelling_correction
         self.do_word_stemming = do_word_stemming
         self.do_profiling = do_profiling
@@ -79,7 +82,8 @@ class PredictClass(threading.Thread):
 
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Model "' + str(self.identifier_string)
+            + ': Predictor class initialization using model "' + str(self.identifier_string)
+            + '", word freq model "' + str(self.word_freq_model)
             + '", main language "' + str(self.lang_main)
             + '", additional languages: ' + str(self.lang_additional)
         )
@@ -307,7 +311,7 @@ class PredictClass(threading.Thread):
             top = MATCH_TOP,
             match_pct_within_top_score = CONSTANT_PERCENT_WITHIN_TOP_SCORE,
             include_match_details = False,
-            chatid = None
+            chatid = None,
     ):
         self.wait_for_model_to_be_ready()
         self.wait_for_all_initializations_to_be_done()
@@ -350,11 +354,13 @@ class PredictClass(threading.Thread):
         )
 
         transformed_txt_array = self.model.transform_input_for_model(
-            x_input = processed_txt_array
+            x_input = processed_txt_array,
+            word_freq_model = self.word_freq_model,
         )
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Transformed "' + str(processed_txt_array) + '" to "' + str(transformed_txt_array) + '"'
+            + ': Use word model "' + str(self.word_freq_model) + '" Transformed "' + str(processed_txt_array)
+            + '" to "' + str(transformed_txt_array) + '"'
         )
 
         #
@@ -432,14 +438,14 @@ class PredictClass(threading.Thread):
         y_observed = predict_result.predicted_classes
         top_class_distance = predict_result.top_class_distance
 
-        Log.info(
+        Log.debug(
             str(self.__class__) + str(getframeinfo(currentframe()).lineno)
             + ': Input x: ' + str(x_transformed) + ', observed class: ' + str(y_observed)
             + ', top distance: ' + str(top_class_distance)
         )
 
         if self.do_profiling:
-            Log.info(
+            Log.debug(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ': ID="' + str(id) + '", x="' + str(x_transformed) + '"'
                 + ' PROFILING predict class: '
@@ -471,6 +477,9 @@ class PredictClassUnitTest:
             postfix_wordlist_app   = self.ut_params.postfix_app_wordlist,
             dirpath_synonymlist    = self.ut_params.dirpath_synonymlist,
             postfix_synonymlist    = self.ut_params.postfix_synonymlist,
+            # чуть-чуть не правильно, потому-что мы используем модель тестировки из UtMetricSpaceModel.py
+            # и там последним тестом был сигмоид. но если бы это было не так, тест все равно бы прошел
+            word_freq_model        = FeatureVector.COL_SIGMOID_FREQ,
             do_spelling_correction = False,
             do_profiling           = True
         )
@@ -484,14 +493,14 @@ class PredictClassUnitTest:
                 inputtext                  = text,
                 match_pct_within_top_score = 0,
                 include_match_details      = True,
-                top                        = 5
+                top                        = 5,
             )
             res_final.update_bool(res_bool=ut.UnitTest.assert_true(
                 observed = res.predict_result.predicted_classes[0],
                 expected = label,
                 test_comment = 'Test "' + str(text) + '" label ' + str(label)
             ))
-            Log.debug(
+            Log.info(
                 str(self.__class__) + str(getframeinfo(currentframe()).lineno)
                 + ': Match Details' + str(res.predict_result.match_details)
             )
@@ -522,4 +531,5 @@ if __name__ == '__main__':
     Log.important('Unit Test Params: ' + str(ut_params.to_string()))
 
     res_ut = PredictClassUnitTest(ut_params=ut_params).run_unit_test()
+    print('***** PASS ' + str(res_ut.count_ok) + ', FAIL ' + str(res_ut.count_fail))
     exit(res_ut.count_fail)

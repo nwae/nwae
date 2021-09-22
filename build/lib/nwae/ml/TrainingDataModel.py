@@ -354,6 +354,7 @@ class TrainingDataModel:
             # y_name. In case label id are not easily readable (e.g. ID from DB), then names for clarity
             label_name,
             keywords_remove_quartile,
+            word_frequency_model,
             is_convert_y_label_to_str_type = False,
             add_unknown_word_in_keywords_list = True,
     ):
@@ -395,7 +396,7 @@ class TrainingDataModel:
         #
         log.Log.important(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Starting text cluster, calculate top keywords...'
+            + ': Starting training data model using word freq model "' + str(word_frequency_model) + '"'
             , log_list = log_training
         )
 
@@ -426,14 +427,15 @@ class TrainingDataModel:
         word_freq_doc_matrix = WordFreqDocMatrix()
         word_doc_matrix, keywords_for_fv = word_freq_doc_matrix.get_word_doc_matrix(
             sentences_list           = sentences_list,
-            freq_measure             = WordFreqDocMatrix.BY_FREQ_NORM,
+            freq_measure             = word_frequency_model,
             feature_presence_only    = False,
             idf_matrix               = None,
             add_unknown_word_in_list = add_unknown_word_in_keywords_list,
         )
         log.Log.info(
             str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Keywords extracted as follows:\n\r' + str(keywords_for_fv)
+            + ': Word frequency measure model "' + str(word_frequency_model)
+            + '" Keywords extracted as follows:\n\r' + str(keywords_for_fv)
         )
 
         fv_wordlabels = keywords_for_fv
