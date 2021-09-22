@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-import nwae.utils.Log as lg
+from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as pf
 import nwae.ml.config.Config as cf
@@ -31,13 +31,22 @@ class ModelBackTest:
 
     def __init__(
             self,
-            config
+            config,
+            word_freq_model = None,
     ):
         self.config = config
+        self.word_freq_model = word_freq_model
 
         if self.config is None:
+            Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Not initializing predictor, since config is None. Do that on your own.'
+            )
             return
+        else:
+            self.init_predictor()
 
+    def init_predictor(self):
         self.include_detailed_accuracy_stats = config.get_config(param=cf.Config.PARAM_MODEL_BACKTEST_DETAILED_STATS)
         self.model_name = config.get_config(param=cf.Config.PARAM_MODEL_NAME)
         self.model_lang = config.get_config(param=cf.Config.PARAM_MODEL_LANG)
@@ -45,12 +54,16 @@ class ModelBackTest:
         self.model_identifier = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER)
         self.do_profiling = config.get_config(param=cf.Config.PARAM_DO_PROFILING)
 
-        lg.Log.info('Include detailed stats = ' + str(self.include_detailed_accuracy_stats) + '.')
-        lg.Log.info('Model Name "' + str(self.model_name) + '"')
-        lg.Log.info('Model Lang "' + str(self.model_lang) + '"')
-        lg.Log.info('Model Directory "' + str(self.model_dir) + '"')
-        lg.Log.info('Model Identifier "' + str(self.model_identifier) + '"')
-        lg.Log.info('Do profiling = ' + str(self.do_profiling) + '.')
+        Log.info(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Include detailed stats = ' + str(self.include_detailed_accuracy_stats)
+            + ', model name "' + str(self.model_name)
+            + '", model lang "' + str(self.model_lang)
+            + '", model directory "' + str(self.model_dir)
+            + '", model identifier "' + str(self.model_identifier)
+            + '", word freq model "' + str(self.word_freq_model)
+            + '", do profiling = ' + str(self.do_profiling)
+        )
 
         try:
             self.predictor = predictclass.PredictClass(
@@ -64,6 +77,7 @@ class ModelBackTest:
                 postfix_wordlist     = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_WORDLIST),
                 dir_wordlist_app     = self.config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
                 postfix_wordlist_app = self.config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
+                word_freq_model      = self.word_freq_model,
                 do_profiling         = self.config.get_config(param=cf.Config.PARAM_DO_PROFILING)
             )
             self.model = self.predictor.model
@@ -71,7 +85,7 @@ class ModelBackTest:
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)\
                      + ': Could not load PredictClass: ' + str(ex)
-            lg.Log.error(errmsg)
+            Log.error(errmsg)
             # Don't raise exception
             # raise Exception(errmsg)
         return
@@ -103,7 +117,7 @@ class ModelBackTest:
             include_detailed_accuracy_stats = False
     ):
         start_get_td_time = pf.Profiling.start()
-        lg.Log.info(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '.   Start Load Training Data: ' + str(start_get_td_time)
         )
@@ -111,7 +125,7 @@ class ModelBackTest:
         # Get training data to improve LeBot intent/command detection
         self.model.load_training_data_from_storage()
         td = self.model.training_data
-        lg.Log.debug(
+        Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': TD x_name, shape=' + str(td.get_x_name().shape) + ': ' +  str(td.get_x_name())
             + '\n\rTD shape=' + str(td.get_x().shape)
@@ -119,13 +133,13 @@ class ModelBackTest:
         )
 
         stop_get_td_time = pf.Profiling.stop()
-        lg.Log.info(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '.   Stop Load Training Data: '
             + str(pf.Profiling.get_time_dif_str(start_get_td_time, stop_get_td_time)))
 
         start_test_time = pf.Profiling.start()
-        lg.Log.info(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '.   Start Testing of Training Data from DB Time : ' + str(start_get_td_time)
         )
@@ -157,15 +171,15 @@ class ModelBackTest:
             )
 
         stop_test_time = pf.Profiling.stop()
-        lg.Log.important('.   Stop Testing of Training Data from DB Time : '
+        Log.important('.   Stop Testing of Training Data from DB Time : '
                    + str(pf.Profiling.get_time_dif_str(start_test_time, stop_test_time)))
 
-        lg.Log.important(
+        Log.important(
             str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' wrong results from '
             + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG]) + ' total tests.'
         )
         for q in (0.0, 0.05, 0.1, 0.25, 0.50, 0.75, 0.9, 0.95):
-            lg.Log.important(
+            Log.important(
                 'Score Quantile (' + str(q) + '): '
                 + str(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES]['Score'].quantile(q))
             )
@@ -185,7 +199,7 @@ class ModelBackTest:
             include_match_details = True
         )
         df_match_details = predict_result.match_details
-        lg.Log.debugdebug(
+        Log.debugdebug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': y expected: ' + str(y_expected) + ', x features: ' + str(x_features)
             + '\n\rMatch Details:\n\r' + str(df_match_details)
@@ -245,10 +259,10 @@ class ModelBackTest:
                     'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
                 },
             ignore_index=True)
-        # lg.Log.debugdebug(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
+        # Log.debugdebug(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
         if not correct:
             self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG] += 1
-            lg.Log.error(
+            Log.error(
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Failed Test, expected y=' + str(y_expected)
                 + ' (' + str(x_features) + ') === ' + str(com_class)
@@ -285,7 +299,7 @@ class ModelBackTest:
                         + ', p' + str(iii + 1) + '='\
                         + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_ACCURACY][iii]) + '%'
 
-            lg.Log.important(
+            Log.important(
                 'Passed ' + str(self.test_stats[ModelBackTest.KEY_STATS_RESULT_CORRECT])
                 + ' (' + str_result_accuracy + ', ' + str(rps) + ' rps, ' + str(tpr) + 'ms per/req'
                 + '): ' + str(y_expected) + ':' + str(x_features)
@@ -294,7 +308,7 @@ class ModelBackTest:
                 + ', Ratio=' + str(ratio_score_answer_at_top1) + '/' + str(ratio_score_answer_not_at_top1)
             )
             if com_idx != 0:
-                lg.Log.log('   Result not 1st (in position #' + str(com_idx) + ')')
+                Log.log('   Result not 1st (in position #' + str(com_idx) + ')')
 
     def run(
             self,
@@ -310,15 +324,15 @@ class ModelBackTest:
 
             if user_choice == '1' or test_training_data:
                 start = pf.Profiling.start()
-                lg.Log.log('Start Time: ' + str(start))
+                Log.log('Start Time: ' + str(start))
 
                 self.test_model_against_training_data(
                     include_detailed_accuracy_stats = self.include_detailed_accuracy_stats
                 )
 
                 stop = pf.Profiling.stop()
-                lg.Log.log('Stop Time : ' + str(stop))
-                lg.Log.log(pf.Profiling.get_time_dif_str(start, stop))
+                Log.log('Stop Time : ' + str(stop))
+                Log.log(pf.Profiling.get_time_dif_str(start, stop))
 
                 if test_training_data:
                     break

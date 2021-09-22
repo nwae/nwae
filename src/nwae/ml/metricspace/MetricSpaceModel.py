@@ -199,7 +199,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
     def transform_input_for_model(
             self,
             # This should be a list of words as a sentence
-            x_input
+            x_input,
+            word_freq_model = FeatureVector.COL_FREQUENCY,
     ):
         #
         # This could be numbers, words, etc.
@@ -234,7 +235,8 @@ class MetricSpaceModel(modelIf.ModelInterface):
         # This creates a single row matrix that needs to be transposed before matrix multiplications
         # ndmin=2 will force numpy to create a 2D matrix instead of a 1D vector
         # For now we make it 1D first
-        fv_text_1d = np.array(df_fv[FeatureVector.COL_FREQUENCY].values, ndmin=1)
+        assert word_freq_model in df_fv.columns, '"' + str(word_freq_model) + '" must be in ' + str(df_fv.columns)
+        fv_text_1d = np.array(df_fv[word_freq_model].values, ndmin=1)
         if fv_text_1d.ndim != 1:
             raise Exception(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

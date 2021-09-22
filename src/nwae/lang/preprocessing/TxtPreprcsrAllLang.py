@@ -7,6 +7,7 @@ import nwae.utils.UnitTest as ut
 from nwae.lang.detect.LangDetect import LangDetect
 import pandas as pd
 from nwae.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
+import collections
 
 
 #
@@ -90,6 +91,13 @@ class TextPreprscrAllLang:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Done detecting ' + str(len(sentences_list)) + ' sentence languages: ' + str(langs_list)
         )
+        # Get most common lang
+        langs_counter = collections.Counter(langs_list).most_common()
+        self.lang_default = langs_counter[0][0]
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Most common language detected "' + str(self.lang_default) + '" from ' + str(langs_counter)
+        )
         unique_langs = [l for l in list(set(langs_list)) if l]
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -118,7 +126,7 @@ class TextPreprscrAllLang:
             sent = sentences_list[i]
             lang = langs_list[i]
             if not lang:
-                lang = LangFeatures.LANG_EN
+                lang = self.lang_default
             sent_processed = self.txt_preprcsr_by_lang[lang].process_text(
                 inputtext = sent,
             )
