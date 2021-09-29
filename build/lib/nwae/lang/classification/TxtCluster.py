@@ -42,6 +42,8 @@ class TxtCluster:
             # In percent, e.g. 50 for 50%
             remove_quartile_keywords = 0.0,
             feature_presense_only = False,
+            # Certain clusters might contain 0 or very small values in some directions, choose to remove or not
+            small_abs_value_remove = 0.0,
     ):
         docmodel = WordFreqDocMatrix()
         word_freq_doc_matrix, keywords_list = docmodel.get_word_doc_matrix(
@@ -101,6 +103,13 @@ class TxtCluster:
             center_idx_sort_keywords = np_keyword[center_idx_sort]
             center_idx_sort_values   = center[center_idx_sort]
             wv = dict(zip(center_idx_sort_keywords[0:words_per_topic].tolist(), center_idx_sort_values[0:words_per_topic].tolist()))
+            if small_abs_value_remove > 0:
+                wv_removed = {k:v for k,v in wv.items() if np.abs(v) <= small_abs_value_remove}
+                wv = {k:v for k,v in wv.items() if np.abs(v) > small_abs_value_remove}
+                Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Removed words ' + str(wv_removed) + ' with values less than ' + str(small_abs_value_remove)
+                )
             topic_words.append(wv)
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -122,14 +131,14 @@ class TxtCluster:
         # Convenient data frame for the topics & original documents
         df_classified = pd.DataFrame()
         for doc_idx in range(np.max(doc_labels) + 1):
-            Log.debug('Cluster #' + str(doc_idx))
-            Log.debug('\tWord-Value Center: ' + str(topic_words[doc_idx]))
-            Log.debug('\tWords Center: ' + str(topic_words[doc_idx].keys()))
+            Log.debugdebug(str(self.__class__) + ': Cluster #' + str(doc_idx))
+            Log.debugdebug(str(self.__class__) + ': Word-Value Center: ' + str(topic_words[doc_idx]))
+            Log.debugdebug(str(self.__class__) + ': Words Center: ' + str(topic_words[doc_idx].keys()))
             cluster_words = str(topic_words[doc_idx].keys())
             topic_sentences = []
             for j in range(len(sentences_list_no_preprocessing)):
                 if doc_labels[j] == doc_idx:
-                    print('\t\t' + str(sentences_list_no_preprocessing[j]))
+                    # print('\t\t' + str(sentences_list_no_preprocessing[j]))
                     topic_sentences.append(sentences_list_no_preprocessing[j])
             df_topic = pd.DataFrame({
                 'ClusterNo': doc_idx,
