@@ -93,7 +93,16 @@ class TextPreprscrAllLang:
         )
         # Get most common lang
         langs_counter = collections.Counter(langs_list).most_common()
-        self.lang_default = langs_counter[0][0]
+        self.lang_default = None
+        for lang_count in langs_counter:
+            if lang_count[0] != '':
+                self.lang_default = lang_count[0]
+                break
+        if self.lang_default is None:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Unable to determine default language from langs ' + str(langs_counter)
+            )
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Most common language detected "' + str(self.lang_default) + '" from ' + str(langs_counter)
@@ -125,7 +134,11 @@ class TextPreprscrAllLang:
         for i in range(len(sentences_list)):
             sent = sentences_list[i]
             lang = langs_list[i]
-            if not lang:
+            if lang not in self.txt_preprcsr_by_lang.keys():
+                Log.debug(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(lang) + '" not in keys ' + str(self.txt_preprcsr_by_lang.keys())
+                )
                 lang = self.lang_default
             sent_processed = self.txt_preprcsr_by_lang[lang].process_text(
                 inputtext = sent,
