@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nwae',
-    version='1.8.6',
+    version='1.8.8',
     packages=[
         'nwae.lang',
         'nwae.lang.characters',
@@ -28,11 +28,14 @@ setup(
         'nwae.math',
         'nwae.math.config',
         'nwae.math.data',
+        'nwae.math.fit',
+        'nwae.math.fit.markov',
         'nwae.math.measures',
         'nwae.math.nn',
         'nwae.math.nn.loss',
         'nwae.math.number',
         'nwae.math.optimization',
+        'nwae.math.suggest',
         'nwae.math.tree',
         'nwae.ml',
         'nwae.ml.boosting',
@@ -56,7 +59,6 @@ setup(
         'nwae.utils',
         'mex',
         'nltk',
-        'googletrans'
     ],
     url='',
     license='',

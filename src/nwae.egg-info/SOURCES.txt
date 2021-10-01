@@ -67,11 +67,14 @@ src/nwae/math/Obfuscate.py
 src/nwae/math/config/Config.py
 src/nwae/math/data/Grouping.py
 src/nwae/math/data/Rank.py
+src/nwae/math/fit/markov/HiddenMarkov.py
 src/nwae/math/measures/CenterOfMass.py
 src/nwae/math/nn/loss/CategoricalCrossEntropy.py
 src/nwae/math/number/e.py
 src/nwae/math/number/pi.py
 src/nwae/math/optimization/Eidf.py
+src/nwae/math/suggest/SuggestDataProfile.py
+src/nwae/math/suggest/SuggestMetric.py
 src/nwae/math/tree/MultiTree.py
 src/nwae/math/tree/MultiTreeNode.py
 src/nwae/ml/DeprecatedTrainer.py
