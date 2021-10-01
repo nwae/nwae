@@ -23,7 +23,7 @@ from nwae.utils.UnitTest import UnitTest, ResultObj
     2      c      1.0      0.0           0.0           3.0
 то есть атрибуты клиента становятся (bonaqua, borjomi, karspatskaya, morshinskaya)
 """
-class RecommendDataProfile:
+class SuggestDataProfile:
 
     # 'none', 'unit' (единичный вектор) or 'prob' (сумма атрибутов = 1)
     NORMALIZE_METHOD_NONE = 'none'
@@ -49,10 +49,10 @@ class RecommendDataProfile:
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start normalizing process by "' + str(normalize_method) + '"...'
         )
-        if normalize_method == RecommendDataProfile.NORMALIZE_METHOD_PROB:
+        if normalize_method == SuggestDataProfile.NORMALIZE_METHOD_PROB:
             df_attr = df[attribute_columns]
             df_attr = df_attr.apply(lambda x: x / sum(x), axis=1)
-        elif normalize_method == RecommendDataProfile.NORMALIZE_METHOD_UNIT:
+        elif normalize_method == SuggestDataProfile.NORMALIZE_METHOD_UNIT:
             df_attr = df[attribute_columns]
             df_attr = df_attr.apply(lambda x: x / sum(x ** 2) ** 0.5, axis=1)
         else:
@@ -319,11 +319,11 @@ class RecommendDataProfile:
         return df_prd_agg, unique_product_list, unique_human_list
 
 
-class RecommendDataProfileUnitTest:
+class SuggestDataProfileUnitTest:
     def __init__(self, ut_params=None):
         self.ut_params = ut_params
         self.res_final = ResultObj()
-        self.recommend_data_profile = RecommendDataProfile()
+        self.recommend_data_profile = SuggestDataProfile()
 
     def run_unit_test(self):
         df_pokupki = pd.DataFrame({
@@ -344,7 +344,7 @@ class RecommendDataProfileUnitTest:
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 0,
-            transform_prd_values_method = RecommendDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
+            transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
         Log.debug('Client profiles')
         Log.debug(df_client_profiles)
@@ -370,5 +370,5 @@ class RecommendDataProfileUnitTest:
 
 if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-    res = RecommendDataProfileUnitTest().run_unit_test()
+    res = SuggestDataProfileUnitTest().run_unit_test()
     exit(res.count_fail)

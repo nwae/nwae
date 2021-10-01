@@ -6,14 +6,14 @@ import numpy as np
 import pandas as pd
 from nwae.utils.data.DataPreprcscr import DataPreprocessor
 from nwae.utils.UnitTest import UnitTest, ResultObj
-from nwae.math.recommendation.RecommendDataProfile import RecommendDataProfile
+from nwae.math.suggest.SuggestDataProfile import SuggestDataProfile
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 
-class RecommendMetric:
+class SuggestMetric:
 
     # Быстро как в нейронных сетях
     METRIC_COSINE = 'cosine'
@@ -179,7 +179,7 @@ class RecommendMetric:
         attr_cols = original_cols.copy()
         attr_cols.remove(name_col)
 
-        return RecommendDataProfile.normalize(
+        return SuggestDataProfile.normalize(
             df                = df_object_attributes_summarized,
             name_columns      = [name_col],
             attribute_columns = attr_cols,
@@ -399,12 +399,12 @@ class RecommendMetric:
         return x_normalized
 
 
-class RecommendMetricUnitTest:
+class SuggestMetricUnitTest:
     def __init__(self, ut_params=None):
         self.ut_params = ut_params
         self.res_final = ResultObj(count_ok=0, count_fail=0)
-        self.recommend_data_profile = RecommendDataProfile()
-        self.recommend_metric = RecommendMetric()
+        self.recommend_data_profile = SuggestDataProfile()
+        self.recommend_metric = SuggestMetric()
         return
 
     def run_unit_test(self):
@@ -472,7 +472,7 @@ class RecommendMetricUnitTest:
                 df_product_dna = df_product,
                 unique_prdname_cols = ['__product'],
                 how_many       = 4,
-                metric         = RecommendMetric.METRIC_EUCLIDEAN,
+                metric         = SuggestMetric.METRIC_EUCLIDEAN,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -496,7 +496,7 @@ class RecommendMetricUnitTest:
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 0,
-            transform_prd_values_method = RecommendDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
+            transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
         print('Client profiles')
         print(df_client_profiles)
@@ -512,7 +512,7 @@ class RecommendMetricUnitTest:
             unique_df_object_human_attribute_columns = product_attributes_list,
             apply_object_value_as_weight        = False,
             # В реальном применении, нужно нормализирован через NORMALIZE_METHOD_UNIT чтобы стали единичними векторами
-            normalize_method                    = RecommendDataProfile.NORMALIZE_METHOD_PROB,
+            normalize_method                    = SuggestDataProfile.NORMALIZE_METHOD_PROB,
         )
         print('Product profiles')
         print(df_mapped_product)
@@ -535,7 +535,7 @@ class RecommendMetricUnitTest:
                 obj_ref_dna    = vec,
                 df_product_dna = df_mapped_product,
                 unique_prdname_cols = ['product'],
-                metric = RecommendMetric.METRIC_EUCLIDEAN,
+                metric = SuggestMetric.METRIC_EUCLIDEAN,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -551,7 +551,7 @@ class RecommendMetricUnitTest:
             obj_ref_dna    = vecs,
             df_product_dna = df_mapped_product,
             unique_prdname_cols = ['product'],
-            metric         = RecommendMetric.METRIC_EUCLIDEAN,
+            metric         = SuggestMetric.METRIC_EUCLIDEAN,
         )
         expected_recommendations = [x_expected_rec, y_expected_rec, z_expected_rec]
         self.res_final.update_bool(res_bool=UnitTest.assert_true(
@@ -566,6 +566,6 @@ if __name__ == '__main__':
     Log.DEBUG_PRINT_ALL_TO_SCREEN = 1
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
 
-    res = RecommendMetricUnitTest().run_unit_test()
+    res = SuggestMetricUnitTest().run_unit_test()
     print('PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
     exit(res.count_fail)
