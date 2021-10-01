@@ -448,10 +448,10 @@ class SuggestMetricUnitTest:
             )
 
         df_product = pd.DataFrame.from_records(data=list(prd_features.values()))
-        print('Product attributes: ' + str(attributes_list))
-        print('Product features: ' + str(prd_features))
-        print('****** To mapped product words')
-        print(df_product)
+        Log.debug('Product attributes: ' + str(attributes_list))
+        Log.debug('Product features: ' + str(prd_features))
+        Log.debug('Product profiles')
+        Log.debug(df_product)
 
         for human_recommendations in [
             ['dep1', ['dep1', 'dep3', 'dep2', 'wid1']],
@@ -466,7 +466,6 @@ class SuggestMetricUnitTest:
                 col_product_name = None,
             )
             ref_dna = np.array(list(ref_dna.values()))
-            print(ref_dna)
             recommendations = self.recommend_metric.recommend_products(
                 obj_ref_dna    = ref_dna,
                 df_product_dna = df_product,
@@ -498,10 +497,10 @@ class SuggestMetricUnitTest:
             max_attribute_columns       = 0,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
-        print('Client profiles')
-        print(df_client_profiles)
-        print('Product as attributes')
-        print(product_attributes_list)
+        Log.debug('Client profiles')
+        Log.debug(df_client_profiles)
+        Log.debug('Product as attributes')
+        Log.debug(product_attributes_list)
         df_mapped_product = self.recommend_metric.encode_product_attributes(
             df_human_profile         = df_client_profiles,
             df_object                = df_pokupki,
@@ -514,8 +513,8 @@ class SuggestMetricUnitTest:
             # В реальном применении, нужно нормализирован через NORMALIZE_METHOD_UNIT чтобы стали единичними векторами
             normalize_method                    = SuggestDataProfile.NORMALIZE_METHOD_PROB,
         )
-        print('Product profiles')
-        print(df_mapped_product)
+        Log.debug('Product profiles')
+        Log.debug(df_mapped_product)
 
         # For phone
         x_vec = np.array([1, 0, 0, 0, 0])
@@ -546,7 +545,6 @@ class SuggestMetricUnitTest:
 
         # Сразу вычислить для всех клинтов
         vecs = np.array([x_vec, y_vec, z_vec])
-        print('vecs: ' + str(vecs))
         recommendations = self.recommend_metric.recommend_products(
             obj_ref_dna    = vecs,
             df_product_dna = df_mapped_product,
