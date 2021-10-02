@@ -217,6 +217,7 @@ class SuggestMetric:
             # List type, e.g. ['league']
             unique_prdname_cols,
             metric,
+            force_normalization = False,
             how_many = 10,
             include_purchased_product = True,
     ):
@@ -238,6 +239,7 @@ class SuggestMetric:
             tensor_cmp  = tensor_cmp,
             how_many    = how_many,
             metric      = metric,
+            force_normalization = force_normalization,
         )
         recommendations = np_product_names[closest]
         return recommendations.tolist()
@@ -262,6 +264,8 @@ class SuggestMetric:
             #   ]
             tensor_cmp,
             metric,
+            # Для большей матрицы, вычисление нармализации очень медленно
+            force_normalization,
             how_many = 0,
             # TODO
             include_purchased_product=True,
@@ -306,6 +310,7 @@ class SuggestMetric:
             x         = obj_ref_dna,
             prd_attrs = tensor_cmp,
             metric    = metric,
+            force_normalization = force_normalization,
         )
         if how_many > 0:
             if multi_client:
@@ -319,9 +324,12 @@ class SuggestMetric:
             self,
             x,
             prd_attrs,
-            metric = METRIC_EUCLIDEAN
+            # Для большей матрицы, вычисление нармализации очень медленно
+            force_normalization,
+            metric,
     ):
-        if metric == self.METRIC_COSINE:
+        if force_normalization:
+            # Для большей матрицы, это вычисление очень медленно
             x_new = self.normalize_euclidean(x=x)
             prd_attrs_new = self.normalize_euclidean(x=prd_attrs)
             Log.debug(
@@ -491,6 +499,7 @@ class SuggestMetricUnitTest:
                 unique_prdname_cols = ['__product'],
                 how_many       = 4,
                 metric         = metric,
+                force_normalization = (metric == SuggestMetric.METRIC_COSINE),
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -566,6 +575,7 @@ class SuggestMetricUnitTest:
                 df_product_dna = df_mapped_product,
                 unique_prdname_cols = ['product'],
                 metric = metric,
+                force_normalization=(metric == SuggestMetric.METRIC_COSINE),
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
