@@ -7,6 +7,7 @@ import pandas as pd
 from nwae.utils.data.DataPreprcscr import DataPreprocessor
 from nwae.utils.UnitTest import UnitTest, ResultObj
 from nwae.math.suggest.SuggestDataProfile import SuggestDataProfile
+from nwae.utils.Profiling import Profiling, ProfilingHelper
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -21,6 +22,9 @@ class SuggestMetric:
     METRIC_EUCLIDEAN = 'euclidean'
 
     def __init__(self):
+        self.profiler_normalize_euclidean = ProfilingHelper(
+            profiler_name = 'normalize euclidean'
+        )
         return
 
     def extract_attributes_list(
@@ -217,8 +221,8 @@ class SuggestMetric:
             include_purchased_product = True,
     ):
         attributes_list = self.extract_attributes_list(
-            df=df_product_dna,
-            unique_name_colums_list=unique_prdname_cols,
+            df = df_product_dna,
+            unique_name_colums_list = unique_prdname_cols,
         )
         # Collapse to 1-dimensional vector
         np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
@@ -338,9 +342,10 @@ class SuggestMetric:
             distances = np.matmul(x_new, prd_attrs_new.transpose())
             if sum_axis == 1:
                 distances = np.reshape(distances, newshape=(prd_attrs_new.shape[0]))
+                indxs_dist_sort = np.flip(np.argsort(distances), axis=0)
             else:
                 distances = np.reshape(distances, newshape=(x_new.shape[0], prd_attrs_new.shape[0]))
-            indxs_dist_sort = np.flip(np.argsort(distances))
+                indxs_dist_sort = np.flip(np.argsort(distances), axis=1)
         elif metric == self.METRIC_EUCLIDEAN:
             # Slow, but more accurate for certain situations
             diff = x_new - prd_attrs_new
@@ -362,12 +367,14 @@ class SuggestMetric:
             self,
             obj_ref_dna,
             tensor_cmp,
-            how_many=0,
+            metric,
+            how_many = 0,
     ):
         close_indexes = self.find_closest(
             obj_ref_dna = obj_ref_dna,
             tensor_cmp  = tensor_cmp,
-            how_many    = how_many
+            how_many    = how_many,
+            metric      = metric,
         )
         return np.flip(close_indexes)
 
@@ -375,6 +382,8 @@ class SuggestMetric:
             self,
             x,
     ):
+        start_time = Profiling.start()
+
         if len(x.shape) == 2:
             axis_sum = 1
         elif len(x.shape) == 3:
@@ -384,6 +393,7 @@ class SuggestMetric:
 
         mags = np.sqrt((x**2).sum(axis=axis_sum))
         x_normalized = np.zeros(shape=x.shape)
+
         # TODO How to do without looping?
         for row in range(x.shape[0]):
             x_row = x[row]
@@ -395,6 +405,11 @@ class SuggestMetric:
         mags_check = np.sqrt((x_normalized**2).sum(axis=axis_sum))
         tmp_squares = (mags_check - np.ones(shape=mags_check.shape))**2
         assert np.sum(tmp_squares) < 10**(-12), 'Check sum squares ' + str(np.sum(tmp_squares))
+
+        self.profiler_normalize_euclidean.profile_time(
+            start_time = start_time,
+            additional_info = str(x.shape)
+        )
 
         return x_normalized
 
@@ -453,16 +468,20 @@ class SuggestMetricUnitTest:
         Log.debug('Product profiles')
         Log.debug(df_product)
 
-        for human_recommendations in [
-            ['dep1', ['dep1', 'dep3', 'dep2', 'wid1']],
-            ['wid1', ['wid1', 'wid2', 'wid3', 'dep1']],
-            ['mat1', ['mat1', 'mat3', 'mat2', 'dep2']],
-        ]:
-            human = human_recommendations[0]
-            expected_recommendations = human_recommendations[1]
+        metric_sent_expected = [
+            [SuggestMetric.METRIC_EUCLIDEAN, 'dep1', ['dep1', 'dep3', 'dep2', 'wid1']],
+            [SuggestMetric.METRIC_EUCLIDEAN, 'wid1', ['wid1', 'wid2', 'wid3', 'dep1']],
+            [SuggestMetric.METRIC_EUCLIDEAN, 'mat1', ['mat1', 'mat3', 'mat2', 'dep2']],
+            [SuggestMetric.METRIC_COSINE, 'dep1', ['dep1', 'dep3', 'wid1', 'dep2']],
+            [SuggestMetric.METRIC_COSINE, 'wid1', ['wid1', 'wid2', 'wid3', 'dep3']],
+            [SuggestMetric.METRIC_COSINE, 'mat1', ['mat1', 'mat3', 'mat2', 'wid3']],
+        ]
+
+        for m_v_e in metric_sent_expected:
+            metric, sent, expected_recommendations = m_v_e
             ref_dna = get_product_feature_vect(
                 feature_template = feature_template,
-                prd_sentence     = equivalent_products[human],
+                prd_sentence     = equivalent_products[sent],
                 col_product_name = None,
             )
             ref_dna = np.array(list(ref_dna.values()))
@@ -471,13 +490,13 @@ class SuggestMetricUnitTest:
                 df_product_dna = df_product,
                 unique_prdname_cols = ['__product'],
                 how_many       = 4,
-                metric         = SuggestMetric.METRIC_EUCLIDEAN,
+                metric         = metric,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
                 expected     = expected_recommendations,
-                test_comment = 'Recomendations for "' + str(human) + '" ' + str(recommendations) + ' expect ' + str(
-                    expected_recommendations)
+                test_comment = 'Recomendations metric "' + str(metric) + '" for "' + str(sent)
+                               + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
             ))
 
         return
@@ -516,48 +535,44 @@ class SuggestMetricUnitTest:
         Log.debug('Product profiles')
         Log.debug(df_mapped_product)
 
-        # For phone
         x_vec = np.array([1, 0, 0, 0, 0])
         y_vec = np.array([0, 1, 0, 0, 0])
         z_vec = np.array([0, 0, 1, 0, 0])
-        x_expected_rec = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya']
-        y_expected_rec = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy']
-        z_expected_rec = ['illy', 'lavazza', 'bonaqua', 'borjomi', 'karspatskaya']
-        for human_recommendations in [
-            [x_vec, x_expected_rec],
-            [y_vec, y_expected_rec],
-            [z_vec, z_expected_rec],
-        ]:
-            vec = human_recommendations[0]
-            expected_recommendations = human_recommendations[1]
+        x_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya']
+        x_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi']
+        y_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy']
+        y_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua']
+        z_expected_rec_euclidean = ['illy', 'lavazza', 'bonaqua', 'borjomi', 'karspatskaya']
+        z_expected_rec_cosine    = ['illy', 'lavazza', 'bonaqua', 'karspatskaya', 'borjomi']
+
+        vecs_all = np.array([x_vec, y_vec, z_vec])
+        expected_cosine_all = [x_expected_rec_cosine, y_expected_rec_cosine, z_expected_rec_cosine]
+        expected_euclidean_all = [x_expected_rec_euclidean, y_expected_rec_euclidean, z_expected_rec_euclidean]
+
+        metric_vec_expected = [
+            [SuggestMetric.METRIC_EUCLIDEAN, x_vec, x_expected_rec_euclidean],
+            [SuggestMetric.METRIC_EUCLIDEAN, y_vec, y_expected_rec_euclidean],
+            [SuggestMetric.METRIC_EUCLIDEAN, z_vec, z_expected_rec_euclidean],
+            [SuggestMetric.METRIC_COSINE, x_vec, x_expected_rec_cosine],
+            [SuggestMetric.METRIC_COSINE, y_vec, y_expected_rec_cosine],
+            [SuggestMetric.METRIC_COSINE, z_vec, z_expected_rec_cosine],
+            [SuggestMetric.METRIC_EUCLIDEAN, vecs_all, expected_euclidean_all],
+            [SuggestMetric.METRIC_COSINE, vecs_all, expected_cosine_all],
+        ]
+        for m_v_e in metric_vec_expected:
+            metric, vec, expected_recommendations = m_v_e
             recommendations = self.recommend_metric.recommend_products(
                 obj_ref_dna    = vec,
                 df_product_dna = df_mapped_product,
                 unique_prdname_cols = ['product'],
-                metric = SuggestMetric.METRIC_EUCLIDEAN,
+                metric = metric,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
                 expected     = expected_recommendations,
-                test_comment = 'Recomendations for "' + str(vec) + '" ' + str(recommendations) + ' expect ' + str(
-                    expected_recommendations)
+                test_comment = 'Recomendations metric "' + str(metric) + '" for "' + str(vec)
+                               + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
             ))
-
-        # Сразу вычислить для всех клинтов
-        vecs = np.array([x_vec, y_vec, z_vec])
-        recommendations = self.recommend_metric.recommend_products(
-            obj_ref_dna    = vecs,
-            df_product_dna = df_mapped_product,
-            unique_prdname_cols = ['product'],
-            metric         = SuggestMetric.METRIC_EUCLIDEAN,
-        )
-        expected_recommendations = [x_expected_rec, y_expected_rec, z_expected_rec]
-        self.res_final.update_bool(res_bool=UnitTest.assert_true(
-            observed     = recommendations,
-            expected     = expected_recommendations,
-            test_comment = 'Recomendations for all: ' + str(recommendations) + ' expect ' + str(
-                expected_recommendations)
-        ))
 
 
 if __name__ == '__main__':
