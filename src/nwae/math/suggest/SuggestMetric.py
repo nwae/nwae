@@ -9,10 +9,6 @@ from nwae.utils.UnitTest import UnitTest, ResultObj
 from nwae.math.suggest.SuggestDataProfile import SuggestDataProfile
 from nwae.utils.Profiling import Profiling, ProfilingHelper
 
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
-
 
 class SuggestMetric:
 
@@ -21,10 +17,15 @@ class SuggestMetric:
     # Медленно
     METRIC_EUCLIDEAN = 'euclidean'
 
-    def __init__(self):
-        self.profiler_normalize_euclidean = ProfilingHelper(
-            profiler_name = 'normalize euclidean'
-        )
+    def __init__(
+            self,
+    ):
+        self.profiler_normalize_euclidean = ProfilingHelper(profiler_name = 'normalize euclidean')
+        self.profiler_recommend = ProfilingHelper(profiler_name = 'recommend')
+
+        pd.set_option('display.max_rows', 500)
+        pd.set_option('display.max_columns', 500)
+        pd.set_option('display.width', 1000)
         return
 
     def extract_attributes_list(
@@ -221,13 +222,14 @@ class SuggestMetric:
             how_many = 10,
             include_purchased_product = True,
     ):
+        start_time = Profiling.start()
         attributes_list = self.extract_attributes_list(
             df = df_product_dna,
             unique_name_colums_list = unique_prdname_cols,
         )
         # Collapse to 1-dimensional vector
         np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
-        Log.debugdebug(
+        Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Extracted attributes list from product dna: ' + str(attributes_list)
             + ', product list: ' + str(np_product_names)
@@ -240,8 +242,10 @@ class SuggestMetric:
             how_many    = how_many,
             metric      = metric,
             force_normalization = force_normalization,
+            include_purchased_product = include_purchased_product,
         )
         recommendations = np_product_names[closest]
+        self.profiler_recommend.profile_time(start_time=start_time)
         return recommendations.tolist()
 
     #
@@ -266,9 +270,8 @@ class SuggestMetric:
             metric,
             # Для большей матрицы, вычисление нармализации очень медленно
             force_normalization,
+            include_purchased_product = True,
             how_many = 0,
-            # TODO
-            include_purchased_product=True,
     ):
         obj_ref_dna = obj_ref_dna.astype(float)
         if len(obj_ref_dna.shape) == 1:
@@ -312,13 +315,28 @@ class SuggestMetric:
             metric    = metric,
             force_normalization = force_normalization,
         )
+
         if how_many > 0:
             if multi_client:
-                return indxs_dist_sort[:, 0:min(how_many, attribute_len)]
+                indxs_dist_sort_truncate = indxs_dist_sort[:, 0:min(how_many, attribute_len)]
+                if not include_purchased_product:
+                    Log.warning(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': include_purchased_product=' + str(include_purchased_product)
+                        + ' not supported for multi-client, as this might cause uneven lengths between clients'
+                    )
             else:
-                return indxs_dist_sort[0:min(how_many, attribute_len)]
+                if not include_purchased_product:
+                    # From [[1,2,3]] to [1,2,3]
+                    obj_ref_dna_flat = np.reshape(obj_ref_dna, newshape=(obj_ref_dna.shape[1]))
+                    purchased_before = obj_ref_dna_flat > 0
+                    indxs_dist_sort = indxs_dist_sort[np.logical_not(purchased_before)]
+
+                indxs_dist_sort_truncate = indxs_dist_sort[0:min(how_many, attribute_len)]
         else:
-            return indxs_dist_sort
+            indxs_dist_sort_truncate = indxs_dist_sort
+
+        return indxs_dist_sort_truncate
 
     def calculate_metric(
             self,
@@ -376,6 +394,7 @@ class SuggestMetric:
             obj_ref_dna,
             tensor_cmp,
             metric,
+            force_normalization,
             how_many = 0,
     ):
         close_indexes = self.find_closest(
@@ -383,6 +402,7 @@ class SuggestMetric:
             tensor_cmp  = tensor_cmp,
             how_many    = how_many,
             metric      = metric,
+            force_normalization = force_normalization,
         )
         return np.flip(close_indexes)
 
@@ -500,6 +520,7 @@ class SuggestMetricUnitTest:
                 how_many       = 4,
                 metric         = metric,
                 force_normalization = (metric == SuggestMetric.METRIC_COSINE),
+                include_purchased_product = True,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -575,12 +596,35 @@ class SuggestMetricUnitTest:
                 df_product_dna = df_mapped_product,
                 unique_prdname_cols = ['product'],
                 metric = metric,
-                force_normalization=(metric == SuggestMetric.METRIC_COSINE),
+                force_normalization = (metric == SuggestMetric.METRIC_COSINE),
+                include_purchased_product = True,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
                 expected     = expected_recommendations,
-                test_comment = 'Recomendations metric "' + str(metric) + '" for "' + str(vec)
+                test_comment = 'Inclusive recomendations metric "' + str(metric) + '" for "' + str(vec)
+                               + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
+            ))
+
+            recommendations = self.recommend_metric.recommend_products(
+                obj_ref_dna    = vec,
+                df_product_dna = df_mapped_product,
+                unique_prdname_cols = ['product'],
+                metric = metric,
+                force_normalization = (metric == SuggestMetric.METRIC_COSINE),
+                include_purchased_product = False,
+            )
+            if vec.shape != vecs_all.shape:
+                never_purchased_before = vec == 0
+                expected_recommendations_exclude = list(
+                    np.array(expected_recommendations)[never_purchased_before]
+                )
+            else:
+                expected_recommendations_exclude = expected_recommendations
+            self.res_final.update_bool(res_bool=UnitTest.assert_true(
+                observed     = recommendations,
+                expected     = expected_recommendations_exclude,
+                test_comment = 'Exclusive recomendations metric "' + str(metric) + '" for "' + str(vec)
                                + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
             ))
 
