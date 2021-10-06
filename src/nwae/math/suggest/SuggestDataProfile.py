@@ -31,6 +31,7 @@ class SuggestDataProfile:
     NORMALIZE_METHOD_PROB = 'prob'
 
     COLNAME_PRODUCTS_NOT_INCLUDED = '__others'
+    NAN_PRODUCT                   = '__NAN_PRODUCT'
 
     TRANSFORM_PRD_VALUES_METHOD_NONE = 'none'
     # Все значения трансакций в 1
@@ -85,6 +86,9 @@ class SuggestDataProfile:
             max_attribute_columns = 0,
             # Before any processing
             transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
+            # осторожно здесь, этот неизвестный продукт будет присвоен 0-вектор (возможно),
+            # поэтому если использовать метрику "euclidean", он будет "близок" другим векторам
+            add_unknown_product = False,
     ):
         df_prd_agg, unique_product_list, unique_human_list = self.aggregate_products(
             df_product                  = df_product,
@@ -147,24 +151,40 @@ class SuggestDataProfile:
         assert len(df_converted) == len(unique_human_list), \
             'Length of final dataframe ' + str(len(df_converted)) + ' must be equal ' + str(len(unique_human_list))
 
+        # прибавить "неизвестный продукт"
+        if add_unknown_product:
+            if self.NAN_PRODUCT in unique_product_list:
+                raise Exception(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Name clash with nan product name "' + str(self.NAN_PRODUCT) + '"'
+                )
+            unique_product_list.append(self.NAN_PRODUCT)
+
         columns_running = list(df_converted.columns)
         """Продукт за продуктом, создавать столбец продукта"""
         for prd in unique_product_list:
             condition_only_this_product = df_prd_agg[unique_product_key_column] == prd
             df_prd_agg_part = df_prd_agg[condition_only_this_product]
-            columns_keep = unique_human_key_columns + [unique_product_value_column]
-            df_prd_agg_part = df_prd_agg_part[columns_keep].reset_index(drop=True)
-            Log.debugdebug(prd)
-            Log.debugdebug(df_prd_agg_part)
-            """Соединить цену/количество продукта с человеком"""
-            df_converted = df_converted.merge(
-                df_prd_agg_part,
-                on=unique_human_key_columns,
-                how='left'
-            )
-            assert len(df_converted) == len(unique_human_list), \
-                'After merge column "' + str(prd) + '" Length of final dataframe ' + str(
-                    len(df_converted)) + ' must be equal ' + str(len(unique_human_list))
+            if len(df_prd_agg_part) == 0:
+                Log.warning(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': For product "' + str(prd) + '", there are 0 sales, adding 0 column'
+                )
+                df_converted[prd] = 0.0
+            else:
+                columns_keep = unique_human_key_columns + [unique_product_value_column]
+                df_prd_agg_part = df_prd_agg_part[columns_keep].reset_index(drop=True)
+                Log.debugdebug(prd)
+                Log.debugdebug(df_prd_agg_part)
+                """Соединить цену/количество продукта с человеком"""
+                df_converted = df_converted.merge(
+                    df_prd_agg_part,
+                    on  = unique_human_key_columns,
+                    how = 'left'
+                )
+                assert len(df_converted) == len(unique_human_list), \
+                    'After merge column "' + str(prd) + '" Length of final dataframe ' + str(
+                        len(df_converted)) + ' must be equal ' + str(len(unique_human_list))
 
             """Новые имена столбцев"""
             columns_running = columns_running + [prd]
@@ -192,11 +212,12 @@ class SuggestDataProfile:
         attr_cols = original_cols.copy()
         for col in unique_human_key_columns:
             attr_cols.remove(col)
+
         df_converted = self.normalize(
-            df=df_converted,
-            name_columns=unique_human_key_columns,
-            attribute_columns=attr_cols,
-            normalize_method=normalize_method,
+            df                = df_converted,
+            name_columns      = unique_human_key_columns,
+            attribute_columns = attr_cols,
+            normalize_method  = normalize_method,
         )
 
         return df_converted, unique_product_list

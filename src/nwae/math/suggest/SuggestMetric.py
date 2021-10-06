@@ -17,6 +17,8 @@ class SuggestMetric:
     # Медленно
     METRIC_EUCLIDEAN = 'euclidean'
 
+    BIG_NUMBER_NON_EXISTENT_PRD_INDEX = 2**31
+
     def __init__(
             self,
     ):
@@ -143,6 +145,7 @@ class SuggestMetric:
             # 'none', 'unit' (единичный вектор) or 'prob' (сумма атрибутов = 1)
             normalize_method,
     ):
+        assert len(unique_df_object_object_key_columns) == 1, 'Multi-column product names not supported yet'
         # TODO
         #    Сейчас только самый простой метод вычислить "аттрибуты" объектов
         Log.important(
@@ -151,14 +154,14 @@ class SuggestMetric:
         )
         colkeep = unique_df_object_object_key_columns + [unique_df_object_value_column]
         df_agg_value = df_object_attributes[colkeep].groupby(
-            by=unique_df_object_object_key_columns,
-            as_index=False,
+            by       = unique_df_object_object_key_columns,
+            as_index = False,
         ).sum()
         df_agg_value.columns = unique_df_object_object_key_columns + ['__total_value']
         df_object_attributes = df_object_attributes.merge(
             df_agg_value,
-            on=unique_df_object_object_key_columns,
-            how='left'
+            on  = unique_df_object_object_key_columns,
+            how = 'left'
         )
         Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -172,8 +175,8 @@ class SuggestMetric:
                                             / df_object_attributes['__total_value']
         # df_object_attributes.to_csv('object_attr.csv')
         df_object_attributes_summarized = df_object_attributes.groupby(
-            by=unique_df_object_object_key_columns,
-            as_index=False,
+            by       = unique_df_object_object_key_columns,
+            as_index = False,
         ).sum()
         colkeep = unique_df_object_object_key_columns + unique_attribute_columns
         df_object_attributes_summarized = df_object_attributes_summarized[colkeep]
@@ -184,12 +187,40 @@ class SuggestMetric:
         attr_cols = original_cols.copy()
         attr_cols.remove(name_col)
 
-        return SuggestDataProfile.normalize(
+        df_object_attributes_summarized_normalized = SuggestDataProfile.normalize(
             df                = df_object_attributes_summarized,
             name_columns      = [name_col],
             attribute_columns = attr_cols,
             normalize_method  = normalize_method,
         )
+
+        set_non_zero_products = set(
+            df_object_attributes_summarized_normalized[unique_df_object_object_key_columns].to_numpy().squeeze()
+        )
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Non-zero products from encoding: ' + str(set_non_zero_products)
+        )
+        zero_product_names_list = list( set(unique_attribute_columns).difference(set_non_zero_products) )
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Zero products from encoding: ' + str(zero_product_names_list)
+        )
+        # Add to product encoding as 0 rows
+        max_index = max(df_object_attributes_summarized_normalized.index)
+        print(max_index)
+        for zero_prd in zero_product_names_list:
+            d = {k:np.inf for k in unique_attribute_columns}
+            d[unique_df_object_object_key_columns[0]] = zero_prd
+            df_row = pd.DataFrame.from_records(data=[d])
+            df_object_attributes_summarized_normalized = df_object_attributes_summarized_normalized.append(df_row)
+            df_object_attributes_summarized_normalized = df_object_attributes_summarized_normalized.reset_index(drop=True)
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Appended zero product "' + str(zero_prd)
+                + '" to product encoding successfully, assinged as: ' + str(d)
+            )
+        return df_object_attributes_summarized_normalized
 
     def get_object_distance(
             self,
@@ -220,8 +251,28 @@ class SuggestMetric:
             metric,
             force_normalization = False,
             how_many = 10,
+            # Проблемой с include_purchased_product=False вклячается в том, что длины предложений может быть разными
             include_purchased_product = True,
+            replace_purchased_product_with_nan = False,
     ):
+        assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet'
+        obj_ref_dna = obj_ref_dna.astype(float)
+        if len(obj_ref_dna.shape) == 1:
+            # From [1,2,3] to [[1,2,3]]
+            obj_ref_dna = np.reshape(obj_ref_dna, newshape=(1, obj_ref_dna.shape[0]))
+
+        # нельзя
+        if replace_purchased_product_with_nan:
+            assert include_purchased_product == True
+
+        # Get nan_product index
+        condition = df_product_dna[unique_prdname_cols[0]] == SuggestDataProfile.NAN_PRODUCT
+        df_row_nan_product = df_product_dna[condition]
+        if len(df_row_nan_product) == 1:
+            index_nan_product = df_row_nan_product.index[0]
+        else:
+            index_nan_product = None
+
         start_time = Profiling.start()
         attributes_list = self.extract_attributes_list(
             df = df_product_dna,
@@ -242,9 +293,21 @@ class SuggestMetric:
             how_many    = how_many,
             metric      = metric,
             force_normalization = force_normalization,
-            include_purchased_product = include_purchased_product,
         )
         recommendations = np_product_names[closest]
+
+        # если список продуктов было раньше сокращен, то продукты которые убраны не будут смены
+        if replace_purchased_product_with_nan:
+            if obj_ref_dna.shape[0] > 1:
+                for i in range(len(recommendations)):
+                    purchased_before = np.array(attributes_list)[obj_ref_dna[i] > 0]
+                    replace_x = [(r in purchased_before) for r in recommendations[i]]
+                    recommendations[i][replace_x] = SuggestDataProfile.NAN_PRODUCT
+            else:
+                purchased_before = np.array(attributes_list)[obj_ref_dna[0] > 0]
+                replace_x = [(r in purchased_before) for r in recommendations]
+                recommendations[replace_x] = SuggestDataProfile.NAN_PRODUCT
+
         self.profiler_recommend.profile_time(start_time=start_time)
         return recommendations.tolist()
 
@@ -270,7 +333,6 @@ class SuggestMetric:
             metric,
             # Для большей матрицы, вычисление нармализации очень медленно
             force_normalization,
-            include_purchased_product = True,
             how_many = 0,
     ):
         obj_ref_dna = obj_ref_dna.astype(float)
@@ -315,23 +377,12 @@ class SuggestMetric:
             metric    = metric,
             force_normalization = force_normalization,
         )
+        # print(indxs_dist_sort)
 
         if how_many > 0:
             if multi_client:
                 indxs_dist_sort_truncate = indxs_dist_sort[:, 0:min(how_many, attribute_len)]
-                if not include_purchased_product:
-                    Log.warning(
-                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': include_purchased_product=' + str(include_purchased_product)
-                        + ' not supported for multi-client, as this might cause uneven lengths between clients'
-                    )
             else:
-                if not include_purchased_product:
-                    # From [[1,2,3]] to [1,2,3]
-                    obj_ref_dna_flat = np.reshape(obj_ref_dna, newshape=(obj_ref_dna.shape[1]))
-                    purchased_before = obj_ref_dna_flat > 0
-                    indxs_dist_sort = indxs_dist_sort[np.logical_not(purchased_before)]
-
                 indxs_dist_sort_truncate = indxs_dist_sort[0:min(how_many, attribute_len)]
         else:
             indxs_dist_sort_truncate = indxs_dist_sort
@@ -366,6 +417,9 @@ class SuggestMetric:
         if metric == self.METRIC_COSINE:
             # Fast method just like NN layer
             distances = np.matmul(x_new, prd_attrs_new.transpose())
+            # nan can occur for nan product with 0-vector
+            condition_nan = np.isnan(distances)
+            distances[condition_nan] = -1
             if sum_axis == 1:
                 distances = np.reshape(distances, newshape=(prd_attrs_new.shape[0]))
                 indxs_dist_sort = np.flip(np.argsort(distances), axis=0)
@@ -376,6 +430,9 @@ class SuggestMetric:
             # Slow, but more accurate for certain situations
             diff = x_new - prd_attrs_new
             distances = np.sqrt(np.sum((diff) ** 2, axis=sum_axis))
+            # nan can occur for nan product with 0-vector
+            condition_nan = np.isnan(distances)
+            distances[condition_nan] = np.inf
             indxs_dist_sort = np.argsort(distances)
         else:
             raise Exception(
@@ -430,9 +487,9 @@ class SuggestMetric:
             x_normalized[row] = x_row / mags[row]
 
         # Double check
-        mags_check = np.sqrt((x_normalized**2).sum(axis=axis_sum))
-        tmp_squares = (mags_check - np.ones(shape=mags_check.shape))**2
-        assert np.sum(tmp_squares) < 10**(-12), 'Check sum squares ' + str(np.sum(tmp_squares))
+        #mags_check = np.sqrt((x_normalized**2).sum(axis=axis_sum))
+        #tmp_squares = (mags_check - np.ones(shape=mags_check.shape))**2
+        #assert np.sum(tmp_squares) < 10**(-12), 'Check sum squares ' + str(np.sum(tmp_squares))
 
         self.profiler_normalize_euclidean.profile_time(
             start_time = start_time,
@@ -521,6 +578,7 @@ class SuggestMetricUnitTest:
                 metric         = metric,
                 force_normalization = (metric == SuggestMetric.METRIC_COSINE),
                 include_purchased_product = True,
+                replace_purchased_product_with_nan = False,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -545,6 +603,7 @@ class SuggestMetricUnitTest:
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 0,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
+            add_unknown_product         = True,
         )
         Log.debug('Client profiles')
         Log.debug(df_client_profiles)
@@ -565,15 +624,22 @@ class SuggestMetricUnitTest:
         Log.debug('Product profiles')
         Log.debug(df_mapped_product)
 
-        x_vec = np.array([1, 0, 0, 0, 0])
-        y_vec = np.array([0, 1, 0, 0, 0])
-        z_vec = np.array([0, 0, 1, 0, 0])
-        x_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya']
-        x_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi']
-        y_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy']
-        y_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua']
-        z_expected_rec_euclidean = ['illy', 'lavazza', 'bonaqua', 'borjomi', 'karspatskaya']
-        z_expected_rec_cosine    = ['illy', 'lavazza', 'bonaqua', 'karspatskaya', 'borjomi']
+        self.res_final.update_bool(res_bool=UnitTest.assert_true(
+            observed = product_attributes_list,
+            expected = ['bonaqua', 'borjomi', 'illy', 'karspatskaya', 'lavazza', '__NAN_PRODUCT'],
+            test_comment = 'attribute list ' + str(product_attributes_list)
+        ))
+
+        x_vec = np.array([1, 0, 0, 0, 0, 0])
+        y_vec = np.array([0, 1, 0, 0, 0, 0])
+        z_vec = np.array([0, 0, 1, 0, 0, 0])
+        nanprd = SuggestDataProfile.NAN_PRODUCT
+        x_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya', nanprd]
+        x_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi', nanprd]
+        y_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy', nanprd]
+        y_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua', nanprd]
+        z_expected_rec_euclidean = ['illy', 'lavazza', 'bonaqua', 'borjomi', 'karspatskaya', nanprd]
+        z_expected_rec_cosine    = ['illy', 'lavazza', 'bonaqua', 'karspatskaya', 'borjomi', nanprd]
 
         vecs_all = np.array([x_vec, y_vec, z_vec])
         expected_cosine_all = [x_expected_rec_cosine, y_expected_rec_cosine, z_expected_rec_cosine]
@@ -598,6 +664,7 @@ class SuggestMetricUnitTest:
                 metric = metric,
                 force_normalization = (metric == SuggestMetric.METRIC_COSINE),
                 include_purchased_product = True,
+                replace_purchased_product_with_nan = False,
             )
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
@@ -606,27 +673,37 @@ class SuggestMetricUnitTest:
                                + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
             ))
 
+            # TEST INCLUSIVE WITH REPLACE WITH NAN_PRODUCT
             recommendations = self.recommend_metric.recommend_products(
                 obj_ref_dna    = vec,
                 df_product_dna = df_mapped_product,
                 unique_prdname_cols = ['product'],
                 metric = metric,
                 force_normalization = (metric == SuggestMetric.METRIC_COSINE),
-                include_purchased_product = False,
+                include_purchased_product = True,
+                replace_purchased_product_with_nan = True,
             )
             if vec.shape != vecs_all.shape:
-                never_purchased_before = vec == 0
-                expected_recommendations_exclude = list(
-                    np.array(expected_recommendations)[never_purchased_before]
-                )
+                purchased_before = np.array(product_attributes_list)[vec > 0]
+                np_exp_recmd = np.array(expected_recommendations)
+                replace_x = [(r in purchased_before) for r in np_exp_recmd]
+                np_exp_recmd[replace_x] = SuggestDataProfile.NAN_PRODUCT
+                expected_recommendations = list(np_exp_recmd)
             else:
-                expected_recommendations_exclude = expected_recommendations
+                np_exp_recmd = np.array(expected_recommendations)
+                for i in range(len(np_exp_recmd)):
+                    purchased_before = np.array(product_attributes_list)[vecs_all[i] > 0]
+                    replace_x = [(r in purchased_before) for r in np_exp_recmd[i]]
+                    np_exp_recmd[i][replace_x] = SuggestDataProfile.NAN_PRODUCT
+                expected_recommendations = [list(row) for row in list(np_exp_recmd)]
+
             self.res_final.update_bool(res_bool=UnitTest.assert_true(
                 observed     = recommendations,
-                expected     = expected_recommendations_exclude,
-                test_comment = 'Exclusive recomendations metric "' + str(metric) + '" for "' + str(vec)
+                expected     = expected_recommendations,
+                test_comment = 'Inclusive (replaced) recomendations metric "' + str(metric) + '" for "' + str(vec)
                                + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
             ))
+
 
 
 if __name__ == '__main__':
