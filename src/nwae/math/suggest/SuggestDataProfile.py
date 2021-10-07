@@ -31,7 +31,7 @@ class SuggestDataProfile:
     NORMALIZE_METHOD_PROB = 'prob'
 
     COLNAME_PRODUCTS_NOT_INCLUDED = '__others'
-    NAN_PRODUCT                   = '__NAN_PRODUCT'
+    NAN_PRODUCT                   = '***'
 
     TRANSFORM_PRD_VALUES_METHOD_NONE = 'none'
     # Все значения трансакций в 1
