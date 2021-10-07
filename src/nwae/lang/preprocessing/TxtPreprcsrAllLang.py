@@ -117,19 +117,26 @@ class TextPreprscrAllLang:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Creating lang "' + str(lang) + '" word segmenter.'
             )
-            self.txt_preprcsr_by_lang[lang] = TxtPreprocessor(
-                identifier_string    = lang,
-                dir_path_model       = None,
-                model_features_list  = None,
-                lang                 = lang,
-                dir_wordlist         = self.dir_wordlist,
-                postfix_wordlist     = self.postfix_wordlist,
-                dir_wordlist_app     = self.dir_app_wordlist,
-                postfix_wordlist_app = self.postfix_app_wordlist,
-                dirpath_synonymlist  = self.dir_synlist,
-                postfix_synonymlist  = self.postfix_synlist,
-                stopwords_list       = self.stopwords_list,
-            )
+            try:
+                obj_tmp = TxtPreprocessor(
+                    identifier_string    = lang,
+                    dir_path_model       = None,
+                    model_features_list  = None,
+                    lang                 = lang,
+                    dir_wordlist         = self.dir_wordlist,
+                    postfix_wordlist     = self.postfix_wordlist,
+                    dir_wordlist_app     = self.dir_app_wordlist,
+                    postfix_wordlist_app = self.postfix_app_wordlist,
+                    dirpath_synonymlist  = self.dir_synlist,
+                    postfix_synonymlist  = self.postfix_synlist,
+                    stopwords_list       = self.stopwords_list,
+                )
+                self.txt_preprcsr_by_lang[lang] = obj_tmp
+            except Exception as ex_load_txtprcsr:
+                Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Failed to load text processor all lang for lang "' + str(lang) + '": ' + str(ex_load_txtprcsr)
+                )
         sentences_list_processed = []
         for i in range(len(sentences_list)):
             sent = sentences_list[i]
