@@ -207,8 +207,6 @@ class SuggestMetric:
             + ': Zero products from encoding: ' + str(zero_product_names_list)
         )
         # Add to product encoding as 0 rows
-        max_index = max(df_object_attributes_summarized_normalized.index)
-        print(max_index)
         for zero_prd in zero_product_names_list:
             d = {k:np.inf for k in unique_attribute_columns}
             d[unique_df_object_object_key_columns[0]] = zero_prd
@@ -331,7 +329,6 @@ class SuggestMetric:
 
         # if is None, means get default recommendation
         if obj_ref_dna is None:
-            print('NONE!!!!!!!!')
             attributes_len = len(attributes_list)
             return [ attributes_list[0:min(how_many, attributes_len)] ]
 
