@@ -30,7 +30,9 @@ class SuggestDataProfile:
     NORMALIZE_METHOD_UNIT = 'unit'
     NORMALIZE_METHOD_PROB = 'prob'
 
-    COLNAME_PRODUCTS_NOT_INCLUDED = '__others'
+    # предназначен для замены продуктов, которые отфильтрованы из топ-продуктов
+    COLNAME_PRODUCTS_NOT_INCLUDED = '__others_filtered_out_products'
+    # предназначен для замены продуктов, уже купивщих покупателя во время рекомендации
     NAN_PRODUCT                   = '***'
 
     TRANSFORM_PRD_VALUES_METHOD_NONE = 'none'
@@ -105,44 +107,43 @@ class SuggestDataProfile:
         unique_remaining_products = None
         np_remaining_attributes = None
         if max_attribute_columns > 0:
-            if len(unique_product_list) > max_attribute_columns:
-                unique_top_products_by_order, unique_remaining_products = self.find_top_products(
-                    df_product                  = df_product,
-                    unique_product_key_column   = unique_product_key_column,
-                    unique_product_value_column = unique_product_value_column,
-                    top_x                       = max_attribute_columns
-                )
-                Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Remaining ' + str(len(unique_remaining_products)) + ' least products: ' + str(
-                        unique_remaining_products)
-                )
+            unique_top_products_by_order, unique_remaining_products = self.find_top_products(
+                df_product                  = df_product,
+                unique_product_key_column   = unique_product_key_column,
+                unique_product_value_column = unique_product_value_column,
+                top_x                       = max_attribute_columns
+            )
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Remaining ' + str(len(unique_remaining_products)) + ' least products: ' + str(
+                    unique_remaining_products)
+            )
 
-                # Change the names to one name
-                def change_name(prdname):
-                    if prdname in unique_remaining_products:
-                        return self.COLNAME_PRODUCTS_NOT_INCLUDED
-                    else:
-                        return prdname
+            # Change the removed product names to one name
+            def change_name(prdname):
+                if prdname in unique_remaining_products:
+                    return self.COLNAME_PRODUCTS_NOT_INCLUDED
+                else:
+                    return prdname
 
-                df_prd_agg[unique_product_key_column] = df_prd_agg[unique_product_key_column].apply(func=change_name)
-                unique_product_list = unique_top_products_by_order + [self.COLNAME_PRODUCTS_NOT_INCLUDED]
-                Log.important(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': After truncation, total unique products as attributes = ' + str(len(unique_product_list))
-                    + '. Products: ' + str(unique_product_list)
-                )
-                # Need to regroup again, since each pair member-COLNAME_PRODUCTS_NOT_INCLUDED will appear on multiple lines
-                shape_ori = df_prd_agg.shape
-                df_prd_agg = df_prd_agg.groupby(
-                    by=unique_human_key_columns + [unique_product_key_column],
-                    as_index=False,
-                ).sum()
-                Log.info(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': After second round grouping by human/product columns, from shape ' + str(shape_ori)
-                    + ' to new shape ' + str(df_prd_agg.shape)
-                )
+            df_prd_agg[unique_product_key_column] = df_prd_agg[unique_product_key_column].apply(func=change_name)
+            unique_product_list = unique_top_products_by_order + [self.COLNAME_PRODUCTS_NOT_INCLUDED]
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': After truncation, total unique products as attributes = ' + str(len(unique_product_list))
+                + '. Products: ' + str(unique_product_list)
+            )
+            # Need to regroup again, since each pair member-COLNAME_PRODUCTS_NOT_INCLUDED will appear on multiple lines
+            shape_ori = df_prd_agg.shape
+            df_prd_agg = df_prd_agg.groupby(
+                by=unique_human_key_columns + [unique_product_key_column],
+                as_index=False,
+            ).sum()
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': After second round grouping by human/product columns, from shape ' + str(shape_ori)
+                + ' to new shape ' + str(df_prd_agg.shape)
+            )
 
         """Датафрейм лишь с столбцом(ами) покупателей"""
         df_converted = df_prd_agg[unique_human_key_columns]
@@ -352,19 +353,21 @@ class SuggestDataProfileUnitTest:
             'product': ['borjomi', 'karspatskaya', 'borjomi', 'morshinskaya', 'bonaqua', 'morshinskaya'],
             'quantity': [1,1,2,1,1,3]
         })
+        # в случае max_attribute_columns>0, будет упорядочить колонки от наибольшего к наименее популярному продукту
         df_profiles_expected = pd.DataFrame({
             'client':       ['a', 'b', 'c'],
-            'bonaqua':      [0., 0., 1.],
-            'borjomi':      [1., 2., 0.],
-            'karspatskaya': [1., 0., 0.],
             'morshinskaya': [0., 1., 3.],
+            'borjomi':      [1., 2., 0.],
+            'bonaqua':      [0., 0., 1.],
+            'karspatskaya': [1., 0., 0.],
+            SuggestDataProfile.COLNAME_PRODUCTS_NOT_INCLUDED: [0., 0., 0.],
         })
         df_client_profiles, product_attributes_list = self.recommend_data_profile.convert_product_to_attributes(
             df_product                  = df_pokupki,
             unique_human_key_columns    = ['client'],
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
-            max_attribute_columns       = 0,
+            max_attribute_columns       = 100,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
         Log.debug('Client profiles')
@@ -392,4 +395,5 @@ class SuggestDataProfileUnitTest:
 if __name__ == '__main__':
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
     res = SuggestDataProfileUnitTest().run_unit_test()
+    print('PASS ' + str(res.count_ok) + ' FAIL ' + str(res.count_fail))
     exit(res.count_fail)

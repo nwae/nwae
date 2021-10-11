@@ -248,12 +248,13 @@ class SuggestMetric:
             df = df_product_dna,
             unique_name_colums_list = unique_prdname_cols,
         )
-        # Collapse to 1-dimensional vector
-        np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
+        np_attributes_list = np.array(attributes_list)
+        # # Collapse to 1-dimensional vector
+        # np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
         Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Extracted attributes list from product dna: ' + str(attributes_list)
-            + ', product list: ' + str(np_product_names)
+            + ': Extracted attributes list from product dna: ' + str(np_attributes_list)
+            # + ', product list: ' + str(np_product_names)
         )
 
         condition = False
@@ -265,15 +266,7 @@ class SuggestMetric:
         # Sort by highest probability to lowest
         indxs_dist_sort = np.flip(np.argsort(np_probs), axis=1)
 
-        # Collapse to 1-dimensional vector
-        np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
-        Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Extracted attributes list from product dna: ' + str(attributes_list)
-            + ', product list: ' + str(np_product_names)
-        )
-
-        np_recommendations = np_product_names[indxs_dist_sort]
+        np_recommendations = np_attributes_list[indxs_dist_sort]
         # если список продуктов было раньше сокращен, то продукты которые убраны не будут смены
         if replace_purchased_product_with_nan:
             for i in range(len(np_recommendations)):
@@ -283,6 +276,19 @@ class SuggestMetric:
                 np_recommendations[i][replace_x] = SuggestDataProfile.NAN_PRODUCT
 
         return np_recommendations.tolist()
+
+    def convert_x_to_desired_shape(
+            self,
+            x,
+    ):
+        if x is None:
+            return None
+        x = x.astype(float)
+        if len(x.shape) == 1:
+            # From [1,2,3] to [[1,2,3]]
+            x = np.reshape(x, newshape=(1, x.shape[0]))
+        return x
+
 
     def recommend_products(
             self,
@@ -307,10 +313,7 @@ class SuggestMetric:
             replace_purchased_product_with_nan = False,
     ):
         assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet'
-        obj_ref_dna = obj_ref_dna.astype(float)
-        if len(obj_ref_dna.shape) == 1:
-            # From [1,2,3] to [[1,2,3]]
-            obj_ref_dna = np.reshape(obj_ref_dna, newshape=(1, obj_ref_dna.shape[0]))
+        obj_ref_dna = self.convert_x_to_desired_shape(x=obj_ref_dna)
 
         start_time = Profiling.start()
         attributes_list = self.extract_attributes_list(
@@ -325,6 +328,12 @@ class SuggestMetric:
             + ', product list: ' + str(np_product_names)
         )
         tensor_cmp = df_product_dna[attributes_list].values
+
+        # if is None, means get default recommendation
+        if obj_ref_dna is None:
+            print('NONE!!!!!!!!')
+            attributes_len = len(attributes_list)
+            return [ attributes_list[0:min(how_many, attributes_len)] ]
 
         closest = self.find_closest(
             obj_ref_dna = obj_ref_dna,
@@ -373,10 +382,7 @@ class SuggestMetric:
             force_normalization,
             how_many = 0,
     ):
-        obj_ref_dna = obj_ref_dna.astype(float)
-        if len(obj_ref_dna.shape) == 1:
-            # From [1,2,3] to [[1,2,3]]
-            obj_ref_dna = np.reshape(obj_ref_dna, newshape=(1, obj_ref_dna.shape[0]))
+        obj_ref_dna = self.convert_x_to_desired_shape(x=obj_ref_dna)
         """
         Если вычислит предложения более одним клиентам (например один клиент [[1.0, 2.0, 2.0]]),
         нужно изменить из такого
@@ -539,6 +545,8 @@ class SuggestMetricUnitTest:
                 prd_sentence,
                 col_product_name,
         ):
+            if prd_sentence is None:
+                return None
             prd_dict = feature_template.copy()
             if col_product_name in prd_dict.keys():
                 prd_dict[col_product_name] = prd
@@ -575,6 +583,8 @@ class SuggestMetricUnitTest:
         Log.debug(df_product)
 
         metric_sent_expected = [
+            # Не существующий код "***"
+            [SuggestMetric.METRIC_EUCLIDEAN, '', ['how', 'crypto', 'deposit', 'method']],
             [SuggestMetric.METRIC_EUCLIDEAN, 'dep1', ['dep1', 'dep3', 'dep2', 'wid1']],
             [SuggestMetric.METRIC_EUCLIDEAN, 'wid1', ['wid1', 'wid2', 'wid3', 'dep1']],
             [SuggestMetric.METRIC_EUCLIDEAN, 'mat1', ['mat1', 'mat3', 'mat2', 'dep2']],
@@ -587,10 +597,11 @@ class SuggestMetricUnitTest:
             metric, sent, expected_recommendations = m_v_e
             ref_dna = get_product_feature_vect(
                 feature_template = feature_template,
-                prd_sentence     = equivalent_products[sent],
+                prd_sentence     = equivalent_products.get(sent),
                 col_product_name = None,
             )
-            ref_dna = np.array(list(ref_dna.values()))
+            if ref_dna is not None:
+                ref_dna = np.array(list(ref_dna.values()))
             recommendations = self.recommend_metric.recommend_products(
                 obj_ref_dna    = ref_dna,
                 df_product_dna = df_product,
@@ -601,7 +612,7 @@ class SuggestMetricUnitTest:
                 replace_purchased_product_with_nan = False,
             )
             # Обратный формат всегда 2-мерный [[1,2,3]], [[1,2,3],[4,5,6]], ..
-            if len(ref_dna.shape) == 1:
+            if ( ref_dna is None ) or ( len(ref_dna.shape) == 1 ):
                 expected_recommendations_mod = [expected_recommendations]
             else:
                 expected_recommendations_mod = expected_recommendations
@@ -626,9 +637,9 @@ class SuggestMetricUnitTest:
             unique_human_key_columns    = ['client'],
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
-            max_attribute_columns       = 0,
+            max_attribute_columns       = 100,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
-            add_unknown_product         = True,
+            add_unknown_product         = False,
         )
         Log.debug('Client profiles')
         Log.debug(df_client_profiles)
@@ -650,23 +661,27 @@ class SuggestMetricUnitTest:
         Log.debug(df_mapped_product)
 
         nanprd = SuggestDataProfile.NAN_PRODUCT
+        othersprd = SuggestDataProfile.COLNAME_PRODUCTS_NOT_INCLUDED
 
-        self.res_final.update_bool(res_bool=UnitTest.assert_true(
+        res_test = UnitTest.assert_true(
             observed = product_attributes_list,
-            expected = ['bonaqua', 'borjomi', 'illy', 'karspatskaya', 'lavazza', nanprd],
+            expected = ['lavazza', 'bonaqua', 'borjomi', 'illy', 'karspatskaya', othersprd],
             test_comment = 'attribute list ' + str(product_attributes_list)
-        ))
+        )
+        self.res_final.update_bool(res_bool=res_test)
+        if not res_test:
+            raise Exception('wrong')
 
         for prds_expected in [
             [
                 ['borjomi'],
-                [[nanprd, 'karspatskaya', nanprd, 'lavazza', 'illy', 'bonaqua']],
+                [[nanprd, 'karspatskaya', othersprd, 'illy', 'bonaqua', 'lavazza']],
             ],
             [
                 ['borjomi', 'lavazza'],
                 [
-                    [nanprd, 'karspatskaya', nanprd, 'lavazza', 'illy', 'bonaqua'],
-                    [nanprd, 'illy', 'bonaqua', nanprd, 'karspatskaya', 'borjomi']
+                    [nanprd, 'karspatskaya', othersprd, 'illy', 'bonaqua', 'lavazza'],
+                    [nanprd, 'illy', 'bonaqua', othersprd, 'karspatskaya', 'borjomi']
                 ],
             ],
         ]:
@@ -678,30 +693,37 @@ class SuggestMetricUnitTest:
                 unique_prdname_cols = ['product'],
                 replace_purchased_product_with_nan = True
             )
-            self.res_final.update_bool(res_bool=UnitTest.assert_true(
+            res_test =  UnitTest.assert_true(
                 observed = str(recs),
                 expected = str(expected_recs_list),
                 test_comment = 'test ' + str(prd_names_list)
-            ))
+            )
+            self.res_final.update_bool(res_bool=res_test)
+            if not res_test:
+                raise Exception('wrong')
 
+        none_vec = None
         x_vec = np.array([1, 0, 0, 0, 0, 0])
         y_vec = np.array([0, 1, 0, 0, 0, 0])
         z_vec = np.array([0, 0, 1, 0, 0, 0])
-        x_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya', nanprd]
-        x_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi', nanprd]
-        y_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy', nanprd]
-        y_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua', nanprd]
-        z_expected_rec_euclidean = ['illy', 'lavazza', 'bonaqua', 'borjomi', 'karspatskaya', nanprd]
-        z_expected_rec_cosine    = ['illy', 'lavazza', 'bonaqua', 'karspatskaya', 'borjomi', nanprd]
+        none_vec_expected_rec    = ['lavazza', 'bonaqua', 'borjomi', 'illy', 'karspatskaya', othersprd]
+        x_expected_rec_euclidean = ['lavazza', 'bonaqua', 'illy', 'borjomi', 'karspatskaya', othersprd]
+        x_expected_rec_cosine    = ['lavazza', 'illy', 'bonaqua', 'karspatskaya', 'borjomi', othersprd]
+        y_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya', othersprd]
+        y_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi', othersprd]
+        z_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy', othersprd]
+        z_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua', othersprd]
 
         vecs_all = np.array([x_vec, y_vec, z_vec])
         expected_cosine_all = [x_expected_rec_cosine, y_expected_rec_cosine, z_expected_rec_cosine]
         expected_euclidean_all = [x_expected_rec_euclidean, y_expected_rec_euclidean, z_expected_rec_euclidean]
 
         metric_vec_expected = [
+            [SuggestMetric.METRIC_EUCLIDEAN, none_vec, none_vec_expected_rec],
             [SuggestMetric.METRIC_EUCLIDEAN, x_vec, x_expected_rec_euclidean],
             [SuggestMetric.METRIC_EUCLIDEAN, y_vec, y_expected_rec_euclidean],
             [SuggestMetric.METRIC_EUCLIDEAN, z_vec, z_expected_rec_euclidean],
+            [SuggestMetric.METRIC_COSINE, none_vec, none_vec_expected_rec],
             [SuggestMetric.METRIC_COSINE, x_vec, x_expected_rec_cosine],
             [SuggestMetric.METRIC_COSINE, y_vec, y_expected_rec_cosine],
             [SuggestMetric.METRIC_COSINE, z_vec, z_expected_rec_cosine],
@@ -719,16 +741,19 @@ class SuggestMetricUnitTest:
                 replace_purchased_product_with_nan = False,
             )
             # Обратный формат всегда 2-мерный [[1,2,3]], [[1,2,3],[4,5,6]], ..
-            if len(vec.shape) == 1:
+            if ( vec is None ) or ( len(vec.shape) == 1 ):
                 expected_recommendations_mod = [expected_recommendations]
             else:
                 expected_recommendations_mod = expected_recommendations
-            self.res_final.update_bool(res_bool=UnitTest.assert_true(
+            res_test = UnitTest.assert_true(
                 observed     = recommendations,
                 expected     = expected_recommendations_mod,
                 test_comment = 'Inclusive recomendations metric "' + str(metric) + '" for "' + str(vec)
                                + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
-            ))
+            )
+            self.res_final.update_bool(res_bool=res_test)
+            if not res_test:
+                raise Exception('wrong')
 
             # TEST INCLUSIVE WITH REPLACE WITH NAN_PRODUCT
             recommendations = self.recommend_metric.recommend_products(
@@ -739,7 +764,9 @@ class SuggestMetricUnitTest:
                 force_normalization = (metric == SuggestMetric.METRIC_COSINE),
                 replace_purchased_product_with_nan = True,
             )
-            if vec.shape != vecs_all.shape:
+            if vec is None:
+                pass
+            elif vec.shape != vecs_all.shape:
                 purchased_before = np.array(product_attributes_list)[vec > 0]
                 np_exp_recmd = np.array(expected_recommendations)
                 replace_x = [(r in purchased_before) for r in np_exp_recmd]
@@ -754,16 +781,19 @@ class SuggestMetricUnitTest:
                 expected_recommendations = [list(row) for row in list(np_exp_recmd)]
 
             # Обратный формат всегда 2-мерный [[1,2,3]], [[1,2,3],[4,5,6]], ..
-            if len(vec.shape) == 1:
+            if (vec is None) or ( len(vec.shape) == 1 ):
                 expected_recommendations_mod = [expected_recommendations]
             else:
                 expected_recommendations_mod = expected_recommendations
-            self.res_final.update_bool(res_bool=UnitTest.assert_true(
+            res_test = UnitTest.assert_true(
                 observed     = recommendations,
                 expected     = expected_recommendations_mod,
                 test_comment = 'Inclusive (replaced) recomendations metric "' + str(metric) + '" for "' + str(vec)
                                + '" ' + str(recommendations) + ' expect ' + str(expected_recommendations)
-            ))
+            )
+            self.res_final.update_bool(res_bool=res_test)
+            if not res_test:
+                raise Exception('wrong')
 
 
 if __name__ == '__main__':
