@@ -34,6 +34,9 @@ class SuggestDataProfile:
     COLNAME_PRODUCTS_NOT_INCLUDED = '__others_filtered_out_products'
     # предназначен для замены продуктов, уже купивщих покупателя во время рекомендации
     NAN_PRODUCT                   = '***'
+    # отфильтрованные товары все еще оставаются в данных, и во время предложения,
+    # есть выбор чтобы заменить их с этим значением
+    FILTERED_OUT_PRODUCT          = '__filtered_out_product'
 
     TRANSFORM_PRD_VALUES_METHOD_NONE = 'none'
     # Все значения трансакций в 1
@@ -84,8 +87,10 @@ class SuggestDataProfile:
             # Либо цена продуктов или количество
             unique_product_value_column,
             normalize_method = NORMALIZE_METHOD_NONE,
-            # TODO уменшить количество атрибутов
+            # уменшить количество атрибутов
             max_attribute_columns = 0,
+            # по проценту, убирать продуктов меньше такого квартиля
+            filter_out_quantile = 0.0,
             # Before any processing
             transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
             # осторожно здесь, этот неизвестный продукт будет присвоен 0-вектор (возможно),
@@ -106,12 +111,13 @@ class SuggestDataProfile:
         is_reduced = False
         unique_remaining_products = None
         np_remaining_attributes = None
-        if max_attribute_columns > 0:
+        if (max_attribute_columns > 0) | (filter_out_quantile > 0.0):
             unique_top_products_by_order, unique_remaining_products = self.find_top_products(
                 df_product                  = df_product,
                 unique_product_key_column   = unique_product_key_column,
                 unique_product_value_column = unique_product_value_column,
-                top_x                       = max_attribute_columns
+                top_x                       = max_attribute_columns,
+                filter_out_quantile         = filter_out_quantile,
             )
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -250,8 +256,11 @@ class SuggestDataProfile:
             df_product,
             unique_product_key_column,
             unique_product_value_column,
-            top_x,
+            top_x = 0,
+            # по проценту, убирать продуктов меньше такого квартиля
+            filter_out_quantile = 0.0,
     ):
+        # Агрегирование и сортировка
         cols_keep = [unique_product_key_column, unique_product_value_column]
         df_top_products_agg = df_product[cols_keep].groupby(
             by = [unique_product_key_column],
@@ -264,8 +273,39 @@ class SuggestDataProfile:
         Log.debugdebug(df_top_products_agg)
         unique_product_list = list(pd.unique(df_top_products_agg[unique_product_key_column]))
 
-        top_n_final = min(len(unique_product_list), top_x)
-        df_top_products = df_top_products_agg[0:top_n_final]
+        # Квартили
+        if filter_out_quantile > 0.0:
+            assert filter_out_quantile <= 1.0
+            q = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95]
+            quantile_values = np.quantile(df_top_products_agg[unique_product_value_column], q=q)
+            quantile_filter_value = np.quantile(df_top_products_agg[unique_product_value_column], q=filter_out_quantile)
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Quantile at ' + str(filter_out_quantile) + ' = ' + str(quantile_filter_value)
+                + ' Other quantile values at ' + str(q) + ' ' + str(quantile_values)
+            )
+            condition_quantile = df_top_products_agg[unique_product_value_column] >= quantile_filter_value
+            df_top_products_agg_quantile = df_top_products_agg[condition_quantile]
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': After filter out quantile at ' + str(filter_out_quantile) + ' = ' + str(quantile_filter_value)
+                + ', remain ' + str(len(df_top_products_agg_quantile)) + ' from ' + str(len(df_top_products_agg))
+                + ' products'
+            )
+        else:
+            df_top_products_agg_quantile = df_top_products_agg
+
+        if top_x > 0:
+            top_n_final = min(len(df_top_products_agg_quantile), top_x)
+            df_top_products = df_top_products_agg_quantile[0:top_n_final]
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': After getting final top ' + str(top_n_final)
+                + ', remain ' + str(len(df_top_products)) + ' from ' + str(len(df_top_products_agg))
+                + ' products'
+            )
+        else:
+            df_top_products = df_top_products_agg_quantile
 
         unique_top_products_by_order = df_top_products[unique_product_key_column].to_list()
         unique_remaining_products = [p for p in unique_product_list if p not in unique_top_products_by_order]
@@ -349,9 +389,9 @@ class SuggestDataProfileUnitTest:
 
     def run_unit_test(self):
         df_pokupki = pd.DataFrame({
-            'client': ['a', 'a', 'b', 'b', 'c', 'c'],
-            'product': ['borjomi', 'karspatskaya', 'borjomi', 'morshinskaya', 'bonaqua', 'morshinskaya'],
-            'quantity': [1,1,2,1,1,3]
+            'client': ['a', 'a', 'b', 'b', 'c', 'c', 'c'],
+            'product': ['borjomi', 'karspatskaya', 'borjomi', 'morshinskaya', 'bonaqua', 'morshinskaya', 'xxx'],
+            'quantity': [1, 1, 2, 1, 1, 3, 0]
         })
         # в случае max_attribute_columns>0, будет упорядочить колонки от наибольшего к наименее популярному продукту
         df_profiles_expected = pd.DataFrame({
@@ -368,6 +408,7 @@ class SuggestDataProfileUnitTest:
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 100,
+            filter_out_quantile         = 0.1,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
         Log.debug('Client profiles')

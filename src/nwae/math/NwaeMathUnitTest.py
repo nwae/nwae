@@ -14,7 +14,7 @@ from nwae.math.measures.CenterOfMass import CenterOfMassUnitTest
 from nwae.math.tree.MultiTree import MultiTreeUnitTest
 from nwae.math.fit.markov.HiddenMarkov import HiddenMarkovUnitTest
 from nwae.math.suggest.SuggestDataProfile import SuggestDataProfileUnitTest
-from nwae.math.suggest.SuggestMetric import SuggestMetricUnitTest
+from nwae.math.suggest.SuggestUnitTest import SuggestMetricUnitTest
 
 
 #
