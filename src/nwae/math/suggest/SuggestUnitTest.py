@@ -192,12 +192,12 @@ class SuggestMetricUnitTest:
         y_vec = np.array([0, 1, 0, 0, 0, 0])
         z_vec = np.array([0, 0, 1, 0, 0, 0])
         none_vec_expected_rec    = ['lavazza', 'bonaqua', 'borjomi', 'illy', 'karspatskaya', othersprd]
-        x_expected_rec_euclidean = [filteredprd, 'lavazza', 'bonaqua', 'illy', 'borjomi', 'karspatskaya']
-        x_expected_rec_cosine    = [filteredprd, 'lavazza', 'illy', 'bonaqua', 'karspatskaya', 'borjomi']
-        y_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya', filteredprd]
-        y_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', filteredprd, 'karspatskaya', 'borjomi']
-        z_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy', filteredprd]
-        z_expected_rec_cosine    = ['karspatskaya', 'borjomi', filteredprd, 'lavazza', 'illy', 'bonaqua']
+        x_expected_rec_euclidean = ['lavazza', 'bonaqua', 'illy', 'borjomi', 'karspatskaya', othersprd]
+        x_expected_rec_cosine    = ['lavazza', 'illy', 'bonaqua', 'karspatskaya', 'borjomi', othersprd]
+        y_expected_rec_euclidean = ['bonaqua', 'lavazza', 'illy', 'borjomi', 'karspatskaya', othersprd]
+        y_expected_rec_cosine    = ['bonaqua', 'lavazza', 'illy', 'karspatskaya', 'borjomi', othersprd]
+        z_expected_rec_euclidean = ['borjomi', 'karspatskaya', 'lavazza', 'bonaqua', 'illy', othersprd]
+        z_expected_rec_cosine    = ['karspatskaya', 'borjomi', 'lavazza', 'illy', 'bonaqua', othersprd]
 
         vecs_all = np.array([x_vec, y_vec, z_vec])
         expected_cosine_all = [x_expected_rec_cosine, y_expected_rec_cosine, z_expected_rec_cosine]

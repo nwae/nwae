@@ -64,6 +64,8 @@ class SuggestMetric:
             # 'none', 'unit' (единичный вектор) or 'prob' (сумма атрибутов = 1)
             normalize_method,
     ):
+        assert len(unique_df_object_object_key_columns) == 1, \
+            'Multiple product columns not supported ' + str(unique_df_object_object_key_columns)
         colkeep = unique_df_object_human_key_columns \
                   + unique_df_object_object_key_columns \
                   + [unique_df_object_value_column]
@@ -81,10 +83,10 @@ class SuggestMetric:
         # Очистить числа
         df_object_human_attributes[unique_df_object_value_column] = \
             df_object_human_attributes[unique_df_object_value_column].apply(DataPreprocessor.filter_number)
-        Log.info(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Object human attributes (first 20 lines): ' + str(df_object_human_attributes[0:20])
-        )
+        # Log.info(
+        #     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Object human attributes (first 20 lines): ' + str(df_object_human_attributes[0:20])
+        # )
         # df_object_human_attributes.to_csv('object_human.csv')
 
         # Больше не нужны клиенты
@@ -93,7 +95,7 @@ class SuggestMetric:
                   + unique_df_object_human_attribute_columns
         df_object_attributes = df_object_human_attributes[colkeep]
 
-        return self.__encode_product(
+        df_product_encoding = self.__encode_product(
             df_object_attributes                = df_object_attributes,
             unique_df_object_object_key_columns = unique_df_object_object_key_columns,
             unique_df_object_value_column       = unique_df_object_value_column,
@@ -101,6 +103,13 @@ class SuggestMetric:
             apply_object_value_as_weight        = apply_object_value_as_weight,
             normalize_method                    = normalize_method,
         )
+        # if include_filtered_out_products:
+        #     return df_product_encoding
+        # else:
+        #     condition = df_product_encoding[unique_df_object_object_key_columns[0]].isin(unique_df_object_human_attribute_columns)
+        #     df_product_encoding_truncate = df_product_encoding[condition]
+        #     return df_product_encoding_truncate
+        return df_product_encoding
 
     """
     С таких данных
@@ -215,7 +224,7 @@ class SuggestMetric:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Appended zero product "' + str(zero_prd)
-                + '" to product encoding successfully, assinged as: ' + str(d)
+                + '" to product encoding successfully, assigned as: ' + str(d)
             )
         return df_object_attributes_summarized_normalized
 
@@ -310,7 +319,7 @@ class SuggestMetric:
             replace_purchased_product_with_nan = False,
             include_products_not_in_attributes = True,
     ):
-        assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet'
+        assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet ' + str(unique_prdname_cols)
         obj_ref_dna = self.convert_x_to_desired_shape(x=obj_ref_dna)
 
         start_time = Profiling.start()
@@ -318,14 +327,21 @@ class SuggestMetric:
             df = df_product_dna,
             unique_name_colums_list = unique_prdname_cols,
         )
+
+        if not include_products_not_in_attributes:
+            condition = df_product_dna[unique_prdname_cols[0]].isin(attributes_list)
+            df_product_dna_modified = df_product_dna[condition].reset_index(drop=True)
+        else:
+            df_product_dna_modified = df_product_dna
+
         # Collapse to 1-dimensional vector
-        np_product_names = df_product_dna[unique_prdname_cols].to_numpy().squeeze()
+        np_product_names = df_product_dna_modified[unique_prdname_cols].to_numpy().squeeze()
         Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Extracted attributes list from product dna: ' + str(attributes_list)
             + ', product list: ' + str(np_product_names)
         )
-        tensor_cmp = df_product_dna[attributes_list].values
+        tensor_cmp = df_product_dna_modified[attributes_list].values
 
         # if is None, means get default recommendation
         if obj_ref_dna is None:
@@ -344,12 +360,6 @@ class SuggestMetric:
             # From [1,2,3] to [[1,2,3]]
             recommendations = np.reshape(recommendations, newshape=(1, recommendations.shape[0]))
 
-        if not include_products_not_in_attributes:
-            # TODO Как вычислить без цикла?
-            for i in range(len(recommendations)):
-                keep_y = np.in1d(recommendations[i], attributes_list)
-                replace_y = np.logical_not(keep_y)
-                recommendations[i][replace_y] = SuggestDataProfile.FILTERED_OUT_PRODUCT
         # если список продуктов было раньше сокращен, то продукты которые убраны не будут смены
         if replace_purchased_product_with_nan:
             # TODO Как вычислить без цикла?
