@@ -320,6 +320,7 @@ class SuggestMetric:
             include_products_not_in_attributes = True,
     ):
         assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet ' + str(unique_prdname_cols)
+        shape_prd_dna_ori = df_product_dna.shape
         obj_ref_dna = self.convert_x_to_desired_shape(x=obj_ref_dna)
 
         start_time = Profiling.start()
@@ -369,6 +370,9 @@ class SuggestMetric:
                 recommendations[i][replace_x] = SuggestDataProfile.NAN_PRODUCT
 
         self.profiler_recommend.profile_time(start_time=start_time)
+        # Make sure we don't modify the dataframe passed in
+        assert df_product_dna.shape == shape_prd_dna_ori, \
+            'Shape of product dna ' + str(shape_prd_dna_ori) + ' must not change'
         return recommendations.tolist()
 
     #
