@@ -91,17 +91,21 @@ class TextPreprscrAllLang:
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Done detecting ' + str(len(sentences_list)) + ' sentence languages: ' + str(langs_list)
         )
-        # Get most common lang
+        # Get default lang as most common language detected
         langs_counter = collections.Counter(langs_list).most_common()
         self.lang_default = None
         for lang_count in langs_counter:
             if lang_count[0] != '':
                 self.lang_default = lang_count[0]
                 break
+        # If still no default language (nothing detected at all from sentences passed in)
         if self.lang_default is None:
-            raise Exception(
+            self.lang_default = LangFeatures.LANG_EN
+            langs_list = langs_list + [self.lang_default]
+            Log.warning(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Unable to determine default language from langs ' + str(langs_counter)
+                + ' Using default lang "' + str(self.lang_default) + '"'
             )
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
