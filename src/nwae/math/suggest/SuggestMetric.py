@@ -52,9 +52,11 @@ class SuggestMetric:
     #
     def encode_product_attributes(
             self,
+            # Обязательно только уникальные покупатели
             df_human_profile,
             # Столцы которые определяют уникальных клиентов
             unique_human_key_columns,
+            # Обязательно только уникальные пари (покупатель, товар)
             df_object,
             unique_df_object_human_key_columns,
             unique_df_object_object_key_columns,
@@ -64,12 +66,28 @@ class SuggestMetric:
             # 'none', 'unit' (единичный вектор) or 'prob' (сумма атрибутов = 1)
             normalize_method,
     ):
+        assert len(unique_human_key_columns) == 1, \
+            'Multiple human key columns not supported ' + str(unique_human_key_columns)
         assert len(unique_df_object_object_key_columns) == 1, \
             'Multiple product columns not supported ' + str(unique_df_object_object_key_columns)
         colkeep = unique_df_object_human_key_columns \
                   + unique_df_object_object_key_columns \
                   + [unique_df_object_value_column]
         df_object = df_object[colkeep]
+
+        # Обязательно только уникальные покупатели
+        clients_list = np.unique(df_human_profile[unique_human_key_columns[0]])
+        assert len(clients_list) == len(df_human_profile), \
+            'Dataframe for human profile must only have unique clients: ' + str(clients_list)
+
+        # Обязательно только уникальные пари (покупатель, товар)
+        column_human_prd = [unique_human_key_columns[0], unique_df_object_object_key_columns[0]]
+        pairs_human_tovar = df_object[column_human_prd].groupby(
+            column_human_prd
+        ).sum().index.to_list()
+        assert len(pairs_human_tovar) == len(df_object), \
+            'Dataframe for human/product must only have unique client/product pairs: ' + str(pairs_human_tovar)
+
         # Merge
         df_object_human_attributes = df_object.merge(
             df_human_profile,

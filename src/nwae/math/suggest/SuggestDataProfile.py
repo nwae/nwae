@@ -93,6 +93,7 @@ class SuggestDataProfile:
             filter_out_quantile = 0.0,
             # Before any processing
             transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
+            transform_logbase           = 10.0,
             # осторожно здесь, этот неизвестный продукт будет присвоен 0-вектор (возможно),
             # поэтому если использовать метрику "euclidean", он будет "близок" другим векторам
             add_unknown_product = False,
@@ -102,7 +103,8 @@ class SuggestDataProfile:
             unique_human_key_columns    = unique_human_key_columns,
             unique_product_key_column   = unique_product_key_column,
             unique_product_value_column = unique_product_value_column,
-            transform_prd_values_method = transform_prd_values_method
+            transform_prd_values_method = transform_prd_values_method,
+            transform_logbase           = transform_logbase,
         )
 
         #
@@ -325,6 +327,7 @@ class SuggestDataProfile:
             unique_product_key_column,
             unique_product_value_column,
             transform_prd_values_method,
+            transform_logbase,
     ):
         Log.debugdebug(df_product)
         columns_keep = unique_human_key_columns + [unique_product_key_column, unique_product_value_column]
@@ -349,7 +352,7 @@ class SuggestDataProfile:
         if transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_UNITY:
             df_prd_agg[unique_product_value_column] = 1.0
         if transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_LOG:
-            df_prd_agg[unique_product_value_column] = np.log(1 + df_prd_agg[unique_product_value_column])
+            df_prd_agg[unique_product_value_column] = np.log(1 + df_prd_agg[unique_product_value_column]) / np.log(transform_logbase)
 
         """Суммировать продукты по покупателям, те. каждая пара (покупатель, продукт) только в одной строке"""
         df_prd_agg = df_prd_agg.groupby(
