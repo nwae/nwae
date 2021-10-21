@@ -90,7 +90,8 @@ class SuggestDataProfile:
             # уменшить количество атрибутов
             max_attribute_columns = 0,
             # по проценту, убирать продуктов меньше такого квартиля
-            filter_out_quantile = 0.0,
+            filter_out_quantile_byvalue = 0.0,
+            filter_out_quantile_bycount = 0.0,
             # Before any processing
             transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
             transform_logbase           = 10.0,
@@ -113,19 +114,54 @@ class SuggestDataProfile:
         is_reduced = False
         unique_remaining_products = None
         np_remaining_attributes = None
-        if (max_attribute_columns > 0) | (filter_out_quantile > 0.0):
-            unique_top_products_by_order, unique_remaining_products = self.find_top_products(
+        if (max_attribute_columns > 0) | (filter_out_quantile_byvalue > 0.0) | (filter_out_quantile_bycount > 0.0):
+            byval_unique_top_products_by_order, byval_unique_remaining_products = self.find_top_products(
                 df_product                  = df_product,
                 unique_product_key_column   = unique_product_key_column,
                 unique_product_value_column = unique_product_value_column,
-                top_x                       = max_attribute_columns,
-                filter_out_quantile         = filter_out_quantile,
+                # Do max filtering later
+                top_x                       = 0,
+                filter_out_quantile         = filter_out_quantile_byvalue,
+                aggregate_method            = 'sum',
             )
+            bycnt_unique_top_products_by_order, bycnt_unique_remaining_products = self.find_top_products(
+                df_product                  = df_product,
+                unique_product_key_column   = unique_product_key_column,
+                unique_product_value_column = unique_product_value_column,
+                # Do max filtering later
+                top_x                       = 0,
+                filter_out_quantile         = filter_out_quantile_bycount,
+                aggregate_method            = 'count',
+            )
+            filtered_out_products_by_count_condition = [
+                prd for prd in byval_unique_top_products_by_order
+                if prd not in bycnt_unique_top_products_by_order
+            ]
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Remaining ' + str(len(unique_remaining_products)) + ' least products: ' + str(
-                    unique_remaining_products)
+                + ': Products filtered out by 2nd count condition ' + str(filtered_out_products_by_count_condition)
             )
+            # Убирать товары, не выполняется второе условие
+            unique_top_products_by_order = [
+                prd for prd in byval_unique_top_products_by_order
+                if prd in bycnt_unique_top_products_by_order
+            ]
+            unique_remaining_products = filtered_out_products_by_count_condition + byval_unique_remaining_products
+            assert len(unique_top_products_by_order) + len(unique_remaining_products) == len(unique_product_list), \
+                'Length of unique top products and remaining products must equal length of product list'
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Remaining ' + str(len(unique_remaining_products))
+                + ' least products: ' + str(unique_remaining_products)
+            )
+            if max_attribute_columns > 0:
+                max_final = min(len(unique_top_products_by_order), max_attribute_columns)
+                if max_final < len(unique_top_products_by_order):
+                    filtered_out_by_max_attribute_products = unique_top_products_by_order[max_final:]
+                    unique_top_products_by_order = unique_top_products_by_order[0:max_final]
+                    unique_remaining_products = filtered_out_by_max_attribute_products + unique_remaining_products
+                    assert len(unique_top_products_by_order) + len(unique_remaining_products) == len(unique_product_list), \
+                        'Length of unique top products and remaining products must equal length of product list'
 
             # Change the removed product names to one name
             def change_name(prdname):
@@ -261,13 +297,29 @@ class SuggestDataProfile:
             top_x = 0,
             # по проценту, убирать продуктов меньше такого квартиля
             filter_out_quantile = 0.0,
+            aggregate_method = 'sum',
     ):
         # Агрегирование и сортировка
         cols_keep = [unique_product_key_column, unique_product_value_column]
-        df_top_products_agg = df_product[cols_keep].groupby(
-            by = [unique_product_key_column],
-            as_index = False
-        ).sum()
+        if aggregate_method == 'sum':
+            df_top_products_agg = df_product[cols_keep].groupby(
+                by = [unique_product_key_column],
+                as_index = False
+            ).sum()
+            # Nothing to do. The aggregated column names will not change
+        elif aggregate_method == 'count':
+            df_top_products_agg = df_product[cols_keep].groupby(
+                by = [unique_product_key_column],
+                as_index = False
+            ).size()
+            # !! The aggregated column name will change
+            df_top_products_agg.columns = cols_keep
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': No such aggregate method "' + str(aggregate_method) + '"!'
+            )
+
         df_top_products_agg = df_top_products_agg.sort_values(
             by = [unique_product_value_column],
             ascending = False
@@ -283,14 +335,16 @@ class SuggestDataProfile:
             quantile_filter_value = np.quantile(df_top_products_agg[unique_product_value_column], q=filter_out_quantile)
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Quantile at ' + str(filter_out_quantile) + ' = ' + str(quantile_filter_value)
+                + ': Aggregate by "' + str(aggregate_method) + '" quantile at ' + str(filter_out_quantile)
+                + ' = ' + str(quantile_filter_value)
                 + ' Other quantile values at ' + str(q) + ' ' + str(quantile_values)
             )
             condition_quantile = df_top_products_agg[unique_product_value_column] >= quantile_filter_value
             df_top_products_agg_quantile = df_top_products_agg[condition_quantile]
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': After filter out quantile at ' + str(filter_out_quantile) + ' = ' + str(quantile_filter_value)
+                + ': After filter out aggregate by "' + str(aggregate_method)
+                + '" quantile at ' + str(filter_out_quantile) + ' = ' + str(quantile_filter_value)
                 + ', remain ' + str(len(df_top_products_agg_quantile)) + ' from ' + str(len(df_top_products_agg))
                 + ' products'
             )
@@ -302,9 +356,9 @@ class SuggestDataProfile:
             df_top_products = df_top_products_agg_quantile[0:top_n_final]
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': After getting final top ' + str(top_n_final)
-                + ', remain ' + str(len(df_top_products)) + ' from ' + str(len(df_top_products_agg))
-                + ' products'
+                + ': After getting final top ' + str(top_n_final) + ' aggregated by "' + str(aggregate_method)
+                + '", quantile at ' + str(filter_out_quantile) + ', remain ' + str(len(df_top_products))
+                + ' from ' + str(len(df_top_products_agg)) + ' products'
             )
         else:
             df_top_products = df_top_products_agg_quantile
@@ -314,7 +368,9 @@ class SuggestDataProfile:
         assert len(unique_top_products_by_order) + len(unique_remaining_products) == len(unique_product_list)
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Keeping only top ' + str(top_x) + ' products (discard ' + str(len(unique_remaining_products))
+            + ': Aggregated by "' + str(aggregate_method) + '", quantile at ' + str(filter_out_quantile)
+            + ', keeping only top ' + str(top_x)
+            + ' (if 0 means keep all) products (discard ' + str(len(unique_remaining_products))
             + ') as attributes: ' + str(unique_top_products_by_order)
             + ', remaining: ' + str(unique_remaining_products)
         )
@@ -411,7 +467,8 @@ class SuggestDataProfileUnitTest:
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 100,
-            filter_out_quantile         = 0.1,
+            filter_out_quantile_byvalue = 0.1,
+            filter_out_quantile_bycount = 0.1,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
         )
         Log.debug('Client profiles')

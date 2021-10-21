@@ -121,7 +121,8 @@ class SuggestMetricUnitTest:
             unique_product_key_column   = 'product',
             unique_product_value_column = 'quantity',
             max_attribute_columns       = 100,
-            filter_out_quantile         = 0.01,
+            filter_out_quantile_byvalue = 0.01,
+            filter_out_quantile_bycount = 0.0,
             transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
             add_unknown_product         = False,
         )
