@@ -16,6 +16,9 @@ class SuggestMetric:
     # Медленно
     METRIC_EUCLIDEAN = 'euclidean'
 
+    ALGO_BY_CLOSEST_PRODUCT = 'byclosestproduct'
+    ALGO_BY_CLOSEST_CLIENT  = 'byclosestclient'
+
     BIG_NUMBER_NON_EXISTENT_PRD_INDEX = 2**31
 
     def __init__(
@@ -70,26 +73,38 @@ class SuggestMetric:
             'Multiple human key columns not supported ' + str(unique_human_key_columns)
         assert len(unique_df_object_object_key_columns) == 1, \
             'Multiple product columns not supported ' + str(unique_df_object_object_key_columns)
+
         colkeep = unique_df_object_human_key_columns \
                   + unique_df_object_object_key_columns \
                   + [unique_df_object_value_column]
-        df_object = df_object[colkeep]
+        df_object_clean = df_object[colkeep]
+
+        # # Обязательно только уникальные пари (покупатель, товар)
+        column_human_prd = [unique_human_key_columns[0], unique_df_object_object_key_columns[0]]
+        df_object_agg = df_object_clean.groupby(
+            column_human_prd,
+            as_index = False,
+        ).sum().reset_index(drop=True)
+
+        # # Обязательно только уникальные пари (покупатель, товар)
+        # df_test_unique_pairs = df_object_agg.copy()
+        # df_test_unique_pairs['__count'] = 1
+        # df_test_unique_pairs_agg = df_test_unique_pairs.groupby(
+        #     column_human_prd,
+        #     as_index=False,
+        # ).sum()
+        # condition_problem = df_test_unique_pairs_agg['__count'] > 1
+        # df_test_problem_rows = df_test_unique_pairs_agg[condition_problem]
+        # assert len(df_test_problem_rows) == 0, \
+        #     'Dataframe for human/product must only have unique client/product pairs: ' + str(df_test_problem_rows)
 
         # Обязательно только уникальные покупатели
         clients_list = np.unique(df_human_profile[unique_human_key_columns[0]])
         assert len(clients_list) == len(df_human_profile), \
             'Dataframe for human profile must only have unique clients: ' + str(clients_list)
 
-        # Обязательно только уникальные пари (покупатель, товар)
-        column_human_prd = [unique_human_key_columns[0], unique_df_object_object_key_columns[0]]
-        pairs_human_tovar = df_object[column_human_prd].groupby(
-            column_human_prd
-        ).sum().index.to_list()
-        assert len(pairs_human_tovar) == len(df_object), \
-            'Dataframe for human/product must only have unique client/product pairs: ' + str(pairs_human_tovar)
-
         # Merge
-        df_object_human_attributes = df_object.merge(
+        df_object_human_attributes = df_object_agg.merge(
             df_human_profile,
             left_on  = unique_df_object_human_key_columns,
             right_on = unique_human_key_columns,
@@ -313,7 +328,16 @@ class SuggestMetric:
             x = np.reshape(x, newshape=(1, x.shape[0]))
         return x
 
-
+    """
+    алгоритм "byclosestproduct"
+      1. ищет самые близкие товары в df_product_dna
+      3. предложить товары упорядочены выше
+    
+    алгоритм "byclosestclient"
+      1. ищет самых близких клиентов
+      2. из этих клиентов, собирать все товары, купивщие ими
+      3. предложить товары упорядочены по значению
+    """
     def recommend_products(
             self,
             # Any object with standard DNA (e.g. client, product, payment method)
@@ -336,8 +360,16 @@ class SuggestMetric:
             how_many = 10,
             replace_purchased_product_with_nan = False,
             include_products_not_in_attributes = True,
+            # ALGO_BY_CLOSEST_PRODUCT, ALGO_BY_CLOSEST_CLIENT
+            algorithm = ALGO_BY_CLOSEST_PRODUCT,
+            # If algorithm==ALGO_BY_CLOSEST_CLIENT, need these
+            how_many_humans   = 10,
+            unique_human_cols = None,
+            df_human_dna = None
     ):
         assert len(unique_prdname_cols) == 1, 'Multi-column product names not supported yet ' + str(unique_prdname_cols)
+        assert algorithm in [self.ALGO_BY_CLOSEST_PRODUCT, self.ALGO_BY_CLOSEST_CLIENT]
+
         shape_prd_dna_ori = df_product_dna.shape
         obj_ref_dna = self.convert_x_to_desired_shape(x=obj_ref_dna)
 
@@ -360,24 +392,72 @@ class SuggestMetric:
             + ': Extracted attributes list from product dna: ' + str(attributes_list)
             + ', product list: ' + str(np_product_names)
         )
-        tensor_cmp = df_product_dna_modified[attributes_list].values
 
         # if is None, means get default recommendation
         if obj_ref_dna is None:
             attributes_len = len(attributes_list)
             return [ attributes_list[0:min(how_many, attributes_len)] ]
 
-        closest = self.find_closest(
-            obj_ref_dna = obj_ref_dna,
-            tensor_cmp  = tensor_cmp,
-            how_many    = how_many,
-            metric      = metric,
-            force_normalization = force_normalization,
-        )
-        recommendations = np_product_names[closest]
-        if len(recommendations.shape) == 1:
-            # From [1,2,3] to [[1,2,3]]
-            recommendations = np.reshape(recommendations, newshape=(1, recommendations.shape[0]))
+        if algorithm == self.ALGO_BY_CLOSEST_PRODUCT:
+            tensor_cmp_product = df_product_dna_modified[attributes_list].values
+            closest_products = self.find_closest(
+                obj_ref_dna = obj_ref_dna,
+                tensor_cmp  = tensor_cmp_product,
+                how_many    = how_many,
+                metric      = metric,
+                force_normalization = force_normalization,
+            )
+            recommendations = np_product_names[closest_products]
+            if len(recommendations.shape) == 1:
+                # From [1,2,3] to [[1,2,3]]
+                recommendations = np.reshape(recommendations, newshape=(1, recommendations.shape[0]))
+        elif algorithm == self.ALGO_BY_CLOSEST_CLIENT:
+            assert len(obj_ref_dna) == 1,\
+                'Multi client recommendation for algorithm "' + str(algorithm) + '" not supported'
+            tensor_cmp_human = df_human_dna[attributes_list].values
+            closest_humans = self.find_closest(
+                obj_ref_dna = obj_ref_dna,
+                tensor_cmp  = tensor_cmp_human,
+                how_many    = how_many_humans,
+                metric      = metric,
+                force_normalization = force_normalization,
+            )
+            # Collapse to 1-dimensional vector
+            np_human_names = df_human_dna[unique_human_cols].to_numpy().squeeze()
+            recommendations_human = np_human_names[closest_humans]
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Closest humans extracted: ' + str(recommendations_human)
+            )
+            # отфильтровать товары связанны с этими близкими клиентами
+            idx = list(df_human_dna.index)
+            assert idx == list(range(len(df_human_dna))),\
+                'Index of human dna must be in order: ' + str(df_human_dna.index)
+            df_associated_humans = df_human_dna.loc[closest_humans]
+            df_associated_products = df_associated_humans[attributes_list].transpose()
+            np_product_names_associated = np.array(df_associated_products.index, dtype=str)
+            # Sum total of product purchase
+            series_associated_products_sum = np.array(df_associated_products.sum(axis=1))
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Associated products: ' + str(df_associated_products)
+            )
+            # Order by highest total purchase value
+            np_order = np.flip(np.argsort(series_associated_products_sum))
+            recommendations = np_product_names_associated[np_order]
+            recommendations = recommendations[0:min(how_many, len(recommendations))]
+            Log.debug(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Closest associated products: ' + str(recommendations)
+            )
+            if len(recommendations.shape) == 1:
+                # From [1,2,3] to [[1,2,3]]
+                recommendations = np.reshape(recommendations, newshape=(1, recommendations.shape[0]))
+        else:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Unknown algorithm "' + str(algorithm) + '"'
+            )
 
         # если список продуктов было раньше сокращен, то продукты которые убраны не будут смены
         if replace_purchased_product_with_nan:

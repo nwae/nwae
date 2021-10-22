@@ -95,16 +95,20 @@ class SuggestDataProfile:
             # Before any processing
             transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
             transform_logbase           = 10.0,
+            transform_after_aggregate   = True, # By default transform only AFTER aggregation
             # осторожно здесь, этот неизвестный продукт будет присвоен 0-вектор (возможно),
             # поэтому если использовать метрику "euclidean", он будет "близок" другим векторам
             add_unknown_product = False,
     ):
+        transform_before = self.TRANSFORM_PRD_VALUES_METHOD_NONE
+        if not transform_after_aggregate:
+            transform_before = transform_prd_values_method
         df_prd_agg, unique_product_list, unique_human_list = self.aggregate_products(
             df_product                  = df_product,
             unique_human_key_columns    = unique_human_key_columns,
             unique_product_key_column   = unique_product_key_column,
             unique_product_value_column = unique_product_value_column,
-            transform_prd_values_method = transform_prd_values_method,
+            transform_prd_values_method = transform_before,
             transform_logbase           = transform_logbase,
         )
 
@@ -188,6 +192,18 @@ class SuggestDataProfile:
                 + ': After second round grouping by human/product columns, from shape ' + str(shape_ori)
                 + ' to new shape ' + str(df_prd_agg.shape)
             )
+
+        if transform_after_aggregate:
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': After aggregation, transform product values by "' + str(transform_prd_values_method) + '"'
+            )
+            if transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_UNITY:
+                df_prd_agg[unique_product_value_column] = 1.0 * (df_prd_agg[unique_product_value_column] > 0.0)
+            elif transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_LOG:
+                df_prd_agg[unique_product_value_column] = np.log(1 + df_prd_agg[unique_product_value_column]) / np.log(transform_logbase)
+            else:
+                pass
 
         """Датафрейм лишь с столбцом(ами) покупателей"""
         df_converted = df_prd_agg[unique_human_key_columns]
@@ -382,8 +398,8 @@ class SuggestDataProfile:
             unique_human_key_columns,
             unique_product_key_column,
             unique_product_value_column,
-            transform_prd_values_method,
-            transform_logbase,
+            transform_prd_values_method = TRANSFORM_PRD_VALUES_METHOD_NONE,
+            transform_logbase = 10.0,
     ):
         Log.debugdebug(df_product)
         columns_keep = unique_human_key_columns + [unique_product_key_column, unique_product_value_column]
@@ -403,10 +419,10 @@ class SuggestDataProfile:
 
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Transform product values by "' + str(transform_prd_values_method) + '"'
+            + ': Before aggregation, transform product values by "' + str(transform_prd_values_method) + '"'
         )
         if transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_UNITY:
-            df_prd_agg[unique_product_value_column] = 1.0
+            df_prd_agg[unique_product_value_column] = 1.0 * (df_prd_agg[unique_product_value_column] > 0.0)
         if transform_prd_values_method == self.TRANSFORM_PRD_VALUES_METHOD_LOG:
             df_prd_agg[unique_product_value_column] = np.log(1 + df_prd_agg[unique_product_value_column]) / np.log(transform_logbase)
 
@@ -448,9 +464,10 @@ class SuggestDataProfileUnitTest:
 
     def run_unit_test(self):
         df_pokupki = pd.DataFrame({
-            'client': ['a', 'a', 'b', 'b', 'c', 'c', 'c'],
-            'product': ['borjomi', 'karspatskaya', 'borjomi', 'morshinskaya', 'bonaqua', 'morshinskaya', 'xxx'],
-            'quantity': [1, 1, 2, 1, 1, 3, 0]
+            # умышленно разделить borjomi на две части
+            'client': ['a', 'a', 'a', 'b', 'b', 'c', 'c', 'c'],
+            'product': ['borjomi', 'borjomi', 'karspatskaya', 'borjomi', 'morshinskaya', 'bonaqua', 'morshinskaya', 'xxx'],
+            'quantity': [0.5, 0.5, 1, 2, 1, 1, 3, 0]
         })
         # в случае max_attribute_columns>0, будет упорядочить колонки от наибольшего к наименее популярному продукту
         df_profiles_expected = pd.DataFrame({
@@ -461,34 +478,58 @@ class SuggestDataProfileUnitTest:
             'karspatskaya': [1., 0., 0.],
             SuggestDataProfile.COLNAME_PRODUCTS_NOT_INCLUDED: [0., 0., 0.],
         })
-        df_client_profiles, product_attributes_list = self.recommend_data_profile.convert_product_to_attributes(
-            df_product                  = df_pokupki,
-            unique_human_key_columns    = ['client'],
-            unique_product_key_column   = 'product',
-            unique_product_value_column = 'quantity',
-            max_attribute_columns       = 100,
-            filter_out_quantile_byvalue = 0.1,
-            filter_out_quantile_bycount = 0.1,
-            transform_prd_values_method = SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,
-        )
-        Log.debug('Client profiles')
-        Log.debug(df_client_profiles)
-        Log.debug('Product as attributes list')
-        Log.debug(product_attributes_list)
 
-        self.res_final.update_bool(res_bool=UnitTest.assert_true(
-            observed = str(list(df_client_profiles.columns)),
-            expected = str(list(df_profiles_expected.columns)),
-            test_comment = 'Check columns are correct'
-        ))
-        for col in df_profiles_expected.columns:
-            obs = str(list(df_client_profiles[col]))
-            exp = str(list(df_profiles_expected[col]))
-            self.res_final.update_bool(res_bool=UnitTest.assert_true(
-                observed = obs,
-                expected = exp,
-                test_comment = 'Check column "' + str(col) + '" values ' + str(obs)
-            ))
+        for t in [
+            [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,   True],
+            # [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_NONE,  False],
+            [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_LOG,    True],
+            # [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_LOG,   False],
+            [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_UNITY,  True],
+            # [SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_UNITY, False],
+        ]:
+            trsfm = t[0]
+            trsfm_after_agg = t[1]
+            df_client_profiles, product_attributes_list = self.recommend_data_profile.convert_product_to_attributes(
+                df_product                  = df_pokupki,
+                unique_human_key_columns    = ['client'],
+                unique_product_key_column   = 'product',
+                unique_product_value_column = 'quantity',
+                max_attribute_columns       = 100,
+                filter_out_quantile_byvalue = 0.1,
+                filter_out_quantile_bycount = 0.1,
+                transform_prd_values_method = trsfm,
+                transform_logbase           = 10.0,
+                transform_after_aggregate   = trsfm_after_agg,
+            )
+            Log.debug('Client profiles')
+            Log.debug(df_client_profiles)
+            Log.debug('Product as attributes list')
+            Log.debug(product_attributes_list)
+
+            res_test = UnitTest.assert_true(
+                observed = str(list(df_client_profiles.columns)),
+                expected = str(list(df_profiles_expected.columns)),
+                test_comment = 'Transform method "' + str(trsfm) + '" (after=' +  str(trsfm_after_agg) + ') Check columns are correct'
+            )
+            self.res_final.update_bool(res_bool=res_test)
+            if not res_test:
+                raise Exception('wrong')
+            for col in df_profiles_expected.columns:
+                obs = list(df_client_profiles[col])
+                exp = list(df_profiles_expected[col])
+                if col not in ['client']:
+                    if trsfm == SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_LOG:
+                        exp = [np.log(1+x)/np.log(10.0) for x in exp]
+                    elif trsfm == SuggestDataProfile.TRANSFORM_PRD_VALUES_METHOD_UNITY:
+                        exp = [1.0*(x>0) for x in exp]
+                res_test = UnitTest.assert_true(
+                    observed = str(obs),
+                    expected = str(exp),
+                    test_comment = 'Transform method "' + str(trsfm) + '" (after=' +  str(trsfm_after_agg) + ') Check column values of "' + str(col) + '" observed ' + str(obs)
+                )
+                self.res_final.update_bool(res_bool=res_test)
+                if not res_test:
+                    raise Exception('wrong')
 
         return self.res_final
 
