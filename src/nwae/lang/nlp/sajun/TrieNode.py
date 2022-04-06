@@ -322,7 +322,6 @@ if __name__ == '__main__':
         dirpath_synonymlist  = config.get_config(param=Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist  = config.get_config(param=Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
         dirpath_model        = None,
-        dirpath_sample_data  = config.get_config(param=Config.PARAM_NLP_DIR_SAMPLE_DATA),
     )
 
     res = TrieNodeUnitTest(ut_params=ut_params).run_unit_test()
