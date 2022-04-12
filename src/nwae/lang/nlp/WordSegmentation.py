@@ -612,10 +612,11 @@ class WordSegmentation(object):
                 else:
                     array_words.append(word)
 
-        if self.lang == lf.LangFeatures.LANG_TH:
-            array_words = self.__join_single_alphabets_as_a_word(
-                array_words = array_words
-            )
+        if join_single_meaningless_alphabets_as_one:
+            if self.lang == lf.LangFeatures.LANG_TH:
+                array_words = self.__join_single_alphabets_as_a_word(
+                    array_words = array_words
+                )
 
         #
         # Break into array
@@ -648,6 +649,9 @@ class WordSegmentation(object):
             )
         return s
 
+    #
+    # For now only for Thai language
+    #
     def __join_single_alphabets_as_a_word(
             self,
             array_words
@@ -655,7 +659,10 @@ class WordSegmentation(object):
         array_words_redo = []
         # Single alphabets have no meaning, so we join them
         join_word = ''
+        # either number or string
+        join_word_type_number = False
         tlen = len(array_words)
+
         for i in range(len(array_words)):
             word = array_words[i]
             if join_word == '':
@@ -663,11 +670,15 @@ class WordSegmentation(object):
                 if (len(word) > 1) or (self.__is_natural_word_separator(c=word)):
                     array_words_redo.append(word)
                 else:
+                    # 1st single alphabet word detected, record the alphabet type (number or not)
+                    join_word_type_number = word in lc.LangCharacters.UNICODE_BLOCK_THAI_NUMBERS
                     # Single alphabet word found, join them to previous
                     join_word = join_word + word
             else:
                 # Previously has single alphabet
-                if (len(word) > 1) or (self.__is_natural_word_separator(c=word)):
+                diff_type_with_previous = \
+                    (word in lc.LangCharacters.UNICODE_BLOCK_THAI_NUMBERS) != join_word_type_number
+                if (len(word) > 1) or (self.__is_natural_word_separator(c=word)) or (diff_type_with_previous):
                     # Write the joined alphabets, as the sequence has ended
                     array_words_redo.append(join_word)
                     array_words_redo.append(word)
