@@ -24,7 +24,8 @@ class CategoricalCrossEntropy:
     ):
         self.p_real_prob_labels = p_real_prob_labels
         self.q_given_probs = q_given_probs
-        assert len(self.p_real_prob_labels) == len(self.q_given_probs)
+        assert self.p_real_prob_labels.shape == self.q_given_probs.shape, \
+            'Incompatible shapes real prob ' + str(self.p_real_prob_labels.shape) + ' vs shape of q ' + str(self.q_given_probs.shape)
 
         self.N = len(self.p_real_prob_labels)
         return
@@ -32,8 +33,11 @@ class CategoricalCrossEntropy:
     def calculate(self):
         losses = []
         # The losses of each class has already been conveniently broken up by the categorical format
+        tuple_real_given_probs = zip(self.p_real_prob_labels, self.q_given_probs)
+        Log.debugdebug('Tuple of real/given probs: ' + str(list(tuple_real_given_probs)))
         for real_prob, given_probs in zip(self.p_real_prob_labels, self.q_given_probs):
             # Just to be sure in case numbers don't sum up to 1 for probabilities
+            Log.debugdebug('Real probs: ' + str(real_prob) + ', given probs: ' + str(given_probs))
             given_probs_normalized = given_probs / given_probs.sum(axis=-1, keepdims=True)
             assert abs(np.sum(given_probs_normalized) - 1.0) < CategoricalCrossEntropy.SMALL_NUMBER
             Log.debugdebug('Given Probs: ' + str(given_probs_normalized))

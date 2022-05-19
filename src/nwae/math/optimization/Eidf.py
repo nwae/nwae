@@ -9,9 +9,9 @@ import random as rd
 import nwae.math.Cluster as cl
 import datetime as dt
 import re
-import os
 
 
+"""
 #
 # Enhanced IDF (EIDF)
 #
@@ -21,6 +21,12 @@ import os
 # v1, v2, ... vn by some metric (default metric is average angle or the
 # 61.8% quantile) is maximum when projected onto a unit hypersphere.
 #
+*** Главная идея ***
+У нас документы, представлены "bag-of-words"-ом
+Чтобы улучшить IDF веса слов, мы требуем максимальной суммы расстояний между всеми взаимными парами документов
+(независимо от класса, к которому принадлежит документ)
+Если бы классы документов учитывались в модели, результат был бы еще лучше
+"""
 class Eidf:
 
     #
@@ -44,7 +50,7 @@ class Eidf:
     # We maximize by the 61.8% quantile, so that given all distance pairs
     # in the vector set, the 61.8% quantile is optimized at maximum
     #
-    MAXIMIZE_QUANTILE = 2/(1+5**0.5)
+    # MAXIMIZE_QUANTILE = 2/(1+5**0.5)
     # Max weight movements, When doing gradient ascent /descent
     MAXIMUM_IDF_WEIGHT_MOVEMENT = 0.8
     # Don't set to 0.0 as this might cause vectors to become 0.0
@@ -62,7 +68,7 @@ class Eidf:
     # otherwise the double looping exact calculation is unusable in production
     # when data is too huge.
     #
-    TARGET_FUNCTION_AS_SUM_COSINE = True
+    # TARGET_FUNCTION_AS_SUM_COSINE = True
 
     #
     # If too many rows in the array, the normalize() function will be too slow
@@ -255,10 +261,6 @@ class Eidf:
     def get_w(self):
         return self.w.copy()
 
-    #
-    # This is the target function to maximize the predetermined quantile MAXIMIZE_QUANTILE
-    # TODO Unusable in production too slow. Optimize!
-    #
     @staticmethod
     def target_ml_function(
             x_input
@@ -273,7 +275,8 @@ class Eidf:
         #
         # Fast calculation closed formula, compared to double-looping below that cannot be used in most cases
         #
-        if Eidf.TARGET_FUNCTION_AS_SUM_COSINE:
+        # if Eidf.TARGET_FUNCTION_AS_SUM_COSINE:
+        if True:
             #
             # If already normalized, then a concise formula for sum of cosine of angles are just:
             #
@@ -283,7 +286,7 @@ class Eidf:
             #         (x_1n + x_2n +... + x_nn)^2 - (x_1n^2 + x_2n^2 + ... x_nn^2)
             #       ]
             #
-            # Can be seen that the above formula takes care of all pairs = n_row*(n_row-1)/2.
+            # Can be seen that the above formula takes care of all mutual pairs = n_row*(n_row-1)/2.
             #
             # All vectors we assume are positive values only thus cosine values are in the range [0,1]
             #
@@ -307,74 +310,74 @@ class Eidf:
             lg.Log.debugdebug('************** Angle: ' + str(angle))
             return angle
 
-        # Get total angle squared between all points on the hypersphere
-        quantile_angle_x = 0
-        angle_list = []
+        # # Get total angle squared between all points on the hypersphere
+        # quantile_angle_x = 0
+        # angle_list = []
+        # #
+        # # TODO
+        # #  The code below is quite unusable as it is super slow.
+        # #  This double looping must be eliminated to no loops.
+        # #
+        # for i in range(0, x_n.shape[0], 1):
+        #     for j in range(i+1, x_n.shape[0], 1):
+        #         if i == j:
+        #             continue
+        #         # Get
+        #         v1 = x_n[i]
+        #         v2 = x_n[j]
+        #         # It is possible after iterations that vectors become 0 due to the weights
+        #         if (np.linalg.norm(v1) == 0) or (np.linalg.norm(v2) == 0):
+        #             lg.Log.warning(
+        #                 str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+        #                 + ': Vector zerorized from iterations.'
+        #             )
+        #             continue
+        #         #
+        #         # The vectors are already normalized
+        #         #
+        #         cos_angle = np.dot(v1, v2)
+        #         #
+        #         # This value can be >1 due to computer roundings and after that everything will be nan
+        #         #
+        #         if np.isnan(cos_angle):
+        #             errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+        #                      + ': Cosine Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'
+        #             lg.Log.critical(errmsg)
+        #             raise Exception(errmsg)
+        #         if cos_angle > 1.0:
+        #             cos_angle = 1.0
+        #         elif cos_angle < 0.0:
+        #             cos_angle = 0.0
+        #         angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
+        #         if np.isnan(angle):
+        #             errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
+        #                      + ': Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'\
+        #                      + ' Cosine of angle = ' + str(cos_angle) + '.'
+        #             lg.Log.critical(errmsg)
+        #             raise Exception(errmsg)
+        #         lg.Log.debugdebug(
+        #             'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
+        #         )
+        #         angle_list.append(angle)
         #
-        # TODO
-        #  The code below is quite unusable as it is super slow.
-        #  This double looping must be eliminated to no loops.
+        # quantile_angle_x = np.quantile(a=angle_list, q=[Eidf.MAXIMIZE_QUANTILE])[0]
+        # values_in_quantile = np.array(angle_list)
+        # values_in_quantile = values_in_quantile[values_in_quantile<=quantile_angle_x]
+        # sum_square_values_in_q = np.sum(values_in_quantile**2)
+        # if np.isnan(quantile_angle_x):
+        #     errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+        #              + ': Final quantile angle =' + str(quantile_angle_x)\
+        #              + ' for x_input:\n\r' + str(x_input) + '.'
+        #     lg.Log.error(errmsg)
+        #     raise Exception(errmsg)
         #
-        for i in range(0, x_n.shape[0], 1):
-            for j in range(i+1, x_n.shape[0], 1):
-                if i == j:
-                    continue
-                # Get
-                v1 = x_n[i]
-                v2 = x_n[j]
-                # It is possible after iterations that vectors become 0 due to the weights
-                if (np.linalg.norm(v1) == 0) or (np.linalg.norm(v2) == 0):
-                    lg.Log.warning(
-                        str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                        + ': Vector zerorized from iterations.'
-                    )
-                    continue
-                #
-                # The vectors are already normalized
-                #
-                cos_angle = np.dot(v1, v2)
-                #
-                # This value can be >1 due to computer roundings and after that everything will be nan
-                #
-                if np.isnan(cos_angle):
-                    errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Cosine Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'
-                    lg.Log.critical(errmsg)
-                    raise Exception(errmsg)
-                if cos_angle > 1.0:
-                    cos_angle = 1.0
-                elif cos_angle < 0.0:
-                    cos_angle = 0.0
-                angle = abs(np.arcsin((1 - cos_angle**2)**0.5))
-                if np.isnan(angle):
-                    errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)\
-                             + ': Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is nan!!'\
-                             + ' Cosine of angle = ' + str(cos_angle) + '.'
-                    lg.Log.critical(errmsg)
-                    raise Exception(errmsg)
-                lg.Log.debugdebug(
-                    'Angle between v1=' + str(v1) + ' and v2=' + str(v2) + ' is ' + str(180 * angle / np.pi)
-                )
-                angle_list.append(angle)
-
-        quantile_angle_x = np.quantile(a=angle_list, q=[Eidf.MAXIMIZE_QUANTILE])[0]
-        values_in_quantile = np.array(angle_list)
-        values_in_quantile = values_in_quantile[values_in_quantile<=quantile_angle_x]
-        sum_square_values_in_q = np.sum(values_in_quantile**2)
-        if np.isnan(quantile_angle_x):
-            errmsg = str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                     + ': Final quantile angle =' + str(quantile_angle_x)\
-                     + ' for x_input:\n\r' + str(x_input) + '.'
-            lg.Log.error(errmsg)
-            raise Exception(errmsg)
-
-        lg.Log.debugdebug(
-            str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Angle = ' + str(np.sort(angle_list))
-            + '\n\rQuantile ' + str(100*Eidf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
-            + '\n\rSum square values in quantile = ' + str(sum_square_values_in_q)
-        )
-        return sum_square_values_in_q
+        # lg.Log.debugdebug(
+        #     str(Eidf.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #     + ': Angle = ' + str(np.sort(angle_list))
+        #     + '\n\rQuantile ' + str(100*Eidf.MAXIMIZE_QUANTILE) + '% = ' + str(quantile_angle_x)
+        #     + '\n\rSum square values in quantile = ' + str(sum_square_values_in_q)
+        # )
+        # return sum_square_values_in_q
 
     #
     # Differentiation of target function with respect to weights.
@@ -408,7 +411,7 @@ class Eidf:
         return dml_dw
 
     #
-    # Opimize by gradient ascent, on predetermined quantile MAXIMIZE_QUANTILE
+    # Opimize by gradient ascent, on sum of angles
     #
     def optimize(
             self,
@@ -454,8 +457,7 @@ class Eidf:
         # The delta of limit increase in target function to stop iteration
         delta = ml_start * Eidf.DELTA_PERCENT_OF_TARGET_FUNCTION_START_VALUE
 
-        logmsg = ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)\
-                 + ', quantile used = ' + str(Eidf.MAXIMIZE_QUANTILE)
+        logmsg = ': Start target function value = ' + str(ml_start) + ', using delta = ' + str(delta)
         lg.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + logmsg
