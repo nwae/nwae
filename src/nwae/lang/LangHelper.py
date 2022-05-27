@@ -19,6 +19,9 @@ class LangHelper:
             postfix_app_wordlist,
             dirpath_synonymlist,
             postfix_synonymlist,
+            # Directory and identifier string for looking up EIDF files for spelling correction
+            dir_path_model     = None,
+            identifier_string  = None,
             # If this is not None, then the synonym list will only choose root words from here
             allowed_root_words = None,
             do_profiling       = False,
@@ -27,10 +30,12 @@ class LangHelper:
             lang_code = lang
         )
         wseg_obj = ws.WordSegmentation(
-            lang             = lang_std,
-            dirpath_wordlist = dirpath_wordlist,
-            postfix_wordlist = postfix_wordlist,
-            do_profiling     = do_profiling,
+            lang              = lang_std,
+            dirpath_wordlist  = dirpath_wordlist,
+            postfix_wordlist  = postfix_wordlist,
+            dir_path_model    = dir_path_model,
+            identifier_string = identifier_string,
+            do_profiling      = do_profiling,
         )
 
         # We need synonyms to normalize all text with "rootwords"
@@ -93,10 +98,10 @@ class LangHelper:
 
 
 if __name__ == '__main__':
-    import nwae.config.Config as cf
+    import nwae.lang.config.Config as cf
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class = cf.Config,
-        default_config_file='/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
+        default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
     )
     retobj = LangHelper.get_word_segmenter(
         lang                 = lf.LangFeatures.LANG_ZH,

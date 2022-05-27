@@ -11,17 +11,22 @@ import pandas as pd
 from nwae.lang.nlp.sajun.EditDistance import EditDistance
 from nwae.lang.nlp.sajun.TrieNode import TrieNode
 import nwae.math.optimization.Eidf as eidf
-import os
 
 
 #
 # Проверка правописания (орфографии) единственного слова без никакого контекста
+# TODO применить тоже collocation (определенный или переменный расстояние), и т.п.
 #
 class SpellCheckWord:
 
     COL_CORRECTED_WORD = 'corrected_word'
     COL_EDIT_DISTANCE  = 'edit_distance'
     COL_EIDF_VALUE     = 'eidf_value'
+
+    METHOD_RANK_NONE = None
+    METHOD_RANK_EIDF = 'eidf'
+    # TODO
+    METHOD_RANK_COLLOCATION = 'collocation'
 
     def __init__(
             self,
@@ -31,9 +36,15 @@ class SpellCheckWord:
             # Directory and identifier string for looking up EIDF files
             dir_path_model     = None,
             identifier_string  = None,
+            # EIDF/IDF used as a measure of word frequency, the lower the value the higher the word freq
             # Option to pass in EIDF DataFrame instead of using directory and identifier string
             eidf_dataframe     = None,
-            use_word_weighting = True,
+            # TODO обобщить метод выбора близких слов с одинаковым расстоянием между
+            #    - EIDF/IDF без контекста
+            #    - collocation
+            #    - ...
+            # "eidf", TODO "collocation",...
+            method_rank_words  = METHOD_RANK_EIDF,
             do_profiling       = False
     ):
         self.lang = LangFeatures.map_to_lang_code_iso639_1(
@@ -42,7 +53,7 @@ class SpellCheckWord:
         self.words_list = words_list
         self.dir_path_model = dir_path_model
         self.identifier_string = identifier_string
-        self.use_word_weighting = use_word_weighting
+        self.method_rank_words = method_rank_words
         self.eidf_dataframe = eidf_dataframe
         self.do_profiling = do_profiling
 
@@ -56,10 +67,7 @@ class SpellCheckWord:
             + str(self.words_list[0:50]) + ' (first 50 of ' + str(len(self.words_list)) + ')'
         )
 
-        if not self.use_word_weighting:
-            self.eidf_words = None
-            self.eidf_value = None
-        else:
+        if self.method_rank_words == self.METHOD_RANK_EIDF:
             try:
                 Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -73,7 +81,7 @@ class SpellCheckWord:
                     # No need to reorder the words in EIDF file
                     x_name            = None
                 )
-                Log.info(
+                Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Successfully Read EIDF from file from directory "' + str(self.dir_path_model)
                     + '" for model "' + str(self.identifier_string) + '".'
@@ -89,6 +97,10 @@ class SpellCheckWord:
                          + ': No EIDF from file available. Exception ' + str(ex_eidf) + '.'
                 Log.error(errmsg)
                 raise Exception(errmsg)
+        else:
+            self.eidf_words = None
+            self.eidf_value = None
+
         return
 
     #
@@ -132,27 +144,32 @@ class SpellCheckWord:
             cor_word = obj[0]
             # The edit distance returned in tuple
             edit_dist = obj[1]
-            if self.use_word_weighting:
+            if self.method_rank_words == self.METHOD_RANK_EIDF:
+                # The lower the EIDF value, the more frequent the word appears
                 eidf_val = self.eidf_value[self.eidf_words == cor_word]
                 if len(eidf_val) != 1:
-                    Log.debugdebug(
+                    Log.debug(
                         str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                         + ': No EIDF value found for corrected word "' + str(cor_word) + '"'
                     )
                     continue
                 else:
-                    eidf_values.append(round(eidf_val[0], 2))
+                    #eidf_values.append(round(eidf_val[0], 2))
+                    eidf_values.append(eidf_val[0])
             else:
                 eidf_values.append(None)
             corrected_words.append(cor_word)
             edit_distances.append(edit_dist)
+
+        # No corrected words found, can be bcos none of the words in EIDF list also
+        if len(corrected_words) == 0:
+            return None
 
         df = pd.DataFrame({
             SpellCheckWord.COL_CORRECTED_WORD: corrected_words,
             SpellCheckWord.COL_EDIT_DISTANCE:  edit_distances,
             SpellCheckWord.COL_EIDF_VALUE:     eidf_values
         })
-
 
         df = df.sort_values(
             by = [SpellCheckWord.COL_EDIT_DISTANCE, SpellCheckWord.COL_EIDF_VALUE],
@@ -222,31 +239,31 @@ class SpellCheckWordUnitTest:
             {
                 'lang': LangFeatures.LANG_TH,
                 'tests': [
-                    ['เงน', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, True, ['เงา', 'เงิน']],
-                    ['เงน', EditDistance.EDIT_DIST_ALGO_LEV, 1, True, ['เงา', 'เงิน']],
-                    ['ถนอ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, True, ['ถอน', 'ถนน', 'ถือ']],
-                    ['ถนอ', EditDistance.EDIT_DIST_ALGO_LEV, 1, True, ['ถนน', 'ถือ']],
-                    ['สหรฐฯ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, True, None],
-                    ['สหรฐ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, True, ['สหรัฐ']],
-                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, True, ['เชื้อ']],
-                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_LEV, 1, True, ['เชื้อ']],
+                    ['เงน', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['เงา', 'เงิน']],
+                    ['เงน', EditDistance.EDIT_DIST_ALGO_LEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['เงา', 'เงิน']],
+                    ['ถนอ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['ถอน', 'ถนน', 'ถือ']],
+                    ['ถนอ', EditDistance.EDIT_DIST_ALGO_LEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['ถนน', 'ถือ']],
+                    ['สหรฐฯ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_EIDF, None],
+                    ['สหรฐ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, SpellCheckWord.METHOD_RANK_EIDF, ['สหรัฐ']],
+                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['เชื้อ']],
+                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_LEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['เชื้อ']],
                     #
                     # Don't use any EIDF weights
                     #
-                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, False,
+                    ['เชื่อ', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_NONE,
                      ['ชื่อ', 'เชื่อ', 'เชื่อง', 'เชื่อม', 'เชื้อ', 'เดื่อ', 'เทื่อ', 'เบื่อ', 'เผื่อ', 'เพื่อ', 'เฟื่อ', 'เมื่อ', 'เยื่อ', 'เรื่อ', 'เสื่อ', 'เหื่อ']],
                 ]
             },
             {
                 'lang': LangFeatures.LANG_VI,
                 'tests': [
-                    ['gaio diện', EditDistance.EDIT_DIST_ALGO_LEV, 1, True, None],
-                    ['gaio diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, True, ['giao diện']],
-                    ['go diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, True, ['giao diện', 'ăn diện']],
+                    ['gaio diện', EditDistance.EDIT_DIST_ALGO_LEV, 1, SpellCheckWord.METHOD_RANK_EIDF, None],
+                    ['gaio diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 1, SpellCheckWord.METHOD_RANK_EIDF, ['giao diện']],
+                    ['go diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, SpellCheckWord.METHOD_RANK_EIDF, ['giao diện', 'ăn diện']],
                     #
                     # Don't use any EIDF weights
                     #
-                    ['go diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, False,
+                    ['go diện', EditDistance.EDIT_DIST_ALGO_DAMLEV, 2, SpellCheckWord.METHOD_RANK_NONE,
                      ['giao diện', 'lộ diện', 'sĩ diện', 'tứ diện', 'ăn diện', 'đa diện']],
                 ]
             }
@@ -258,12 +275,12 @@ class SpellCheckWordUnitTest:
                 w = xx[0]
                 algo = xx[1]
                 max_dist = xx[2]
-                use_eidf_weights = xx[3]
+                spell_check_method = xx[3]
                 expected = xx[4]
                 if expected:
                     expected = sorted(expected)
 
-                self.spell_corr[lang].use_word_weighting = use_eidf_weights
+                self.spell_corr[lang].method_rank_words = spell_check_method
 
                 df_search = self.spell_corr[lang].search_close_words(
                     word = w,
@@ -307,4 +324,5 @@ if __name__ == '__main__':
     )
 
     res = SpellCheckWordUnitTest(ut_params=ut_params).run_unit_test()
+    print('Total pass = ' + str(res.count_ok) + ', Total fail = ' + str(res.count_fail))
     exit(res.count_fail)

@@ -9,6 +9,7 @@ from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 # Library to convert Traditional Chinese to Simplified Chinese
 import hanziconv as hzc
+from nwae.lang.nlp.sajun.SpellCheckWord import SpellCheckWord
 import nwae.utils.Profiling as prf
 import re
 try:
@@ -79,7 +80,10 @@ class WordSegmentation(object):
             lang,
             dirpath_wordlist,
             postfix_wordlist,
-            do_profiling = False,
+            # Directory and identifier string for looking up EIDF files
+            dir_path_model    = None,
+            identifier_string = None,
+            do_profiling   = False,
             # For kkma
             jvmpath = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/lib/jli/libjli.dylib',
     ):
@@ -88,6 +92,9 @@ class WordSegmentation(object):
         )
         self.dirpath_wordlist = dirpath_wordlist
         self.postfix_wordlist = postfix_wordlist
+        # Directory and identifier string for looking up EIDF files
+        self.dir_path_model = dir_path_model
+        self.identifier_string = identifier_string
         self.do_profiling = do_profiling
         # Don't use for Korean KKMA for now
         self.use_external_lib = self.lang in [lf.LangFeatures.LANG_JA]
@@ -103,6 +110,8 @@ class WordSegmentation(object):
 
         self.lang_features = lf.LangFeatures()
         word_sep_type = self.lang_features.get_word_separator_type(lang = self.lang)
+
+        self.spell_check_word = None
 
         #
         # If the language unigram/word separator is a space, then it is just a simple re.split(),
@@ -172,6 +181,25 @@ class WordSegmentation(object):
                 + '" requires syllable separation & cleaning punctuations stuck to word before tokenization = '
                 + str(self.need_to_split_by_syllables_before_tokenization)
             )
+
+            try:
+                words = self.lang_wordlist.wordlist[wl.WordList.COL_WORD].tolist()
+                self.spell_check_word = SpellCheckWord(
+                    lang              = self.lang,
+                    words_list        = words,
+                    dir_path_model    = self.dir_path_model,
+                    identifier_string = self.identifier_string,
+                    method_rank_words = SpellCheckWord.METHOD_RANK_EIDF,
+                    do_profiling      = self.do_profiling
+                )
+            except Exception as ex:
+                Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Could not load spell check for lang "' + str(self.lang)
+                    + '", dir path model "' + str(self.dir_path_model)
+                    + '", identifier string "' + str(self.identifier_string) + '". Exception: ' + str(ex)
+                )
+                self.spell_check_word = None
         return
 
     def get_wordlist_length(self):
@@ -442,6 +470,7 @@ class WordSegmentation(object):
             # it certainly has no meaning, and we join them together, until we find a
             # split word of length not 1
             join_single_meaningless_alphabets_as_one = True,
+            spell_check_on_joined_alphabets = False,
             return_array_of_split_words = False
     ):
         """Exception that uses external libraries temporarily while we write our own"""
@@ -615,7 +644,8 @@ class WordSegmentation(object):
         if join_single_meaningless_alphabets_as_one:
             if self.lang == lf.LangFeatures.LANG_TH:
                 array_words = self.__join_single_alphabets_as_a_word(
-                    array_words = array_words
+                    array_words = array_words,
+                    spell_check_on_joined_alphabets = spell_check_on_joined_alphabets,
                 )
 
         #
@@ -654,7 +684,8 @@ class WordSegmentation(object):
     #
     def __join_single_alphabets_as_a_word(
             self,
-            array_words
+            array_words,
+            spell_check_on_joined_alphabets,
     ):
         array_words_redo = []
         # Single alphabets have no meaning, so we join them
@@ -679,6 +710,11 @@ class WordSegmentation(object):
                 diff_type_with_previous = \
                     (word in lc.LangCharacters.UNICODE_BLOCK_THAI_NUMBERS) != join_word_type_number
                 if (len(word) > 1) or (self.__is_natural_word_separator(c=word)) or (diff_type_with_previous):
+                    if spell_check_on_joined_alphabets:
+                        join_word = self.__correct_spelling_of_joined_alphabets(
+                            word = join_word,
+                            max_cost = 1,
+                        )
                     # Write the joined alphabets, as the sequence has ended
                     array_words_redo.append(join_word)
                     array_words_redo.append(word)
@@ -690,9 +726,56 @@ class WordSegmentation(object):
             # Already at the last position
             if i == tlen - 1:
                 if join_word != '':
+                    if spell_check_on_joined_alphabets:
+                        join_word = self.__correct_spelling_of_joined_alphabets(
+                            word = join_word,
+                            max_cost = 1,
+                        )
                     array_words_redo.append(join_word)
 
         return array_words_redo
+
+    def __correct_spelling_of_joined_alphabets(
+            self,
+            word,
+            max_cost,
+    ):
+        if len(word) <= 1:
+            return word
+        try:
+            df_close_words = self.spell_check_word.search_close_words(
+                word     = word,
+                max_cost = max_cost,
+                # edit_distance_algo = algo
+            )
+            if df_close_words is not None:
+                # Assumed to be already sorted by most likely to least likely (e.g. increasing eidf)
+                close_words = list(df_close_words[SpellCheckWord.COL_CORRECTED_WORD])
+                # arr_dist  = list( df_search[SpellCheckWord.COL_EDIT_DISTANCE] )
+                Log.info(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '", possible corrections for joined alphabets "' + str(word)
+                    + '" ' + str(list(df_close_words.to_dict('records')))
+                )
+            else:
+                close_words = None
+            if len(close_words) >= 1:
+                # Take first closest word with least EIDF
+                Log.important(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Lang "' + str(self.lang) + '", corrected word "' + str(word)
+                    + '" to word "' + str(close_words[0])
+                )
+                return close_words[0]
+            else:
+                # Nothing corrected
+                return word
+        except Exception as ex:
+            Log.error(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Lang "' + str(self.lang) + '", correct spelling for joined alphabets error: ' + str(ex)
+            )
+            return word
 
 
 if __name__ == '__main__':

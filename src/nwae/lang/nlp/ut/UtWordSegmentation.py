@@ -27,14 +27,16 @@ class UnitTestWordSegmentation:
             self,
             word_segmenter,
             # Sentence with expected split sentence
-            list_sent_exp
+            list_sent_exp,
+            spell_check_on_joined_alphabets,
     ):
         test_results = []
         for sent_exp in list_sent_exp:
             sent = sent_exp[0]
             sent_split = word_segmenter.segment_words(
                 text = sent,
-                return_array_of_split_words = True
+                return_array_of_split_words = True,
+                spell_check_on_joined_alphabets = spell_check_on_joined_alphabets,
             )
             test_results.append(sent_split)
 
@@ -46,7 +48,7 @@ class UnitTestWordSegmentation:
         return res
 
     def get_word_segmenter(self, lang):
-        return langhelper.LangHelper.get_word_segmenter(
+        tokenizer = langhelper.LangHelper.get_word_segmenter(
             lang                 = lang,
             dirpath_wordlist     = self.ut_params.dirpath_wordlist,
             postfix_wordlist     = self.ut_params.postfix_wordlist,
@@ -59,8 +61,11 @@ class UnitTestWordSegmentation:
             # word. Only during detection, we need to do this to make
             # sure that whatever word we replace is in the feature list.
             allowed_root_words   = None,
+            dir_path_model       = self.ut_params.dirpath_model,
+            identifier_string    = 'sample_for_unit_test',
             do_profiling         = False,
         ).wseg
+        return tokenizer
 
     def test_chinese(self):
         list_sent_exp = [
@@ -88,7 +93,8 @@ class UnitTestWordSegmentation:
         ]
         retv = self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_ZH),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
         return retv
 
@@ -101,7 +107,8 @@ class UnitTestWordSegmentation:
         ]
         return self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_KO),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
 
     def test_japanese(self):
@@ -121,11 +128,13 @@ class UnitTestWordSegmentation:
         ]
         retv = self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_JA),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
         return retv
 
-    def test_thai(self):
+    # No spell check on joined alphabets
+    def test_thai_1(self):
         list_sent_exp = [
             # TODO Add 'ผิดหวัง' to dictionary
             ['บัวขาว บัญชาเมฆ ไม่ทำให้แฟนมวยชาวไทยผิดหวัง',
@@ -153,7 +162,25 @@ class UnitTestWordSegmentation:
         ]
         retv = self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
+        )
+        return retv
+
+    # With spell check on joined alphabets
+    def test_thai_2(self):
+        list_sent_exp = [
+            ['นี่คือ', ['นี่', 'คือ']], # nothing to correct
+            ['นีคือ', ['มี', 'คือ']], # "นี" to correct
+            ['สอบถามยอดพนันครับ', ['สอบ', 'ถาม', 'ยอด', 'พนัน', 'ครับ']], # nothing to correct
+            ['สอบถาายอดพนันครับ', ['สอบ', 'ถ้า', 'ยอด', 'พนัน', 'ครับ']], # "ถาา" to correct
+            ['นานไหมเงินที่ไหน', ['นาน', 'ไหม', 'เงิน', 'ที่', 'ไหน']],    # nothing to correct
+            ['นนนไหมเงินที่ไหน', ['นาน', 'ไหม', 'เงิน', 'ที่', 'ไหน']],    # "นนน" corrected to "นาน",
+        ]
+        retv = self.do_unit_test(
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH),
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = True,
         )
         return retv
 
@@ -175,7 +202,8 @@ class UnitTestWordSegmentation:
         ]
         retv = self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_VI),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
         return retv
 
@@ -188,7 +216,8 @@ class UnitTestWordSegmentation:
         ]
         return self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_EN),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
 
     def test_russian(self):
@@ -200,14 +229,16 @@ class UnitTestWordSegmentation:
         ]
         return self.do_unit_test(
             word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_RU),
-            list_sent_exp  = list_sent_exp
+            list_sent_exp  = list_sent_exp,
+            spell_check_on_joined_alphabets = False,
         )
 
     def run_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
         for test_func in [
-            self.test_chinese, self.test_thai, self.test_viet,
+            self.test_thai_1, self.test_thai_2,
+            self.test_chinese, self.test_viet,
             self.test_en, self.test_korean, self.test_russian,
             self.test_japanese,
         ]:
@@ -230,7 +261,8 @@ if __name__ == '__main__':
         dirpath_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_DIR_APP_WORDLIST),
         postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
         dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
-        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST)
+        postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
+        dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
     )
     print('Unit Test Params: ' + str(ut_params.to_string()))
 

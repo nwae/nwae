@@ -112,7 +112,7 @@ if __name__ == '__main__':
         postfix_app_wordlist = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_APP_WORDLIST),
         dirpath_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_DIR_SYNONYMLIST),
         postfix_synonymlist  = config.get_config(param=cf.Config.PARAM_NLP_POSTFIX_SYNONYMLIST),
-        dirpath_model        = None,
+        dirpath_model        = config.get_config(param=cf.Config.PARAM_MODEL_DIR),
     )
     Log.important('Unit Test Params: ' + str(ut_params.to_string()))
 

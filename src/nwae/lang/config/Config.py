@@ -22,6 +22,10 @@ class Config(baseconfig.BaseConfig):
     #
     # NLP Settings
     #
+    # Any general model directory
+    PARAM_MODEL_DIR = 'model_dir'
+    DEFVAL_MODEL_DIR = None
+
     PARAM_NLP_DIR_WORDLIST = 'dir_wordlist'
     DEFVAL_NLP_DIR_WORDLIST = None
 
@@ -143,30 +147,31 @@ class Config(baseconfig.BaseConfig):
 
         param_values_to_set = {
             # Top directory
-            Config.PARAM_TOPDIR: Config.DEFVAL_TOPDIR,
+            self.PARAM_TOPDIR: self.DEFVAL_TOPDIR,
             # Logging
-            Config.PARAM_LOG_LEVEL: Config.DEFVAL_LOGLEVEL,
+            self.PARAM_LOG_LEVEL: self.DEFVAL_LOGLEVEL,
             #######################################################################
             # Intent Server Stuff
             #######################################################################
-            Config.PARAM_DO_PROFILING: Config.DEFVAL_DO_PROFILING,
+            self.PARAM_DO_PROFILING: self.DEFVAL_DO_PROFILING,
             #######################################################################
             # NLP Stuff
             #######################################################################
+            self.PARAM_MODEL_DIR: self.DEFVAL_MODEL_DIR,
             # Word lists
-            Config.PARAM_NLP_DIR_WORDLIST: Config.DEFVAL_NLP_DIR_WORDLIST,
-            Config.PARAM_NLP_DIR_APP_WORDLIST: Config.DEFVAL_NLP_DIR_APP_WORDLIST,
-            Config.PARAM_NLP_POSTFIX_WORDLIST: Config.DEFVAL_NLP_POSTFIX_WORDLIST,
-            Config.PARAM_NLP_POSTFIX_APP_WORDLIST: Config.DEFVAL_NLP_POSTFIX_APP_WORDLIST,
+            self.PARAM_NLP_DIR_WORDLIST:          self.DEFVAL_NLP_DIR_WORDLIST,
+            self.PARAM_NLP_DIR_APP_WORDLIST:      self.DEFVAL_NLP_DIR_APP_WORDLIST,
+            self.PARAM_NLP_POSTFIX_WORDLIST:      self.DEFVAL_NLP_POSTFIX_WORDLIST,
+            self.PARAM_NLP_POSTFIX_APP_WORDLIST:  self.DEFVAL_NLP_POSTFIX_APP_WORDLIST,
             # Synonym lists
-            Config.PARAM_NLP_DIR_SYNONYMLIST: Config.DEFVAL_NLP_DIR_SYNONYMLIST,
-            Config.PARAM_NLP_POSTFIX_SYNONYMLIST: Config.DEFVAL_NLP_POSTFIX_SYNONYMLIST,
+            self.PARAM_NLP_DIR_SYNONYMLIST:       self.DEFVAL_NLP_DIR_SYNONYMLIST,
+            self.PARAM_NLP_POSTFIX_SYNONYMLIST:   self.DEFVAL_NLP_POSTFIX_SYNONYMLIST,
             # Stopwords lists (to be outdated)
-            Config.PARAM_NLP_POSTFIX_STOPWORDS: Config.DEFVAL_NLP_POSTFIX_STOPWORDS,
-            Config.PARAM_NLP_DIR_APP_STOPWORDS: Config.DEFVAL_NLP_DIR_APP_STOPWORDS,
-            Config.PARAM_NLP_POSTFIX_APP_STOPWORDS: Config.DEFVAL_NLP_POSTFIX_APP_STOPWORDS,
+            self.PARAM_NLP_POSTFIX_STOPWORDS:     self.DEFVAL_NLP_POSTFIX_STOPWORDS,
+            self.PARAM_NLP_DIR_APP_STOPWORDS:     self.DEFVAL_NLP_DIR_APP_STOPWORDS,
+            self.PARAM_NLP_POSTFIX_APP_STOPWORDS: self.DEFVAL_NLP_POSTFIX_APP_STOPWORDS,
             # NLTK or whatever download dir
-            Config.PARAM_NLP_DIR_NLP_DOWNLOAD: Config.DEFVAL_NLP_DIR_NLP_DOWNLOAD,
+            self.PARAM_NLP_DIR_NLP_DOWNLOAD:      self.DEFVAL_NLP_DIR_NLP_DOWNLOAD,
         }
 
         for param in param_values_to_set.keys():
@@ -178,26 +183,29 @@ class Config(baseconfig.BaseConfig):
         return
 
     def __reconfigure_paths_requiring_topdir(self):
-        topdir = self.get_config(param=Config.PARAM_TOPDIR)
+        topdir = self.get_config(param=self.PARAM_TOPDIR)
+
+        if self.param_value[self.PARAM_MODEL_DIR] is None:
+            self.param_value[self.PARAM_MODEL_DIR] = topdir + '/app.data/models'
 
         # Word lists
-        if self.param_value[Config.PARAM_NLP_DIR_WORDLIST] is None:
-            self.param_value[Config.PARAM_NLP_DIR_WORDLIST] = topdir + '/nlp.data/wordlist'
-        if self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST] is None:
-            self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST] = topdir + '/nlp.data/app/chats'
+        if self.param_value[self.PARAM_NLP_DIR_WORDLIST] is None:
+            self.param_value[self.PARAM_NLP_DIR_WORDLIST] = topdir + '/nlp.data/wordlist'
+        if self.param_value[self.PARAM_NLP_DIR_APP_WORDLIST] is None:
+            self.param_value[self.PARAM_NLP_DIR_APP_WORDLIST] = topdir + '/nlp.data/app/chats'
 
         # Synonym lists
-        if self.param_value[Config.PARAM_NLP_DIR_SYNONYMLIST] is None:
-            self.param_value[Config.PARAM_NLP_DIR_SYNONYMLIST] = topdir + '/nlp.data/app/chats'
+        if self.param_value[self.PARAM_NLP_DIR_SYNONYMLIST] is None:
+            self.param_value[self.PARAM_NLP_DIR_SYNONYMLIST] = topdir + '/nlp.data/app/chats'
 
         # Stopwords lists (to be outdated)
-        if self.param_value[Config.PARAM_NLP_DIR_APP_STOPWORDS] is None:
-            self.param_value[Config.PARAM_NLP_DIR_APP_STOPWORDS] =\
-                self.param_value[Config.PARAM_NLP_DIR_APP_WORDLIST]
+        if self.param_value[self.PARAM_NLP_DIR_APP_STOPWORDS] is None:
+            self.param_value[self.PARAM_NLP_DIR_APP_STOPWORDS] =\
+                self.param_value[self.PARAM_NLP_DIR_APP_WORDLIST]
 
         # NLTK or whatever download dir
-        if self.param_value[Config.PARAM_NLP_DIR_NLP_DOWNLOAD] is None:
-            self.param_value[Config.PARAM_NLP_DIR_NLP_DOWNLOAD] = topdir + '/nlp.data/download'
+        if self.param_value[self.PARAM_NLP_DIR_NLP_DOWNLOAD] is None:
+            self.param_value[self.PARAM_NLP_DIR_NLP_DOWNLOAD] = topdir + '/nlp.data/download'
 
         return
 

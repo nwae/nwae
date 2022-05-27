@@ -130,6 +130,9 @@ class TxtPreprocessor:
             postfix_synonymlist  = self.postfix_synonymlist,
             # We can only allow root words to be words from the model features
             allowed_root_words   = self.model_features_list,
+            # Directory and identifier string for looking up EIDF files
+            dir_path_model       = self.dir_path_model,
+            identifier_string    = self.identifier_string,
             do_profiling         = self.do_profiling
         )
         self.wseg = ret_obj.wseg
