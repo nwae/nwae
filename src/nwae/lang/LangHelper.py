@@ -22,6 +22,7 @@ class LangHelper:
             # Directory and identifier string for looking up EIDF files for spelling correction
             dir_path_model     = None,
             identifier_string  = None,
+            load_spell_check   = False,
             # If this is not None, then the synonym list will only choose root words from here
             allowed_root_words = None,
             do_profiling       = False,
@@ -35,6 +36,7 @@ class LangHelper:
             postfix_wordlist  = postfix_wordlist,
             dir_path_model    = dir_path_model,
             identifier_string = identifier_string,
+            load_spell_check  = load_spell_check,
             do_profiling      = do_profiling,
         )
 

@@ -20,8 +20,14 @@ from nwae.ml.modelhelper.TextModelHelper import TextModelHelper
 #
 class NwaeMlUnitTest:
 
-    def __init__(self, ut_params):
+    def __init__(
+            self,
+            ut_params,
+            # For word segmentation tests require some sample EIDF files
+            dir_lang_model_samples = NwaeLangUnitTest.DEFAULT_MODEL_FOLDER_SAMPLE_FILES_FOR_UNIT_TEST,
+    ):
         self.ut_params = ut_params
+        self.dir_lang_model_samples = dir_lang_model_samples
         if self.ut_params is None:
             # We only do this for convenience, so that we have access to the Class methods in UI
             self.ut_params = uthelper.UnitTestParams()
@@ -35,7 +41,10 @@ class NwaeMlUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.utils>> Object Persistence Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        res = NwaeLangUnitTest(ut_params=self.ut_params).run_unit_tests()
+        res = NwaeLangUnitTest(
+            ut_params = self.ut_params,
+            dir_ut_samples = self.dir_lang_model_samples,
+        ).run_unit_tests()
         if res.count_fail > 0: raise Exception('nwae.lang failed: ' + str(res.count_fail))
         res_final.update(other_res_obj=res)
         # Log.critical('Project <<nwae.lang>> Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))

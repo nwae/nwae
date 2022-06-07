@@ -15,9 +15,12 @@ class UnitTestWordSegmentation:
 
     def __init__(
             self,
-            ut_params
+            ut_params,
+            # Directory of sample files used in unit test, overwrite the model directory in ut_params
+            dir_ut_samples,
     ):
         self.ut_params = ut_params
+        self.dir_ut_samples = dir_ut_samples
         if self.ut_params is None:
             # We only do this for convenience, so that we have access to the Class methods in UI
             self.ut_params = ut.UnitTestParams()
@@ -47,7 +50,20 @@ class UnitTestWordSegmentation:
         )
         return res
 
-    def get_word_segmenter(self, lang):
+    def get_word_segmenter(
+            self,
+            lang,
+            load_spell_check = False,
+    ):
+        dir_sample_files = self.ut_params.dirpath_model
+        if self.dir_ut_samples is not None:
+            Log.info(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': For unit test purposes, overwriting dirpath model directory from "'
+                + str(self.ut_params.dirpath_model) + '" to "' + str(self.dir_ut_samples) + '"'
+            )
+            dir_sample_files = self.dir_ut_samples
+
         tokenizer = langhelper.LangHelper.get_word_segmenter(
             lang                 = lang,
             dirpath_wordlist     = self.ut_params.dirpath_wordlist,
@@ -61,8 +77,9 @@ class UnitTestWordSegmentation:
             # word. Only during detection, we need to do this to make
             # sure that whatever word we replace is in the feature list.
             allowed_root_words   = None,
-            dir_path_model       = self.ut_params.dirpath_model,
+            dir_path_model       = dir_sample_files,
             identifier_string    = 'sample_for_unit_test',
+            load_spell_check     = load_spell_check,
             do_profiling         = False,
         ).wseg
         return tokenizer
@@ -178,7 +195,7 @@ class UnitTestWordSegmentation:
             ['นนนไหมเงินที่ไหน', ['นาน', 'ไหม', 'เงิน', 'ที่', 'ไหน']],    # "นนน" corrected to "นาน",
         ]
         retv = self.do_unit_test(
-            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH),
+            word_segmenter = self.get_word_segmenter(lang = lf.LangFeatures.LANG_TH, load_spell_check = True),
             list_sent_exp  = list_sent_exp,
             spell_check_on_joined_alphabets = True,
         )
@@ -237,7 +254,7 @@ class UnitTestWordSegmentation:
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
         for test_func in [
-            self.test_thai_1, #self.test_thai_2,
+            self.test_thai_1, self.test_thai_2,
             self.test_chinese, self.test_viet,
             self.test_en, self.test_korean, self.test_russian,
             self.test_japanese,
@@ -267,7 +284,8 @@ if __name__ == '__main__':
     print('Unit Test Params: ' + str(ut_params.to_string()))
 
     tst = UnitTestWordSegmentation(
-        ut_params = ut_params
+        ut_params = ut_params,
+        dir_ut_samples = None,
     )
     res = tst.run_unit_test()
 

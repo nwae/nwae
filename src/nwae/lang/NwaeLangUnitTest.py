@@ -25,8 +25,16 @@ from nwae.lang.classification.TxtClusterUnitTest import TxtClusterUnitTest
 #
 class NwaeLangUnitTest:
 
-    def __init__(self, ut_params):
+    DEFAULT_MODEL_FOLDER_SAMPLE_FILES_FOR_UNIT_TEST = '/usr/local/git/nwae/nwae.lang/app.data/models/'
+
+    def __init__(
+            self,
+            ut_params,
+            # Directory of sample files used in unit test, overwrite the model directory in ut_params
+            dir_ut_samples = None,
+    ):
         self.ut_params = ut_params
+        self.dir_ut_samples = dir_ut_samples
         if self.ut_params is None:
             # We only do this for convenience, so that we have access to the Class methods in UI
             self.ut_params = uthelper.UnitTestParams()
@@ -55,7 +63,10 @@ class NwaeLangUnitTest:
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Wordlist Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
-        res = UnitTestWordSegmentation(ut_params=self.ut_params).run_unit_test()
+        res = UnitTestWordSegmentation(
+            ut_params      = self.ut_params,
+            dir_ut_samples = self.dir_ut_samples,
+        ).run_unit_test()
         res_final.update(other_res_obj=res)
         Log.critical('<<nwae.lang>> Tokenizer Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
@@ -102,7 +113,7 @@ class NwaeLangUnitTest:
 if __name__ == '__main__':
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class       = cf.Config,
-        default_config_file = '/usr/local/git/nwae/nwae.lang/app.data/config/default.cf'
+        default_config_file = cf.Config.CONFIG_FILE_PATH_DEFAULT,
     )
 
     ut_params = uthelper.UnitTestParams(
@@ -118,5 +129,8 @@ if __name__ == '__main__':
 
     Log.LOGLEVEL = Log.LOG_LEVEL_ERROR
 
-    res = NwaeLangUnitTest(ut_params=ut_params).run_unit_tests()
+    res = NwaeLangUnitTest(
+        ut_params = ut_params,
+        dir_ut_samples = NwaeLangUnitTest.DEFAULT_MODEL_FOLDER_SAMPLE_FILES_FOR_UNIT_TEST,
+    ).run_unit_tests()
     exit(res.count_fail)

@@ -83,7 +83,8 @@ class WordSegmentation(object):
             # Directory and identifier string for looking up EIDF files
             dir_path_model    = None,
             identifier_string = None,
-            do_profiling   = False,
+            load_spell_check  = False,
+            do_profiling = False,
             # For kkma
             jvmpath = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/lib/jli/libjli.dylib',
     ):
@@ -95,6 +96,7 @@ class WordSegmentation(object):
         # Directory and identifier string for looking up EIDF files
         self.dir_path_model = dir_path_model
         self.identifier_string = identifier_string
+        self.load_spell_check = load_spell_check
         self.do_profiling = do_profiling
         # Don't use for Korean KKMA for now
         self.use_external_lib = self.lang in [lf.LangFeatures.LANG_JA]
@@ -182,24 +184,25 @@ class WordSegmentation(object):
                 + str(self.need_to_split_by_syllables_before_tokenization)
             )
 
-            try:
-                words = self.lang_wordlist.wordlist[wl.WordList.COL_WORD].tolist()
-                self.spell_check_word = SpellCheckWord(
-                    lang              = self.lang,
-                    words_list        = words,
-                    dir_path_model    = self.dir_path_model,
-                    identifier_string = self.identifier_string,
-                    method_rank_words = SpellCheckWord.METHOD_RANK_EIDF,
-                    do_profiling      = self.do_profiling
-                )
-            except Exception as ex:
-                Log.error(
-                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Could not load spell check for lang "' + str(self.lang)
-                    + '", dir path model "' + str(self.dir_path_model)
-                    + '", identifier string "' + str(self.identifier_string) + '". Exception: ' + str(ex)
-                )
-                self.spell_check_word = None
+            if self.load_spell_check:
+                try:
+                    words = self.lang_wordlist.wordlist[wl.WordList.COL_WORD].tolist()
+                    self.spell_check_word = SpellCheckWord(
+                        lang              = self.lang,
+                        words_list        = words,
+                        dir_path_model    = self.dir_path_model,
+                        identifier_string = self.identifier_string,
+                        method_rank_words = SpellCheckWord.METHOD_RANK_EIDF,
+                        do_profiling      = self.do_profiling
+                    )
+                except Exception as ex:
+                    Log.error(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Could not load spell check for lang "' + str(self.lang)
+                        + '", dir path model "' + str(self.dir_path_model)
+                        + '", identifier string "' + str(self.identifier_string) + '". Exception: ' + str(ex)
+                    )
+                    self.spell_check_word = None
         return
 
     def get_wordlist_length(self):

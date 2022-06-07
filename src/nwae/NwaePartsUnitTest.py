@@ -22,7 +22,10 @@ class NwaePartsUnitTest:
     def run_unit_tests(self):
         res_final = uthelper.ResultObj(count_ok=0, count_fail=0)
 
-        res = NwaeMlUnitTest(ut_params=self.ut_params).run_unit_tests()
+        res = NwaeMlUnitTest(
+            ut_params = self.ut_params,
+            dir_lang_model_samples = '/usr/local/git/nwae/nwae/app.data/models',
+        ).run_unit_tests()
         res_final.update(other_res_obj=res)
         Log.critical('Nwae ML Unit Test PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))
 
