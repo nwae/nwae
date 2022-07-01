@@ -115,12 +115,12 @@ class WordList:
             postfix     = None,
             array_words = None,
     ):
-        log.Log.debug(
+        len_ori = self.wordlist.shape[0]
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Lang ' + str(self.lang) + '" Initial wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+            + ': Lang ' + str(self.lang) + '" Initial wordlist length = ' + str(len_ori) + '.'
             + ', appending wordlist:\n\r' + str(array_words)
         )
-        wordlist_additional = None
         if array_words is not None:
             wordlist_additional = self.__load_list(
                 dirpath     = None,
@@ -133,12 +133,14 @@ class WordList:
                 postfix = postfix
             )
         # Join general and application wordlist
-        self.wordlist = self.wordlist.append(wordlist_additional)
+        self.wordlist = pd.concat([self.wordlist, wordlist_additional], axis=0, join='outer')
         # Remove duplicates
         self.wordlist = self.wordlist.drop_duplicates(subset=[WordList.COL_WORD])
-        log.Log.debug(
+        self.wordlist = self.wordlist.reset_index(drop=True)
+        log.Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Lang "' + str(self.lang) + '" final wordlist length = ' + str(self.wordlist.shape[0]) + '.'
+            + ': Lang "' + str(self.lang) + '", start wordlist length = ' + str(len_ori)
+            + ', final wordlist length = ' + str(self.wordlist.shape[0]) + '.'
         )
 
         self.update_ngrams()
@@ -356,7 +358,7 @@ class WordlistUnitTest:
 
 
 if __name__ == '__main__':
-    import nwae.config.Config as cf
+    import nwae.lang.config.Config as cf
 
     config = cf.Config.get_cmdline_params_and_init_config_singleton(
         Derived_Class       = cf.Config,
