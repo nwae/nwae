@@ -35,6 +35,8 @@ class BasicPreprocessor:
     # Other common symbols
     # Number
     W_NUM = '_num'
+    W_NUM_LONG = '_num_long' # up to application to define what is "long"
+    W_NUM_VERY_LONG = '_num_very_long' # up to application to define what is "very long"
     # Username or any word with mix of character/numbers/etc
     W_USERNAME = '_username'
     W_USERNAME_NONWORD = '_username_nonword'
@@ -43,7 +45,8 @@ class BasicPreprocessor:
 
     ALL_SPECIAL_SYMBOLS = (
         W_PAD, W_GO, W_EOS, W_UNK,
-        W_NUM, W_USERNAME, W_USERNAME_NONWORD, W_URI
+        W_NUM, W_NUM_LONG, W_NUM_VERY_LONG,
+        W_USERNAME, W_USERNAME_NONWORD, W_URI,
     )
 
     _START_VOCAB = [W_PAD, W_GO, W_EOS, W_UNK]

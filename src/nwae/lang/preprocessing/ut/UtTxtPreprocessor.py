@@ -27,6 +27,8 @@ class UtTxtPreprocessor:
             #
             ['2019年 12月 26日 俄罗斯部署高超音速武器 取得全球领先',
              [BasicPreprocessor.W_NUM,'年',BasicPreprocessor.W_NUM,'月',BasicPreprocessor.W_NUM,'日','俄罗斯','部署','高超','音速','武器','取得','全球','领先']],
+            ['12345, 123456:123456789 1234567890 单号',
+             [BasicPreprocessor.W_NUM, ',', BasicPreprocessor.W_NUM_LONG, ':', BasicPreprocessor.W_NUM_LONG, BasicPreprocessor.W_NUM_VERY_LONG, '单', '号']],
             #
             # Username Special Symbol Tests
             #
@@ -156,5 +158,6 @@ if __name__ == '__main__':
     print('Unit Test Params: ' + str(ut_params.to_string()))
 
     Log.LOGLEVEL = Log.LOG_LEVEL_WARNING
-    UtTxtPreprocessor(ut_params=ut_params).run_unit_test()
+    res_test = UtTxtPreprocessor(ut_params=ut_params).run_unit_test()
+    print('Unit Test Passed ' + str(res_test.count_ok) + ', Failed ' + str(res_test.count_fail))
 

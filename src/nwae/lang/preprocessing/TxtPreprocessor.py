@@ -245,7 +245,9 @@ class TxtPreprocessor:
             self,
             inputtext,
             return_as_string = False,
-            use_special_symbol_username_nonword = False
+            use_special_symbol_username_nonword = False,
+            len_long_number = 6,
+            len_very_long_number = 10,
     ):
         #
         # 1st Round replace with very special symbols first, that must be done before
@@ -381,7 +383,12 @@ class TxtPreprocessor:
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Found for number in word "' + str(word) + '"'
                 )
-                text_normalized_arr_lower[i] = BasicPreprocessor.W_NUM
+                if len(word) < len_long_number:
+                    text_normalized_arr_lower[i] = BasicPreprocessor.W_NUM
+                elif len(word) < len_very_long_number:
+                    text_normalized_arr_lower[i] = BasicPreprocessor.W_NUM_LONG
+                else:
+                    text_normalized_arr_lower[i] = BasicPreprocessor.W_NUM_VERY_LONG
             elif self.model_features_list is not None:
                 if word not in self.model_features_list:
                     text_normalized_arr_lower[i] = BasicPreprocessor.W_UNK
