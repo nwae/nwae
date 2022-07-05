@@ -52,6 +52,12 @@ class NetworkDesign:
 
         self.require_label_to_categorical = True
         self.network = None
+
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Initialized class, model type "' + str(self.model_type) + '", max label value ' + str(self.max_label_value)
+            + ', input shape ' + str(self.input_shape) + ', network layer config: ' + str(self.network_layer_config)
+        )
         return
 
     def summary(self):
@@ -113,7 +119,7 @@ class NetworkDesign:
                     # is to transform the input to a standard NN form
                     self.network.add(
                         # Embedding layers are usually for text data
-                        layers.embeddings.Embedding(
+                        layers.Embedding(
                             # Must be at least the size of the unique vocabulary
                             input_dim    = ly[ModelInterface.NN_LAYER_INPUT_DIM],
                             # How many words, or length of word input vector

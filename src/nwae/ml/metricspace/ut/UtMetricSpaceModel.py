@@ -19,6 +19,7 @@ class UnitTestMetricSpaceModel:
 
     IDENTIFIER_STRING = 'demo_ut1'
 
+    # "Preprocessed" sentences
     DATA_TEXTS = [
         # 0
         ['하나', '두', '두', '셋', '넷'],
@@ -40,7 +41,7 @@ class UnitTestMetricSpaceModel:
         ['두', '셋', '셋', '넷', '다섯'],
         ['두', '셋', '넷', '넷', '다섯']
     ]
-    # Must be in sync with DATA_TEXTS
+    # Must be in sync with DATA_TEXTS (Bag of words)
     DATA_X = np.array(
         [
             # в таком порядке ['하나', '두', '셋', '넷', '다섯', '여섯']
@@ -170,6 +171,8 @@ class UnitTestMetricSpaceModel:
         #
         y_list = self.y.tolist()
         y_list = list(y_list)
+
+        # Will return x as bag of words, y as labels
         self.tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
             label_id                 = y_list.copy(),
             label_name               = y_list.copy(),

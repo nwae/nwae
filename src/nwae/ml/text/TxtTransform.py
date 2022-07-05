@@ -8,6 +8,7 @@ from nwae.lang.LangFeatures import LangFeatures
 try:
     import keras.utils as kerasutils
     import keras.preprocessing as kerasprep
+    from keras_preprocessing.sequence import pad_sequences
 except Exception as ex_keras:
     Log.warning(
         str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -16,12 +17,16 @@ except Exception as ex_keras:
 
 
 #
-# Transform text to suitable math objects for neural networks
+# Transform text to suitable math objects for neural networks. Among them
+#   - create one-hot-dict from all x (sentences) & y (labels)
+#   - pad all sentences to become same length
+# Tested on Python 3.10
 #
 class TxtTransform:
 
     def __init__(
             self,
+            # "Preprocessed" sentences
             # List of documents or sentences, with preprocessing already done
             # (e.g. using nwae.lang.preprocessing.TxtPreprocessor)
             # Words however are not split into array yet, just separated by word separator specified
@@ -157,7 +162,7 @@ class TxtTransform:
             + ': Max Sentence Length = ' + str(max_sent_len)
         )
 
-        p_docs = kerasprep.sequence.pad_sequences(enc_docs, maxlen=max_sent_len, padding=padding)
+        p_docs = pad_sequences(enc_docs, maxlen=max_sent_len, padding=padding)
         Log.debug(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Padded Encoded Sentences (' + str(p_docs.shape) + ') type "' + str(type(p_docs)) + '":'
@@ -332,3 +337,15 @@ if __name__ == '__main__':
         docs   = [x[0] for x in docs_label],
         labels = [x[1] for x in docs_label]
     ).create_padded_docs()
+    print('x,y one hot dic')
+    print(r.x_one_hot_dict)
+    print(r.y_one_hot_dict)
+    print('original docs')
+    print(r.original_docs)
+    print('encoded docs/labels/padded doc')
+    print(r.encoded_docs)
+    print(r.encoded_labels)
+    print(r.padded_encoded_docs)
+    print('encoded labels/categorical')
+    print(r.encoded_labels)
+    print(r.encoded_labels_categorical)

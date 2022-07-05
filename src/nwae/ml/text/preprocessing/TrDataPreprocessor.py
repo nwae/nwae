@@ -248,9 +248,13 @@ class TrDataPreprocessor:
                 # warning messages by pandas due to required join() operation.
                 # If in same order, then we avoid the join().
                 #
-                self.df_training_data = self.df_training_data.append(
-                    row_to_append,
-                    sort = True
+                # TODO FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+                self.df_training_data = pd.concat(
+                    [self.df_training_data, row_to_append],
+                    axis = 0,
+                    join = 'outer',
+                    # No need to sort columns
+                    sort = False,
                 )
                 Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -539,9 +543,13 @@ class TrDataPreprocessor:
                 # warning messages by pandas due to required join() operation.
                 # If in same order, then we avoid the join().
                 #
-                self.df_training_data = self.df_training_data.append(
-                    row_to_append,
-                    sort = True
+                # TODO FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+                self.df_training_data = pd.concat(
+                    [self.df_training_data, row_to_append],
+                    axis = 0,
+                    join = 'outer',
+                    # No need to sort columns
+                    sort = False,
                 )
                 Log.important(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

@@ -340,7 +340,7 @@ class TrainingDataModel:
 
     #
     # Помогающая Функция объединить разные свойства в тренинговый данные.
-    # Returns sentence matrix array of combined word features
+    # Returns sentence matrix array of combined word features (e.g. bag of words)
     # After this we will have our x (samples) and y (labels).
     #
     @staticmethod
@@ -460,6 +460,7 @@ class TrainingDataModel:
                 + ', and sentence FV shape/length = ' + str(sentence_fv.shape) + ' must be equal.'
             )
 
+        # Word freq or bag of words, won't need one-hot dicts
         return TrainingDataModel(
             x      = sentence_fv,
             x_name = np.array(fv_wordlabels),
