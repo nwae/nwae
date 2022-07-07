@@ -31,6 +31,7 @@ class TextModelHelper:
             train_epochs            = 100,
             train_batch_size        = 128,
             train_optimizer         = 'rmsprop',
+            # For train loss "sparse_categorical_crossentropy", y-output cannot be categorical format data.
             train_loss              = 'sparse_categorical_crossentropy',
             evaluate_metrics        = ('accuracy'),
             confidence_level_scores = None,
@@ -46,7 +47,8 @@ class TextModelHelper:
                     model_type              = NetworkDesign.MODEL_TEXT_EMBEDDING,
                     max_label_value         = embed_max_label_val,
                     txtemb_max_sentence_len = embed_max_sentence_len,
-                    txtemb_vocabulary_size  = embed_vocabulary_size
+                    txtemb_vocabulary_size  = embed_vocabulary_size,
+                    train_loss              = train_loss,
                 )
                 model_params.create_network()
 

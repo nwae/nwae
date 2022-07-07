@@ -216,6 +216,7 @@ class NnDenseModel(ModelInterface):
         # print('***** Input x: ' + str(x) + ', type ' + str(type(x)))
         if top == 1:
             # This will only return the top match
+            # Deprecated in TF 2.6, change to just "predict" instead of "predict_classes"
             top_match = self.network.predict_classes(x=x)
             return NnDenseModel.PredictReturnClass(
                 predicted_classes = top_match
@@ -253,6 +254,9 @@ class NnDenseModel(ModelInterface):
                 match_details           = match_details
             )
 
+    """
+    This name "predict_classes", reflecting TF function call, was deprecated in TF 2.6
+    """
     def predict_classes(
             self,
             # ndarray type of >= 2 dimensions
@@ -261,8 +265,12 @@ class NnDenseModel(ModelInterface):
             top                   = ModelInterface.MATCH_TOP
     ):
         self.wait_for_model()
-        # Returns a 1-dim
-        p = self.network.predict_classes(x=x)
+        # Deprecated in TF 2.6
+        # p = self.network.predict_classes(x=x)
+        # This will return the predicted vectors (last layer in model network)
+        p_all = self.network.predict(x=x)
+        # We only want the top matches
+        p = np.argmax(p_all, axis=-1)
         top_x_matches_original = self.__map_top_matches_to_one_hot_labels(
             top_matches = p
         )
@@ -369,7 +377,7 @@ class NnDenseModel(ModelInterface):
 
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + 'Categorical Train label shape "' + str(train_labels_categorical.shape)
+                + ': Categorical Train label shape "' + str(train_labels_categorical.shape)
                 + '":\n\r' + str(train_labels_categorical)
             )
 
@@ -382,8 +390,20 @@ class NnDenseModel(ModelInterface):
                 # print('***** x: ' + str(x))
                 # print('***** y: ' + str(train_labels_categorical))
                 train_labels = y
-                if self.model_params.require_label_to_categorical:
+                if self.model_params.is_require_y_label_to_categorical():
                     train_labels = train_labels_categorical
+                    Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        + ': For "' + str(self.identifier_string)
+                        + '", IS using to categorical, y labels: ' + str(train_labels)
+                    )
+                else:
+                    Log.important(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                        + ': For "' + str(self.identifier_string)
+                        + '", NOT using to categorical, y labels: ' + str(train_labels)
+                    )
+
                 if self.train_batch_size is not None:
                     network.fit(
                         x,

@@ -37,6 +37,7 @@ class NetworkDesign:
             txtemb_vocabulary_size  = None,
             # Ручный дисайн
             network_layer_config    = None,
+            train_loss              = None,
     ):
         self.model_type = model_type
         self.max_label_value = max_label_value
@@ -44,13 +45,13 @@ class NetworkDesign:
         self.txtemb_max_sentence_len = txtemb_max_sentence_len
         self.txtemb_vocabulary_size = txtemb_vocabulary_size
         self.network_layer_config = network_layer_config
+        self.train_loss = train_loss
 
         if self.network_layer_config is None:
             # TensorFlow will fail with only 1 label
             if self.max_label_value <= 1:
                 self.max_label_value = 2
 
-        self.require_label_to_categorical = True
         self.network = None
 
         Log.important(
@@ -76,6 +77,9 @@ class NetworkDesign:
         self.create_network_from_layer_config()
         return
 
+    def is_require_y_label_to_categorical(self):
+        return self.train_loss not in ['sparse_categorical_crossentropy']
+
     def create_network_from_layer_config(
             self,
     ):
@@ -89,8 +93,6 @@ class NetworkDesign:
                 + ', max sentence len = ' + str(self.txtemb_max_sentence_len)
                 + ', vocabulary size = ' + str(self.txtemb_vocabulary_size)
             )
-            self.require_label_to_categorical = \
-                self.network_layer_config[NetworkDesign.KEY_MODEL_LABEL_TO_CATEGORICAL]
 
             self.network = models.Sequential()
 
@@ -188,7 +190,7 @@ class NetworkDesign:
                 last_layer_output_len      = last_layer_output_len,
                 embedding_layer_output_dim = output_dim,
                 embedding_layer_input_len  = self.txtemb_max_sentence_len,
-                embedding_layer_input_dim  = self.txtemb_vocabulary_size
+                embedding_layer_input_dim  = self.txtemb_vocabulary_size,
             )
         elif self.model_type == NetworkDesign.MODEL_GENERAL_DATA:
             self.network_layer_config =  self.__design_general_data_model(
@@ -240,7 +242,8 @@ class NetworkDesign:
     ):
         return {
             NetworkDesign.KEY_MODEL_TYPE: self.model_type,
-            NetworkDesign.KEY_MODEL_LABEL_TO_CATEGORICAL: False,
+            # For train loss "sparse_categorical_crossentropy", must be False.
+            NetworkDesign.KEY_MODEL_LABEL_TO_CATEGORICAL: self.is_require_y_label_to_categorical(),
             NetworkDesign.KEY_MODEL_LAYERS: [
                 {
                     ModelInterface.NN_LAYER_TYPE: ModelInterface.VALUE_NN_LAYER_TYPE_EMBEDDING,

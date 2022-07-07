@@ -244,6 +244,7 @@ class NnDenseModelUnitTest:
             embed_max_sentence_len = max_sentence_len,
             embed_vocabulary_size  = vocabulary_size,
             train_epochs           = NnDenseModelUnitTest.TRAIN_EPOCHS,
+            # "sparse_categorical_crossentropy" cannot be used with categorical y output
             train_loss             = 'sparse_categorical_crossentropy'
         )
         model_obj.set_training_data(td=td)
@@ -351,6 +352,7 @@ class NnDenseModelUnitTest:
                 embedding_y        = y,
                 embedding_x_one_hot_dict = x_one_hot_dict,
                 embedding_y_one_hot_dict = y_one_hot_dict,
+                word_freq_model    = None,
             )
             model_obj = TextModelHelper.get_model(
                 model_name             = TextModelHelper.MODEL_NAME_NN_DENSE,
