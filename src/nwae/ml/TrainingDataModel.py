@@ -6,6 +6,7 @@ from inspect import currentframe, getframeinfo
 from nwae.lang.model.WordFreqDocMatrix import WordFreqDocMatrix
 import nwae.math.Constants as const
 import nwae.math.NumpyUtil as npUtil
+from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.utils.UnitTest import ResultObj, UnitTest
 
 
@@ -356,7 +357,10 @@ class TrainingDataModel:
             keywords_remove_quartile,
             word_frequency_model,
             is_convert_y_label_to_str_type = False,
+            # if > 0, we will append sentence with "unknown" words to reach minimum length
+            min_sentence_length = 0,
             add_unknown_word_in_keywords_list = True,
+            unknown_word = BasicPreprocessor.W_UNK,
     ):
         log_training = []
 
@@ -364,26 +368,26 @@ class TrainingDataModel:
                 or ( type(label_name) not in (list, tuple) ) \
                 or ( type(sentences_list) not in (list, tuple) ):
             raise Exception(
-                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID/Name and sentences list must be list/tuple type. Got label id type '
                 + str(type(label_id)) + ', and text segmented type ' + str(type(sentences_list)) + '.'
             )
         if ( len(label_id) != len(sentences_list) ) or ( len(label_id) != len(label_name) ):
             raise Exception(
-                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
                 + ', label name length = ' + str(len(label_name))
                 + ', and Text Segmented length = ' + str(len(sentences_list)) + ' must be equal.'
             )
 
         log.Log.info(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + '. Using keywords remove quartile = ' + str(keywords_remove_quartile) + '.'
             , log_list = log_training
         )
 
         log.Log.debug(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Training data text\n\r' + str(sentences_list)
             + ', label IDs\n\r' + str(label_id)
             + ', label names\n\r' + str(label_name)
@@ -395,14 +399,14 @@ class TrainingDataModel:
         # keyword value.
         #
         log.Log.important(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Starting training data model using word freq model "' + str(word_frequency_model) + '"'
             , log_list = log_training
         )
 
         # Extract unique Commands/Intents
         log.Log.info(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Extracting unique commands/intents..'
             , log_list = log_training
         )
@@ -410,17 +414,42 @@ class TrainingDataModel:
         # Change back to list, this list may change due to deletion of invalid commands.
         unique_classes = list(unique_classes)
         log.Log.info(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Unique classes:\n\r' + str(unique_classes)
             , log_list = log_training
         )
+
+        if min_sentence_length < 0:
+            # Автоматически определить минимальную длину предложений
+            s_lengths = np.array([len(s) for s in sentences_list])
+            probs = [0.05, 0.1, 0.2, 0.5, 0.8]
+            s_len_quantiles = np.quantile(s_lengths, probs)
+            # Use 10% quantile
+            min_sentence_length = max(1, round(s_len_quantiles[1]))
+            log.Log.important(
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Automatically determined min sentence length = ' + str(min_sentence_length)
+                + '. Sentence length quantiles at probabilities ' + str(probs) + ': ' + str(s_len_quantiles)
+            )
+
+        if min_sentence_length > 0:
+            for i in range(len(sentences_list)):
+                sent = sentences_list[i]
+                if len(sent) < min_sentence_length:
+                    new_sent = sent + [unknown_word]*(min_sentence_length - len(sent))
+                    sentences_list[i] = new_sent
+                    log.Log.info(
+                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Sentence appended to hit min length ' + str(min_sentence_length)
+                        + ' "' + str(new_sent) + '"'
+                    )
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type
         #
         # Get sentence matrix for all sentences first
         log.Log.important(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Calculating sentence matrix for all training data...'
             , log_list = log_training
         )
@@ -431,9 +460,10 @@ class TrainingDataModel:
             feature_presence_only    = False,
             idf_matrix               = None,
             add_unknown_word_in_list = add_unknown_word_in_keywords_list,
+            unknown_word             = unknown_word,
         )
         log.Log.info(
-            str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Word frequency measure model "' + str(word_frequency_model)
             + '" Keywords extracted as follows:\n\r' + str(keywords_for_fv)
         )
@@ -454,7 +484,7 @@ class TrainingDataModel:
         # Check again
         if ( len(label_id) != sentence_fv.shape[0] ) or ( len(label_id) != len(label_name) ):
             raise Exception(
-                str(TrainingDataModel.__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Label ID length = ' + str(len(label_id))
                 + ', label name length = ' + str(len(label_name))
                 + ', and sentence FV shape/length = ' + str(sentence_fv.shape) + ' must be equal.'

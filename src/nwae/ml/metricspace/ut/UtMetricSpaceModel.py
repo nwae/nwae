@@ -70,29 +70,30 @@ class UnitTestMetricSpaceModel:
     EXPECTED_X_FEATURE_NAMES = ['넷', '두', '셋', '여섯', '하나', '다섯', '_unk']
     REORDER_FEATURE_NAMES = [3, 1, 2, 5, 0, 4]
     REORDER_FEATURE_NAMES_WITH_UNK = np.array([3, 1, 2, 5, 0, 4, 6])
-    EXPECTED_DATA_X_FREQ_NORM = np.array(
-        [
-            # 무리 0
-            [0.37796447, 0.75592895, 0.37796447, 0.,         0.37796447, 0.,         0.       ],
-            [0.31622777, 0.31622777, 0.63245553, 0.,         0.63245553, 0.,         0.       ],
-            [0.5,        0.5,        0.5,        0.,         0.5,        0.,         0.       ],
-            # 무리 1
-            [0.40824829, 0.40824829, 0.81649658, 0.,         0.,         0.,         0.       ],
-            [0.57735027, 0.57735027, 0.57735027, 0.,         0.,         0.,         0.       ],
-            [0.66666667, 0.66666667, 0.33333333, 0.,         0.,         0.,         0.       ],
-            # 무리 2
-            [0.26726124, 0.0,        0.0,        0.80178373, 0.0,        0.53452248, 0.       ],
-            [0.5547002,  0.2773501,  0.0,        0.5547002,  0.0,        0.5547002,  0.       ],
-            [0.37796447, 0.37796447, 0.0,        0.75592895, 0.0,        0.37796447, 0.       ],
-            # 무리 3 (mix)
-            [0.,         0.,         0.,         0.70710678, 0.70710678, 0.,         0.       ],
-            [0.,         0.,         0.,         0.89442719, 0.4472136,  0.,         0.       ],
-            [0.,         0. ,        0.,         0.4472136,  0.89442719, 0.,         0.       ],
-            [0.5,        0.5,        0.5,        0.,         0.,         0.5,        0.       ],
-            [0.37796447, 0.37796447, 0.75592895, 0.,         0.,         0.37796447, 0.       ],
-            [0.75592895, 0.37796447, 0.37796447, 0.,         0.,         0.37796447, 0.       ],
-        ]
-    )
+    # EXPECTED_DATA_X_FREQ_NORM = np.array(
+    #     [
+    #         # 무리 0
+    #         [0.37796447, 0.75592895, 0.37796447, 0.,         0.37796447, 0.,         0.       ],
+    #         [0.31622777, 0.31622777, 0.63245553, 0.,         0.63245553, 0.,         0.       ],
+    #         [0.5,        0.5,        0.5,        0.,         0.5,        0.,         0.       ],
+    #         # 무리 1
+    #         [0.40824829, 0.40824829, 0.81649658, 0.,         0.,         0.,         0.       ],
+    #         [0.57735027, 0.57735027, 0.57735027, 0.,         0.,         0.,         0.       ],
+    #         [0.66666667, 0.66666667, 0.33333333, 0.,         0.,         0.,         0.       ],
+    #         # 무리 2
+    #         [0.26726124, 0.0,        0.0,        0.80178373, 0.0,        0.53452248, 0.       ],
+    #         [0.5547002,  0.2773501,  0.0,        0.5547002,  0.0,        0.5547002,  0.       ],
+    #         [0.37796447, 0.37796447, 0.0,        0.75592895, 0.0,        0.37796447, 0.       ],
+    #         # 무리 3 (mix)
+    #         # [0.,         0.,         0.,         0.40824829, 0.40824829, 0.,         0.81649658], # min sentence length = 4
+    #         [0.,         0.,         0.,         0.70710678, 0.70710678, 0.,         0.       ], # no min
+    #         [0.,         0.,         0.,         0.89442719, 0.4472136,  0.,         0.       ],
+    #         [0.,         0. ,        0.,         0.4472136,  0.89442719, 0.,         0.       ],
+    #         [0.5,        0.5,        0.5,        0.,         0.,         0.5,        0.       ],
+    #         [0.37796447, 0.37796447, 0.75592895, 0.,         0.,         0.37796447, 0.       ],
+    #         [0.75592895, 0.37796447, 0.37796447, 0.,         0.,         0.37796447, 0.       ],
+    #     ]
+    # )
     DATA_Y = np.array(
         [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3]
     )
@@ -142,7 +143,9 @@ class UnitTestMetricSpaceModel:
     def __init__(
             self,
             ut_params,
-            model_name
+            model_name,
+            # <0 means automatically determine, 0 means do nothing
+            min_sentence_len = 0,
     ):
         self.ut_params = ut_params
         if self.ut_params is None:
@@ -153,11 +156,18 @@ class UnitTestMetricSpaceModel:
         self.identifier_string = UnitTestMetricSpaceModel.IDENTIFIER_STRING
         self.model_name = model_name
 
-        self.x_expected = UnitTestMetricSpaceModel.DATA_X
+        # self.x_expected = UnitTestMetricSpaceModel.DATA_X
         self.texts = UnitTestMetricSpaceModel.DATA_TEXTS
 
         self.y = UnitTestMetricSpaceModel.DATA_Y
         self.x_name = UnitTestMetricSpaceModel.DATA_X_NAME
+
+        self.min_sentence_len = min_sentence_len
+        assert self.min_sentence_len >= 0, 'For unit tests, we need to know in advance min sentence length'
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Using min sentence length = ' + str(self.min_sentence_len)
+        )
 
         return
 
@@ -172,13 +182,14 @@ class UnitTestMetricSpaceModel:
         y_list = self.y.tolist()
         y_list = list(y_list)
 
-        # Will return x as bag of words, y as labels
+        # For metric space model, will return x as bag of words, y as labels
         self.tdm_obj = tdm.TrainingDataModel.unify_word_features_for_text_data(
             label_id                 = y_list.copy(),
             label_name               = y_list.copy(),
             sentences_list           = self.texts,
             word_frequency_model     = word_freq_model,
             keywords_remove_quartile = 0,
+            min_sentence_length      = self.min_sentence_len,
             add_unknown_word_in_keywords_list = True,
         )
 
@@ -203,12 +214,13 @@ class UnitTestMetricSpaceModel:
             test_comment = 'x features ' + str(xname)
         ))
 
-        expected_data_x_norm = self.DATA_X
+        expected_data_x_norm = self.DATA_X.copy()
         # Need to reorder
         expected_data_x_norm = np.array([row[self.REORDER_FEATURE_NAMES] for row in expected_data_x_norm])
         # Add unknown word
         expected_data_x_norm = expected_data_x_norm.tolist()
-        [row.append(0) for row in expected_data_x_norm]
+        # Need to take into account min sentence length
+        [row.append(max(0, self.min_sentence_len - np.sum(row))) for row in expected_data_x_norm]
         expected_data_x_norm = np.array(expected_data_x_norm)
         if word_freq_model in [WordFreqDocMatrix.BY_SIGMOID_FREQ, WordFreqDocMatrix.BY_SIGMOID_FREQ_NORM]:
             expected_data_x_norm = 2 * ((1 / (1 + np.exp(-expected_data_x_norm))) - 0.5)
@@ -230,11 +242,14 @@ class UnitTestMetricSpaceModel:
         for i in range(len(x_transformed)):
             x_line = x_transformed[i]
             x_line_expected = expected_data_x_norm[i]
-            self.res_final.update_bool(res_bool=UnitTest.assert_true(
+            res = UnitTest.assert_true(
                 observed = list(np.round(x_line, 8)),
                 expected = list(np.round(x_line_expected, 8)),
                 test_comment = 'Train test line #' + str(i) + ' test x ' + str(x_line)
-            ))
+            )
+            # if not res:
+            #     raise Exception('asdf')
+            self.res_final.update_bool(res_bool=res)
 
     def unit_test_predict_classes(
             self,
@@ -507,7 +522,9 @@ if __name__ == '__main__':
     ]:
         obj = UnitTestMetricSpaceModel(
             ut_params         = ut_params,
-            model_name        = model_name
+            model_name        = model_name,
+            # <0 means automatically determine, 0 means do nothing
+            min_sentence_len  = 0,
         )
         res = obj.run_unit_test()
         print('***** PASS ' + str(res.count_ok) + ', FAIL ' + str(res.count_fail))

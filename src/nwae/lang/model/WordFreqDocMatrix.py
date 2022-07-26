@@ -99,7 +99,8 @@ class WordFreqDocMatrix:
             sents_list,
             remove_quartile = 0,
             stopwords_list = (),
-            add_unknown_word_in_list = False
+            add_unknown_word_in_list = False,
+            unknown_word = BasicPreprocessor.W_UNK,
     ):
         # Paste all sentences into a single huge vector
         all_words = [w for sent in sents_list for w in sent]
@@ -165,11 +166,11 @@ class WordFreqDocMatrix:
         keywords_for_fv = list(df_word_freq_qt['Word'])
 
         if add_unknown_word_in_list:
-            if BasicPreprocessor.W_UNK not in keywords_for_fv:
-                keywords_for_fv.append(BasicPreprocessor.W_UNK)
+            if unknown_word not in keywords_for_fv:
+                keywords_for_fv.append(unknown_word)
                 Log.info(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                    + ': Appended SYMBOL "' + str(BasicPreprocessor.W_UNK)
+                    + ': Appended SYMBOL "' + str(unknown_word)
                     + '" to keywords list for the purpose of unknown words.'
                 )
         return keywords_for_fv, df_keywords_for_fv
@@ -198,6 +199,7 @@ class WordFreqDocMatrix:
             # For keywords list
             remove_quartile_keywords = 0,
             add_unknown_word_in_list = False,
+            unknown_word             = BasicPreprocessor.W_UNK,
             # Log base has no effect on LogFreqNormalized & LogFreqProbability as it is just a constant factor
             log_base                 = 10.0,
             stopwords_list           = (),
@@ -213,10 +215,11 @@ class WordFreqDocMatrix:
         #
         # Using the keywords set in this class, we create a profile template
         keywords_for_fv, df_keywords_for_fv = self.calculate_top_keywords(
-            sents_list = sentences_list,
+            sents_list      = sentences_list,
             remove_quartile = remove_quartile_keywords,
             add_unknown_word_in_list = add_unknown_word_in_list,
-            stopwords_list = stopwords_list,
+            unknown_word    = unknown_word,
+            stopwords_list  = stopwords_list,
         )
         no_keywords = len(keywords_for_fv)
 
