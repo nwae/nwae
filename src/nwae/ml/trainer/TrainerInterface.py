@@ -40,7 +40,10 @@ class TrainerInterface(threading.Thread):
             # Either 'train_model' (or None), or 'train_nlp_eidf', etc.
             train_mode           = TRAIN_MODE_MODEL,
             # Train a single y/label ID only, regardless of train mode
-            y_id                 = None
+            y_id                 = None,
+            # Only applies to some models, 0 means don't do anything, <0 means auto derive min length using 10% quartile
+            min_sentence_length  = 0,
+
     ):
         super().__init__()
 
@@ -69,6 +72,14 @@ class TrainerInterface(threading.Thread):
 
         self.train_mode = train_mode
         self.y_id = y_id
+
+        self.min_sentence_length = min_sentence_length
+
+        Log.important(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Trainer initialized with model "' + str(self.model_name) + '", train mode "' + str(self.train_mode)
+            + '", min sentence length ' + str(self.min_sentence_length) + '.'
+        )
 
         #
         # TxtDataPreprocessor object passed back to us after fetching and preprocessing
