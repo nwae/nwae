@@ -252,7 +252,13 @@ class SuggestMetric:
             d = {k:np.inf for k in unique_attribute_columns}
             d[unique_df_object_object_key_columns[0]] = zero_prd
             df_row = pd.DataFrame.from_records(data=[d])
-            df_object_attributes_summarized_normalized = df_object_attributes_summarized_normalized.append(df_row)
+            # TODO FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+            # df_object_attributes_summarized_normalized = df_object_attributes_summarized_normalized.append(df_row)
+            df_object_attributes_summarized_normalized = pd.concat(
+                [df_object_attributes_summarized_normalized, df_row],
+                axis = 0,
+                join = 'outer'
+            )
             df_object_attributes_summarized_normalized = df_object_attributes_summarized_normalized.reset_index(drop=True)
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
