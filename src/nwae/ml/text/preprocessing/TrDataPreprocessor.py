@@ -47,7 +47,10 @@ class TrDataPreprocessor:
             # Do word processing for all sentences, when word/synonym list changes
             reprocess_all_text = False,
             # Optional support for additional list of languages
-            languages_additional = ()
+            languages_additional = (),
+            # If min min_sentence_len > 0, will append with "min_sent_append_word" so that sentence has min length
+            min_sentence_len = 0,
+            min_sent_append_word = BasicPreprocessor.W_UNK,
     ):
         self.model_identifier = model_identifier
         # Main language
@@ -78,11 +81,14 @@ class TrDataPreprocessor:
             pass
         self.languages_additional = list(set(self.languages_additional))
 
+        self.min_sentence_len = min_sentence_len
+        self.min_sent_append_word = min_sent_append_word
+
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Model "' + str(self.model_identifier)
-            + '", main language "' + str(self.language_main)
-            + '", additional languages: ' + str(self.languages_additional)
+            + ': Model "' + str(self.model_identifier) + '", main language "' + str(self.language_main)
+            + '", additional languages: ' + str(self.languages_additional) + ', min sentence length '
+            + str(self.min_sentence_len) + ', append word "' + str(self.min_sent_append_word) + '".'
         )
 
         self.lang_detect = LangDetect()
@@ -410,7 +416,9 @@ class TrDataPreprocessor:
             if self.reprocess_all_text or is_likely_processed_text_changed:
                 processed_text_str = self.txt_preprocessor[lang_detected].process_text(
                     inputtext = text_from_db,
-                    return_as_string = True
+                    return_as_string = True,
+                    min_sentence_len = self.min_sentence_len,
+                    min_sentence_append_word = self.min_sent_append_word,
                 )
                 Log.debug(
                     str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

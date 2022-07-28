@@ -15,16 +15,24 @@ class SampleTextClassificationData:
     # Segmented text
     COL_TEXT_SEG = 'textSegmented'
 
+    TYPE_SAMPLE_NAME = 'sample_name'
     TYPE_LANG_MAIN = 'lang_main'
     TYPE_LANG_ADDITIONAL = 'lang_additional'
     TYPE_IO_IN = 'in'
     TYPE_IO_OUT = 'out'
+    MIN_SENT_LEN = 'min_sent_len'
+    MIN_SENT_APPEND_WORD = 'min_sent_append_word'
+
+    APPEND_WORD = '__w'
 
     # The class text
     SAMPLE_TRAINING_DATA = [
         {
+            TYPE_SAMPLE_NAME: 'Sample Set 1 ' + LangFeatures.LANG_KO,
             TYPE_LANG_MAIN: LangFeatures.LANG_KO,
             TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 0,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 (1, '하나', '하나 두 두 셋 넷'),
@@ -46,11 +54,44 @@ class SampleTextClassificationData:
                 (2, '두', '두 두 셋 넷 넷', '두 두 셋 넷 넷'),
                 # Appended intent name from processing
                 (2, '두', '두', '두'),
+            ),
+        },
+        # With min length
+        {
+            TYPE_SAMPLE_NAME: 'Sample Set 2 ' + LangFeatures.LANG_KO,
+            TYPE_LANG_MAIN: LangFeatures.LANG_KO,
+            TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 5,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
+            # Class/Intent ID, Class Name/Intent Name, Text
+            TYPE_IO_IN: (
+                (1, '하나', '하나 두 두 셋 넷'),
+                (1, '하나', '하나 하나 두 셋 셋 넷'),
+                (1, '하나', '하나 두 셋 넷'),
+                (2, '두', '두 셋 셋 넷'),
+                (2, '두', '두 두 셋 셋 넷 넷'),
+                (2, '두', '두 두 셋 넷 넷')
+            ),
+            # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
+            TYPE_IO_OUT: (
+                (1, '하나', '하나 두 두 셋 넷', '하나 두 두 셋 넷'),
+                (1, '하나', '하나 하나 두 셋 셋 넷', '하나 하나 두 셋 셋 넷'),
+                (1, '하나', '하나 두 셋 넷', '하나 두 셋 넷 ' + APPEND_WORD),
+                # Appended intent name from processing
+                (1, '하나', '하나', '하나 ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
+                (2, '두', '두 셋 셋 넷', '두 셋 셋 넷 ' + APPEND_WORD),
+                (2, '두', '두 두 셋 셋 넷 넷', '두 두 셋 셋 넷 넷'),
+                (2, '두', '두 두 셋 넷 넷', '두 두 셋 넷 넷'),
+                # Appended intent name from processing
+                (2, '두', '두', '두 ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
             )
         },
         {
+            TYPE_SAMPLE_NAME: 'Sample Set 1 ' + LangFeatures.LANG_VI,
             TYPE_LANG_MAIN: LangFeatures.LANG_VI,
             TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 0,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 (1, 'rút tiền', 'giới hạn rút tiền'),
@@ -71,8 +112,36 @@ class SampleTextClassificationData:
             )
         },
         {
+            TYPE_SAMPLE_NAME: 'Sample Set 2 ' + LangFeatures.LANG_VI,
+            TYPE_LANG_MAIN: LangFeatures.LANG_VI,
+            TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 3,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
+            # Class/Intent ID, Class Name/Intent Name, Text
+            TYPE_IO_IN: (
+                (1, 'rút tiền', 'giới hạn rút tiền'),
+                (1, 'rút tiền', 'rút bao nhiêu'),
+                (1, 'rút tiền', 'trạng thái lệnh rút tiền')
+            ),
+            # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
+            TYPE_IO_OUT: (
+                (1, 'rút tiền', 'giới hạn rút tiền', 'giới hạn--||--rút tiền--||--' + APPEND_WORD),
+                (1, 'rút tiền', 'giới hạn rút tiền', 'gioi han--||--rut tien--||--' + APPEND_WORD), # Appended latin form
+                (1, 'rút tiền', 'rút bao nhiêu', 'rút--||--bao nhiêu--||--' + APPEND_WORD),
+                (1, 'rút tiền', 'rút bao nhiêu', 'rut--||--bao nhieu--||--' + APPEND_WORD), # Appended latin form
+                (1, 'rút tiền', 'trạng thái lệnh rút tiền', 'trạng thái--||--lệnh--||--rút tiền'),
+                (1, 'rút tiền', 'trạng thái lệnh rút tiền', 'trang thai--||--lenh--||--rut tien'),  # Appended latin form
+                # Appended intent name from processing
+                (1, 'rút tiền', 'rút tiền', 'rút tiền--||--' + APPEND_WORD + '--||--' + APPEND_WORD),
+                (1, 'rút tiền', 'rút tiền', 'rut tien--||--' + APPEND_WORD + '--||--' + APPEND_WORD),    # Appended latin form
+            )
+        },
+        {
+            TYPE_SAMPLE_NAME: 'Sample Set 1 ' + LangFeatures.LANG_TH,
             TYPE_LANG_MAIN: LangFeatures.LANG_TH,
             TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 0,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 (1, 'รัก', 'ทำไมน่ารักขนาดนี้'),
@@ -101,8 +170,44 @@ class SampleTextClassificationData:
             )
         },
         {
+            TYPE_SAMPLE_NAME: 'Sample Set 2 ' + LangFeatures.LANG_TH,
+            TYPE_LANG_MAIN: LangFeatures.LANG_TH,
+            TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 4,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
+            # Class/Intent ID, Class Name/Intent Name, Text
+            TYPE_IO_IN: (
+                (1, 'รัก', 'ทำไมน่ารักขนาดนี้'),
+                (1, 'รัก', 'น่ารักกกกก'),
+                (1, 'รัก', 'สวยจัง 10/10.'),
+                (1, 'รัก', 'สวยที่สุด'),
+                (1, 'รัก', 'ชมน้องจังเลย'),
+                (2, 'บัญชี', 'เปลี่ยนเบอร์ทำไง'),
+                (2, 'บัญชี', 'อัพเดตประวัติส่วนตัวยังไง?'),
+                (2, 'บัญชี', 'เพิ่มข้อมูลส่วนตัวตรงไหน'),
+            ),
+            # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
+            TYPE_IO_OUT: (
+                (1, 'รัก', 'ทำไมน่ารักขนาดนี้', 'ทำไม น่า รัก ขนาด นี้'),
+                (1, 'รัก', 'น่ารักกกกก', 'น่า รัก กก กก'),
+                (1, 'รัก', 'สวยจัง 10/10', 'สวย จัง ' + BasicPreprocessor.W_NUM + ' / ' + BasicPreprocessor.W_NUM +  ' .'),
+                (1, 'รัก', 'สวยที่สุด', 'สวย ที่ สุด ' + APPEND_WORD),
+                (1, 'รัก', 'ชมน้องจังเลย', 'ชม น้อง จัง เลย'),
+                # Appended intent name from processing
+                (1, 'รัก', 'รัก', 'รัก ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
+                (2, 'บัญชี', 'เปลี่ยนเบอร์ทำไง', 'เปลี่ยน เบอร์ ทำ ไง'),
+                (2, 'บัญชี', 'อัพเดตประวัติส่วนตัวยังไง?', 'อัพเดต ประวัติ ส่วน ตัว ยังไง ?'),
+                (2, 'บัญชี', 'เพิ่มข้อมูลส่วนตัวตรงไหน', 'เพิ่ม ข้อ มูล ส่วน ตัว ตรง ไหน'),
+                # Appended intent name from processing
+                (2, 'บัญชี', 'บัญชี', 'บัญชี '+ APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
+            )
+        },
+        {
+            TYPE_SAMPLE_NAME: 'Sample Set 1 ' + LangFeatures.LANG_ZH,
             TYPE_LANG_MAIN: LangFeatures.LANG_ZH,
             TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 0,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 (1, '登录', '登录次数多了，怎么办'),
@@ -123,8 +228,36 @@ class SampleTextClassificationData:
             )
         },
         {
+            TYPE_SAMPLE_NAME: 'Sample Set 2 ' + LangFeatures.LANG_ZH,
+            TYPE_LANG_MAIN: LangFeatures.LANG_ZH,
+            TYPE_LANG_ADDITIONAL: (),
+            MIN_SENT_LEN: 4,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
+            # Class/Intent ID, Class Name/Intent Name, Text
+            TYPE_IO_IN: (
+                (1, '登录', '登录次数多了，怎么办'),
+                (2, '忘记', '我忘记账号'),
+                (2, '忘记', '我忘记我的名称了'),
+                (2, '忘记', '我记不到密码了'),
+            ),
+            # Class/Intent ID, Class Name/Intent Name, Text, Text Segmented
+            TYPE_IO_OUT: (
+                (1, '登录', '登录次数多了，怎么办', '登录 次数 多 了 ， 怎么办'),
+                # Appended intent name from processing
+                (1, '登录', '登录', '登录 ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
+                (2, '忘记', '我忘记账号', '我 忘记 账号 ' + APPEND_WORD),
+                (2, '忘记', '我忘记我的名称了', '我 忘记 我 的 名称 了'),
+                (2, '忘记', '我记不到密码了', '我 记 不到 密码 了'),
+                # Appended intent name from processing
+                (2, '忘记', '忘记', '忘记 ' + APPEND_WORD + ' ' + APPEND_WORD + ' ' + APPEND_WORD),
+            )
+        },
+        {
+            TYPE_SAMPLE_NAME: 'Sample Set 3 ' + LangFeatures.LANG_ZH,
             TYPE_LANG_MAIN: LangFeatures.LANG_ZH,
             TYPE_LANG_ADDITIONAL: (LangFeatures.LANG_TH, LangFeatures.LANG_EN, LangFeatures.LANG_VI),
+            MIN_SENT_LEN: 0,
+            MIN_SENT_APPEND_WORD: APPEND_WORD,
             # Class/Intent ID, Class Name/Intent Name, Text
             TYPE_IO_IN: (
                 # Chinese
@@ -179,6 +312,12 @@ class SampleTextClassificationData:
     ]
 
     @staticmethod
+    def get_sample_name(
+            sample_training_data
+    ):
+        return sample_training_data[SampleTextClassificationData.TYPE_SAMPLE_NAME]
+
+    @staticmethod
     def get_lang_main(
             sample_training_data
     ):
@@ -189,6 +328,18 @@ class SampleTextClassificationData:
             sample_training_data
     ):
         return list(sample_training_data[SampleTextClassificationData.TYPE_LANG_ADDITIONAL])
+
+    @staticmethod
+    def get_min_sent_len(
+            sample_training_data
+    ):
+        return int(sample_training_data[SampleTextClassificationData.MIN_SENT_LEN])
+
+    @staticmethod
+    def get_min_sent_append_word(
+            sample_training_data
+    ):
+        return str(sample_training_data[SampleTextClassificationData.MIN_SENT_APPEND_WORD])
 
     @staticmethod
     def get_text_classification_training_data(

@@ -248,6 +248,10 @@ class TxtPreprocessor:
             use_special_symbol_username_nonword = False,
             len_long_number = 6,
             len_very_long_number = 10,
+            # if > 0, we will append sentence with "unknown" words to reach minimum length
+            min_sentence_len = 0,
+            # Word to append if sentence is less than min length
+            min_sentence_append_word = BasicPreprocessor.W_UNK,
     ):
         #
         # 1st Round replace with very special symbols first, that must be done before
@@ -409,9 +413,18 @@ class TxtPreprocessor:
         )
 
         #
-        # Finally remove empty words in array
+        # Remove empty words in array
         #
         text_normalized_arr_lower = [x for x in text_normalized_arr_lower if x != '']
+
+        #
+        # Finally, handle minimum sentence length
+        #
+        min_sentence_len = int(min_sentence_len)
+        len_sent = len(text_normalized_arr_lower)
+        if len_sent < min_sentence_len:
+            text_normalized_arr_lower = text_normalized_arr_lower + \
+                                        [min_sentence_append_word] * (min_sentence_len - len_sent)
 
         Log.info(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)

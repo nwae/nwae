@@ -357,8 +357,6 @@ class TrainingDataModel:
             keywords_remove_quartile,
             word_frequency_model,
             is_convert_y_label_to_str_type = False,
-            # if > 0, we will append sentence with "unknown" words to reach minimum length
-            min_sentence_length = 0,
             add_unknown_word_in_keywords_list = True,
             unknown_word = BasicPreprocessor.W_UNK,
     ):
@@ -419,30 +417,32 @@ class TrainingDataModel:
             , log_list = log_training
         )
 
-        if min_sentence_length < 0:
-            # Автоматически определить минимальную длину предложений
-            s_lengths = np.array([len(s) for s in sentences_list])
-            probs = [0.05, 0.1, 0.2, 0.5, 0.8]
-            s_len_quantiles = np.quantile(s_lengths, probs)
-            # Use 10% quantile
-            min_sentence_length = max(1, round(s_len_quantiles[1]))
-            log.Log.important(
-                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Automatically determined min sentence length = ' + str(min_sentence_length)
-                + '. Sentence length quantiles at probabilities ' + str(probs) + ': ' + str(s_len_quantiles)
-            )
-
-        if min_sentence_length > 0:
-            for i in range(len(sentences_list)):
-                sent = sentences_list[i]
-                if len(sent) < min_sentence_length:
-                    new_sent = sent + [unknown_word]*(min_sentence_length - len(sent))
-                    sentences_list[i] = new_sent
-                    log.Log.info(
-                        str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                        + ': Sentence appended to hit min length ' + str(min_sentence_length)
-                        + ' "' + str(new_sent) + '"'
-                    )
+        # # In case is float type, convert to integer
+        # min_sentence_length = int(min_sentence_length)
+        # if min_sentence_length < 0:
+        #     # Автоматически определить минимальную длину предложений
+        #     s_lengths = np.array([len(s) for s in sentences_list])
+        #     probs = [0.05, 0.1, 0.2, 0.5, 0.8]
+        #     s_len_quantiles = np.quantile(s_lengths, probs)
+        #     # Use 10% quantile
+        #     min_sentence_length = max(1, round(s_len_quantiles[1]))
+        #     log.Log.important(
+        #         str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #         + ': Automatically determined min sentence length = ' + str(min_sentence_length)
+        #         + '. Sentence length quantiles at probabilities ' + str(probs) + ': ' + str(s_len_quantiles)
+        #     )
+        #
+        # if min_sentence_length > 0:
+        #     for i in range(len(sentences_list)):
+        #         sent = sentences_list[i]
+        #         if len(sent) < min_sentence_length:
+        #             new_sent = sent + [unknown_word]*(min_sentence_length - len(sent))
+        #             sentences_list[i] = new_sent
+        #             log.Log.info(
+        #                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+        #                 + ': Sentence appended to hit min length ' + str(min_sentence_length)
+        #                 + ' "' + str(new_sent) + '"'
+        #             )
 
         #
         # Get RFV for every command/intent, representative feature vectors by command type

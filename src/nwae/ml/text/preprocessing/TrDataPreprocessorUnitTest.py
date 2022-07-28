@@ -24,8 +24,9 @@ class TrDataPreprocessorUnitTest:
 
     def run_unit_test_sample(
             self,
-            sample_training_data
+            sample_training_data,
     ):
+        sample_name = SampleTextClassificationData.get_sample_name(sample_training_data=sample_training_data)
         lang_main = SampleTextClassificationData.get_lang_main(sample_training_data=sample_training_data)
         lang_additional = SampleTextClassificationData.get_lang_additional(sample_training_data=sample_training_data)
         sample_data = SampleTextClassificationData.get_text_classification_training_data(
@@ -36,6 +37,8 @@ class TrDataPreprocessorUnitTest:
             sample_training_data = sample_training_data,
             type_io = SampleTextClassificationData.TYPE_IO_OUT
         )
+        min_sent_len = SampleTextClassificationData.get_min_sent_len(sample_training_data=sample_training_data)
+        min_sent_append_word = SampleTextClassificationData.get_min_sent_append_word(sample_training_data=sample_training_data)
 
         fake_training_data = pd.DataFrame({
             DaehuaTrainDataModel.COL_TDATA_INTENT_ID: sample_data[SampleTextClassificationData.COL_CLASS],
@@ -60,7 +63,9 @@ class TrDataPreprocessorUnitTest:
             dirpath_synonymlist  = self.ut_params.dirpath_synonymlist,
             postfix_synonymlist  = self.ut_params.postfix_synonymlist,
             reprocess_all_text   = True,
-            languages_additional = lang_additional
+            languages_additional = lang_additional,
+            min_sentence_len     = min_sent_len,
+            min_sent_append_word = min_sent_append_word,
         )
 
         df_td, embed_params = ctdata.preprocess_training_data_text()
@@ -98,14 +103,21 @@ class TrDataPreprocessorUnitTest:
         #res_text_segmented_sorted = sorted(res_text_segmented)
 
         for i in range(len(expected_text_segmented)):
-            res_obj.update_bool(res_bool=ut.UnitTest.assert_true(
+            expected_sent = expected_text_segmented[i]
+            res_sent = ut.UnitTest.assert_true(
                 observed = res_text_segmented[i],
-                expected = expected_text_segmented[i],
+                expected = expected_sent,
                 test_comment = 'test ' + str(i)
-            ))
+            )
+            # if not res_sent:
+            #     raise Exception(
+            #         'Sample "' + str(sample_name) + '" Expected "' + str(expected_sent) + '", got "' + str(res_text_segmented[i])
+            #     )
+            res_obj.update_bool(res_bool=res_sent)
 
         Log.important(
-            '***** Training Data Preprocessor ' + str([lang_main] + lang_additional) + ' PASSED ' + str(res_obj.count_ok)
+            '***** Training Data Preprocessor, sample "' + str(sample_name) + '", langs '
+            + str([lang_main] + lang_additional) + ' PASSED ' + str(res_obj.count_ok)
             + ', FAILED ' + str(res_obj.count_fail) + ' *****'
         )
         return res_obj
@@ -115,7 +127,9 @@ class TrDataPreprocessorUnitTest:
         for sample_training_data in SampleTextClassificationData.SAMPLE_TRAINING_DATA:
             #if not sample_training_data[SampleTextClassificationData.TYPE_LANG_ADDITIONAL]:
             #    continue
-            res = self.run_unit_test_sample(sample_training_data = sample_training_data)
+            res = self.run_unit_test_sample(
+                sample_training_data = sample_training_data
+            )
             res_final.update(other_res_obj=res)
         return res_final
 
@@ -136,8 +150,9 @@ def TrDataPreProcessor_run_unit_test():
     print('Unit Test Params: ' + str(ut_params.to_string()))
 
     Log.LOGLEVEL = Log.LOG_LEVEL_DEBUG_1
-    TrDataPreprocessorUnitTest(ut_params=ut_params).run_unit_test()
+    return TrDataPreprocessorUnitTest(ut_params=ut_params).run_unit_test()
 
 
 if __name__ == '__main__':
-    TrDataPreProcessor_run_unit_test()
+    res = TrDataPreProcessor_run_unit_test()
+    print('PASSED ' + str(res.count_ok) + ', FAILED ' + str(res.count_fail))

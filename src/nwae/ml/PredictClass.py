@@ -8,6 +8,7 @@ from nwae.lang.LangFeatures import LangFeatures
 from nwae.ml.ModelInterface import ModelInterface
 from nwae.ml.modelhelper.ModelHelper import ModelHelper
 import threading
+from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.lang.preprocessing.TxtPreprocessor import TxtPreprocessor
 from nwae.lang.detect.LangDetect import LangDetect
 import nwae.utils.UnitTest as ut
@@ -49,7 +50,10 @@ class PredictClass(threading.Thread):
             do_spelling_correction  = False,
             do_word_stemming        = True,
             do_profiling            = False,
-            lang_additional         = ()
+            lang_additional         = (),
+            # Preprocessing stage for texts
+            min_sentence_len        = 0,
+            min_sent_append_word    = BasicPreprocessor.W_UNK,
     ):
         super(PredictClass, self).__init__()
 
@@ -80,12 +84,21 @@ class PredictClass(threading.Thread):
             pass
         self.lang_additional = list(set(self.lang_additional))
 
+        self.min_sentence_len = min_sentence_len
+        try:
+            self.min_sentence_len = int(self.min_sentence_len)
+        except Exception:
+            self.min_sentence_len = 0
+        self.min_sent_append_word = str(min_sent_append_word)
+
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Predictor class initialization using model "' + str(self.identifier_string)
             + '", word freq model "' + str(self.word_freq_model)
             + '", main language "' + str(self.lang_main)
             + '", additional languages: ' + str(self.lang_additional)
+            + ', min sentence length ' + str(self.min_sentence_len)
+            + ', append word "' + str(self.min_sent_append_word) + '"'
         )
 
         self.model = ModelHelper.get_model(
@@ -346,7 +359,9 @@ class PredictClass(threading.Thread):
         #   Replace with special symbols, split sentence, lemmatization, spell check, etc.
         #
         processed_txt_array = self.predict_class_txt_processor[lang_detected].process_text(
-            inputtext = inputtext
+            inputtext = inputtext,
+            min_sentence_len = self.min_sentence_len,
+            min_sentence_append_word = self.min_sent_append_word,
         )
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -481,7 +496,9 @@ class PredictClassUnitTest:
             # и там последним тестом был сигмоид. но если бы это было не так, тест все равно бы прошел
             word_freq_model        = FeatureVector.COL_SIGMOID_FREQ,
             do_spelling_correction = False,
-            do_profiling           = True
+            do_profiling           = True,
+            min_sentence_len       = 0,
+            min_sent_append_word   = BasicPreprocessor.W_UNK,
         )
 
         for i in range(len(x_text)):

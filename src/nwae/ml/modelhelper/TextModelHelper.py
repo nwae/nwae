@@ -64,7 +64,7 @@ class TextModelHelper:
                 evaluate_metrics  = evaluate_metrics,
                 do_profiling      = do_profiling
             )
-        else:
+        elif model_name == TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
             model = MetricSpaceModel(
                 identifier_string       = identifier_string,
                 model_params            = model_params,
@@ -73,6 +73,11 @@ class TextModelHelper:
                 is_partial_training     = is_partial_training,
                 confidence_level_scores = confidence_level_scores,
                 do_profiling            = do_profiling
+            )
+        else:
+            raise Exception(
+                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Unsupported model "' + str(model_name) + '"'
             )
 
         return model

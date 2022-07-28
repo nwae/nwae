@@ -144,8 +144,6 @@ class UnitTestMetricSpaceModel:
             self,
             ut_params,
             model_name,
-            # <0 means automatically determine, 0 means do nothing
-            min_sentence_len = 0,
     ):
         self.ut_params = ut_params
         if self.ut_params is None:
@@ -161,14 +159,6 @@ class UnitTestMetricSpaceModel:
 
         self.y = UnitTestMetricSpaceModel.DATA_Y
         self.x_name = UnitTestMetricSpaceModel.DATA_X_NAME
-
-        self.min_sentence_len = min_sentence_len
-        assert self.min_sentence_len >= 0, 'For unit tests, we need to know in advance min sentence length'
-        Log.important(
-            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Using min sentence length = ' + str(self.min_sentence_len)
-        )
-
         return
 
     def unit_test_train(
@@ -189,7 +179,6 @@ class UnitTestMetricSpaceModel:
             sentences_list           = self.texts,
             word_frequency_model     = word_freq_model,
             keywords_remove_quartile = 0,
-            min_sentence_length      = self.min_sentence_len,
             add_unknown_word_in_keywords_list = True,
         )
 
@@ -219,8 +208,7 @@ class UnitTestMetricSpaceModel:
         expected_data_x_norm = np.array([row[self.REORDER_FEATURE_NAMES] for row in expected_data_x_norm])
         # Add unknown word
         expected_data_x_norm = expected_data_x_norm.tolist()
-        # Need to take into account min sentence length
-        [row.append(max(0, self.min_sentence_len - np.sum(row))) for row in expected_data_x_norm]
+        [row.append(0) for row in expected_data_x_norm]
         expected_data_x_norm = np.array(expected_data_x_norm)
         if word_freq_model in [WordFreqDocMatrix.BY_SIGMOID_FREQ, WordFreqDocMatrix.BY_SIGMOID_FREQ_NORM]:
             expected_data_x_norm = 2 * ((1 / (1 + np.exp(-expected_data_x_norm))) - 0.5)
@@ -523,8 +511,6 @@ if __name__ == '__main__':
         obj = UnitTestMetricSpaceModel(
             ut_params         = ut_params,
             model_name        = model_name,
-            # <0 means automatically determine, 0 means do nothing
-            min_sentence_len  = 0,
         )
         res = obj.run_unit_test()
         print('***** PASS ' + str(res.count_ok) + ', FAIL ' + str(res.count_fail))

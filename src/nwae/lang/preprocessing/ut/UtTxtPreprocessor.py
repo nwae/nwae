@@ -112,19 +112,27 @@ class UtTxtPreprocessor:
     def __run_lang_unit_test(self):
         res_final = ut.ResultObj(count_ok=0, count_fail=0)
 
+        min_sent_append_word = 'xtra'
         for txt_expected in UtTxtPreprocessor.TESTS[self.lang]:
-            txt = txt_expected[0]
-            expected = txt_expected[1]
-            observed = self.txt_preprocessor.process_text(
-                inputtext = txt,
-                return_as_string = False,
-                use_special_symbol_username_nonword = True
-            )
-            res_final.update_bool(res_bool = ut.UnitTest.assert_true(
-                observed = observed,
-                expected = expected,
-                test_comment = 'test "' + str(txt) + '"'
-            ))
+            for min_sent_len in [0, 8]:
+                txt = txt_expected[0]
+                expected = txt_expected[1]
+                # Append with word if min length not met
+                if min_sent_len > 0:
+                    if len(expected) < min_sent_len:
+                        expected = expected + [min_sent_append_word] * (min_sent_len - len(expected))
+                observed = self.txt_preprocessor.process_text(
+                    inputtext = txt,
+                    return_as_string = False,
+                    use_special_symbol_username_nonword = True,
+                    min_sentence_len = min_sent_len,
+                    min_sentence_append_word = min_sent_append_word,
+                )
+                res_final.update_bool(res_bool = ut.UnitTest.assert_true(
+                    observed = observed,
+                    expected = expected,
+                    test_comment = 'test "' + str(txt) + '"'
+                ))
 
         Log.important(
             '***** ' + str(self.lang) + ' PASSED ' + str(res_final.count_ok)

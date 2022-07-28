@@ -33,8 +33,6 @@ class TextTrainer(TrainerInterface):
             train_mode = TrainerInterface.TRAIN_MODE_MODEL,
             # Train a single y/label ID only, regardless of train mode
             y_id = None,
-            # Only applies to some models, 0 means don't do anything, <0 means auto derive min length using 10% quartile
-            min_sentence_length = 0,
     ):
         super().__init__(
             identifier_string    = identifier_string,
@@ -45,7 +43,6 @@ class TextTrainer(TrainerInterface):
             model_params         = model_params,
             train_mode           = train_mode,
             y_id                 = y_id,
-            min_sentence_length  = min_sentence_length,
         )
 
         self.word_freq_model = word_freq_model
@@ -63,7 +60,7 @@ class TextTrainer(TrainerInterface):
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Initialized text trainer for model "' + str(self.model_name)
             + '", word freq model "' + str(self.word_freq_model)
-            + '", train mode "' + str(self.train_mode) + '", min sentence length ' + str(self.min_sentence_length) + '.'
+            + '", train mode "' + str(self.train_mode) + '"'
         )
 
         #
@@ -113,7 +110,6 @@ class TextTrainer(TrainerInterface):
                     embedding_x_one_hot_dict = self.embedding_params.x_one_hot_dict,
                     embedding_y_one_hot_dict = self.embedding_params.y_one_hot_dict,
                     word_freq_model     = self.word_freq_model,
-                    min_sentence_length = self.min_sentence_length,
                 )
             except Exception as ex:
                 errmsg = \
@@ -287,14 +283,11 @@ class TextTrainer(TrainerInterface):
             embedding_x_one_hot_dict,
             embedding_y_one_hot_dict,
             word_freq_model,
-            # <0 means automatically determine, 0 means do nothing
-            min_sentence_length = 0,
     ):
         if model_name == TextModelHelper.MODEL_NAME_HYPERSPHERE_METRICSPACE:
             return TextTrainer.__convert_processed_text_to_training_data_model_type_for_hypersphere_metricspace(
                 training_dataframe = training_dataframe,
                 word_freq_model = word_freq_model,
-                min_sentence_length = min_sentence_length,
             )
         else:
             return TextTrainer.__convert_preprocessed_text_to_training_data_model_for_nn_dense(
@@ -325,8 +318,6 @@ class TextTrainer(TrainerInterface):
             # Preprocessing of text (tokenization, spelling corrections, stemming, etc) is assumed to be already done
             training_dataframe,
             word_freq_model,
-            # <0 means automatically determine, 0 means do nothing
-            min_sentence_length = 0,
             # How many lines to keep from training data, -1 keep all. Used for mainly testing purpose.
             keep = -1,
     ):
@@ -436,15 +427,12 @@ class TextTrainer(TrainerInterface):
             sentences_list = np_sentences_list.tolist(),
             keywords_remove_quartile = 0,
             word_frequency_model = word_freq_model,
-            # <0 means automatically determine, 0 means do nothing
-            min_sentence_length  = min_sentence_length,
         )
 
         Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Successfully converted text data to training numbers data using word freq model "'
             + str(word_freq_model) + '", sentences shape ' + str(np_sentences_list.shape)
-            + ', min sentence length ' + str(min_sentence_length) + '.'
         )
 
         Log.debugdebug('TDM x:\n\r' + str(tdm_obj.get_x()))
