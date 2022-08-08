@@ -253,12 +253,16 @@ class ModelBackTest:
         # Time per request in milliseconds
         tpr = round(1000 / rps, 1)
 
-        self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES] =\
-            self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES].append(
-                {
-                    'Score': com_score, 'ConfLevel': com_conflevel, 'Correct': correct, 'TopIndex': com_idx
-                },
-            ignore_index=True)
+        self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES] = pd.concat(
+            [
+                self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES],
+                pd.DataFrame({
+                    'Score': [com_score], 'ConfLevel': [com_conflevel], 'Correct': [correct], 'TopIndex': [com_idx]
+                })
+            ],
+            axis = 0,
+            join = 'outer',
+        )
         # Log.debugdebug(self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES])
         if not correct:
             self.test_stats[ModelBackTest.KEY_STATS_RESULT_WRONG] += 1
