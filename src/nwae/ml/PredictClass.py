@@ -5,6 +5,7 @@ from inspect import currentframe, getframeinfo
 import time
 import nwae.utils.Profiling as prf
 from nwae.lang.LangFeatures import LangFeatures
+from nwae.lang.preprocessing.BasicPreprocessor import BasicPreprocessor
 from nwae.ml.ModelInterface import ModelInterface
 from nwae.ml.modelhelper.ModelHelper import ModelHelper
 import threading
@@ -324,6 +325,9 @@ class PredictClass(threading.Thread):
             match_pct_within_top_score = CONSTANT_PERCENT_WITHIN_TOP_SCORE,
             include_match_details = False,
             chatid = None,
+            remove_unknown_words = False,
+            # Applies only if remove_unknown_words=True
+            word_unknown = BasicPreprocessor.W_UNK,
     ):
         self.wait_for_model_to_be_ready()
         self.wait_for_all_initializations_to_be_done()
@@ -362,6 +366,9 @@ class PredictClass(threading.Thread):
             # min_sentence_len = self.min_sentence_len,
             # min_sentence_append_word = self.min_sent_append_word,
         )
+        if remove_unknown_words:
+            processed_txt_array = [w for w in processed_txt_array if w != word_unknown]
+
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Processed "' + str(inputtext) + '" to "' + str(processed_txt_array) + '"'
