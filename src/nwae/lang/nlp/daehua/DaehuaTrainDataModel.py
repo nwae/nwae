@@ -23,6 +23,8 @@ class DaehuaTrainDataModel:
     COL_TDATA_INTENT_TYPE      = 'Intent Type'
     COL_TDATA_INTENT_INDEX     = 'Intent Index'    # Derived Column for indexing training data sentences
     COL_TDATA_TEXT             = 'Text'
+    # From back test, score the training data text for manual editing
+    COL_TDATA_TEXT_SCORE       = 'Text Back Test Score'
     COL_TDATA_TEXT_LENGTH      = 'Text Length'     # Derived Column
     COL_TDATA_TEXT_SEGMENTED   = 'Text Segmented'  # Derived Column
     COL_TDATA_TEXT_LANG        = 'Text Language'
