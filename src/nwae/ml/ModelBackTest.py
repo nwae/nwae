@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
+import numpy as np
 from nwae.utils.Log import Log
 from inspect import currentframe, getframeinfo
 import nwae.utils.Profiling as pf
@@ -29,6 +30,18 @@ class ModelBackTest:
     KEY_STATS_WHEN_CORRECT_ANSWER_NOT_AT_TOP1_RATIO_SCORE_TO_TOP_1 = 'ratio_not_at_top1_to_pos_1'
     KEY_STATS_DF_SCORES = 'df_scores'
 
+    COL_RESULT_SENTENCE_ID        = 'SentenceId'
+    COL_RESULT_SENTENCE           = 'Sentence'
+    COL_RESULT_INTENT_ID          = 'IntentId'
+    COL_RESULT_SCORE              = 'Score'
+    COL_RESULT_CONF_LEVEL         = 'ConfLevel'
+    # Whether or not the expected intent appeared in top X detected intents, regardless of position
+    COL_RESULT_CORRECT_DETECTION  = 'Correct'
+    # At which index did the expected intent occur. 0 means first (or best correct result), 3 means 4th
+    COL_RESULT_TOP_INDEX_DETECTED = 'TopIndex'
+    # From back test
+    COL_RESULT_SENTENCE_QUALITY   = 'SentenceQuality'
+
     def __init__(
             self,
             config,
@@ -54,7 +67,7 @@ class ModelBackTest:
         self.model_identifier = config.get_config(param=cf.Config.PARAM_MODEL_IDENTIFIER)
         self.do_profiling = config.get_config(param=cf.Config.PARAM_DO_PROFILING)
 
-        Log.info(
+        Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Include detailed stats = ' + str(self.include_detailed_accuracy_stats)
             + ', model name "' + str(self.model_name)
@@ -102,7 +115,12 @@ class ModelBackTest:
             # Ratio of score between top 2 and top 1, when the correct answer is at position #1
             ModelBackTest.KEY_STATS_WHEN_CORRECT_ANSWER_AT_TOP1_RATIO_SCORE_TOP_2_AND_TOP_1: [],
             ModelBackTest.KEY_STATS_WHEN_CORRECT_ANSWER_NOT_AT_TOP1_RATIO_SCORE_TO_TOP_1: [],
-            ModelBackTest.KEY_STATS_DF_SCORES: pd.DataFrame(columns=['Score', 'ConfLevel', 'Correct'])
+            ModelBackTest.KEY_STATS_DF_SCORES: pd.DataFrame(columns=[
+                self.COL_RESULT_SENTENCE_ID, self.COL_RESULT_SENTENCE,
+                self.COL_RESULT_INTENT_ID, self.COL_RESULT_SCORE, self.COL_RESULT_CONF_LEVEL,
+                self.COL_RESULT_CORRECT_DETECTION, self.COL_RESULT_TOP_INDEX_DETECTED,
+                self.COL_RESULT_SENTENCE_QUALITY,
+            ])
         }
         for top_i in range(ModelBackTest.TEST_TOP_X):
             self.test_stats[ModelBackTest.KEY_STATS_RESULT_TOP][top_i] = 0
@@ -195,7 +213,7 @@ class ModelBackTest:
     ):
         predict_result = self.model.predict_class(
             x   = v,
-            top = ModelBackTest.TEST_TOP_X,
+            top = self.TEST_TOP_X,
             include_match_details = True
         )
         df_match_details = predict_result.match_details
@@ -211,9 +229,12 @@ class ModelBackTest:
             df_match_details,
             y_expected,
             x_features,
-            include_detailed_accuracy_stats
+            include_detailed_accuracy_stats,
+            training_sentence_id = None,
+            training_sentence = None,
     ):
-        com_idx = 0
+        # Default is the expected intent not detected at all
+        com_idx = np.nan
         com_class = '-'
         # com_match = None
         com_score = 0
@@ -257,7 +278,15 @@ class ModelBackTest:
             [
                 self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES],
                 pd.DataFrame({
-                    'Score': [com_score], 'ConfLevel': [com_conflevel], 'Correct': [correct], 'TopIndex': [com_idx]
+                    self.COL_RESULT_SENTENCE_ID:        [training_sentence_id],
+                    self.COL_RESULT_SENTENCE:           [training_sentence],
+                    self.COL_RESULT_INTENT_ID:          [com_class],
+                    self.COL_RESULT_SCORE:              [com_score],
+                    self.COL_RESULT_CONF_LEVEL:         [com_conflevel],
+                    self.COL_RESULT_CORRECT_DETECTION:  [correct],
+                    self.COL_RESULT_TOP_INDEX_DETECTED: [com_idx],
+                    # We will change this later when all results are available
+                    self.COL_RESULT_SENTENCE_QUALITY:   [-1.0],
                 })
             ],
             axis = 0,
@@ -313,6 +342,49 @@ class ModelBackTest:
             )
             if com_idx != 0:
                 Log.log('   Result not 1st (in position #' + str(com_idx) + ')')
+
+        # Since the dataframe was built from concatenations, the indexes are all 0, we set them correctly
+        self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES] = \
+            self.test_stats[ModelBackTest.KEY_STATS_DF_SCORES].reset_index(drop=True)
+        return
+
+    """
+    Принципы подсчета очков
+      0 баллов: худшее, вообще не было распознано
+      1-4 балла: намерение было распознано, но могло быть улучшено
+      5 баллов: хорошо распознано
+    """
+    def evaluate_sentence_quality(
+            self,
+    ):
+        df_backtest_stats = self.test_stats[self.KEY_STATS_DF_SCORES]
+
+        #
+        # Case 1: Not detected at all
+        #
+        condition_not_correct = np.logical_not(df_backtest_stats[self.COL_RESULT_CORRECT_DETECTION])
+        df_backtest_stats.loc[condition_not_correct, self.COL_RESULT_SENTENCE_QUALITY] = 0.0
+        df_not_correct = df_backtest_stats[condition_not_correct]
+        Log.important(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': List of not correct detections:\n\r' + str(df_not_correct)
+        )
+
+        # All index values
+        index_range = self.TEST_TOP_X
+        Log.important(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Top detected index range = ' + str(index_range)
+        )
+
+        #
+        # Case 2: Detected
+        #
+        condition_correct = df_backtest_stats[self.COL_RESULT_CORRECT_DETECTION] == True
+        df_backtest_stats.loc[condition_correct, self.COL_RESULT_SENTENCE_QUALITY] = 5 * \
+            (index_range - df_backtest_stats[condition_correct][self.COL_RESULT_TOP_INDEX_DETECTED]) / index_range
+
+        return df_backtest_stats
 
     def run(
             self,
