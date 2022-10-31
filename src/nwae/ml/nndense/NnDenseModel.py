@@ -14,7 +14,7 @@ import sys
 
 # TODO Don't rely on buggy TF/Keras, write our own
 try:
-    from keras.utils import to_categorical
+    from tensorflow.keras.utils import to_categorical
     from tensorflow.keras.models import load_model
     # This one will not work in a multi-threaded environment
     #from keras.models import load_model

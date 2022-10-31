@@ -7,7 +7,7 @@ from nwae.ml.ModelInterface import ModelInterface
 try:
     from keras import models
     from keras import layers
-    from keras.utils import to_categorical
+    # from tensorflow.keras.utils import to_categorical
 except Exception as ex_keras:
     Log.warning(
         str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
