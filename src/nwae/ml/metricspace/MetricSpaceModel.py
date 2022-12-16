@@ -1020,7 +1020,12 @@ class MetricSpaceModel(modelIf.ModelInterface):
                     )
                 rfv = rfv / normalize_factor
                 # A single array will be created as a column dataframe, thus we have to name the index and not columns
-                df_x_ref.at[cs] = rfv
+                """
+                For pandas >1.3, we can no longer assign a numpy array to a row, so need to do 1 by 1
+                """
+                for i_col in range(len(rfv)):
+                    df_x_ref.loc[cs, df_x_ref.columns[i_col]] = rfv[i_col]
+                # df_x_ref.at[cs] = rfv
 
                 check_normalized = np.sum(np.multiply(rfv,rfv))**0.5
                 if abs(check_normalized-1) > const.Constants.SMALL_VALUE:

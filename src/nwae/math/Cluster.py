@@ -231,11 +231,18 @@ class Cluster:
             dist = np.power(dist, 0.5)
             # Convert to a row matrix
             dist = dist.transpose()
-            #print('dist:' + str(dist))
-            df_dist_to_cluster_centers.at[idx] = dist
+            # print('Type dist "' + str(type(dist)) + '": ' + str(dist))
+            """
+            For pandas >1.3, we can no longer assign a numpy array to a row, so need to do 1 by 1
+            """
+            # df_dist_to_cluster_centers.at[idx] = dist
+            for i_col in range(len(dist)):
+                df_dist_to_cluster_centers.loc[idx, df_dist_to_cluster_centers.columns[i_col]] = dist[i_col]
 
         # Transpose back
         df_dist_to_cluster_centers = df_dist_to_cluster_centers.transpose()
+        # print(pd.show_versions(as_json=True))
+        # print(df_dist_to_cluster_centers)
         lg.Log.debugdebug(
             'Cluster Code Book:\n\r' + str(np_cluster_labels)
             + '\n\rDistance to Cluster Centers:\n\r' + str(df_dist_to_cluster_centers)
